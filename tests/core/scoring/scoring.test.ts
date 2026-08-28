@@ -62,7 +62,7 @@ describe('tailorToOffer con el ejemplo de docs/scoring.md §6', () => {
     expect(ids(scored.profile.certifications)).toEqual(['cert-1', 'cert-2']);
     expect(ids(scored.profile.achievements)).toEqual(['ach-2']);
 
-    expect(scored.report.coverage['php']).toEqual(['exp-acme-1', 'exp-acme', 'skill-1', 'skill-2', 'cert-2']);
+    expect(scored.report.coverage['php']).toEqual(['exp-acme', 'exp-acme-1', 'skill-1', 'skill-2', 'cert-2']);
     expect(scored.report.coverage['kafka']).toEqual([]);
     expect(scored.report.decisions.find((decision) => decision.id === 'exp-acme-1')?.matchedTerms).toEqual(['php', 'symfony', 'performance']);
   });
