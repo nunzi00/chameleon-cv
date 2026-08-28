@@ -147,20 +147,23 @@ Inspección sin generación: lee el artefacto (con el mismo aviso de frescura), 
 **Resumen legible (por defecto).** Está pensado para decidir si merece la pena aplicar y qué reforzar; no es la auditoría por ítem:
 
 ```
-Oferta acme-backend.txt · 7 requisitos reconocidos · 5 años de experiencia exigidos
+Oferta acme-backend · 7 requisitos reconocidos · 5 años de experiencia exigidos
 Adecuación: 6 de 7 requisitos demostrados (86 %) · imprescindibles: 4 de 4
 
 Demostrados
-  php           required ×2  1.25  ← exp-acme-1, skill-1, skill-2, cert-2
-  symfony       required ×2  1.25  ← exp-acme, skill-2, cert-2
-  kubernetes    required     1.00  ← exp-acme-k8s, skill-3, cert-1
-  performance   required     1.00  ← exp-acme-1
-  backend       unknown      0.75  ← skill-1, skill-2
-  tech lead     desirable    0.50  ← exp-startup, skill-5, ach-2
+  php            required ×2   1.25  ← exp-acme, exp-acme-1, skill-1, skill-2, cert-2
+  symfony        required ×2   1.25  ← exp-acme, exp-acme-1, skill-1, skill-2, cert-2
+  kubernetes     required      1.00  ← exp-acme, exp-acme-k8s, skill-3, cert-1
+  performance    required      1.00  ← exp-acme-1
+  backend        unknown       0.75  ← skill-1, skill-2
+  tech lead      desirable     0.50  ← exp-startup, skill-5, ach-2
+
 No demostrados
-  kafka         desirable    0.50   (si lo tienes, etiquétalo o añade un alias en skills.csv)
+  kafka          desirable     0.50   (si lo tienes, etiquétalo o añade un alias en skills.csv)
+
 Carencias (la oferta lo pide y el perfil no lo tiene etiquetado)
   rendimiento · observabilidad · aws · gcp
+
 Mejores evidencias
   1. exp-acme · ACME Corp — Senior Backend Engineer (7.75)
   2. skill-2 · Symfony (3.75)
@@ -168,6 +171,8 @@ Mejores evidencias
   4. skill-1 · PHP (2.50)
   5. cert-2 · Symfony Certified Developer (2.50)
 ```
+
+(Salida real del comando sobre el dataset de ejemplo; las evidencias van en el orden del informe de selección. Un término da evidencia a todas las tags de su skill: `symfony` respalda también a `exp-acme-1` porque la skill Symfony está etiquetada con `php`.)
 
 **`--explain`.** Añade la auditoría por ítem (exactamente el bloque de `generate-cv --explain`), para depurar el etiquetado.
 
