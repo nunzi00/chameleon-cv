@@ -9,6 +9,7 @@ export function selectionProfileInput(): MasterProfileInput {
       headline: 'Ingeniera de software',
       summary: 'Resumen por defecto.',
       email: 'ada@example.com',
+      phone: '+34 600 000 000',
       location: { city: 'Madrid', country: 'España' },
       links: [{ label: 'GitHub', url: 'https://github.com/ada-ejemplo' }],
     },
