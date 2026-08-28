@@ -1,5 +1,7 @@
 # Roadmap del Proyecto: Chameleon CV
 
+> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2 en curso.**
+
 ## Stack Tecnológico: Node.js con TypeScript
 
 ## Épica: Generador de CVs Dinámicos
@@ -28,7 +30,9 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
 ### Hito 2: Evolución - Adaptación por Oferta de Empleo (Target: 1 semana post-MVP)
 
 -   [ ] **T-2.1: [NLP] Módulo de extracción de keywords de ofertas.** Implementar una función que reciba el texto de una oferta y extraiga entidades clave (tecnologías, skills) usando librerías como `natural` o, inicialmente, una combinación de regex y diccionarios predefinidos para mantenerlo ligero.
+    -   Especificación en `docs/scoring.md` (2026-08-28, pendiente de aprobación): el perfil como diccionario (tags + nombres y alias de skills), énfasis por secciones, pesos por tag, carencias con diccionario incorporado; sin `natural` en esta fase.
 -   [ ] **T-2.2: [CORE] Lógica de 'scoring' y selección.** Diseñar un algoritmo que puntúe los logros y skills del 'MasterProfile' en función de las keywords extraídas de la oferta.
+    -   Especificación en `docs/scoring.md` (2026-08-28, pendiente de aprobación): especialidad virtual inducida por la oferta + `selectForSpecialty` sin cambios; fórmula aditiva; reordenación solo de logros y skills; `MatchReport` con cobertura y carencias.
 -   [ ] **T-2.3: [GENERATOR] Mejorar el motor de plantillas.** Permitir que la plantilla renderice dinámicamente solo los 'N' mejores puntos para cada sección, basado en el scoring.
 -   [ ] **T-2.4: [CLI] Ampliar la CLI.** Añadir el comando `generate --from-job-offer <path_to_offer.txt>`.
 -   [ ] **T-2.5: [PARSER] Soporte básico para PDF (entrada).** Investigar e implementar `pdf-parse` para extraer texto de ofertas de empleo en formato PDF.
@@ -43,3 +47,8 @@ Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt
 -   [ ] **T-3.3: [LLM] Extracción estructurada de requisitos.** `JobRequirements` (skills, años, responsabilidades, keywords) validado con zod; caché local por hash de la oferta.
 -   [ ] **T-3.4: [LLM] Perfil a medida y análisis de adecuación.** `TailoredResult { profile, analysis }` validado con zod; el perfil pasa por `parseMasterProfile`; envío minimizado (perfil filtrado por especialidad, sin datos de contacto).
 -   [ ] **T-3.5: [CLI] Comando `match <url|fichero>`.** CV a medida + informe `strengths / perfectMatches / potentialGaps` en consola.
+
+### Backlog (mejoras registradas, pendientes de priorizar)
+
+-   [ ] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build-profile → generate-cv` (registrado 2026-08-28).
+-   [ ] **B-2: [CLI] `cv init`.** Copiar el dataset de ejemplo a `data/sources/` para arrancar un perfil nuevo (registrado 2026-08-28).
