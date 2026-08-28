@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { EXIT_FAILURE, EXIT_OK, runCli, type CliContext } from '../../src/cli';
-import type { LlmStatus } from '../../src/llm';
+import { MemoryLlmCache, type LlmStatus } from '../../src/llm';
 import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
@@ -26,6 +26,8 @@ function harness(status: LlmStatus): { context: CliContext; stdout: () => string
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: () => Promise.resolve(status),
+    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmCache: new MemoryLlmCache(),
   };
   return { context, stdout: () => out.join('') };
 }

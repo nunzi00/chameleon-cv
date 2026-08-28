@@ -47,3 +47,12 @@ export function describeLimits(limits: SectionLimits): string {
   ];
   return parts.filter((part): part is string => part !== undefined).join(', ');
 }
+
+/** `--proposals`: entre 1 y 3 propuestas por logro. */
+export function parseProposals(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 3) {
+    throw new InvalidArgumentError('debe ser un entero entre 1 y 3');
+  }
+  return parsed;
+}

@@ -27,7 +27,7 @@ import { NodeFileSystem, defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
 import { installTypst, typstStatus } from '../../src/typst';
-import { llmStatus } from '../../src/llm';
+import { MemoryLlmCache, llmStatus } from '../../src/llm';
 import { describeError } from '../../src/shared/errors';
 import { MemoryFileSystem, datasetTree, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
@@ -60,6 +60,8 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
+    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmCache: new MemoryLlmCache(),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -349,6 +351,22 @@ describe('contexto real y errores no estándar', () => {
 
   it('el estado del co-piloto del contexto real solo habla con loopback', async () => {
     expect(await createNodeContext().llmStatus({ env: { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } })).toMatchObject({ usable: false, health: { ok: false, code: 'unreachable' } });
+  });
+
+  it('el proveedor del contexto real sale de las variables CHAMELEON_LLM_* del proceso', () => {
+    const previous = process.env['CHAMELEON_LLM_PROVIDER'];
+    try {
+      delete process.env['CHAMELEON_LLM_PROVIDER'];
+      expect(createNodeContext().llmProvider()).toMatchObject({ ok: true, provider: { id: 'ollama', kind: 'local' } });
+      process.env['CHAMELEON_LLM_PROVIDER'] = 'gemini';
+      expect(createNodeContext().llmProvider()).toMatchObject({ ok: false, message: expect.stringContaining('no es un proveedor conocido') });
+    } finally {
+      if (previous === undefined) {
+        delete process.env['CHAMELEON_LLM_PROVIDER'];
+      } else {
+        process.env['CHAMELEON_LLM_PROVIDER'] = previous;
+      }
+    }
   });
 
   it('describeError da un mensaje legible para cualquier valor lanzado', () => {
