@@ -3,12 +3,12 @@
 | | |
 |---|---|
 | **Tarea** | T-1.3 · [PARSER] Parser para CSV |
-| **Estado** | **PROPUESTA v1 — pendiente de aprobación del Director de Ingeniería** (2026-08-28) |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v1, sin modificaciones). Especificación canónica de las fuentes CSV; T-1.3 implementada en `src/parsers/csv/`. |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Columnas, delimitadores y reglas de `skills.csv` y `certifications.csv`, y su mapeo a `MasterProfile`. Complementa `docs/formato-dataset.md`. |
-| **Decisión abierta** | §1: certificaciones en `certifications.csv` (recomendado) o en `certifications/*.md`. |
+| **Decisión §1** | Certificaciones en `certifications.csv` (aprobada). |
 
-## 1. Decisión pendiente: certificaciones en CSV o en Markdown
+## 1. Certificaciones en CSV (decidido)
 
 | Criterio | `certifications.csv` (recomendado) | `certifications/*.md` |
 |---|---|---|
@@ -17,7 +17,7 @@
 | Coherencia | Con el análisis estratégico («CSV para lo tabular») y con `skills.csv`: un solo parser tabular. | Con «una entidad por fichero» de las entidades narrativas. |
 | Coste de implementación | El parser CSV ya tiene que existir para skills; certificaciones = una tabla de columnas más. | Una fila más en la tabla de entidades Markdown. |
 
-Recomendación: **CSV**. La regla «una entidad por fichero» gana en las entidades narrativas porque tienen prosa y logros; las certificaciones no tienen ninguna de las dos cosas.
+Decisión del Director de Ingeniería (2026-08-28): **CSV**. La regla «una entidad por fichero» gana en las entidades narrativas porque tienen prosa y logros; las certificaciones no tienen ninguna de las dos cosas.
 
 ## 2. Reglas comunes a todos los CSV
 
@@ -84,7 +84,7 @@ Symfony Certified Developer,SensioLabs,2021,,symfony|php
 | Módulo | `src/parsers/csv/` con `CsvParser: SourceParser` (`extensions: ['.csv']`), despacho por ruta (`skills.csv`, `certifications.csv`) | Mismo contrato de plugin que Markdown; el cargador ya despacha por extensión. |
 | Tests | Unitarios sobre cadenas (comillas, `;`, `|`, columnas desconocidas, filas cortas, coerciones, errores con línea) + fixtures `skills.csv` y `certifications.csv` en `tests/fixtures/dataset/` | Cobertura 100 % en `src/parsers/csv/**`; el test de integración del dataset pasa a incluir skills y certificaciones. |
 
-## 7. Puntos que requieren decisión del Director
+## 7. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. Certificaciones en **CSV** (recomendado) o en Markdown (§1).
 2. Delimitador `,` con detección de `;` por cabecera (recomendado) frente a solo `,`.
