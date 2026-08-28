@@ -78,7 +78,7 @@ describe('fichero de revisión (canon C1/C9)', () => {
   it('resume y formatea con procedencia, casillas para lo aceptado y tachado con motivo para lo rechazado', () => {
     expect(reviewStats(items)).toEqual({ items: 5, proposals: 5, accepted: 4, rejected: 1, failed: 1, fromCache: 1 });
     const text = formatReview(
-      { generatedAt: '2026-08-28T20:00:00.000Z', specialty: 'backend', offer: 'acme-backend', provider: { id: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'default' }, promptVersion: 'improve.v1', temperature: 0, seed: 7 },
+      { task: 'improve', generatedAt: '2026-08-28T20:00:00.000Z', specialty: 'backend', offer: 'acme-backend', provider: { id: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'default' }, promptVersion: 'improve.v1', temperature: 0, seed: 7 },
       items,
     );
     expect(text).toBe(
@@ -140,6 +140,6 @@ describe('fichero de revisión (canon C1/C9)', () => {
         '',
       ].join('\n'),
     );
-    expect(formatReview({ generatedAt: 'x', provider: { id: 'ollama', baseUrl: 'u', model: 'm' }, promptVersion: 'improve.v1', temperature: 0, seed: 7 }, [])).toContain('- especialidad: ninguna (perfil completo) · oferta: ninguna\n');
+    expect(formatReview({ task: 'improve', generatedAt: 'x', provider: { id: 'ollama', baseUrl: 'u', model: 'm' }, promptVersion: 'improve.v1', temperature: 0, seed: 7 }, [])).toContain('- especialidad: ninguna (perfil completo) · oferta: ninguna\n');
   });
 });

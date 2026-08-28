@@ -27,7 +27,10 @@ export interface ReviewItem {
   readonly usage: LlmUsage;
 }
 
+export type ReviewTask = 'improve' | 'summarize';
+
 export interface ReviewHeader {
+  readonly task: ReviewTask;
   readonly generatedAt: string;
   readonly specialty?: string | undefined;
   readonly offer?: string | undefined;
@@ -58,22 +61,34 @@ export function reviewStats(items: readonly ReviewItem[]): ReviewStats {
   };
 }
 
+const TITLES: Readonly<Record<ReviewTask, string>> = {
+  improve: '# Revisión de logros (cv improve)',
+  summarize: '# Revisión del resumen profesional (cv summarize)',
+};
+
+const ADVICE: Readonly<Record<ReviewTask, string>> = {
+  improve:
+    'La IA sugiere; tú decides. Nada se ha modificado en `data/sources/`. Marca con `[x]` las propuestas que quieras adoptar y cópialas a tus fuentes (o aplícalas con `cv improve apply` cuando exista). Las propuestas tachadas incumplen el canon C2 (integridad semántica): el motivo está al lado.',
+  summarize:
+    'La IA sugiere; tú decides. Nada se ha modificado en `data/sources/`. Marca con `[x]` la propuesta que prefieras y cópiala al `summary` de `profile.md` o de la especialidad. Las propuestas tachadas incumplen el canon C2 (inventan cifras o entidades, o no mencionan ningún hecho clave); la cobertura indica qué hechos clave menciona cada una.',
+};
+
 export function formatReview(header: ReviewHeader, items: readonly ReviewItem[]): string {
   const stats = reviewStats(items);
   const lines: string[] = [
-    '# Revisión de logros (cv improve)',
+    TITLES[header.task],
     '',
     `- generado: ${header.generatedAt}`,
     `- especialidad: ${header.specialty ?? 'ninguna (perfil completo)'} · oferta: ${header.offer ?? 'ninguna'}`,
     `- proveedor: ${header.provider.id} (${header.provider.baseUrl}) · modelo: ${header.provider.model} · prompt: ${header.promptVersion} · temperatura ${header.temperature} · semilla ${header.seed}`,
-    `- logros: ${stats.items} · propuestas: ${stats.proposals} · aceptadas: ${stats.accepted} · rechazadas: ${stats.rejected} · fallidos: ${stats.failed} · desde caché: ${stats.fromCache}`,
+    `- ${header.task === 'improve' ? 'logros' : 'ítems'}: ${stats.items} · propuestas: ${stats.proposals} · aceptadas: ${stats.accepted} · rechazadas: ${stats.rejected} · fallidos: ${stats.failed} · desde caché: ${stats.fromCache}`,
     '',
-    'La IA sugiere; tú decides. Nada se ha modificado en `data/sources/`. Marca con `[x]` las propuestas que quieras adoptar y cópialas a tus fuentes (o aplícalas con `cv improve apply` cuando exista). Las propuestas tachadas incumplen el canon C2 (integridad semántica): el motivo está al lado.',
+    ADVICE[header.task],
     '',
   ];
   for (const item of items) {
     lines.push(`## ${item.id} · ${item.location}`, '');
-    lines.push(`Original: ${item.original}`);
+    lines.push(`Original: ${item.original.replace(/\n+/g, ' ')}`);
     if (item.impact !== undefined) {
       lines.push(`Impacto: ${item.impact}`);
     }
@@ -84,13 +99,19 @@ export function formatReview(header: ReviewHeader, items: readonly ReviewItem[])
     }
     item.proposals.forEach((proposal, index) => {
       const number = index + 1;
+      // Un resumen tiene varios párrafos: se indentan bajo la viñeta para que sigan siendo Markdown válido.
+      const text = proposal.text.replace(/\n+/g, '\n      ');
       if (proposal.verdict.accepted) {
-        lines.push(`- [ ] Propuesta ${number}: ${proposal.text}`);
+        lines.push(`- [ ] Propuesta ${number}: ${text}`);
       } else {
-        lines.push(`- ~~Propuesta ${number}: ${proposal.text}~~`);
+        lines.push(`- ~~Propuesta ${number}: ${text}~~`);
       }
       lines.push(`  - motivo: ${proposal.rationale}`);
       lines.push(`  - verificación: ${describeVerdict(proposal.verdict)}`);
+      const coverage = proposal.verdict.coverage;
+      if (coverage !== undefined && coverage.mentioned.length + coverage.missing.length > 0) {
+        lines.push(`  - cobertura: menciona ${coverage.mentioned.length === 0 ? 'ninguno' : coverage.mentioned.join(', ')} · no menciona: ${coverage.missing.length === 0 ? 'ninguno' : coverage.missing.join(', ')}`);
+      }
     });
     const origin = item.fromCache ? 'desde caché' : `${item.elapsedMs} ms`;
     const tokens = item.usage.promptTokens === undefined && item.usage.completionTokens === undefined ? '' : ` · tokens ${item.usage.promptTokens ?? '?'} + ${item.usage.completionTokens ?? '?'}`;

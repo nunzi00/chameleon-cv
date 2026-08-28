@@ -37,7 +37,7 @@ describe('buildStructuredView', () => {
       impact: '-40 % p95',
     });
     const startup = view.experience.find((item) => item.company === 'Startup');
-    expect(startup).toEqual({ role: 'Tech Lead', company: 'Startup', period: 'Jul 2024 – present', summary: [], achievements: [], technologies: '' });
+    expect(startup).toEqual({ id: 'exp-current', role: 'Tech Lead', company: 'Startup', period: 'Jul 2024 – present', summary: [], achievements: [], technologies: '' });
     expect(view.projects[0]).toMatchObject({ name: 'Chameleon CLI', role: 'Autora', meta: 'Aug 2026 – present · https://example.com/chameleon' });
     expect(view.certifications[0]).toEqual({ name: 'CKA', issuer: 'CNCF', date: 'May 10, 2022', url: 'https://example.com/cert' });
     expect(view.education[0]).toEqual({ degree: 'Grado en Ingeniería Informática', field: 'Software', institution: 'Universidad Ejemplo', period: '2010 – 2014' });

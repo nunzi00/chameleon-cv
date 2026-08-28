@@ -60,6 +60,7 @@
   ],
   "experience": [
     {
+      "id": "exp-acme",
       "role": "Senior Backend Engineer",
       "company": "ACME Corp",
       "period": "mar 2021 – jun 2024",
