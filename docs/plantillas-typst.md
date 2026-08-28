@@ -2,24 +2,25 @@
 
 | | |
 |---|---|
-| **Tarea** | T-3.4 · [RENDER] Diseño tipográfico y documentación final (Hito 3) |
-| **Estado** | Guía de usuario vigente desde el 2026-08-28. |
+| **Tarea** | T-3.4 · [RENDER] Diseño tipográfico y documentación final (Hito 3); T-5.1 · [RENDER] Sistema de temas (Hito 5) |
+| **Estado** | Guía de usuario vigente desde el 2026-08-28; actualizada el 2026-08-29 con los temas (T-5.1). |
 | **Autor** | Claude (Director Técnico) |
-| **Base** | `docs/typst-integration.md` (§3.3 contención, §4 lenguaje), `templates/typst/cv.typ` (implementación de referencia), `src/renderers/structured/view.ts` (contrato de datos). |
+| **Base** | `docs/typst-integration.md` (§3.3 contención, §4 lenguaje), `themes/default/template.typ` y `themes/default/theme.toml` (tema de referencia), `src/themes/` (cargador y validación), `src/renderers/structured/view.ts` (contrato de datos). |
 
 ## 1. Qué es una plantilla y qué recibe
 
 Con `--engine typst`, Chameleon CV no interpreta tu Markdown en Typst ni le pasa el perfil crudo: construye una **vista estructurada** (`StructuredView`), la serializa a JSON y genera un documento principal de dos líneas que importa tu plantilla y llama a su función `cv`:
 
 ```typst
-#import "/mi-plantilla.typ": cv
-#cv(json(bytes("…JSON de la vista…")))
+#import "/template.typ": cv
+#cv(json(bytes("…JSON de la vista…")), json(bytes("…JSON del tema…")))
 ```
 
-Tu plantilla, por tanto, debe **exportar una función `cv(d)`** que reciba un diccionario y devuelva contenido. Todo lo demás (página, fuentes, colores, orden de secciones) lo decides tú.
+Tu plantilla, por tanto, debe **exportar una función `cv(d, theme)`** que reciba la vista (§2) y el tema (§2.1) y devuelva contenido. Con `--theme <nombre>` eliges el tema —`themes/<nombre>/template.typ` más su `theme.toml`, buscado primero en `themes/` de tu proyecto y después entre los distribuidos—; con `-t` puedes usar una plantilla suelta, que recibe el mismo `theme`. Todo lo demás (página, fuentes, colores, orden de secciones) lo decides tú.
 
 ```bash
-cv generate-cv -s backend --format pdf --engine typst -t plantillas/mi-plantilla.typ
+cv generate-cv -s backend --format pdf --engine typst --theme mio
+cv generate-cv -s backend --format pdf --engine typst -t plantillas/mi-plantilla.typ   # plantilla suelta (recibe el tema default)
 ```
 
 ## 2. Contrato de datos (`d`)
@@ -50,16 +51,31 @@ Tipos compuestos:
 
 El JSON exacto del CV de ejemplo está en [`docs/poc/typst/cv-backend.json`](poc/typst/cv-backend.json). Los tabuladores llegan ya convertidos en espacios; nada lleva Markdown sin procesar.
 
-## 3. Cómo empezar: copia la plantilla de referencia
+## 2.1 Contrato del tema (`theme`)
 
-La forma recomendada es partir de [`templates/typst/cv.typ`](../templates/typst/cv.typ):
+El segundo argumento es el `theme.toml` del tema, ya validado por la CLI (`src/themes/schema.ts`): claves fijas, colores `#rrggbb` en minúsculas, números sin unidad (la plantilla los convierte: `theme.sizes.body * 1pt`, `theme.page.margins.top * 1mm`, `theme.spacing.leading * 1em`).
+
+| Clave | Contenido |
+|---|---|
+| `theme` | `name?` (debe coincidir con el directorio), `description?`, `version` (1). |
+| `colors` | `text` (cuerpo), `primary` (nombre y títulos de entrada), `secondary` (metadatos, fechas, etiquetas de sección), `accent` (enlaces), `rule` (reglas). |
+| `fonts` | `body`, `heading`, `mono`: familias disponibles en `templates/fonts`, embebidas en Typst o en `themes/<nombre>/fonts/`. |
+| `sizes` | `name`, `headline`, `contact`, `section`, `title`, `meta`, `body`, `footer`, `code`, en puntos (4–72). |
+| `spacing` | `leading`, `paragraph`, `list`, en em (0.1–4). |
+| `page` | `paper` (`a4`, `a5`, `a3`, `us-letter`, `us-legal`) y `margins.top/right/bottom/left` en milímetros (0–80). |
+
+Una clave desconocida o un valor fuera de rango se rechaza con su ruta antes de arrancar Typst; una plantilla que ignore el tema sigue siendo válida (solo tiene que aceptar el argumento).
+
+## 3. Cómo empezar: copia el tema de referencia
+
+La forma recomendada es copiar el tema [`themes/default`](../themes/default) a tu proyecto y editarlo:
 
 ```bash
-mkdir -p plantillas && cp templates/typst/cv.typ plantillas/mi-plantilla.typ
-cv generate-cv -s backend --format pdf --engine typst -t plantillas/mi-plantilla.typ
+cp -r /ruta/a/chameleon-cv/themes/default themes/mio
+cv generate-cv -s backend --format pdf --engine typst --theme mio
 ```
 
-Está organizada en cuatro partes reutilizables: **paleta y escala** (`ink`, `muted`, `rule`, `accent`, `sizes`), **runs y bloques** (`run`, `runs`, `blocks`, `achievement`: no necesitas tocarlas), **piezas** (`section`, `entry`, `technologies`, `container`, `row`) y el **documento** (`cv(d)`), donde está la página, la tipografía y el orden de las secciones. Cambiar colores, tamaños o márgenes es editar las dos primeras; reordenar o suprimir secciones, la última.
+`template.typ` está organizado en cuatro partes reutilizables: **estilos derivados del tema** (`styles(theme)`: colores, fuentes, tamaños, espaciados y márgenes ya convertidos a unidades Typst), **runs y bloques** (`run`, `runs`, `blocks`, `achievement`: no necesitas tocarlas), **piezas** (`section`, `entry`, `technologies`, `container`, `row`; todas reciben `s`, los estilos) y el **documento** (`cv(d, theme)`), donde está la página, la tipografía y el orden de las secciones. Cambiar colores, fuentes, tamaños, espaciados o márgenes es editar `theme.toml`; reordenar o suprimir secciones, la última parte de `template.typ`.
 
 Reglas del diseño de referencia, por si quieres conservarlas: jerarquía por tamaño y peso (nombre 24 pt, títulos de entrada 10,8 pt semibold, cuerpo 10 pt), secciones en versalitas espaciadas sobre una regla fina, fechas alineadas a la derecha en la misma línea que el título, skills en tabla de dos columnas, ubicación e impacto en gris, sin justificar ni partir palabras, y pie de página con nombre y `n / total` solo cuando hay más de una página. Los títulos de entrada y sección son «pegajosos» (`sticky: true`): nunca quedan huérfanos al final de una página.
 
@@ -69,7 +85,7 @@ La plantilla se ejecuta dentro del **contenedor** de `docs/typst-integration.md`
 
 - **Root = el directorio de tu plantilla** (`--root`). Puedes `#import` o `#read` ficheros que estén ahí (por ejemplo, otro `.typ` con tus helpers o una imagen), y nada fuera: `read("../…")` falla con «would escape the project root».
 - **Sin paquetes**: `#import "@preview/…"` falla en milisegundos (sin red y sin caché de paquetes). Copia lo que necesites a tu directorio.
-- **Fuentes**: solo las de `templates/fonts` (Source Sans 3 Regular, Semibold e Italic) y las embebidas en Typst (Libertinus Serif, New Computer Modern, DejaVu Sans Mono). No se leen fuentes del sistema; para reproducibilidad, si nombras otra familia obtendrás la sustitución de Typst. Con Source Sans 3, `set strong(delta: 200)` hace que la negrita use Semibold.
+- **Fuentes**: solo las de `templates/fonts` (Source Sans 3 Regular, Semibold e Italic), las de `themes/<nombre>/fonts/` si el tema las trae, y las embebidas en Typst (Libertinus Serif, New Computer Modern, DejaVu Sans Mono). No se leen fuentes del sistema; para reproducibilidad, si nombras otra familia obtendrás la sustitución de Typst. Con Source Sans 3, `set strong(delta: 200)` hace que la negrita use Semibold.
 - **Tiempo y tamaño**: 20 s y 32 MiB de PDF. Una plantilla que no compila devuelve el diagnóstico de Typst con código 1.
 - **Reproducibilidad**: la fecha del PDF la fija la CLI (`meta.updatedAt` del perfil o una constante); no la sobrescribas en `set document`.
 
@@ -89,9 +105,9 @@ typst compile main.typ pagina-{p}.png --format png --ppi 110 \
 Una plantilla completa y válida en veinte líneas (sin runs de resumen ni logros, solo para ver el contrato):
 
 ```typst
-#let cv(d) = {
-  set page(paper: "a4", margin: 2cm)
-  set text(font: "Source Sans 3", size: 10.5pt, lang: d.lang)
+#let cv(d, theme) = {
+  set page(paper: theme.page.paper, margin: 2cm)
+  set text(font: theme.fonts.body, size: theme.sizes.body * 1pt, lang: d.lang)
   text(size: 22pt, weight: "semibold")[#d.fullName]
   linebreak()
   d.contact.map(r => if r.at("link", default: none) != none { link(r.link, r.text) } else { r.text }).join()
