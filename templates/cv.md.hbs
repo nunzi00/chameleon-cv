@@ -1,0 +1,99 @@
+# {{fullName}}
+
+{{#if headline}}
+**{{headline}}**
+{{/if}}
+
+{{#if contact}}
+{{contact}}
+{{/if}}
+
+{{#if summary}}
+{{summary}}
+{{/if}}
+
+{{#if experience}}
+## {{labels.experience}}
+
+{{#each experience}}
+### {{role}} · {{company}}
+
+*{{period}}{{#if location}} · {{location}}{{/if}}*
+
+{{#if summary}}
+{{summary}}
+
+{{/if}}
+{{#each achievements}}
+- {{text}}{{#if impact}} ({{impact}}){{/if}}
+{{/each}}
+
+{{#if technologies}}
+*{{@root.labels.technologies}}:* {{technologies}}
+
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if projects}}
+## {{labels.projects}}
+
+{{#each projects}}
+### {{name}}{{#if role}} · {{role}}{{/if}}
+
+{{#if meta}}
+*{{meta}}*
+
+{{/if}}
+{{#if summary}}
+{{summary}}
+
+{{/if}}
+{{#each achievements}}
+- {{text}}{{#if impact}} ({{impact}}){{/if}}
+{{/each}}
+
+{{#if technologies}}
+*{{@root.labels.technologies}}:* {{technologies}}
+
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if skillGroups}}
+## {{labels.skills}}
+
+{{#each skillGroups}}
+- **{{label}}:** {{names}}
+{{/each}}
+
+{{/if}}
+{{#if achievements}}
+## {{labels.achievements}}
+
+{{#each achievements}}
+- {{text}}{{#if impact}} ({{impact}}){{/if}}
+{{/each}}
+
+{{/if}}
+{{#if education}}
+## {{labels.education}}
+
+{{#each education}}
+- **{{degree}}**{{#if field}} ({{field}}){{/if}} · {{institution}}{{#if period}} · {{period}}{{/if}}
+{{/each}}
+
+{{/if}}
+{{#if certifications}}
+## {{labels.certifications}}
+
+{{#each certifications}}
+- **{{name}}**{{#if issuer}} · {{issuer}}{{/if}}{{#if date}} · {{date}}{{/if}}{{#if url}} · [{{@root.labels.link}}]({{url}}){{/if}}
+{{/each}}
+
+{{/if}}
+{{#if languages}}
+## {{labels.languages}}
+
+{{#each languages}}
+- {{name}}: {{level}}
+{{/each}}
+{{/if}}

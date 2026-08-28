@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "csv-parse": "^7.0.2",
+    "handlebars": "^4.7.9",
     "remark-frontmatter": "^5.0.0",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5",
