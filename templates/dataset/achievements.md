@@ -1,0 +1,3 @@
+- Ponente en una conferencia de ejemplo sobre sistemas distribuidos. #comunidad
+  - date: 2025-10
+- Mentora de 5 personas en un programa de ejemplo. #liderazgo #comunidad

@@ -7,6 +7,7 @@ import { Command, CommanderError } from 'commander';
 import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-offer';
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
+import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseFormat } from './format';
 import type { CliContext } from './context';
@@ -23,6 +24,15 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .helpOption('-h, --help', 'muestra esta ayuda')
     .exitOverride()
     .configureOutput({ writeOut: context.stdout, writeErr: context.stderr });
+
+  program
+    .command('init')
+    .description('crea un espacio de trabajo: data/sources con un dataset de ejemplo y un .gitignore; nunca sobrescribe nada')
+    .argument('[dir]', 'directorio del espacio de trabajo', '.')
+    .option('--template <dir>', 'dataset de ejemplo alternativo', TEMPLATE_DATASET_DIR)
+    .action(async (directory: string, options: InitOptions) => {
+      onExit(await runInit(context, directory, options));
+    });
 
   program
     .command('validate')
