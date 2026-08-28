@@ -52,7 +52,7 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv init [dir]` | Crea un espacio de trabajo: `data/sources/` con el dataset de ejemplo (permisos 0600) y un `.gitignore` con `data/dist/` y `output/`. Si algún destino existe, lista los conflictos y no escribe nada. | `--template <dir>` (dataset de ejemplo alternativo) |
 | `cv validate` | Comprueba las fuentes sin escribir nada. | `-d, --data <dir>` (por defecto `data/sources`) |
 | `cv build` (alias `build-profile`) | Compila las fuentes y escribe el artefacto canónico: la puerta de calidad del perfil. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `--check` (no escribe; falla si las fuentes tienen problemas o el artefacto falta o no está al día) · `-v, --verbose` |
-| `cv generate-cv` | Genera el CV en Markdown o PDF a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
+| `cv generate-cv` | Genera el CV en Markdown o PDF (pdfkit o Typst) a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `--engine <pdfkit\|typst>` · `--typst-path <file>` · `--typst-any-version` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
@@ -151,6 +151,17 @@ Especificación: [`docs/scoring.md`](docs/scoring.md) y [`docs/trimming-cli.md`]
 ## Plantillas propias
 
 El CV se renderiza con Handlebars a partir de un modelo de vista ya formateado (fechas según el idioma, periodos, skills agrupadas por categoría, línea de contacto). La plantilla base es [`templates/cv.md.hbs`](templates/cv.md.hbs); cópiala, adáptala y pásala con `--template mi-plantilla.hbs`. La plantilla solo aplica al Markdown: el PDF (`--format pdf`) se maqueta con código a partir del mismo modelo de vista, con la fuente Source Sans 3 (licencia OFL, en `templates/fonts/`) embebida, y no admite `--stdout` ni `--template`. Las etiquetas de sección (`labels.experience`, `labels.present`…) salen del idioma (`meta.locale` del perfil o `--locale`): hay tablas en castellano e inglés.
+
+## Motor PDF de calidad editorial: Typst (opcional)
+
+`--format pdf` usa `pdfkit` por defecto (sin dependencias). Con `--engine typst` el CV se maqueta con [Typst](https://typst.app) a partir de la **misma vista estructurada** y la misma fuente embebida, con PDF etiquetado y determinista:
+
+```bash
+cv generate-cv -s backend --format pdf --engine typst            # busca Typst 0.15.1 en --typst-path, CHAMELEON_TYPST, la caché de usuario o el PATH
+cv generate-cv -s backend --format pdf --engine typst -t mi.typ  # plantilla propia (debe exportar `cv`; su directorio es el root)
+```
+
+Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin ficheros intermedios, `--root` limitado al directorio de la plantilla, entorno vacío con interruptor de red (ningún paquete `@preview` se descarga), solo las fuentes de `templates/fonts`, 20 s y 32 MiB de límite. No se descarga nada: instala Typst 0.15.1 desde https://github.com/typst/typst/releases o con tu gestor de paquetes (`cv typst install` llegará en T-3.3). Sin binario, código 2 y la instrucción; una plantilla que no compila, código 1 con el diagnóstico.
 
 ## Seguridad y privacidad
 
