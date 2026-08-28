@@ -1,0 +1,22 @@
+{
+  "name": "chameleon-cv",
+  "version": "0.1.0",
+  "description": "Chameleon CV: generador de CVs dinámicos y personalizados a partir de datos fuente (Markdown, CSV). CLI 100% local, sin telemetría.",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "nodemon --watch src --ext ts --exec \"ts-node src/index.ts\"",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
