@@ -23,7 +23,7 @@ import {
   type ProcessRunner,
   type TypstRenderOptions,
 } from '../../../src/renderers/typst';
-import { minimalProfileInput } from '../../fixtures/master-profile';
+import { fullProfileInput, minimalProfileInput } from '../../fixtures/master-profile';
 import { selectionProfile } from '../../fixtures/selection';
 
 const PDF = Buffer.from('%PDF-1.7 falso', 'latin1');
@@ -118,11 +118,20 @@ describe('renderTypstCv (runner simulado)', () => {
   });
 });
 
-const GOLDEN = readFileSync(join(__dirname, '../../fixtures/golden/cv-backend.pdf.txt'), 'utf8');
+const GOLDEN_PDFKIT = readFileSync(join(__dirname, '../../fixtures/golden/cv-backend.pdf.txt'), 'utf8');
+const GOLDEN_TYPST = readFileSync(join(__dirname, '../../fixtures/golden/cv-backend.typst.txt'), 'utf8');
+
+/** Palabras de un texto extraído, sin viñetas ni separadores de maquetación: lo que no puede perderse. */
+function contentWords(text: string): string[] {
+  return text
+    .split(/\s+/)
+    .filter((word) => word !== '' && word !== '•' && word !== '·')
+    .sort((a, b) => a.localeCompare(b, 'es'));
+}
 
 /** Con el binario real (CHAMELEON_TYPST): aceptación §6.3 y sondas de contención §3.2 de docs/typst-integration.md. */
 describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('renderTypstCv (binario real)', () => {
-  it('round-trip: el texto extraído del PDF de Typst es el golden de pdfkit; determinista, etiquetado, sin código', async () => {
+  it('round-trip: el texto extraído es el golden de Typst y contiene exactamente las palabras del golden de pdfkit; determinista, etiquetado, sin código', async () => {
     const first = await renderTypstCv(backend());
     const second = await renderTypstCv(backend());
     if (!first.ok || !second.ok) {
@@ -137,7 +146,24 @@ describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('renderTypstCv (bi
     for (const forbidden of ['/JavaScript', '/JS', '/Launch', '/OpenAction', '/AA', '/EmbeddedFile']) {
       expect(bytes).not.toContain(forbidden);
     }
-    expect(await extractPdfText(first.pdf)).toEqual({ ok: true, text: GOLDEN, pages: 1 });
+    const extracted = await extractPdfText(first.pdf);
+    expect(extracted).toEqual({ ok: true, text: GOLDEN_TYPST, pages: 1 });
+    // El diseño (T-3.4) reordena líneas —fechas a la derecha, versalitas, tabla de skills—, nunca el contenido.
+    expect(contentWords(GOLDEN_TYPST)).toEqual(contentWords(GOLDEN_PDFKIT));
+  });
+
+  it('pagina los CV largos con pie de página «nombre · n / total» y mantiene los títulos pegados a su contenido', async () => {
+    const input = fullProfileInput();
+    input.experience![0]!.achievements = Array.from({ length: 45 }, (_, index) => ({ id: `ach-${index}`, text: `Logro número ${index} con **texto** suficiente para ocupar una línea entera del documento y algo más.`, tags: ['php'] }));
+    const result = await renderTypstCv(parseMasterProfile(input));
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+    const extracted = await extractPdfText(result.pdf);
+    expect(extracted).toMatchObject({ ok: true, pages: 2 });
+    expect(extracted.ok && extracted.text).toContain('Ada Ejemplo · 1 / 2');
+    expect(extracted.ok && extracted.text).toContain('Ada Ejemplo · 2 / 2');
+    expect(extracted.ok && extracted.text).toContain('Logro número 44');
   });
 
   it('contención: una plantilla no puede salir del root, ni descargar paquetes, ni colgar el proceso', async () => {
