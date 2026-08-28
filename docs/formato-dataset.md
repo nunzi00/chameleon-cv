@@ -3,45 +3,43 @@
 | | |
 |---|---|
 | **Tarea** | T-1.2 · [PARSER] Parser para Markdown |
-| **Estado** | **PROPUESTA v1 — pendiente de aprobación del Director de Ingeniería** |
-| **Fecha** | 2026-08-28 |
+| **Estado** | **PROPUESTA v2 — pendiente de aprobación del Director de Ingeniería** (v1: 2026-08-28; v2: integra el análisis estratégico recogido en `docs/arquitectura.md`) |
 | **Autor** | Claude (Director Técnico) |
-| **Decide** | Cómo se escriben los datos fuente en Markdown y cómo se mapean a `MasterProfile` (`src/core/schema/`). |
+| **Decide** | Cómo se escriben las fuentes Markdown y cómo se mapean a `MasterProfile` (`src/core/schema/`). |
+| **Decisión abierta** | §3.1: un fichero por entidad (recomendado) o un único `profile.md`. |
 
 ## 1. Objetivo y alcance
 
-Definir el **contrato de entrada** del sistema antes de implementar su consumidor: qué ficheros forman un *dataset*, qué contiene cada uno y con qué reglas se convierten en un `MasterProfile` válido.
+Definir el **contrato de entrada** del sistema antes de implementar su consumidor: qué ficheros forman el dataset (`data/sources/`), qué contiene cada uno y con qué reglas se convierten en el `MasterProfile` que `cv build-profile` escribe en `data/dist/profile.json` (`docs/arquitectura.md` §2).
 
-Dentro del alcance: estructura de directorios, anatomía de los ficheros `.md`, sintaxis de los logros, reglas de mapeo, validación, errores y seguridad. Fuera del alcance (se cita solo lo necesario para que encaje): las columnas de `skills.csv` (T-1.3), la selección por especialidad (T-1.4/T-1.5) y el soporte multi-idioma avanzado (§11).
+Dentro del alcance: estructura del dataset, anatomía de los ficheros `.md`, sintaxis de los logros, reglas de mapeo, validación, errores y seguridad. Fuera del alcance: las columnas de `skills.csv` y `certifications.csv` (T-1.3), la selección por especialidad (T-1.4/T-1.5) y el multi-idioma avanzado (§11).
 
 ## 2. Principios de diseño
 
-1. **Markdown natural.** Los textos que de verdad importan en un CV (resumen, logros) se escriben como prosa y viñetas Markdown, no como YAML ni JSON.
-2. **Una entidad = un fichero.** Cada experiencia, proyecto, formación, certificación o especialidad es un `.md` propio. Escala, se navega bien en cualquier editor y el *diff* de git es legible.
-3. **Frontmatter = datos; cuerpo = texto.** Lo estructurado (fechas, tags, tecnologías) va en el frontmatter YAML; lo narrativo, en el cuerpo. No hay metadatos incrustados en la prosa salvo los `#hashtags` de los logros.
-4. **Mismo vocabulario que el esquema.** Las claves del frontmatter son los nombres de campo de `MasterProfile` (`company`, `role`, `tags`…). Solo hay tres azúcares sintácticos, enumerados en §8. Un único vocabulario en datos, código, errores y documentación.
-5. **Estricto por defecto.** Clave, sección, fichero o directorio desconocidos = error con fichero y línea. Un `compnay:` no se ignora en silencio.
-6. **Todos los errores de una vez**, con formato `ruta/fichero.md:línea: mensaje`.
-7. **Seguro y local.** Solo se leen ficheros del dataset, con límites de tamaño, YAML sin tipado automático ni alias, y el saneado del esquema como última barrera.
+1. **Markdown natural.** Los textos que importan en un CV (resumen, logros) se escriben como prosa y viñetas, no como YAML ni JSON.
+2. **Frontmatter = datos; cuerpo = texto.** Lo estructurado (fechas, tags, tecnologías) va en YAML; lo narrativo, en el cuerpo. El único metadato incrustado en la prosa son los `#hashtags` de los logros.
+3. **Mismo vocabulario que el esquema.** Las claves son los nombres de campo de `MasterProfile` (`company`, `role`, `tags`…), con tres azúcares enumerados en §8. Un único vocabulario en datos, código, errores y documentación.
+4. **Estricto por defecto.** Clave, sección, fichero o directorio desconocidos = error con fichero y línea. Un `compnay:` no se ignora en silencio.
+5. **Todos los errores de una vez**, con formato `ruta/fichero.md:línea: mensaje`.
+6. **Seguro y local.** Solo se leen ficheros del dataset, con límites de tamaño, YAML sin tipado automático ni alias, y el saneado del esquema como última barrera.
+7. **Un fichero = una contribución.** Cada fichero es una entrada independiente del parser (`SourceParser`, `docs/arquitectura.md` §2.2) que aporta una parte del perfil; el cargador las fusiona.
 
 ## 3. Estructura del dataset
 
-`--data <ruta>` apunta a un directorio con esta forma:
+Raíz: `data/sources/` (valor por defecto de `--data`).
 
 ```
-data/
+data/sources/
 ├── profile.md            # obligatorio · meta + datos personales + idiomas + resumen por defecto
 ├── specialties/          # una especialidad por fichero · el nombre del fichero es su id
 │   ├── backend.md
 │   └── engineering-manager.md
-├── experience/           # una experiencia por fichero
-│   ├── life5.md
-│   └── acme.md
-├── projects/             # un proyecto por fichero
-├── education/            # una formación por fichero
-├── certifications/       # una certificación por fichero
+├── experience/           # una experiencia por fichero            ┐
+├── projects/             # un proyecto por fichero                ├─ disposición A (§3.1)
+├── education/            # una formación por fichero              ┘
 ├── achievements.md       # logros transversales (lista de viñetas, misma sintaxis que «## Logros»)
 ├── skills.csv            # skills (T-1.3)
+├── certifications.csv    # certificaciones (T-1.3)
 └── README.md             # ignorado
 ```
 
@@ -52,9 +50,9 @@ data/
 | `experience/<nombre>.md` | `experience[]` | `exp-<nombre de fichero>` | no |
 | `projects/<nombre>.md` | `projects[]` | `proj-<nombre de fichero>` | no |
 | `education/<nombre>.md` | `education[]` | `edu-<nombre de fichero>` | no |
-| `certifications/<nombre>.md` | `certifications[]` | `cert-<nombre de fichero>` | no |
 | `achievements.md` | `achievements[]` | `ach-<posición>` | no |
 | `skills.csv` | `skills[]` | (T-1.3) | no |
+| `certifications.csv` | `certifications[]` | (T-1.3) | no |
 
 Reglas del recorrido:
 
@@ -62,7 +60,44 @@ Reglas del recorrido:
 - Los ficheros se procesan en **orden alfabético** dentro de cada directorio (orden de documento determinista: de él dependen las rutas de error y los ids posicionales). El orden cronológico lo decide el generador a partir de las fechas.
 - Se **ignoran**: ficheros y directorios ocultos (`.git`, `.obsidian`…), `README.md` en la raíz y los ficheros que no sean `.md` dentro de los directorios de entidades (p. ej. imágenes).
 - Es **error**: cualquier otro `.md`, `.csv` o directorio en la raíz (`experiencia/` es un error, no un olvido silencioso) y cualquier subdirectorio dentro de un directorio de entidades.
-- Varios idiomas o variantes = varios datasets (`data/es/`, `data/en/`); véase §11.
+- Varios idiomas o variantes = varios datasets (`data/sources/es/`, `data/sources/en/`); véase §11.
+
+### 3.1 Decisión abierta: disposición de las entidades narrativas
+
+El análisis estratégico sitúa experiencias, proyectos y formación **dentro de `profile.md`**; la v1 de esta propuesta los reparte en **un fichero por entidad**. Ambas disposiciones quedan especificadas para que la implementación arranque en cuanto se decida. El resto del documento (frontmatter, logros, mapeo, validación, seguridad) es común.
+
+**Disposición A — un fichero por entidad (recomendada).** La descrita en el árbol anterior.
+
+**Disposición B — un único `profile.md`.** Las entidades van en secciones `## Experiencia`, `## Proyectos`, `## Formación` y `## Especialidades`; cada entidad es un `### <título libre>` seguido de un bloque de código YAML con exactamente las mismas claves que tendría su frontmatter en A, su resumen y, en experiencias y proyectos, un `#### Logros`:
+
+````markdown
+## Experiencia
+
+### ACME Corp — Senior Backend Engineer
+```yaml
+id: exp-acme            # en B es obligatorio: no hay nombre de fichero del que derivarlo
+company: ACME Corp
+role: Senior Backend Engineer
+start: 2021-03
+end: 2024-06
+tags: [php, symfony, kubernetes]
+```
+Resumen de la experiencia.
+
+#### Logros
+- Reduje la latencia p95 un **40 %**. #performance #php
+````
+
+| Criterio | A · un fichero por entidad | B · `profile.md` único |
+|---|---|---|
+| Legibilidad y navegación | Cada experiencia/proyecto se abre y lee sola; 29 proyectos = 29 ficheros cortos. | Un fichero de cientos o miles de líneas (el dosier real tiene 29 repositorios, hoy ya repartidos en 29 ficheros). |
+| Convenciones que aprender | 1 nivel: frontmatter + `## Logros`. | 2 niveles: secciones `##`, entidades `###`, YAML en bloque de código, `#### Logros`. |
+| Ids | Del nombre de fichero, estables. | Obligatorios a mano en cada bloque (o posicionales, inestables al reordenar). |
+| *Diff* de git y edición concurrente | Un cambio toca un fichero. | Todo cambio toca el mismo fichero. |
+| Parser | Un documento → una entidad. | Máquina de estados por secciones y niveles de encabezado; más superficie de error. |
+| Vista de conjunto | Requiere abrir varios ficheros (o `build-profile` + `profile.json`). | Todo en pantalla con un solo fichero. |
+
+Recomendación: **A**. Argumento decisivo: el material real ya está organizado como un fichero por unidad (`~/Documents/cv-life5/01…29-*.md`), y `data/dist/profile.json` cubre la necesidad de «verlo todo junto» sin pagar la complejidad de B.
 
 ## 4. Anatomía de un fichero de entidad
 
@@ -95,7 +130,7 @@ Reglas del cuerpo:
 
 - El texto **antes del primer encabezado** es el `summary` (opcional). Se conserva el Markdown tal cual (los generadores emiten Markdown).
 - Solo se reconoce una sección: `## Logros` (alias `## Achievements`). Contiene **una única lista** de viñetas. Cualquier otro encabezado, o texto suelto dentro de la sección, es un error.
-- `experience` y `projects` admiten `## Logros`; `education` y `certifications` no (el esquema no lo contempla). El cuerpo de `certifications` debe estar vacío.
+- `experience` y `projects` admiten `## Logros`; `education` no (el esquema no lo contempla).
 
 ## 5. `profile.md`
 
@@ -125,7 +160,7 @@ languages:
 Resumen profesional por defecto, en Markdown. La especialidad puede sobrescribirlo.
 ```
 
-Mapeo: `schemaVersion`, `locale` y `updatedAt` → `meta`; `languages` → `languages`; el resto → `personal`; el cuerpo → `personal.summary`. No se admiten encabezados en el cuerpo.
+Mapeo: `schemaVersion`, `locale` y `updatedAt` → `meta`; `languages` → `languages`; el resto → `personal`; el cuerpo → `personal.summary`. En la disposición A no se admiten encabezados en el cuerpo; en la B, solo los de §3.1.
 
 ## 6. `specialties/<id>.md`
 
@@ -172,7 +207,6 @@ Los ids posicionales cambian si se reordena la lista; es aceptable porque nada l
 | `experience/` | `company`, `role`, `start` | `end`, `location`, `tags`, `technologies`, `id` |
 | `projects/` | `name` | `role`, `url`, `start`, `end`, `tags`, `technologies`, `id` |
 | `education/` | `institution`, `degree` | `field`, `start`, `end`, `tags`, `id` |
-| `certifications/` | `name` | `issuer`, `date`, `url`, `tags`, `id` |
 
 ### 8.2 Azúcar sintáctico (las únicas tres diferencias con el esquema)
 
@@ -197,8 +231,8 @@ Los ids posicionales cambian si se reordena la lista; es aceptable porque nada l
 
 Dos niveles, y siempre se reportan **todos** los problemas:
 
-1. **Por fichero.** Frontmatter + cuerpo se validan con el esquema zod del tipo correspondiente (`ExperienceSchema`…). Cada error lleva `fichero:línea` — la línea de la clave del frontmatter o de la viñeta del logro — y el mensaje del esquema, ya en castellano.
-2. **Global.** El `MasterProfile` ensamblado pasa por `validateMasterProfile` (unicidad de ids, etc.). El cargador traduce las rutas del esquema (`experience[3].id`) al fichero que las produjo.
+1. **Por fichero.** El parser valida su contribución con el esquema zod del tipo (`ExperienceSchema`…). Cada error lleva `fichero:línea` — la línea de la clave del frontmatter o de la viñeta del logro — y el mensaje del esquema, ya en castellano. Además devuelve la **procedencia** de cada elemento aportado (`Provenance`, `docs/arquitectura.md` §2.2).
+2. **Global.** El cargador fusiona las contribuciones (arrays concatenados; conflicto si dos fuentes fijan el mismo escalar) y pasa el resultado por `validateMasterProfile` (unicidad de ids, etc.), traduciendo las rutas del esquema (`experience[3].id`) a `fichero:línea` con la procedencia.
 
 Formato: `experience/acme.md:6: La fecha de fin no puede ser anterior a la de inicio (end)`.
 Los mensajes **no reproducen el contenido** del fichero (solo ruta, línea y clave): minimización de datos personales en logs y terminal.
@@ -209,46 +243,44 @@ Los mensajes **no reproducen el contenido** del fichero (solo ruta, línea y cla
 - Límites: 1 MiB por fichero, 64 KiB de frontmatter, 500 ficheros por dataset.
 - YAML failsafe: sin tipado implícito, sin etiquetas personalizadas, sin anchors/alias (`maxAliasCount: 0`); cero ejecución de código.
 - El esquema es la última barrera: caracteres de control, longitudes, esquemas de URL (`javascript:` rechazado), etc.
-- Sin red, sin telemetría. Recomendación operativa: `data/` contendrá datos personales reales; el repo no tiene remoto, y si algún día lo tuviera, `data/` debería excluirse o cifrarse.
+- Sin red, sin telemetría. `data/sources/` contendrá datos personales reales y `data/dist/profile.json` los replica en claro: `data/dist/` está en `.gitignore`; el repositorio no tiene remoto y, si algún día lo tuviera, `data/sources/` debería excluirse o cifrarse.
 
 ## 11. Fuera de alcance y evolución prevista
 
-- **Idiomas.** MVP: un dataset por idioma (`data/es/`, `data/en/`), sin cambios en el esquema. Evolución: ficheros de *overlay* `experience/acme.en.md` que sobrescriban solo los campos de texto; la extensión `.<locale>.md` queda **reservada** desde ahora (hoy es un error).
+- **Idiomas.** MVP: un dataset por idioma (`data/sources/es/`, `data/sources/en/`), sin cambios en el esquema. Evolución: ficheros de *overlay* `experience/acme.en.md` que sobrescriban solo los campos de texto; la extensión `.<locale>.md` queda **reservada** desde ahora (hoy es un error).
 - **Herencia de tags.** Si un logro sin tags debe heredar las de su experiencia a efectos de selección es una regla de selección, no de formato; se decidirá en T-1.4/T-1.5.
-- **Skills.** Solo por CSV en el MVP (T-1.3). La arquitectura admite `skills/*.md` si algún día se necesita texto por skill.
-- **Comando `validate`.** El cargador dejará listo un `chameleon validate --data <ruta>` casi gratis; se propondrá en T-1.5.
+- **Skills y certificaciones.** Solo por CSV en el MVP (T-1.3). La arquitectura de plugins admite `skills/*.md` si algún día se necesita texto por skill.
+- **Comando `validate`.** El cargador deja listo un `cv validate --data <ruta>` casi gratis; se propondrá en T-1.5 junto con `build-profile`.
 
 ## 12. Decisiones técnicas para la implementación
 
 | Decisión | Elección | Motivo |
 |---|---|---|
-| Parser Markdown | `unified` 11 + `remark-parse` 11 + `remark-frontmatter` 5 (mdast) | AST estándar con posiciones de línea (errores precisos), listas anidadas bien resueltas, ecosistema para futuros generadores. `marked` no aporta posiciones; `markdown-it` da posiciones pero con *tokens* planos, más trabajo para las sub-listas. |
+| Parser Markdown | `unified` 11 + `remark-parse` 11 + `remark-frontmatter` 5 (mdast) | AST estándar con posiciones de línea (errores precisos), listas anidadas bien resueltas, ecosistema para futuros renderers. `marked` no aporta posiciones; `markdown-it` da posiciones pero con *tokens* planos, más trabajo para las sub-listas. |
 | YAML | `yaml` 2.9 (schema `failsafe`, `maxAliasCount: 0`) | YAML 1.2, sin tipado implícito, rangos de nodos para dar la línea de cada clave. `gray-matter`/`js-yaml` tipan automáticamente fechas y números. |
 | ESM desde CommonJS | `require(esm)` nativo de Node (≥ 22.12) | Spike verificado el 2026-08-28: `tsc` (NodeNext) compila y `ts-node` ejecuta `unified`/`remark` en Node 26 sin avisos. Implica declarar `engines.node >= 22.12`. |
-| Módulos | `src/parsers/markdown/` (frontmatter, documento, logros, entidades) + `src/parsers/dataset/` (recorrido y ensamblado) | Parsers **puros sobre cadenas** (100 % cubribles sin disco); el sistema de ficheros se inyecta (`FileSystem` mínimo) y en tests se sustituye por uno en memoria. |
-| Resultado | `loadDataset(ruta) → { ok, profile } \| { ok: false, errors: DatasetError[] }` con `DatasetError { file, line?, message }` | Mismo patrón `Result` que `validateMasterProfile`; el CLI decide cómo imprimir. |
+| Módulos | `src/parsers/markdown/` (frontmatter, documento, logros, entidades → `MarkdownParser: SourceParser`) + `src/parsers/dataset/` (recorrido, fusión, procedencia, escritura del artefacto) | Parsers **puros sobre cadenas** (100 % cubribles sin disco); el sistema de ficheros se inyecta (`FileSystem` mínimo) y en tests se sustituye por uno en memoria. |
+| Resultado | `loadDataset(ruta) → { ok, profile } \| { ok: false, errors: DatasetError[] }` | Mismo patrón `Result` que `validateMasterProfile`; el CLI decide cómo imprimir. |
 | Tests | Unitarios por módulo + dataset sintético de fixtures (`tests/fixtures/dataset/`) que es, a la vez, el ejemplo canónico de este documento | Cobertura 100 % en `src/core/**` y `src/parsers/**` (el umbral se ampliará en `vitest.config.mts`). |
 
 ## 13. Alternativas consideradas
 
 | Alternativa | Por qué se descarta |
 |---|---|
-| Un único `cv.md` con todo en secciones `##`/`###` | Codificar ids, fechas y tags en encabezados o viñetas es frágil y poco legible; los ficheros crecen mal; el *diff* mezcla todo. |
 | Datos íntegros en YAML/JSON | Escribir logros y resúmenes en YAML es hostil; el Markdown es el formato natural del autor (el dosier existente ya es Markdown). |
 | Claves en castellano (`empresa`, `puesto`) | Dos vocabularios (datos vs esquema/código/errores) y una capa de traducción que mantener. Se puede añadir como alias más adelante si se echa en falta. |
 | Ids de logro por *slug* del texto | Cambian al reescribir el texto (lo más habitual al afinar un CV) y colisionan entre viñetas parecidas. Los posicionales son deterministas y explicables. |
 | `dates: {start, end}` anidado en el frontmatter | Fidelidad total al esquema a cambio de ergonomía en el campo que más se escribe. `start`/`end` planos ganan. |
 | Parser propio línea a línea | Los casos límite de Markdown (continuaciones, listas anidadas, `#` en código o URLs) reinventarían un parser real, peor. |
+| Leer las fuentes en cada `generate`, sin artefacto | Descartado por el análisis estratégico: el artefacto canónico da una sola fuente de verdad a generadores, CLI y LLM, y separa «editar» de «generar». |
 
 ## 14. Puntos que requieren decisión del Director
 
-Recomendación: **aprobar la propuesta tal cual**. Los puntos donde una opinión distinta cambiaría la implementación:
-
-1. Claves de frontmatter en **inglés** (= nombres del esquema) frente a castellano.
-2. Ids de logro **posicionales** (`exp-acme-3`) con `id:` explícito opcional.
-3. **Una entidad por fichero** también para `education/` y `certifications/` (uniformidad) frente a una lista única.
-4. **Un dataset por idioma** en el MVP, con la extensión `.<locale>.md` reservada para overlays futuros.
-5. Política **estricta** en la raíz del dataset (solo `README.md` se ignora; lo demás desconocido es error).
-6. Adoptar `remark`/`unified` (ESM) mediante `require(esm)` y fijar `engines.node >= 22.12`.
+1. **Disposición A o B** (§3.1). Recomendación: **A**.
+2. Claves de frontmatter en **inglés** (= nombres del esquema) frente a castellano. Recomendación: inglés.
+3. Ids de logro **posicionales** con `id:` explícito opcional. Recomendación: sí.
+4. **Un dataset por idioma** en el MVP, con `.<locale>.md` reservado para *overlays* futuros. Recomendación: sí.
+5. Política **estricta** en la raíz del dataset (solo `README.md` se ignora; lo demás desconocido es error). Recomendación: sí.
+6. Adoptar `remark`/`unified` (ESM) mediante `require(esm)` y fijar `engines.node >= 22.12`. Recomendación: sí.
 
 Con la aprobación (o las modificaciones que indique) se actualiza este documento a estado **APROBADO** y arranca la implementación de T-1.2.
