@@ -55,6 +55,8 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv generate-cv` | Genera el CV en Markdown o PDF (pdfkit o Typst) a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `--engine <pdfkit\|typst>` · `--typst-path <file>` · `--typst-any-version` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 | `cv typst install` | Descarga el release oficial de Typst 0.15.1 para tu plataforma, verifica su SHA-256 contra `src/typst/releases.json` y lo instala en la caché de usuario. Única operación de red de `cv`. | `--force` (reinstala) |
+| `cv improve` | Co-piloto: propone reescrituras con más impacto para los logros seleccionados y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--only <ids>` · `--proposals <1-3>` · `--max-length <n>` · `--max-items <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--build` |
+| `cv llm cache clear` | Vacía la caché local de respuestas del co-piloto. | — |
 | `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden y qué claves remotas hay definidas (solo nombres). Nunca envía datos. | — |
 | `cv typst status` | Qué binario de Typst se usaría (`--typst-path`, `CHAMELEON_TYPST`, caché, `PATH`), su versión y si es utilizable (código 0). | — |
 
@@ -183,15 +185,22 @@ cv generate-cv -s backend --format pdf --engine typst -t plantillas/mi-plantilla
 
 Tu plantilla solo tiene que exportar una función `cv(d)` que reciba la vista estructurada (nombre, contacto, resumen, experiencias, proyectos, skills, logros, formación, certificaciones e idiomas, con el Markdown en línea ya descompuesto en negritas, cursivas, código y enlaces). El contrato completo, las reglas del contenedor (qué puede leer e importar una plantilla) y un ejemplo mínimo están en [`docs/plantillas-typst.md`](docs/plantillas-typst.md).
 
-## Co-piloto de IA (en construcción)
+## Co-piloto de IA
 
-El Hito 4 añade un co-piloto que **sugiere** (reescribir logros, resumir, proponer etiquetas) y nunca decide ni escribe en tus fuentes; doctrina en [`docs/llm-integration.md`](docs/llm-integration.md). En esta versión solo está la base: proveedor local abstracto (Ollama nativo o cualquier servidor compatible con la API de OpenAI **en loopback**), seudonimización y el diagnóstico:
+El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C10) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos exigirán `--provider` explícito en cada orden (T-4.5).
 
 ```bash
-cv llm status   # proveedor y modelo locales que se usarían y si responden; código 0 si es utilizable. Nunca envía datos.
+cv llm status                                   # proveedor y modelo locales que se usarían y si responden (nunca envía datos)
+cv improve -s backend --top-n 3                 # propone reescrituras con más impacto para los logros de esa versión del CV
+cv improve -f oferta.pdf --compact              # … para los que sobreviven a la adaptación, usando los términos de la oferta
+cv improve --only exp-acme-1 --show-payload --dry-run   # muestra exactamente qué saldría (seudonimizado) sin enviar nada
+cv improve --show-prompt                        # imprime el prompt versionado (prompts/improve.v1.md)
+cv llm cache clear                              # vacía la caché local de respuestas
 ```
 
-Configuración solo por variables `CHAMELEON_LLM_PROVIDER` (`ollama` por defecto, o `openai-compatible`), `CHAMELEON_LLM_BASE_URL` (por defecto `http://127.0.0.1:11434` u `:8080`; cualquier dirección que no sea local se rechaza) y `CHAMELEON_LLM_MODEL` (por defecto `qwen2.5:7b-instruct`). Los proveedores remotos exigirán `--provider` explícito en cada orden (T-4.5); las claves solo se leerán de `CHAMELEON_OPENAI_API_KEY`/`CHAMELEON_ANTHROPIC_API_KEY` o de un fichero 0600.
+`cv improve` escribe un **fichero de revisión** (`output/revision-improve-<fecha>[-<esp>][-<oferta>].md`, permisos 0600) con, por logro, el original, cada propuesta y su **verificación**: el código comprueba —sin confiar en el modelo— que ninguna propuesta añade cifras, entidades o contexto que no estuvieran en el original ni omite cifras o entidades que sí estaban (canon C2, integridad semántica); las que fallan aparecen tachadas con el motivo (`VIOLATION_C2_FACT_OMITTED (40)`, `VIOLATION_C2_ENTITY_ADDED (Kubernetes)`…). Marca con `[x]` lo que quieras adoptar y cópialo a tus fuentes. Antes de enviar, la orden dice qué sale y a dónde: solo el texto del logro y su contexto inmediato, con tu nombre sustituido por `[NOMBRE]` (y las empresas por `[EMPRESA-n]` con `--redact-companies`); nunca email, teléfono, ubicación ni enlaces. Las respuestas válidas se guardan en tu caché de usuario (ficheros 0600) para que repetir sea gratis e idéntico (`--no-cache` para saltarla).
+
+Configuración solo por variables `CHAMELEON_LLM_PROVIDER` (`ollama` por defecto, o `openai-compatible`: llama.cpp `llama-server`, LM Studio…), `CHAMELEON_LLM_BASE_URL` (por defecto `http://127.0.0.1:11434` u `:8080`; cualquier dirección que no sea local se rechaza) y `CHAMELEON_LLM_MODEL` (por defecto `qwen2.5:7b-instruct`). Con un modelo de 7B en CPU cuenta con 20–40 s por logro: usa `--only`, `--top-n` y `--max-items` para acotar el lote.
 
 ## Seguridad y privacidad
 
