@@ -3,7 +3,7 @@
 Generador de CVs dinámicos y personalizados a partir de tus propias fuentes (Markdown y CSV). Mantienes **un solo conjunto de datos** —experiencias, proyectos, logros, habilidades— y generas un CV distinto para cada especialidad con un comando. Todo se procesa en local: sin red, sin telemetría.
 
 ```
-data/sources/ (tú editas)  ──cv build-profile──►  data/dist/profile.json  ──cv generate-cv──►  output/cv-<nombre>-<especialidad>.md | .pdf
+data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ──cv generate-cv──►  output/cv-<nombre>-<especialidad>.md | .pdf
 ```
 
 ## Requisitos
@@ -24,15 +24,13 @@ Sin `npm link`, cualquier comando se ejecuta como `npm run cv -- <comando> [opci
 ## Flujo de trabajo
 
 1. **Escribe tus fuentes** en `data/sources/` (formato en la sección siguiente). Para empezar, copia el dataset de ejemplo: `cp -r tests/fixtures/dataset/* data/sources/`.
-2. **Comprueba** que todo es válido:
+2. **Compila** el artefacto canónico (`data/dist/profile.json`, validado, permisos 0600). Es la puerta de calidad del perfil —el `tsc` de tus datos—: estricta, silenciosa si todo va bien y, si hay problemas, los verás **todos** a la vez con fichero y línea (`experience/acme.md:4: start: Fecha inválida: …`):
    ```bash
-   cv validate
+   cv build                 # compila (alias: build-profile)
+   cv build --check         # no escribe: falla si las fuentes tienen problemas o el artefacto no está al día (para CI)
+   cv validate              # solo comprueba las fuentes
    ```
-   Si hay problemas, los verás **todos** a la vez, con fichero y línea: `experience/acme.md:4: start: Fecha inválida: …`.
-3. **Compila** el artefacto canónico (`data/dist/profile.json`, validado, permisos 0600). Silencioso si todo va bien:
-   ```bash
-   cv build-profile
-   ```
+3. **Adapta** el CV a una oferta si quieres (sección «Adaptar el CV a una oferta de empleo»).
 4. **Genera** el CV:
    ```bash
    cv generate-cv --specialty backend            # output/cv-<nombre>-backend.md
@@ -42,16 +40,16 @@ Sin `npm link`, cualquier comando se ejecuta como `npm run cv -- <comando> [opci
    cv generate-cv -s backend --format pdf        # output/cv-<nombre>-backend.pdf (fuente embebida, sin dependencias externas)
    ```
 
-Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: experience/acme.md es más reciente que el artefacto; ejecuta «cv build-profile»`.
+Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: experience/acme.md es más reciente que el artefacto; ejecuta «cv build»`. Con `--build`, `generate-cv` y `analyze-offer` recompilan el artefacto antes de trabajar (equivale a un `cv build` previo).
 
 ## Comandos
 
 | Comando | Qué hace | Opciones |
 |---|---|---|
 | `cv validate` | Comprueba las fuentes sin escribir nada. | `-d, --data <dir>` (por defecto `data/sources`) |
-| `cv build-profile` | Compila las fuentes y escribe el artefacto canónico. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `-v, --verbose` |
-| `cv generate-cv` | Genera el CV en Markdown o PDF a partir del artefacto. | `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
-| `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
+| `cv build` (alias `build-profile`) | Compila las fuentes y escribe el artefacto canónico: la puerta de calidad del perfil. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `--check` (no escribe; falla si las fuentes tienen problemas o el artefacto falta o no está al día) · `-v, --verbose` |
+| `cv generate-cv` | Genera el CV en Markdown o PDF a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
+| `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
 

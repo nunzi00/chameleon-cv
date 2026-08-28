@@ -55,7 +55,7 @@ interface DatasetError { readonly file: string; readonly line?: number; readonly
 - Los parsers **no lanzan**: devuelven `Result`, igual que `validateMasterProfile`.
 - Nota técnica: la ruta forma parte de la entrada porque de ella salen el tipo de entidad y el `id` por defecto, y porque todo error debe señalar `fichero:línea`.
 
-### 2.3 Hidratación: `cv build-profile`
+### 2.3 Hidratación: `cv build` (antes `build-profile`, que se mantiene como alias; T-2.7)
 
 1. Recorre `data/sources/` aplicando los límites y reglas de seguridad de `docs/formato-dataset.md` §10.
 2. Despacha cada fichero al parser por extensión.
