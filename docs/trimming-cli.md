@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tareas** | T-2.3 · [GENERATOR] Solo los «N mejores» por sección · T-2.4 · [CLI] `--from-job-offer` y `cv analyze-offer` |
-| **Estado** | **PROPUESTA v1 — pendiente de aprobación del Director de Ingeniería** (2026-08-28) |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v1; los seis puntos de §8 ratificados y canonizados). T-2.3 en `src/core/scoring/trim.ts` y `summary.ts`; T-2.4 en `src/cli/`. |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Qué se recorta y con qué ranking, qué pasa con los ítems universales, cómo interactúan `--top-n`, `--from-job-offer` y `--specialty`, y qué produce `cv analyze-offer`. |
 | **Base** | `docs/scoring.md` (contrato `ScoredSelection`/`MatchReport`, doctrina «reordenación limitada») y `docs/selector-engine.md`. |
@@ -202,7 +202,7 @@ Salidas: 0 correcto · 1 datos (artefacto ausente o inválido, especialidad desc
 | `analyze-offer` | resumen legible por defecto, `--explain` y `--json` | Inspección ≠ auditoría ≠ integración; cada público tiene su formato sin duplicar lógica (`summarizeMatch`). |
 | Oferta por stdin (`-`) | sí | Pegar una oferta desde un portal es el caso real más frecuente; coste mínimo. |
 
-## 8. Puntos que requieren decisión del Director
+## 8. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. **Secciones recortables** (logros por contenedor y transversales, skills, proyectos, certificaciones) y **nunca** experiencias, formación e idiomas (§3.1). Recomendación: aprobar.
 2. **Regla de los universales**: puntúan 0, detrás de lo puntuado, se recortan como los demás; `#<especialidad>` para fijar; `#pin` al backlog (§3.3). Recomendación: aprobar.
