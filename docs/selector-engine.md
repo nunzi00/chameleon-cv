@@ -41,16 +41,17 @@ Pseudocódigo:
 
 ```
 V = set(S.tags) ∪ {S.id}
-explicit(tags) = tags.some(t => V.has(t))
+pinned(tags)   = tags.includes('pin')                           # tag reservada de anclaje (T-2.9, docs/consolidacion.md §4)
+explicit(tags) = pinned(tags) || tags.some(t => V.has(t))
 relevant(tags) = tags.length === 0 || explicit(tags)
 
 for section in [skills, certifications, education, achievements]:
-  keep item if relevant(item.tags)                              # reason: universal | matched | no-match
+  keep item if relevant(item.tags)                              # reason: pinned | universal | matched | no-match
 
 for section in [experience, projects]:
   own = relevant(item.tags)
   pulled = !own && item.achievements.some(a => explicit(a.tags))
-  keep item if own || pulled                                    # reason: universal | matched | via-achievements | no-match
+  keep item if own || pulled                                    # reason: pinned | universal | matched | via-achievements | no-match
   if kept: item.achievements = item.achievements.filter(a => relevant(a.tags))
 
 personal.headline = S.title; personal.summary = S.summary ?? personal.summary
@@ -111,6 +112,8 @@ El informe alimenta un `--explain` en la CLI (T-1.8): «`exp-startup` excluida: 
 4. **Idempotente**: seleccionar el resultado con la misma especialidad devuelve el mismo perfil.
 5. **Monótona respecto al etiquetado**: quitar tags a un ítem nunca lo excluye, y añadir tags nunca incluye un ítem que estaba excluido salvo que la tag esté en el vocabulario. Precisión (2026-08-28, tras la implementación): para un logro anidado la garantía se cumple *dentro de su contenedor*; si el logro era el único que arrastraba a su contenedor (`via-achievements`, §2.2.1), quitarle las tags hace que el contenedor —y con él el logro— deje de aparecer. Es la consecuencia directa de la regla aprobada, y la suite verifica explícitamente esa única excepción.
 6. **Explicable**: hay exactamente una decisión por ítem evaluado (incluidos los logros de contenedores conservados) y `included ⇔ reason ≠ 'no-match'`.
+
+Precisión (2026-08-28, T-2.9): la tag reservada `pin` cuenta como coincidencia explícita con **cualquier** especialidad (razón `pinned`, prioritaria sobre las demás), por lo que un logro anclado arrastra a su contenedor exactamente como una coincidencia de vocabulario. Los seis invariantes se mantienen: añadir `#pin` solo añade ítems (monotonía) y quitarlo solo puede excluirlos. `pin` no puede ser id ni tag de una especialidad (lo rechaza el esquema).
 
 ## 3. Ejemplos antes/después
 

@@ -190,6 +190,7 @@ La misma sintaxis vale dentro de `## Logros` y en `achievements.md` (que solo co
 |---|---|
 | Texto | El primer (y único) párrafo de la viñeta → `text`. Se conserva el Markdown en línea. Máximo 600 caracteres (esquema). |
 | Etiquetas | `#hashtags` **al final** del párrafo, separados por espacios → `tags`. Se retiran del texto. Un `#` en medio del texto, en código o en una URL no es una etiqueta. |
+| Anclaje | La etiqueta reservada `#pin` (T-2.9) fija el ítem: aparece en cualquier especialidad u oferta, va primero y nunca se recorta. Vale también en `tags` del frontmatter y en la columna `tags` de los CSV; una especialidad no puede usarla. |
 | Metadatos | Sub-lista de `clave: valor`. Claves admitidas: `impact`, `date`, `id`. Clave desconocida = error. El valor es el resto de la línea. |
 | Id por defecto | `<id del padre>-<n>` (`exp-acme-1`, `exp-acme-2`…) o `ach-<n>` en `achievements.md`, con `n` = posición 1-based en la lista. `id:` explícito lo sustituye. |
 | Errores | Viñeta sin texto, más de un párrafo, sub-lista con formato distinto de `clave: valor`, o sub-sub-listas. |

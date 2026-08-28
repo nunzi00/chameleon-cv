@@ -1,6 +1,6 @@
 # Roadmap del Proyecto: Chameleon CV
 
-> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2: todas las tareas (T-2.1–T-2.6) cerradas el 2026-08-28 — 372 tests, 100 % de cobertura; pendiente de declaración por el Director de Ingeniería.**
+> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2 (Adaptación Dinámica) declarado COMPLETO Y VALIDADO por el Director de Ingeniería el 2026-08-28.** **Hito 2.5 (consolidación): T-2.7, T-2.8 y T-2.9 cerradas el 2026-08-28 — 392 tests, 100 % de cobertura; pendiente de declaración.** B-4 (Typst) permanece en el backlog.
 
 ## Stack Tecnológico: Node.js con TypeScript
 
@@ -59,11 +59,12 @@ Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt
     -   Hecho 2026-08-28: `src/cli/commands/build.ts` — `cv build [-d] [-o] [--check] [-v]` (`build-profile` queda como alias); `--check` no escribe y falla si las fuentes tienen problemas o el artefacto falta o no está al día (comparación semántica del contenido, no por fechas); `--build` en `generate-cv` y `analyze-offer` recompila antes de trabajar. Mensajes y docs apuntan a `cv build`.
 -   [x] **T-2.8: [CLI] `cv init` (ref. B-2).** Crear la estructura de directorios y los ficheros de ejemplo para arrancar un perfil nuevo.
     -   Hecho 2026-08-28: `src/cli/commands/init.ts` — `cv init [dir] [--template <dir>]` crea `data/sources/` desde el dataset distribuido en `templates/dataset/` (copia limpia de la fixture, con README para el usuario; un test comprueba que compila) y un `.gitignore` (`data/dist/`, `output/`) si no existe; nunca sobrescribe (lista conflictos, código 2); ficheros 0600; imprime los siguientes pasos.
--   [ ] **T-2.9: [CORE] Sintaxis de anclaje `#pin` (ref. B-3).** Fijar logros o ítems cruciales en cualquier oferta, por encima de los algoritmos de recorte.
+-   [x] **T-2.9: [CORE] Sintaxis de anclaje `#pin` (ref. B-3).** Fijar logros o ítems cruciales en cualquier oferta, por encima de los algoritmos de recorte.
+    -   Hecho 2026-08-28: tag reservada `pin` (`PIN_TAG`/`isPinned` en el esquema; rechazada como id o tag de especialidad). Selección: coincidencia explícita con cualquier especialidad (razón `pinned`, arrastra contenedor). Orden: anclados primero, luego puntuación, luego documento (reordenación por oferta y ranking del recorte). Recorte: nunca se recorta, consume plaza. Puntuación: no puntúa ni entra en el vocabulario. Docs precisadas en `selector-engine.md`, `scoring.md`, `trimming-cli.md`, `formato-dataset.md` y README.
 
 ### Backlog (mejoras registradas)
 
 -   [x] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build → generate-cv` (registrado 2026-08-28). → Entregado en T-2.7.
 -   [x] **B-2: [CLI] `cv init`.** Copiar el dataset de ejemplo a `data/sources/` para arrancar un perfil nuevo (registrado 2026-08-28). → Entregado en T-2.8.
--   [ ] **B-3: [CORE] Tag reservada `#pin`.** Fijar un ítem en cualquier oferta, no solo por especialidad (registrado 2026-08-28 en `docs/trimming-cli.md` §3.3).
+-   [x] **B-3: [CORE] Tag reservada `#pin`.** Fijar un ítem en cualquier oferta, no solo por especialidad (registrado 2026-08-28 en `docs/trimming-cli.md` §3.3). → Entregado en T-2.9.
 -   [ ] **B-4: [RENDER] Motor PDF opcional Typst.** `--engine typst` con plantilla `templates/cv.typ.hbs` cuando el binario esté instalado; máxima calidad tipográfica sin tocar el núcleo (registrado 2026-08-28 en `docs/pdf-integration.md` §3.3).

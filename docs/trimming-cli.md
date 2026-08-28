@@ -64,7 +64,7 @@ export interface TrimResult {
 export function applyLimits(profile: MasterProfile, limits: SectionLimits, scoreOf: (id: string) => number): TrimResult;
 ```
 
-`keepTop(items, n, scoreOf)`: se ordenan los índices por `(puntuación desc, índice asc)`, se conservan los `n` primeros y **los supervivientes mantienen el orden con el que llegaron** (para logros y skills, el orden por puntuación de T-2.2; para proyectos y certificaciones, el de documento). `undefined` = sin límite; `0` = la sección desaparece. `scoreOf` sale de `MatchReport.decisions`; sin oferta es `() => 0`.
+`keepTop(items, n, scoreOf)`: se ordenan los índices por `(anclado desc, puntuación desc, índice asc)`, se conservan los `max(n, nº de anclados)` primeros y **los supervivientes mantienen el orden con el que llegaron** (para logros y skills, el orden por puntuación de T-2.2; para proyectos y certificaciones, el de documento). `undefined` = sin límite; `0` = la sección desaparece (salvo anclados). `scoreOf` sale de `MatchReport.decisions`; sin oferta es `() => 0`. Precisión (2026-08-28, T-2.9): un ítem con la tag reservada `pin` **nunca se recorta**; consume plaza del límite y, si hay más anclados que plazas, sobreviven todos los anclados y ningún otro (`docs/consolidacion.md` §4).
 
 Pipeline completo: `selección → (puntuación) → recorte → render`.
 
@@ -74,7 +74,7 @@ Un ítem sin tags es **relevante para todo** (regla del selector) pero **no demu
 
 - Con oferta: va detrás de todo lo que puntúa; con `--top-n N`, un contenedor muestra primero sus N mejores logros puntuados y solo si sobran plazas entran los universales, en orden de documento. Es el primero en caer, nunca el único.
 - Sin oferta: todos puntúan 0, manda el orden de documento; el usuario controla el recorte escribiendo primero lo más importante.
-- Un ítem que **siempre** deba aparecer para una especialidad se fija con la tag `#<id-de-especialidad>` (ya soportado). Fijarlo para *cualquier* oferta (tag reservada `#pin`) queda en el *backlog* (B-3) hasta que haga falta.
+- Un ítem que **siempre** deba aparecer para una especialidad se fija con la tag `#<id-de-especialidad>` (ya soportado). Fijarlo para *cualquier* especialidad u oferta se hace con la tag reservada `#pin` (B-3, entregada en T-2.9 el 2026-08-28: relevante siempre, primero en el orden y nunca recortado; `docs/consolidacion.md` §4).
 
 ### 3.4 Preset `--compact`
 
@@ -193,7 +193,7 @@ Salidas: 0 correcto · 1 datos (artefacto ausente o inválido, especialidad desc
 ## 6. Fuera de alcance y backlog
 
 - **T-2.5**: la oferta en PDF pasa a texto y entra por la misma puerta (`readOfferText`).
-- **B-3 (backlog)**: tag reservada `#pin` para fijar ítems en cualquier oferta (§3.3).
+- **B-3**: tag reservada `#pin` para fijar ítems en cualquier oferta (§3.3) — entregada en T-2.9 (2026-08-28).
 - **Hito 3**: `analyze-offer --json` es la salida que consumirá el «co-piloto».
 
 ## 7. Decisiones técnicas

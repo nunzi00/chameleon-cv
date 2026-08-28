@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tareas** | T-2.7 · [CLI] `cv build` unificado (ref. B-1) · T-2.8 · [CLI] `cv init` (ref. B-2) · T-2.9 · [CORE] tag reservada `#pin` (ref. B-3) |
-| **Estado** | **EN EJECUCIÓN** por orden del Director de Ingeniería del 2026-08-28 («Ejecute»). Las decisiones de diseño de §2–§4 las toma el Director Técnico en ejecución y quedan registradas aquí para su revisión; ninguna altera las doctrinas aprobadas (`selector-engine.md`, `scoring.md`, `trimming-cli.md`, `pdf-integration.md`). |
+| **Estado** | **ENTREGADO** el 2026-08-28 (T-2.7, T-2.8 y T-2.9 implementadas y verificadas; 392 tests, 100 % de cobertura), pendiente de revisión del Director de Ingeniería. Ejecutado por su orden del 2026-08-28 («Ejecute»); las decisiones de diseño de §2–§4 las tomó el Director Técnico en ejecución y quedan registradas aquí para su revisión; ninguna altera las doctrinas aprobadas (`selector-engine.md`, `scoring.md`, `trimming-cli.md`, `pdf-integration.md`). |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Qué unifica `cv build` y cómo se comporta como puerta de calidad; qué crea `cv init` y cómo evita pisar nada; qué significa exactamente anclar un ítem con `#pin` en selección, orden y recorte. |
 | **Base** | `ROADMAP.md` (backlog B-1..B-3), `docs/arquitectura.md` §2.3–2.4, `docs/trimming-cli.md` §3.3. |

@@ -118,6 +118,16 @@ La regla de selección cabe en una frase: **sin tags, siempre; con tags, solo si
 
 Detalles y ejemplos en [`docs/selector-engine.md`](docs/selector-engine.md).
 
+## Anclar lo imprescindible: `#pin`
+
+La etiqueta reservada `#pin` fija un ítem por encima de cualquier algoritmo: aparece en **toda** especialidad u oferta, va **primero** en su sección y **nunca se recorta** (`--top-n`, `--max-*`, `--compact`). Sirve para logros, experiencias, proyectos, skills y certificaciones; en Markdown va al final de la viñeta o en `tags` del frontmatter, y en CSV en la columna `tags`:
+
+```markdown
+- Lideré la migración a Kubernetes sin ventana de parada. #kubernetes #pin
+```
+
+Anclar no cambia la adecuación medida: `pin` no puntúa ni forma parte del vocabulario de las ofertas, y `--explain` lo muestra como razón `pinned`. Un anclado consume plaza del límite; si hay más anclados que plazas, sobreviven todos ellos. Una especialidad no puede llamarse `pin` ni usar esa etiqueta.
+
 ## Adaptar el CV a una oferta de empleo
 
 Guarda la oferta en un fichero de texto **o en PDF** (el texto se extrae en un proceso aislado, con límites de 10 MiB y 50 páginas), o pégala por la entrada estándar, y:
