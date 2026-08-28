@@ -16,7 +16,9 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@types/mdast": "^4.0.4",
     "@types/node": "^26.4.0",
+    "@types/unist": "^3.0.3",
     "@vitest/coverage-v8": "^4.1.11",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
@@ -24,6 +26,13 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
+    "remark-frontmatter": "^5.0.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "yaml": "^2.9.0",
     "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
