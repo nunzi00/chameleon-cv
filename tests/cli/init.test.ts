@@ -9,6 +9,7 @@ import { EXIT_FAILURE, EXIT_OK, GITIGNORE_ENTRIES, SOURCE_MODE, TEMPLATE_DATASET
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
+import { installTypst, typstStatus } from '../../src/typst';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 
 interface Harness {
@@ -48,6 +49,8 @@ function harness(tree: Record<string, string | MemoryEntry> = TEMPLATE, override
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
+    typstInstall: (options, report) => installTypst(options, report),
+    typstStatus: (options) => typstStatus(options),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -169,6 +172,8 @@ describe('cv init', () => {
       parsers: defaultSourceParsers(),
       pdfExtractor: (bytes) => extractPdfText(bytes),
       typstRenderer: (profile, options) => renderTypstCv(profile, options),
+      typstInstall: (options, report) => installTypst(options, report),
+      typstStatus: (options) => typstStatus(options),
     };
     try {
       expect(TEMPLATE_DATASET_DIR.endsWith(join('templates', 'dataset'))).toBe(true);

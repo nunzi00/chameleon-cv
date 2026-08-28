@@ -66,7 +66,7 @@ export async function isReadableFile(path: string): Promise<boolean> {
 }
 
 export function notFoundMessage(): string {
-  return `No se encontró Typst ${TYPST_VERSION}: indica su ruta con --typst-path o ${TYPST_ENV_VARIABLE}, o instálalo en el PATH (${TYPST_RELEASES_URL})`;
+  return `No se encontró Typst ${TYPST_VERSION}: ejecuta «cv typst install», indica su ruta con --typst-path o ${TYPST_ENV_VARIABLE}, o instálalo en el PATH (${TYPST_RELEASES_URL})`;
 }
 
 export async function renderTypstCv(profile: MasterProfile, options: TypstRenderOptions = {}): Promise<TypstRenderResult> {

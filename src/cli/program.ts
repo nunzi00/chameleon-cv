@@ -8,6 +8,7 @@ import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-of
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
+import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
@@ -15,6 +16,7 @@ import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './d
 import { parseLimit } from './limits';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { packageVersion } from './version';
+import { TYPST_VERSION } from '../renderers/typst';
 
 export function createProgram(context: CliContext, onExit: (code: number) => void): Command {
   const program = new Command()
@@ -92,6 +94,21 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--build', 'recompila el artefacto desde las fuentes antes de analizar (equivale a un «cv build» previo)', false)
     .action(async (offer: string, options: AnalyzeOfferOptions) => {
       onExit(await runAnalyzeOffer(context, offer, options));
+    });
+
+  const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');
+  typst
+    .command('install')
+    .description(`descarga el release oficial de Typst ${TYPST_VERSION} para esta plataforma, verifica su SHA-256 contra el manifiesto del repositorio y lo instala en la caché de usuario (única operación de red de cv)`)
+    .option('--force', 'reinstala aunque ya exista un binario correcto', false)
+    .action(async (options: TypstInstallOptions) => {
+      onExit(await runTypstInstall(context, options));
+    });
+  typst
+    .command('status')
+    .description('muestra qué binario de Typst se usaría, su versión y de dónde sale')
+    .action(async () => {
+      onExit(await runTypstStatus(context));
     });
 
   return program;

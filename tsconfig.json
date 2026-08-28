@@ -32,6 +32,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true
   },
   "include": ["src/**/*"],

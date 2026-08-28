@@ -7,9 +7,12 @@ import type { MasterProfile } from '../core/schema';
 import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParser } from '../parsers';
 import { extractPdfText, type PdfExtractionResult } from '../pdf';
 import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
+import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
 import { readStdin } from './stdin';
 
 export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
+export type TypstInstaller = (options: InstallOptions, report: Reporter) => Promise<InstallResult>;
+export type TypstStatusReporter = (options: StatusOptions) => Promise<TypstStatus>;
 
 export interface CliContext {
   readonly cwd: string;
@@ -24,6 +27,10 @@ export interface CliContext {
   readonly pdfExtractor: (bytes: Uint8Array) => Promise<PdfExtractionResult>;
   /** Renderiza con Typst (proceso hijo contenido); inyectable para probar la CLI sin binario. */
   readonly typstRenderer: TypstRenderer;
+  /** `cv typst install`: la única operación de red; inyectable para probar la CLI sin red. */
+  readonly typstInstall: TypstInstaller;
+  /** `cv typst status`. */
+  readonly typstStatus: TypstStatusReporter;
 }
 
 export function createNodeContext(): CliContext {
@@ -41,5 +48,7 @@ export function createNodeContext(): CliContext {
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
+    typstInstall: (options, report) => installTypst(options, report),
+    typstStatus: (options) => typstStatus(options),
   };
 }
