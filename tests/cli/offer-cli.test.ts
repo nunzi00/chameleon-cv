@@ -27,6 +27,7 @@ import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../src/par
 import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
 import { installTypst, typstStatus } from '../../src/typst';
+import { llmStatus } from '../../src/llm';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 import { makePdf } from '../helpers/pdf';
 import { BACKEND_OFFER } from '../fixtures/offer';
@@ -75,6 +76,7 @@ function compiled(extra: Record<string, string | MemoryEntry> = {}, overrides: P
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
+    llmStatus: (options) => llmStatus(options),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };

@@ -5,6 +5,7 @@ import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { TYPST_VERSION, renderTypstCv } from '../../src/renderers/typst';
 import type { InstallOptions, InstallResult, TypstStatus } from '../../src/typst';
+import { llmStatus } from '../../src/llm';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
 interface Harness {
@@ -42,6 +43,7 @@ function harness(install: InstallResult, status: TypstStatus): Harness {
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall,
     typstStatus,
+    llmStatus: (options) => llmStatus(options),
   };
   return { context, installs, stdout: () => out.join(''), stderr: () => err.join('') };
 }
