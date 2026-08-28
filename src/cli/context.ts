@@ -8,14 +8,14 @@ import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParse
 import { extractPdfText, type PdfExtractionResult } from '../pdf';
 import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
 import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
-import { createNodeLlmCache, createProvider, llmStatus, resolveLlmConfig, type LlmCacheStore, type LlmProvider, type LlmStatus, type LlmStatusOptions } from '../llm';
+import { createNodeLlmCache, llmStatus, selectProvider, type LlmCacheStore, type LlmStatus, type LlmStatusOptions, type ProviderSelection, type ProviderSelectionResult } from '../llm';
 import { readStdin } from './stdin';
 
 export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
 export type TypstInstaller = (options: InstallOptions, report: Reporter) => Promise<InstallResult>;
 export type TypstStatusReporter = (options: StatusOptions) => Promise<TypstStatus>;
 export type LlmStatusReporter = (options: LlmStatusOptions) => Promise<LlmStatus>;
-export type LlmProviderResult = { readonly ok: true; readonly provider: LlmProvider } | { readonly ok: false; readonly message: string };
+export type LlmProviderResult = ProviderSelectionResult;
 
 export interface CliContext {
   readonly cwd: string;
@@ -36,15 +36,23 @@ export interface CliContext {
   readonly typstStatus: TypstStatusReporter;
   /** `cv llm status` (T-4.2): nunca envía datos; solo comprueba el proveedor local. */
   readonly llmStatus: LlmStatusReporter;
-  /** Proveedor de modelos configurado (T-4.3); inyectable para probar `cv improve` sin modelo. */
-  readonly llmProvider: () => LlmProviderResult;
+  /** Proveedor de modelos (T-4.3/T-4.5): local por defecto, remoto solo con `--provider` explícito; inyectable. */
+  readonly llmProvider: (selection: ProviderSelection) => Promise<LlmProviderResult>;
+  /** Confirmación interactiva (terminal): ausente cuando no hay TTY. */
+  readonly confirm?: ((question: string) => Promise<boolean>) | undefined;
   /** Caché local de respuestas del co-piloto. */
   readonly llmCache: LlmCacheStore;
   /** Reloj (por defecto, el del sistema): fechas de los ficheros de revisión. */
   readonly now?: (() => Date) | undefined;
 }
 
-export function createNodeContext(): CliContext {
+export interface NodeContextOptions {
+  /** Si hay terminal interactiva se instala `confirm` (preguntas s/N); por defecto, si stdin es un TTY. */
+  readonly interactive?: boolean | undefined;
+}
+
+export function createNodeContext(options: NodeContextOptions = {}): CliContext {
+  const interactive = options.interactive ?? process.stdin.isTTY === true;
   return {
     cwd: process.cwd(),
     stdout: (text) => {
@@ -62,10 +70,20 @@ export function createNodeContext(): CliContext {
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
-    llmProvider: () => {
-      const config = resolveLlmConfig();
-      return config.ok ? { ok: true, provider: createProvider(config.config) } : { ok: false, message: config.message };
-    },
+    llmProvider: (selection) => selectProvider(selection),
+    ...(interactive ? { confirm: askInTerminal } : {}),
     llmCache: createNodeLlmCache(),
   };
+}
+
+/** Pregunta sí/no en la terminal; solo se instala cuando stdin es un TTY. */
+export async function askInTerminal(question: string, input: NodeJS.ReadableStream = process.stdin, output: NodeJS.WritableStream = process.stderr): Promise<boolean> {
+  const { createInterface } = await import('node:readline/promises');
+  const readline = createInterface({ input, output });
+  try {
+    const answer = (await readline.question(question)).trim().toLowerCase();
+    return answer === 's' || answer === 'si' || answer === 'sí' || answer === 'y' || answer === 'yes';
+  } finally {
+    readline.close();
+  }
 }

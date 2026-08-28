@@ -53,7 +53,7 @@ function harness(tree: Record<string, string | MemoryEntry> = TEMPLATE, override
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
-    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
     ...overrides,
   };
@@ -179,7 +179,7 @@ describe('cv init', () => {
       typstInstall: (options, report) => installTypst(options, report),
       typstStatus: (options) => typstStatus(options),
       llmStatus: (options) => llmStatus(options),
-      llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+      llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
       llmCache: new MemoryLlmCache(),
     };
     try {

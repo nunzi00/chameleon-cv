@@ -45,7 +45,7 @@ function harness(tree: Record<string, string | MemoryEntry> = DATASET): Harness 
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
-    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };

@@ -44,7 +44,7 @@ function harness(install: InstallResult, status: TypstStatus): Harness {
     typstInstall,
     typstStatus,
     llmStatus: (options) => llmStatus(options),
-    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
   };
   return { context, installs, stdout: () => out.join(''), stderr: () => err.join('') };

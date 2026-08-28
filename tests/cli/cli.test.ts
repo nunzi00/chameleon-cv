@@ -60,7 +60,7 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
-    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
     ...overrides,
   };
@@ -353,13 +353,15 @@ describe('contexto real y errores no estándar', () => {
     expect(await createNodeContext().llmStatus({ env: { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } })).toMatchObject({ usable: false, health: { ok: false, code: 'unreachable' } });
   });
 
-  it('el proveedor del contexto real sale de las variables CHAMELEON_LLM_* del proceso', () => {
+  it('el proveedor del contexto real sale de las variables CHAMELEON_LLM_* del proceso', async () => {
     const previous = process.env['CHAMELEON_LLM_PROVIDER'];
     try {
       delete process.env['CHAMELEON_LLM_PROVIDER'];
-      expect(createNodeContext().llmProvider()).toMatchObject({ ok: true, provider: { id: 'ollama', kind: 'local' } });
+      expect(await createNodeContext().llmProvider({})).toMatchObject({ ok: true, provider: { id: 'ollama', kind: 'local' } });
+      expect(createNodeContext({ interactive: true }).confirm).toBeTypeOf('function');
+      expect(createNodeContext({ interactive: false }).confirm).toBeUndefined();
       process.env['CHAMELEON_LLM_PROVIDER'] = 'gemini';
-      expect(createNodeContext().llmProvider()).toMatchObject({ ok: false, message: expect.stringContaining('no es un proveedor conocido') });
+      expect(await createNodeContext().llmProvider({})).toMatchObject({ ok: false, message: expect.stringContaining('no es un proveedor conocido') });
     } finally {
       if (previous === undefined) {
         delete process.env['CHAMELEON_LLM_PROVIDER'];

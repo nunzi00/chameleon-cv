@@ -52,6 +52,22 @@ export interface VerifyOptions {
   readonly keyFacts?: readonly string[] | undefined;
 }
 
+/**
+ * Políticas de verificación (canon C10, 2026-08-28): cada tarea declara la suya; la más
+ * restrictiva es la política por defecto.
+ * - `strict` (improve): nada añadido —cifras, entidades ni contexto— y nada omitido.
+ * - `synthesis` (summarize): nada inventado —cifras ni entidades—; el contexto nuevo se admite
+ *   (una síntesis necesita conectores) y la omisión se mide sobre los hechos clave.
+ */
+export type VerificationPolicy = 'strict' | 'synthesis';
+
+export const DEFAULT_VERIFICATION_POLICY: VerificationPolicy = 'strict';
+
+/** Opciones del verificador para una política; `keyFacts` solo tiene sentido en `synthesis`. */
+export function policyOptions(policy: VerificationPolicy, keyFacts: readonly string[] = []): Pick<VerifyOptions, 'contextAdded' | 'keyFacts'> {
+  return policy === 'strict' ? { contextAdded: true } : { contextAdded: false, keyFacts };
+}
+
 type TokenKind = 'number' | 'technical' | 'proper' | 'word' | 'verb' | 'stop' | 'short';
 
 interface Token {

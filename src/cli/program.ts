@@ -9,7 +9,7 @@ import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
-import { runLlmStatus } from './commands/llm';
+import { runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
@@ -137,6 +137,9 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--dry-run', 'no envía nada: solo dice qué saldría y a dónde', false)
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
+    .option('--provider <id>', 'proveedor de modelos: ollama u openai-compatible (locales) o, con consentimiento explícito de red, openai o anthropic')
+    .option('--model <name>', 'modelo del proveedor elegido')
+    .option('--yes', 'acepta por adelantado el aviso de coste de un proveedor remoto', false)
     .option('--build', 'recompila el artefacto antes', false)
     .action(async (options: ImproveOptions) => {
       onExit(await runImproveCommand(context, options));
@@ -164,6 +167,9 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--dry-run', 'no envía nada: solo dice qué saldría y a dónde', false)
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
+    .option('--provider <id>', 'proveedor de modelos: ollama u openai-compatible (locales) o, con consentimiento explícito de red, openai o anthropic')
+    .option('--model <name>', 'modelo del proveedor elegido')
+    .option('--yes', 'acepta por adelantado el aviso de coste de un proveedor remoto', false)
     .option('--build', 'recompila el artefacto antes', false)
     .action(async (options: SummarizeOptions) => {
       onExit(await runSummarizeCommand(context, options));
@@ -172,9 +178,11 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');
   llm
     .command('status')
-    .description('muestra el proveedor y el modelo locales que se usarían (CHAMELEON_LLM_PROVIDER, CHAMELEON_LLM_BASE_URL, CHAMELEON_LLM_MODEL) y si responden')
-    .action(async () => {
-      onExit(await runLlmStatus(context));
+    .description('muestra el proveedor local que se usaría y si responde, la procedencia de las claves remotas (nunca su valor) y la lista blanca; con --provider <remoto> comprueba también ese proveedor')
+    .option('--provider <id>', 'proveedor a comprobar (openai o anthropic acceden a la red)')
+    .option('--model <name>', 'modelo del proveedor a comprobar')
+    .action(async (options: LlmStatusCommandOptions) => {
+      onExit(await runLlmStatus(context, options));
     });
   llm
     .command('cache')
