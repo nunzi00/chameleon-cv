@@ -12,6 +12,7 @@ interface StatLike {
   isFile(): boolean;
   isDirectory(): boolean;
   readonly size: number;
+  readonly mtimeMs: number;
 }
 
 /** Clasifica una entrada de directorio (`fs.Dirent`) sin seguir enlaces. */
@@ -31,12 +32,12 @@ export function entryKindOf(entry: EntryLike): EntryKind {
 /** Convierte un `fs.Stats` (que ya ha seguido enlaces) en `FileStat`. */
 export function fileStatOf(info: StatLike): FileStat {
   if (info.isFile()) {
-    return { kind: 'file', size: info.size };
+    return { kind: 'file', size: info.size, mtimeMs: info.mtimeMs };
   }
   if (info.isDirectory()) {
-    return { kind: 'directory', size: info.size };
+    return { kind: 'directory', size: info.size, mtimeMs: info.mtimeMs };
   }
-  return { kind: 'other', size: info.size };
+  return { kind: 'other', size: info.size, mtimeMs: info.mtimeMs };
 }
 
 /** Implementación real sobre `node:fs`. */

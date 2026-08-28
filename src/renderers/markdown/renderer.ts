@@ -11,9 +11,9 @@ import { buildCvView, type CvView } from './view';
 
 export interface RenderOptions {
   /** Locale para etiquetas y fechas; por defecto `meta.locale` y, en su ausencia, castellano. */
-  readonly locale?: string;
+  readonly locale?: string | undefined;
   /** Código fuente de una plantilla Handlebars propia; por defecto, `templates/cv.md.hbs`. */
-  readonly template?: string;
+  readonly template?: string | undefined;
 }
 
 export const DEFAULT_LOCALE = 'es';

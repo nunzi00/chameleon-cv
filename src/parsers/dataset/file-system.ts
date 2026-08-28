@@ -10,6 +10,8 @@ export interface DirectoryEntry {
 export interface FileStat {
   readonly kind: 'file' | 'directory' | 'other';
   readonly size: number;
+  /** Última modificación en milisegundos desde la época (para comprobar la frescura del artefacto). */
+  readonly mtimeMs: number;
 }
 
 /**

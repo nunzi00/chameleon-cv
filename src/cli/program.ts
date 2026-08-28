@@ -5,9 +5,10 @@
 import { Command, CommanderError } from 'commander';
 
 import { runBuildProfile, type BuildProfileOptions } from './commands/build-profile';
+import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import type { CliContext } from './context';
-import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR } from './defaults';
+import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { packageVersion } from './version';
 
@@ -21,6 +22,14 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .configureOutput({ writeOut: context.stdout, writeErr: context.stderr });
 
   program
+    .command('validate')
+    .description('comprueba las fuentes sin escribir nada')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .action(async (options: ValidateOptions) => {
+      onExit(await runValidate(context, options));
+    });
+
+  program
     .command('build-profile')
     .description(`compila las fuentes y escribe el artefacto canónico (por defecto ${DEFAULT_ARTIFACT_PATH})`)
     .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
@@ -31,11 +40,18 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     });
 
   program
-    .command('validate')
-    .description('comprueba las fuentes sin escribir nada')
-    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
-    .action(async (options: ValidateOptions) => {
-      onExit(await runValidate(context, options));
+    .command('generate-cv')
+    .description(`genera el CV en Markdown a partir del artefacto (por defecto en ${DEFAULT_OUTPUT_DIR}/cv-<nombre>[-<especialidad>].md)`)
+    .option('-s, --specialty <id>', 'especialidad a la que adaptar el CV; sin ella se genera el CV completo')
+    .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
+    .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
+    .option('-o, --output <file>', 'fichero de salida')
+    .option('-t, --template <file>', 'plantilla Handlebars propia (por defecto templates/cv.md.hbs)')
+    .option('-l, --locale <locale>', 'idioma de etiquetas y fechas (por defecto, el del perfil o «es»)')
+    .option('--explain', 'explica en stderr qué se ha incluido y por qué', false)
+    .option('--stdout', 'escribe el CV en la salida estándar en lugar de en un fichero', false)
+    .action(async (options: GenerateCvOptions) => {
+      onExit(await runGenerateCv(context, options));
     });
 
   return program;
