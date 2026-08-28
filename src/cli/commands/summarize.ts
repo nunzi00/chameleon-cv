@@ -13,6 +13,7 @@ import {
   SUMMARIZE_LIMITS,
   SUMMARIZE_PROMPT_VERSION,
   buildSummarizeFragment,
+  estimateBatch,
   formatReview,
   loadSummarizePrompt,
   reviewStats,
@@ -26,6 +27,7 @@ import { warnIfStale } from '../freshness';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK } from '../output';
 import { buildBeforeUse } from './build';
 import { OUTPUT_MODE } from './generate-cv';
+import { consentToRemote } from './remote';
 import { prepareSelection, type SelectionOptions } from './selection';
 
 export interface SummarizeOptions extends SelectionOptions {
@@ -42,6 +44,9 @@ export interface SummarizeOptions extends SelectionOptions {
   readonly showPrompt: boolean;
   readonly showPayload: boolean;
   readonly dryRun: boolean;
+  readonly provider?: string | undefined;
+  readonly model?: string | undefined;
+  readonly yes: boolean;
 }
 
 export const SUMMARIZE_DEFAULTS = { paragraphs: SUMMARIZE_LIMITS.paragraphs, proposals: SUMMARIZE_LIMITS.proposals, maxLength: SUMMARIZE_LIMITS.maxLength } as const;
@@ -98,7 +103,7 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
   const fragment = buildSummarizeFragment(profile, fragmentOptions);
   const words = fragment.corpus.split(/\s+/).filter((word) => word !== '').length;
 
-  const providerResult = context.llmProvider();
+  const providerResult = await context.llmProvider({ provider: options.provider, model: options.model });
   if (!providerResult.ok) {
     context.stderr(`${providerResult.message}\n`);
     return EXIT_FAILURE;
@@ -115,18 +120,26 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
     return EXIT_OK;
   }
 
-  const health = await provider.health();
-  if (!health.ok) {
-    context.stderr(`${health.message}\nComprueba el proveedor con «cv llm status»\n`);
-    return EXIT_FAILURE;
-  }
-  if (!health.modelAvailable) {
-    context.stderr(`El modelo «${provider.model}» no está disponible en ${provider.baseUrl}; comprueba «cv llm status»\n`);
-    return EXIT_FAILURE;
+  const prompt = await loadSummarizePrompt();
+  if (provider.kind === 'local') {
+    const health = await provider.health();
+    if (!health.ok) {
+      context.stderr(`${health.message}\nComprueba el proveedor con «cv llm status»\n`);
+      return EXIT_FAILURE;
+    }
+    if (!health.modelAvailable) {
+      context.stderr(`El modelo «${provider.model}» no está disponible en ${provider.baseUrl}; comprueba «cv llm status»\n`);
+      return EXIT_FAILURE;
+    }
+  } else {
+    const estimate = estimateBatch([[{ role: 'system', content: prompt }, { role: 'user', content: JSON.stringify(fragment.input) }]], SUMMARIZE_LIMITS.maxTokens);
+    if (!(await consentToRemote(context, provider, estimate, options.yes))) {
+      return EXIT_FAILURE;
+    }
   }
 
   const location = `Resumen profesional${options.specialty === undefined ? '' : ` · ${options.specialty}`}${offerName === undefined ? '' : ` · oferta ${offerName}`}`;
-  const item = await runSummarizeTask({ profile: artifact.profile, fragment, provider, prompt: await loadSummarizePrompt(), location, cache: options.cache ? context.llmCache : undefined, now });
+  const item = await runSummarizeTask({ profile: artifact.profile, fragment, provider, prompt, location, cache: options.cache ? context.llmCache : undefined, now });
   const review = formatReview(
     { task: 'summarize', generatedAt: now().toISOString(), specialty: options.specialty, offer: offerName, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: SUMMARIZE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
     [item],

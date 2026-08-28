@@ -8,7 +8,7 @@ import { dirname, resolve } from 'node:path';
 
 import { readProfileArtifact } from '../../artifact';
 import type { MasterProfile } from '../../core/schema';
-import { DEFAULT_SEED, DEFAULT_TEMPERATURE, IMPROVE_LIMITS, IMPROVE_PROMPT_VERSION, buildImproveFragment, formatReview, loadPrompt, reviewStats, runImproveBatch, type FragmentOptions } from '../../llm';
+import { DEFAULT_SEED, DEFAULT_TEMPERATURE, IMPROVE_LIMITS, IMPROVE_PROMPT_VERSION, buildImproveFragment, estimateBatch, formatReview, loadPrompt, reviewStats, runImproveBatch, type FragmentOptions } from '../../llm';
 import { describeError } from '../../shared/errors';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
@@ -16,6 +16,7 @@ import { warnIfStale } from '../freshness';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, pluralize } from '../output';
 import { buildBeforeUse } from './build';
 import { OUTPUT_MODE } from './generate-cv';
+import { consentToRemote } from './remote';
 import { prepareSelection, type SelectionOptions } from './selection';
 
 export interface ImproveOptions extends SelectionOptions {
@@ -33,6 +34,11 @@ export interface ImproveOptions extends SelectionOptions {
   readonly showPrompt: boolean;
   readonly showPayload: boolean;
   readonly dryRun: boolean;
+  /** `--provider`: selección explícita; un remoto es el consentimiento de red de esta orden. */
+  readonly provider?: string | undefined;
+  readonly model?: string | undefined;
+  /** `--yes`: acepta por adelantado el aviso de coste de un proveedor remoto. */
+  readonly yes: boolean;
 }
 
 export const IMPROVE_DEFAULTS = { proposals: IMPROVE_LIMITS.proposals, maxLength: IMPROVE_LIMITS.maxLength, maxItems: 20 } as const;
@@ -111,7 +117,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
   // Consentimiento visible (C3): qué sale y a dónde, antes de enviar nada.
   const fragments = ids.map((id) => buildImproveFragment(artifact.profile, id, fragmentOptions)).filter((fragment) => fragment !== undefined);
   const words = fragments.reduce((sum, fragment) => sum + fragment.input.text.split(/\s+/).length, 0);
-  const providerResult = context.llmProvider();
+  const providerResult = await context.llmProvider({ provider: options.provider, model: options.model });
   if (!providerResult.ok) {
     context.stderr(`${providerResult.message}\n`);
     return EXIT_FAILURE;
@@ -127,17 +133,30 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
     return EXIT_OK;
   }
 
-  const health = await provider.health();
-  if (!health.ok) {
-    context.stderr(`${health.message}\nComprueba el proveedor con «cv llm status»\n`);
-    return EXIT_FAILURE;
-  }
-  if (!health.modelAvailable) {
-    context.stderr(`El modelo «${provider.model}» no está disponible en ${provider.baseUrl} (${health.models.length === 0 ? 'no sirve ningún modelo' : `sirve: ${health.models.join(', ')}`}); comprueba «cv llm status»\n`);
-    return EXIT_FAILURE;
-  }
-
   const prompt = await loadPrompt();
+  if (provider.kind === 'local') {
+    const health = await provider.health();
+    if (!health.ok) {
+      context.stderr(`${health.message}\nComprueba el proveedor con «cv llm status»\n`);
+      return EXIT_FAILURE;
+    }
+    if (!health.modelAvailable) {
+      context.stderr(`El modelo «${provider.model}» no está disponible en ${provider.baseUrl} (${health.models.length === 0 ? 'no sirve ningún modelo' : `sirve: ${health.models.join(', ')}`}); comprueba «cv llm status»\n`);
+      return EXIT_FAILURE;
+    }
+  } else {
+    // Remoto (T-4.5): coste estimado y confirmación explícita antes de la primera petición.
+    const estimate = estimateBatch(
+      fragments.map((fragment) => [
+        { role: 'system' as const, content: prompt },
+        { role: 'user' as const, content: JSON.stringify(fragment.input) },
+      ]),
+      IMPROVE_LIMITS.maxTokens,
+    );
+    if (!(await consentToRemote(context, provider, estimate, options.yes))) {
+      return EXIT_FAILURE;
+    }
+  }
   const now = context.now ?? (() => new Date());
   const items = await runImproveBatch({
     profile: artifact.profile,

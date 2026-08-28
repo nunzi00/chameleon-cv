@@ -60,7 +60,7 @@ async function workspace(): Promise<{ context: CliContext; fs: MemoryFileSystem 
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: () => Promise.reject(new Error('no usado')),
-    llmProvider: () => ({ ok: true, provider: provider() }),
+    llmProvider: () => Promise.resolve({ ok: true as const, provider: provider() }),
     llmCache: new MemoryLlmCache(),
     now: () => new Date('2026-08-28T20:00:00.000Z'),
   };

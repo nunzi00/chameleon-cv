@@ -1,8 +1,9 @@
 /**
- * Cliente HTTP JSON contenido para proveedores de modelos (T-4.2, `docs/llm-integration.md`
- * §4.3 y §5): `fetch` nativo, sin SDKs; solo URLs permitidas por una política explícita (en
- * T-4.2, únicamente loopback: el interruptor de red es la propia política), sin redirecciones,
- * tiempo y tamaño de respuesta acotados, y errores tipificados. Ninguna clave pasa por aquí todavía.
+ * Cliente HTTP JSON contenido para proveedores de modelos (T-4.2/T-4.5, `docs/llm-integration.md`
+ * §4.3 y §5): `fetch` nativo, sin SDKs; solo URLs permitidas por una política explícita (loopback
+ * para los proveedores locales; https hacia una lista blanca de hosts para los remotos), sin
+ * redirecciones, tiempo y tamaño de respuesta acotados, y errores tipificados. Las cabeceras de
+ * autenticación las añade cada proveedor; nunca se registran ni se devuelven en los errores.
  */
 import { describeError } from '../shared/errors';
 
@@ -16,6 +17,7 @@ export interface JsonHttpRequest {
   readonly url: string;
   readonly method: 'GET' | 'POST';
   readonly body?: unknown;
+  readonly headers?: Readonly<Record<string, string>> | undefined;
   readonly timeoutMs?: number | undefined;
 }
 
@@ -40,6 +42,20 @@ export function isLoopbackUrl(url: string): boolean {
   }
   const host = parsed.hostname;
   return host === 'localhost' || host === '[::1]' || host === '::1' || /^127(?:\.\d{1,3}){3}$/.test(host);
+}
+
+/** Política remota: solo https y solo hacia los hosts de la lista blanca (comparación exacta, sin subdominios). */
+export function allowsHosts(allowedHosts: Iterable<string>): (url: string) => boolean {
+  const hosts = new Set([...allowedHosts].map((host) => host.trim().toLowerCase()).filter((host) => host !== ''));
+  return (url) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return false;
+    }
+    return parsed.protocol === 'https:' && hosts.has(parsed.hostname.toLowerCase());
+  };
 }
 
 export interface JsonHttpPolicy {
@@ -67,7 +83,7 @@ export function createJsonHttp(policy: JsonHttpPolicy, fetchImpl: typeof fetch =
     try {
       response = await fetchImpl(request.url, {
         method: request.method,
-        headers: { accept: 'application/json', ...(request.body === undefined ? {} : { 'content-type': 'application/json' }) },
+        headers: { accept: 'application/json', ...(request.body === undefined ? {} : { 'content-type': 'application/json' }), ...(request.headers ?? {}) },
         body: request.body === undefined ? null : JSON.stringify(request.body),
         redirect: 'error',
         signal: AbortSignal.timeout(request.timeoutMs ?? LLM_HTTP_LIMITS.timeoutMs),
@@ -101,5 +117,10 @@ export function createJsonHttp(policy: JsonHttpPolicy, fetchImpl: typeof fetch =
   };
 }
 
-/** Política de T-4.2: solo loopback. Los proveedores remotos (T-4.5) tendrán su lista blanca. */
+/** Política local: solo loopback. */
 export const loopbackOnlyHttp: JsonHttp = createJsonHttp({ allowUrl: isLoopbackUrl });
+
+/** Política remota (T-4.5): https hacia la lista blanca. */
+export function createRemoteHttp(allowedHosts: Iterable<string>, fetchImpl?: typeof fetch): JsonHttp {
+  return createJsonHttp({ allowUrl: allowsHosts(allowedHosts) }, fetchImpl);
+}

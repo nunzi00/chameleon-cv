@@ -3,7 +3,7 @@
  * proveedor → validación zod → verificador C2 → ítem del fichero de revisión. Un fallo en un
  * logro no aborta el lote. Sin I/O de ficheros: el comando decide dónde escribir.
  */
-import { verifyProposal, type Verdict } from '../core/llm/verify';
+import { policyOptions, verifyProposal, type Verdict } from '../core/llm/verify';
 import { DEFAULT_DICTIONARY, buildVocabulary } from '../core/keywords';
 import type { MasterProfile } from '../core/schema';
 import { cacheKey, type LlmCacheStore } from './cache';
@@ -56,7 +56,7 @@ function verifyAll(fragment: ImproveFragment, proposals: ReadonlyArray<{ readonl
   const original = fragment.redaction.restore(fragment.input.text);
   const allowed = [fragment.input.impact, fragment.input.context.role, fragment.input.context.company].filter((value): value is string => value !== undefined).map((value) => fragment.redaction.restore(value));
   return proposals.map((proposal) => {
-    const verdict: Verdict = verifyProposal(original, proposal.text, { allowed, vocabulary, maxLength: fragment.input.maxLength, locale: fragment.input.locale });
+    const verdict: Verdict = verifyProposal(original, proposal.text, { allowed, vocabulary, maxLength: fragment.input.maxLength, locale: fragment.input.locale, ...policyOptions('strict') });
     return { text: proposal.text, rationale: proposal.rationale, verdict };
   });
 }

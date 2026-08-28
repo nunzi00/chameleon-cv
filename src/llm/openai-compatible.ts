@@ -24,16 +24,22 @@ export interface OpenAiCompatibleOptions {
   readonly baseUrl?: string | undefined;
   readonly model?: string | undefined;
   readonly http?: JsonHttp | undefined;
+  /** Identidad del proveedor: `openai-compatible` (local) u `openai` (remoto, T-4.5). */
+  readonly id?: 'openai-compatible' | 'openai' | undefined;
+  readonly kind?: 'local' | 'remote' | undefined;
+  /** Cabeceras de autenticación (`Authorization: Bearer …`); nunca se registran. */
+  readonly headers?: Readonly<Record<string, string>> | undefined;
 }
 
 export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions = {}): LlmProvider {
   const baseUrl = (options.baseUrl ?? OPENAI_COMPATIBLE_DEFAULT_BASE_URL).replace(/\/+$/, '');
   const model = options.model ?? OPENAI_COMPATIBLE_DEFAULT_MODEL;
   const http = options.http ?? loopbackOnlyHttp;
+  const headers = options.headers;
 
   return {
-    id: 'openai-compatible',
-    kind: 'local',
+    id: options.id ?? 'openai-compatible',
+    kind: options.kind ?? 'local',
     baseUrl,
     model,
     async complete(request: LlmRequest): Promise<LlmCompletion> {
@@ -41,6 +47,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
       const result = await http({
         url: `${baseUrl}/v1/chat/completions`,
         method: 'POST',
+        headers,
         timeoutMs: request.timeoutMs,
         body: {
           model,
@@ -74,7 +81,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
       };
     },
     async health(): Promise<LlmHealth> {
-      const result = await http({ url: `${baseUrl}/v1/models`, method: 'GET', timeoutMs: LLM_HTTP_LIMITS.healthTimeoutMs });
+      const result = await http({ url: `${baseUrl}/v1/models`, method: 'GET', headers, timeoutMs: LLM_HTTP_LIMITS.healthTimeoutMs });
       if (!result.ok) {
         return { ok: false, code: httpErrorToLlm(result.code), message: `El servidor compatible con OpenAI no responde en ${baseUrl}: ${result.message}` };
       }

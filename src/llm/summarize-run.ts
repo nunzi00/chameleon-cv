@@ -3,7 +3,7 @@
  * cadena que `improve`: caché o proveedor → validación zod → verificador C2 (sin invención;
  * cobertura de hechos clave) → ítem del fichero de revisión.
  */
-import { verifyProposal } from '../core/llm/verify';
+import { policyOptions, verifyProposal } from '../core/llm/verify';
 import type { MasterProfile } from '../core/schema';
 import { cacheKey, type LlmCacheStore } from './cache';
 import { verificationVocabulary } from './improve-batch';
@@ -34,8 +34,7 @@ function verifyAll(options: SummarizeRunOptions, proposals: ReadonlyArray<{ read
       vocabulary,
       maxLength: options.fragment.input.maxLength,
       locale: options.fragment.input.locale,
-      contextAdded: false,
-      keyFacts: options.fragment.keyFacts,
+      ...policyOptions('synthesis', options.fragment.keyFacts),
     }),
   }));
 }

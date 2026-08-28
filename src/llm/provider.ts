@@ -36,12 +36,13 @@ export type LlmHealth =
   | { readonly ok: true; readonly version: string | undefined; readonly models: readonly string[]; readonly modelAvailable: boolean }
   | { readonly ok: false; readonly code: LlmErrorCode; readonly message: string };
 
-export type LlmProviderId = 'ollama' | 'openai-compatible';
+export type LocalProviderId = 'ollama' | 'openai-compatible';
+export type LlmProviderId = LocalProviderId | 'openai' | 'anthropic';
 
 export interface LlmProvider {
   readonly id: LlmProviderId;
-  /** En T-4.2 solo existen proveedores locales (loopback). */
-  readonly kind: 'local';
+  /** `local` = loopback; `remote` = https hacia la lista blanca, solo con `--provider` explícito (T-4.5). */
+  readonly kind: 'local' | 'remote';
   readonly baseUrl: string;
   readonly model: string;
   complete(request: LlmRequest): Promise<LlmCompletion>;

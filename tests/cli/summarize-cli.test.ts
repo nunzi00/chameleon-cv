@@ -85,7 +85,7 @@ async function harness(provider: LlmProviderResult | undefined, extra: Record<st
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: () => Promise.reject(new Error('no usado')),
-    llmProvider: () => provider ?? { ok: true, provider: fakeProvider(calls) },
+    llmProvider: () => Promise.resolve(provider ?? { ok: true as const, provider: fakeProvider(calls) }),
     llmCache: cache,
     now: () => NOW,
   };
