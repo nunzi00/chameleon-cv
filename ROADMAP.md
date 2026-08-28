@@ -10,13 +10,13 @@
     -   Hecho 2026-08-28: `src/core/schema/` (esquema zod como fuente única, tipos derivados, validación y saneado en tiempo de ejecución, unicidad de ids; 100 % de cobertura). Commits 9aee96e y a700395.
 -   [x] **T-1.2: [PARSER] Implementar parser para Markdown.** Crear un módulo usando una librería robusta como `marked` o `unified` para leer los ficheros .md y mapearlos a la interfaz 'MasterProfile'.
     -   Hecho 2026-08-28: formato aprobado (`docs/formato-dataset.md`, disposición A) e implementado en `src/parsers/markdown/` (unified/remark + yaml failsafe, errores `fichero:línea`) y `src/parsers/dataset/` (recorrido estricto, enlaces acotados, límites, fusión con procedencia, validación global). Dataset de ejemplo en `tests/fixtures/dataset/`. Node ≥ 22.12 (`engines`).
--   [ ] **T-1.3: [PARSER] Implementar parser para CSV.** Usar `csv-parse` para leer skills o proyectos desde un CSV y añadirlos al 'MasterProfile'.
-    -   Propuesta de formato CSV (2026-08-28): `docs/formato-csv.md`, pendiente de aprobación (decisión: certificaciones en CSV, recomendado, o en Markdown). `csv-parse` 7 (CJS + ESM, API síncrona) verificado en el registro.
+-   [x] **T-1.3: [PARSER] Implementar parser para CSV.** Usar `csv-parse` para leer skills o proyectos desde un CSV y añadirlos al 'MasterProfile'.
+    -   Hecho 2026-08-28: formato aprobado (`docs/formato-csv.md`; certificaciones en CSV) e implementado en `src/parsers/csv/` (`csv-parse` 7, cabecera con claves del esquema, «;» detectado, multivalor «|», ids posicionales, errores fichero:línea). `skills.csv` y `certifications.csv` en el dataset de ejemplo.
 -   [ ] **T-1.4: [GENERATOR] Implementar el motor de plantillas.** Configurar `Handlebars` o `EJS` para renderizar un CV en formato Markdown a partir de un 'MasterProfile' y una plantilla base.
 -   [ ] **T-1.5: [CLI] Crear la interfaz de línea de comandos básica.** Implementar con `commander.js` o `yargs`. El comando principal será `npx ts-node src/index.ts generate --specialty <name> --data <path> --output <path>`.
     -   Incluirá `build-profile` (hidratación `data/sources/` → `data/dist/profile.json`, `docs/arquitectura.md` §2.3); `generate` leerá el artefacto canónico y lo re-validará.
 -   [ ] **T-1.6: [TESTS] Pruebas unitarias.** Configurar `Jest` o `Vitest` para testear la lógica de los parsers y las funciones de selección de datos. Cobertura del 100% en la lógica de negocio.
-    -   En curso 2026-08-28: harness adelantado (Vitest 4 + cobertura v8 con umbral 100 % sobre `src/core/**` y, desde T-1.2, `src/parsers/**`; commit a700395). Pendiente: cubrir el parser CSV y la selección conforme se implementen T-1.3 a T-1.5.
+    -   En curso 2026-08-28: harness adelantado (Vitest 4 + cobertura v8 con umbral 100 % sobre `src/core/**` y, desde T-1.2, `src/parsers/**`; commit a700395). Pendiente: cubrir la selección y el generador conforme se implementen T-1.4 y T-1.5.
 
 ### Hito 2: Evolución - Adaptación por Oferta de Empleo (Target: 1 semana post-MVP)
 

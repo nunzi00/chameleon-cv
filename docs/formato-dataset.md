@@ -51,8 +51,8 @@ data/sources/
 | `projects/<nombre>.md` | `projects[]` | `proj-<nombre de fichero>` | no |
 | `education/<nombre>.md` | `education[]` | `edu-<nombre de fichero>` | no |
 | `achievements.md` | `achievements[]` | `ach-<posición>` | no |
-| `skills.csv` | `skills[]` | (T-1.3) | no |
-| `certifications.csv` | `certifications[]` | (T-1.3; según el análisis estratégico — confirmar en T-1.3 si se prefiere `certifications/*.md`) | no |
+| `skills.csv` | `skills[]` | `skill-<posición>` (`docs/formato-csv.md`) | no |
+| `certifications.csv` | `certifications[]` | `cert-<posición>` (`docs/formato-csv.md`) | no |
 
 Reglas del recorrido:
 
