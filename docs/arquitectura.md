@@ -72,7 +72,7 @@ interface DatasetError { readonly file: string; readonly line?: number; readonly
 
 ### 2.5 Renderers, no parsers
 
-Las salidas (Markdown y PDF) son *renderers*: `MasterProfile` + selección → fichero en `output/`. Ambos consumen el mismo modelo de vista (`CvView`): el Markdown pasa por una plantilla Handlebars; el PDF (T-2.6, `docs/pdf-integration.md`) se maqueta con código sobre `pdfkit`, con la fuente OFL Source Sans 3 embebida desde `templates/fonts/`, sin binarios externos ni red, y con salida reproducible byte a byte. Se descartaron `pandoc` (dependencia externa, LaTeX) y `puppeteer` (Chromium, ~300 MB, superficie de ataque); Typst queda como motor opcional en el backlog (B-4).
+Las salidas (Markdown y PDF) son *renderers*: `MasterProfile` + selección → fichero en `output/`. Ambos consumen el mismo modelo de vista (`CvView`): el Markdown pasa por una plantilla Handlebars; el PDF (T-2.6, `docs/pdf-integration.md`) se maqueta con código sobre `pdfkit`, con la fuente OFL Source Sans 3 embebida desde `templates/fonts/`, sin binarios externos ni red, y con salida reproducible byte a byte; desde T-3.2 (`docs/typst-integration.md`) ambos motores parten de una misma `StructuredView` (`src/renderers/structured/`) y `--engine typst` delega en el binario oficial de Typst ejecutado como proceso hijo contenido. Se descartaron `pandoc` (dependencia externa, LaTeX) y `puppeteer` (Chromium, ~300 MB, superficie de ataque); Typst queda como motor opcional en el backlog (B-4).
 
 ## 3. Capa de inteligencia: «co-piloto de carrera» (propuesto; en el roadmap como Hito 4 desde el 2026-08-28, al asignarse el Hito 3 a Typst)
 

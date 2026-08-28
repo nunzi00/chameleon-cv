@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-3.1 · [RESEARCH] Investigación y prueba de concepto de la integración con Typst (Hito 3, Representación Profesional) |
-| **Estado** | **PROPUESTA** v1 (2026-08-28), pendiente de aprobación por el Director de Ingeniería. PoC reproducible en `docs/poc/typst/`. |
+| **Estado** | **APROBADO** en su totalidad por el Director de Ingeniería el 2026-08-28 (los seis puntos de §7; principios canonizados: consentimiento explícito de red y ejecución en contenedor estricto). PoC reproducible en `docs/poc/typst/`. T-3.2 entregada (§8). |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Cómo se obtiene el compilador, cómo se le habla y cómo se le contiene, si su lenguaje cubre nuestro `CvView`, qué cuesta en tiempo y memoria, y con qué arquitectura (o si no) se integra. |
 | **Base** | `docs/pdf-integration.md` (§3.3 registró Typst como B-4), `docs/consolidacion.md`, renderer `pdfkit` de T-2.6 (`src/renderers/pdf/`). |
@@ -157,7 +157,7 @@ templates/typst/cv.typ             plantilla base (evolución del PoC); template
 - **Disco**: 56 MB en caché de usuario, fuera del repositorio; `cv typst status` informa de dónde.
 - **Plantillas de usuario**: código Typst con acceso de lectura a su propio directorio y sin red; equivalente al riesgo ya aceptado con `.hbs`.
 
-## 7. Puntos de decisión
+## 7. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. **Motor opcional**: Typst como `--engine typst`; `pdfkit` sigue por defecto. Recomendación: aprobar.
 2. **Obtención del binario**: sin descarga en `npm install`; `cv typst install` explícito con SHA-256 fijados por nosotros, o binario del sistema/`--typst-path`. Se descarta el *binding* en proceso de terceros. Recomendación: aprobar.
@@ -165,3 +165,10 @@ templates/typst/cv.typ             plantilla base (evolución del PoC); template
 4. **Datos por stdin como literal, nunca por `--input`** ni ficheros temporales. Recomendación: aprobar.
 5. **Plantilla**: `templates/typst/cv.typ` a partir del PoC, `--template *.typ` permitido con root = su directorio. Recomendación: aprobar.
 6. **Aceptación**: mismo round-trip golden que pdfkit + determinismo + presupuesto de 200 ms + tests de contención con binario real cuando esté disponible. Recomendación: aprobar.
+
+## 8. Estado de la implementación
+
+- **T-3.2 (2026-08-28)**: entregada. `src/renderers/structured/` (vista compartida; pdfkit la consume ya sin cambio de salida), `src/renderers/typst/` (`source.ts`, `engine.ts`, `renderer.ts`), `templates/typst/cv.typ` (evolución del PoC) y CLI `--engine pdfkit|typst`, `--typst-path`, `--typst-any-version`, `-t plantilla.typ`. La política de §3.3 está implementada tal cual; `--package-path`/`--package-cache-path` apuntan a un directorio inexistente y el entorno del hijo solo contiene el interruptor de red (más `SystemRoot` en Windows).
+- **Verificación**: 100 % de cobertura de la lógica con *runners* simulados y binarios de prueba (scripts reales para stdin, códigos, `SIGKILL` por tiempo, salida excesiva y `ENOENT`); con el binario real (variable `CHAMELEON_TYPST` al ejecutar Vitest) se ejecutan además el round-trip (texto idéntico al golden de pdfkit), el determinismo, la presencia de `/StructTreeRoot` y `/FontFile2`, la ausencia de `/JavaScript` y acciones, y las sondas de contención: escape del root («would escape the project root»), ruta absoluta resuelta dentro del root, `@preview` bloqueado en milisegundos, y tiempo agotado.
+- **Hallazgo adicional**: Typst detecta por sí mismo los bucles sin salida (`while true` en compilación; «loop seems to be infinite» en ejecución), así que un intento de colgar el proceso requiere trabajo finito pero enorme (la sonda usa 300 000 páginas), que nuestro límite de 20 s mata con `SIGKILL`. Defensa en profundidad, no sustituto del límite.
+- **Pendiente**: T-3.3 (`cv typst install|status`) y T-3.4 (diseño tipográfico final). Hasta T-3.3, el mensaje de binario ausente remite a los releases oficiales y a `--typst-path`/`CHAMELEON_TYPST`.
