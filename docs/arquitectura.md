@@ -46,7 +46,7 @@ type ParseResult =
   | { readonly ok: true; readonly contribution: ProfileContribution; readonly provenance: readonly Provenance[] }
   | { readonly ok: false; readonly errors: readonly DatasetError[] };
 
-type ProfileContribution = DeepPartial<MasterProfileInput>;   // cada fichero aporta una parte del perfil
+type ProfileContribution = Partial<MasterProfileInput>;       // cada fichero aporta secciones completas del perfil
 interface Provenance { readonly path: SchemaPath; readonly file: string; readonly line?: number }
 interface DatasetError { readonly file: string; readonly line?: number; readonly message: string }
 ```
@@ -115,4 +115,4 @@ Implementaciones previstas: `OllamaLlmService` (local, **por defecto**), `Anthro
 | 2026-08-28 | Parsers como plugins con el contrato `SourceParser`; fusión con concatenación de arrays y conflicto en escalares. | ídem. |
 | 2026-08-28 | Certificaciones en CSV (`certifications.csv`), no en Markdown. | Director de Ingeniería. |
 | 2026-08-28 | Capa LLM abstracta con implementación local por defecto; Hito 3 propuesto en el roadmap, pendiente de planificación. | ídem. |
-| Pendiente | Disposición de las entidades narrativas en `data/sources/`: un fichero por entidad o un único `profile.md`. Véase `docs/formato-dataset.md` §3.1. | Decide el Director de Ingeniería. |
+| 2026-08-28 | Disposición **A** (un fichero por entidad) para las entidades narrativas de `data/sources/`; `docs/formato-dataset.md` aprobado íntegramente (v2). | Director de Ingeniería. |
