@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tareas** | T-1.5 · [CORE] `SelectorEngine` (especificación) · T-1.7 · [GENERATOR] `MarkdownRenderer` (propuesta de plantilla) |
-| **Estado** | **PROPUESTA v1 — pendiente de aprobación del Director de Ingeniería** (2026-08-28) |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v1, sin modificaciones; los seis invariantes de §2.5 son requisitos no negociables). T-1.5 implementada en `src/core/selection/`; T-1.7 pendiente. |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Cómo se elige qué partes del `MasterProfile` van a un CV de una especialidad, con qué contrato, y con qué plantilla se renderiza. |
 
@@ -109,7 +109,7 @@ El informe alimenta un `--explain` en la CLI (T-1.8): «`exp-startup` excluida: 
 2. **Conserva el contrato**: `validateMasterProfile(selection.profile)` es válido siempre.
 3. **Conserva el orden** de los ítems que sobreviven.
 4. **Idempotente**: seleccionar el resultado con la misma especialidad devuelve el mismo perfil.
-5. **Monótona respecto al etiquetado**: quitar tags a un ítem nunca lo excluye; añadir tags nunca incluye un ítem que estaba excluido salvo que la tag esté en el vocabulario.
+5. **Monótona respecto al etiquetado**: quitar tags a un ítem nunca lo excluye, y añadir tags nunca incluye un ítem que estaba excluido salvo que la tag esté en el vocabulario. Precisión (2026-08-28, tras la implementación): para un logro anidado la garantía se cumple *dentro de su contenedor*; si el logro era el único que arrastraba a su contenedor (`via-achievements`, §2.2.1), quitarle las tags hace que el contenedor —y con él el logro— deje de aparecer. Es la consecuencia directa de la regla aprobada, y la suite verifica explícitamente esa única excepción.
 6. **Explicable**: hay exactamente una decisión por ítem evaluado (incluidos los logros de contenedores conservados) y `included ⇔ reason ≠ 'no-match'`.
 
 ## 3. Ejemplos antes/después
@@ -343,7 +343,7 @@ Plataforma de pagos con 2 M de transacciones/mes.
 | Formato del modelo de vista | Cadenas ya formateadas + datos crudos donde una plantilla propia pueda quererlos | La plantilla base queda trivial y la personalización sigue siendo posible. |
 | Tests | Selector: tabla de casos con los cuatro motivos + invariantes (§2.5). Renderer: unitarios del modelo de vista (fechas, orden, agrupación, locales) y *golden file* del CV del dataset de ejemplo. | Cobertura 100 % en `src/core/selection/**` y `src/renderers/**`. |
 
-## 7. Puntos que requieren decisión del Director
+## 7. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. **Regla de selección** «sin tags = universal; con tags = debe coincidir», con contenedores arrastrados solo por logros con coincidencia explícita (§2.1–2.2). Recomendación: aprobar.
 2. **Práctica recomendada** «etiqueta los logros, no las experiencias» como guía documentada para el usuario (§2.3). Recomendación: aprobar.
@@ -352,4 +352,4 @@ Plataforma de pagos con 2 M de transacciones/mes.
 5. **Orden cronológico en el renderer**, no en el selector (§5.3). Recomendación: aprobar.
 6. **Plantilla base** de §5.2 y formato de §5.3 como *golden* del MVP. Recomendación: aprobar (los ajustes estéticos posteriores son cambios de plantilla, no de código).
 
-Con la aprobación se marca el documento como APROBADO e implemento T-1.5 (selector) y, a continuación, T-1.7 (renderer).
+Aprobados los seis puntos sin modificaciones; la práctica «etiqueta los logros, no las experiencias» pasa a ser la recomendación oficial de la documentación de usuario.
