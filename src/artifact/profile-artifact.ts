@@ -50,7 +50,8 @@ export async function writeProfileArtifact(
   }
 }
 
-function isMissingFile(error: unknown): boolean {
+/** `ENOENT` de Node: el fichero no existe. */
+export function isMissingFile(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
 }
 
@@ -61,7 +62,7 @@ export async function readProfileArtifact(fs: WritableFileSystem, path: string):
     content = await fs.readFile(path);
   } catch (error) {
     if (isMissingFile(error)) {
-      return { ok: false, errors: [`No existe el artefacto «${path}»: ejecuta «cv build-profile» para generarlo`] };
+      return { ok: false, errors: [`No existe el artefacto «${path}»: ejecuta «cv build» para generarlo`] };
     }
     return { ok: false, errors: [`No se pudo leer el artefacto «${path}»: ${describeError(error)}`] };
   }

@@ -63,7 +63,7 @@ describe('readProfileArtifact (memoria)', () => {
     });
     expect(await readProfileArtifact(fs, '/work/profile.json')).toEqual({
       ok: false,
-      errors: ['No existe el artefacto «/work/profile.json»: ejecuta «cv build-profile» para generarlo'],
+      errors: ['No existe el artefacto «/work/profile.json»: ejecuta «cv build» para generarlo'],
     });
     const invalid = await readProfileArtifact(fs, '/work/roto.json');
     expect(invalid.ok).toBe(false);

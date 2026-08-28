@@ -69,7 +69,7 @@ function compiled(): Harness {
   });
 }
 
-describe('cv build-profile', () => {
+describe('cv build (alias build-profile)', () => {
   it('escribe el artefacto en silencio cuando las fuentes son válidas', async () => {
     const h = harness(VALID);
     expect(await runCli(['build-profile'], h.context)).toBe(EXIT_OK);
@@ -83,7 +83,7 @@ describe('cv build-profile', () => {
 
   it('admite rutas propias y un resumen con --verbose', async () => {
     const h = harness(datasetTree({ '/work/fuentes/profile.md': '---\nfullName: Ada\n---\n' }));
-    expect(await runCli(['build-profile', '--data', 'fuentes', '--out', 'build/perfil.json', '-v'], h.context)).toBe(EXIT_OK);
+    expect(await runCli(['build', '--data', 'fuentes', '--out', 'build/perfil.json', '-v'], h.context)).toBe(EXIT_OK);
     expect(h.fs.file('/work/build/perfil.json')).toBeDefined();
     expect(h.stdout()).toBe(
       'Artefacto escrito en /work/build/perfil.json (1 fichero: 0 especialidades, 0 experiencias, 0 proyectos, 0 formaciones, 0 skills, 0 certificaciones, 0 logros transversales, 0 idiomas)\n',
@@ -186,7 +186,7 @@ describe('cv generate-cv', () => {
     const stale = compiled();
     stale.fs.touch('/work/data/sources/profile.md', 900);
     expect(await runCli(['generate-cv', '--stdout'], stale.context)).toBe(EXIT_OK);
-    expect(stale.stderr()).toBe('Aviso: profile.md es más reciente que el artefacto; ejecuta «cv build-profile» para regenerarlo\n');
+    expect(stale.stderr()).toBe('Aviso: profile.md es más reciente que el artefacto; ejecuta «cv build» para regenerarlo\n');
 
     const broken = compiled();
     await broken.fs.writeFile('/work/data/sources/notas.md', '', 0o644);
@@ -199,7 +199,7 @@ describe('cv generate-cv', () => {
   it('sin artefacto, con artefacto inválido o con especialidad desconocida sale con 1', async () => {
     const missing = harness(VALID);
     expect(await runCli(['generate-cv'], missing.context)).toBe(EXIT_DATA_ERROR);
-    expect(missing.stderr()).toBe('No existe el artefacto «/work/data/dist/profile.json»: ejecuta «cv build-profile» para generarlo\n');
+    expect(missing.stderr()).toBe('No existe el artefacto «/work/data/dist/profile.json»: ejecuta «cv build» para generarlo\n');
 
     const invalid = harness({ '/work/data/dist/profile.json': '{"personal":{}}' });
     expect(await runCli(['generate-cv'], invalid.context)).toBe(EXIT_DATA_ERROR);
@@ -333,5 +333,67 @@ describe('contexto real y errores no estándar', () => {
     expect(describeError(new Error('boom'))).toBe('boom');
     expect(describeError('cadena')).toBe('cadena');
     expect(describeError(42)).toBe('42');
+  });
+});
+
+describe('cv build --check (T-2.7)', () => {
+  const SUMMARY = '2 ficheros: 0 especialidades, 0 experiencias, 0 proyectos, 0 formaciones, 1 skill, 0 certificaciones, 0 logros transversales, 0 idiomas';
+
+  it('con el artefacto al día no escribe nada y guarda silencio (resumen con -v)', async () => {
+    const h = harness(VALID);
+    expect(await runCli(['build'], h.context)).toBe(EXIT_OK);
+    const before = h.fs.log.length;
+    expect(await runCli(['build', '--check'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe('');
+    expect(h.stderr()).toBe('');
+    expect(h.fs.log.slice(before).filter((entry) => !entry.startsWith('readFile '))).toEqual([]);
+    expect(await runCli(['build', '--check', '-v'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe(`Artefacto al día: /work/data/dist/profile.json (${SUMMARY})\n`);
+  });
+
+  it('falla con 1 si el artefacto falta o no está al día, con 2 si no se puede leer, y con 1 si las fuentes son inválidas', async () => {
+    const missing = harness(VALID);
+    expect(await runCli(['build', '--check'], missing.context)).toBe(EXIT_DATA_ERROR);
+    expect(missing.stderr()).toBe('Falta el artefacto «/work/data/dist/profile.json»: ejecuta «cv build»\n');
+    expect(missing.fs.file('/work/data/dist/profile.json')).toBeUndefined();
+
+    const outdated = harness(VALID);
+    expect(await runCli(['build'], outdated.context)).toBe(EXIT_OK);
+    await outdated.fs.writeFile('/work/data/sources/skills.csv', 'name\nPHP\nGo\n', 0o644);
+    expect(await runCli(['build', '--check'], outdated.context)).toBe(EXIT_DATA_ERROR);
+    expect(outdated.stderr()).toBe('El artefacto «/work/data/dist/profile.json» no está al día con las fuentes: ejecuta «cv build»\n');
+    expect(JSON.parse(outdated.fs.file('/work/data/dist/profile.json')?.content ?? '{}')).toMatchObject({ skills: [{ name: 'PHP' }] });
+
+    const unreadable = harness(VALID);
+    expect(await runCli(['build'], unreadable.context)).toBe(EXIT_OK);
+    unreadable.fs.failures.add('readFile');
+    expect(await runCli(['build', '--check'], unreadable.context)).toBe(EXIT_FAILURE);
+    expect(unreadable.stderr()).toBe('No se pudo leer el artefacto «/work/data/dist/profile.json»: fallo simulado en readFile\n');
+
+    const invalid = harness(datasetTree({ '/work/data/sources/notas.md': '' }));
+    expect(await runCli(['build', '--check'], invalid.context)).toBe(EXIT_DATA_ERROR);
+    expect(invalid.stderr()).toMatch(/\d+ problemas? en \/work\/data\/sources\n$/);
+  });
+});
+
+describe('cv generate-cv --build (T-2.7)', () => {
+  it('recompila el artefacto antes de generar, sin aviso de obsolescencia, y no genera si la compilación falla', async () => {
+    const fresh = harness(VALID);
+    expect(await runCli(['generate-cv', '--build', '--stdout'], fresh.context)).toBe(EXIT_OK);
+    expect(fresh.stderr()).toBe('');
+    expect(fresh.fs.file('/work/data/dist/profile.json')?.mode).toBe(0o600);
+    expect(fresh.stdout()).toMatch(/^# Ada\n/);
+    expect(fresh.stdout()).toContain('PHP');
+
+    const stale = compiled();
+    stale.fs.touch('/work/data/sources/profile.md', 900);
+    expect(await runCli(['generate-cv', '--build', '--stdout'], stale.context)).toBe(EXIT_OK);
+    expect(stale.stderr()).toBe('');
+    expect(stale.stdout()).toBe('# Ada\n');
+
+    const invalid = harness(datasetTree({ '/work/data/sources/notas.md': '' }));
+    expect(await runCli(['generate-cv', '--build', '--stdout'], invalid.context)).toBe(EXIT_DATA_ERROR);
+    expect(invalid.stdout()).toBe('');
+    expect(invalid.stderr()).toMatch(/\d+ problemas? en \/work\/data\/sources\n$/);
   });
 });
