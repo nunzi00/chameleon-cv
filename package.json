@@ -8,16 +8,20 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tests/tsconfig.json",
     "dev": "nodemon --watch src --ext ts --exec \"ts-node src/index.ts\"",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "zod": "^4.4.3"
