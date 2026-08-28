@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Estado** | Vigente. Recoge el análisis estratégico del Director de Ingeniería y Producto (2026-08-28) con las anotaciones técnicas del Director Técnico. |
-| **Ámbito** | Ecosistema de datos (Hitos 1–2) y capa de inteligencia (Hito 3, propuesto). |
+| **Ámbito** | Ecosistema de datos (Hitos 1–2), representación (Hito 3, Typst) y capa de inteligencia (Hito 4, propuesto). |
 | **Relación** | El formato de las fuentes se especifica en `docs/formato-dataset.md`; el contrato de datos, en `src/core/schema/`. |
 
 ## 1. Principio rector: el «lago de datos del perfil»
@@ -74,7 +74,7 @@ interface DatasetError { readonly file: string; readonly line?: number; readonly
 
 Las salidas (Markdown y PDF) son *renderers*: `MasterProfile` + selección → fichero en `output/`. Ambos consumen el mismo modelo de vista (`CvView`): el Markdown pasa por una plantilla Handlebars; el PDF (T-2.6, `docs/pdf-integration.md`) se maqueta con código sobre `pdfkit`, con la fuente OFL Source Sans 3 embebida desde `templates/fonts/`, sin binarios externos ni red, y con salida reproducible byte a byte. Se descartaron `pandoc` (dependencia externa, LaTeX) y `puppeteer` (Chromium, ~300 MB, superficie de ataque); Typst queda como motor opcional en el backlog (B-4).
 
-## 3. Capa de inteligencia: «co-piloto de carrera» (Hito 3, propuesto)
+## 3. Capa de inteligencia: «co-piloto de carrera» (propuesto; en el roadmap como Hito 4 desde el 2026-08-28, al asignarse el Hito 3 a Typst)
 
 ### 3.1 Abstracción (`src/core/llm/`)
 
@@ -116,7 +116,7 @@ Ratificadas por el Director de Ingeniería como **principios canónicos del proy
 | 2026-08-28 | Fuentes en `data/sources/`; artefacto canónico `data/dist/profile.json` generado por `build-profile`; renderers, CLI y LLM leen solo el artefacto. | Director de Ingeniería (propuesta); Director Técnico (§2.3–2.4). |
 | 2026-08-28 | Parsers como plugins con el contrato `SourceParser`; fusión con concatenación de arrays y conflicto en escalares. | ídem. |
 | 2026-08-28 | Certificaciones en CSV (`certifications.csv`), no en Markdown. | Director de Ingeniería. |
-| 2026-08-28 | Capa LLM abstracta con implementación local por defecto; Hito 3 propuesto en el roadmap, pendiente de planificación. | ídem. |
+| 2026-08-28 | Capa LLM abstracta con implementación local por defecto; propuesto en el roadmap (renumerado a Hito 4 el 2026-08-28), pendiente de planificación. | ídem. |
 | 2026-08-28 | Disposición **A** (un fichero por entidad) para las entidades narrativas de `data/sources/`; `docs/formato-dataset.md` aprobado íntegramente (v2). | Director de Ingeniería. |
 | 2026-08-28 | Principios canónicos ratificados: fusión sin sobrescritura (§2.3), manejo del artefacto `profile.json` (§2.4), validación zod de toda salida del modelo y política de egreso de red *opt-in* (§3.3). | Director de Ingeniería (ratificación); Director Técnico (redacción). |
 | 2026-08-28 | El binario de la CLI se llama **`cv`** (`cv <comando> [opciones]`): claridad y brevedad para el usuario. Artefacto escrito por `cv build-profile` con escritura atómica y permisos 0600; `cv validate` no escribe nada. | Director de Ingeniería (nombre); Director Técnico (implementación T-1.4). |

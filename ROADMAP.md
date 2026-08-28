@@ -43,15 +43,15 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
     -   Hecho 2026-08-28 (`docs/pdf-integration.md` §3): `src/renderers/pdf/` — `renderPdfCv` con `pdfkit` desde el mismo `CvView` que Markdown (Markdown en línea → runs vía mdast), fuente OFL Source Sans 3 embebida (`templates/fonts/`), salida reproducible (fecha de creación fija = `meta.updatedAt`), paginación automática. CLI: `--format md|pdf` (`.pdf` con 0600; `--stdout` y `--template` solo con md). Aceptación: *round-trip* CV → PDF → texto (T-2.5) reproduce un golden; sin `/JavaScript` ni acciones automáticas.
     -   Nota de decisión conjunta con T-2.5 en `docs/pdf-integration.md` (2026-08-28, pendiente de aprobación): `pdfkit` desde el modelo de vista con fuente embebida; Pandoc y Puppeteer descartados; verificación por round-trip con T-2.5.
 
-### Hito 3: Co-piloto de carrera - Matchmaking asistido por LLM (Propuesto 2026-08-28, pendiente de planificación)
+### Hito 4: Co-piloto de carrera - Matchmaking asistido por LLM (Propuesto 2026-08-28 como Hito 3; renumerado el 2026-08-28 al asignar el Director de Ingeniería el Hito 3 a Typst; pendiente de planificación)
 
 Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt-in explícito; por defecto, modelos locales.
 
--   [ ] **T-3.1: [LLM] Abstracción `LlmService`.** Interfaz (`extractJobRequirements`, `tailorProfile`) con implementación local por defecto (Ollama) y proveedores remotos opcionales (Anthropic, OpenAI); claves solo por variables de entorno; doble de test.
--   [ ] **T-3.2: [INGEST] Texto de una oferta desde URL.** Obtención y saneado del HTML (`cheerio`); egreso de red explícito; sin persistir páginas.
--   [ ] **T-3.3: [LLM] Extracción estructurada de requisitos.** `JobRequirements` (skills, años, responsabilidades, keywords) validado con zod; caché local por hash de la oferta.
--   [ ] **T-3.4: [LLM] Perfil a medida y análisis de adecuación.** `TailoredResult { profile, analysis }` validado con zod; el perfil pasa por `parseMasterProfile`; envío minimizado (perfil filtrado por especialidad, sin datos de contacto).
--   [ ] **T-3.5: [CLI] Comando `match <url|fichero>`.** CV a medida + informe `strengths / perfectMatches / potentialGaps` en consola.
+-   [ ] **T-4.1: [LLM] Abstracción `LlmService`.** Interfaz (`extractJobRequirements`, `tailorProfile`) con implementación local por defecto (Ollama) y proveedores remotos opcionales (Anthropic, OpenAI); claves solo por variables de entorno; doble de test.
+-   [ ] **T-4.2: [INGEST] Texto de una oferta desde URL.** Obtención y saneado del HTML (`cheerio`); egreso de red explícito; sin persistir páginas.
+-   [ ] **T-4.3: [LLM] Extracción estructurada de requisitos.** `JobRequirements` (skills, años, responsabilidades, keywords) validado con zod; caché local por hash de la oferta.
+-   [ ] **T-4.4: [LLM] Perfil a medida y análisis de adecuación.** `TailoredResult { profile, analysis }` validado con zod; el perfil pasa por `parseMasterProfile`; envío minimizado (perfil filtrado por especialidad, sin datos de contacto).
+-   [ ] **T-4.5: [CLI] Comando `match <url|fichero>`.** CV a medida + informe `strengths / perfectMatches / potentialGaps` en consola.
 
 ### Hito 2.5: Consolidación y calidad de vida (ordenado por el Director de Ingeniería el 2026-08-28; `docs/consolidacion.md`)
 
