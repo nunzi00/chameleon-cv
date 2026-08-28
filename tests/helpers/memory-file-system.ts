@@ -4,7 +4,7 @@ import type { WritableFileSystem } from '../../src/artifact/writable-file-system
 import type { DirectoryEntry, FileStat, FileSystem } from '../../src/parsers/dataset/file-system';
 
 export type MemoryEntry =
-  | { readonly kind: 'file'; readonly content: string; readonly mode?: number; readonly mtimeMs?: number }
+  | { readonly kind: 'file'; readonly content: string; readonly mode?: number; readonly mtimeMs?: number; readonly bytes?: Uint8Array }
   | { readonly kind: 'directory' }
   | { readonly kind: 'symlink'; readonly target: string }
   | { readonly kind: 'other' };
@@ -61,7 +61,7 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
     }
   }
 
-  private existingFile(path: string): { readonly content: string; readonly mode?: number; readonly mtimeMs?: number } {
+  private existingFile(path: string): { readonly content: string; readonly mode?: number; readonly mtimeMs?: number; readonly bytes?: Uint8Array } {
     const { entry } = this.resolve(path);
     if (entry.kind !== 'file') {
       throw new Error(`EISDIR: illegal operation on a directory, ${path}`);
@@ -70,9 +70,9 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
   }
 
   /** Entrada de fichero (sin seguir enlaces) para las aserciones; `undefined` si no existe. */
-  file(path: string): { content: string; mode: number | undefined; mtimeMs: number } | undefined {
+  file(path: string): { content: string; mode: number | undefined; mtimeMs: number; bytes: Uint8Array | undefined } | undefined {
     const entry = this.entries.get(posix.normalize(path));
-    return entry?.kind === 'file' ? { content: entry.content, mode: entry.mode, mtimeMs: entry.mtimeMs ?? 0 } : undefined;
+    return entry?.kind === 'file' ? { content: entry.content, mode: entry.mode, mtimeMs: entry.mtimeMs ?? 0, bytes: entry.bytes } : undefined;
   }
 
   /** Cambia la fecha de modificación de un fichero existente. */
@@ -102,7 +102,7 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
   async stat(path: string): Promise<FileStat> {
     const { entry } = this.resolve(path);
     if (entry.kind === 'file') {
-      return { kind: 'file', size: Buffer.byteLength(entry.content, 'utf8'), mtimeMs: entry.mtimeMs ?? 0 };
+      return { kind: 'file', size: entry.bytes?.byteLength ?? Buffer.byteLength(entry.content, 'utf8'), mtimeMs: entry.mtimeMs ?? 0 };
     }
     if (entry.kind === 'directory') {
       return { kind: 'directory', size: 0, mtimeMs: 0 };
@@ -118,6 +118,11 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
     return this.existingFile(path).content;
   }
 
+  async readBinaryFile(path: string): Promise<Uint8Array> {
+    const file = this.existingFile(path);
+    return file.bytes ?? Buffer.from(file.content, 'utf8');
+  }
+
   /* ---- escritura (WritableFileSystem) ---- */
 
   async mkdir(path: string): Promise<void> {
@@ -129,6 +134,11 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
   async writeFile(path: string, content: string, mode: number): Promise<void> {
     this.check('writeFile', path);
     this.add(path, { kind: 'file', content, mode, mtimeMs: this.tick() });
+  }
+
+  async writeBinaryFile(path: string, bytes: Uint8Array, mode: number): Promise<void> {
+    this.check('writeFile', path);
+    this.add(path, { kind: 'file', content: '', bytes, mode, mtimeMs: this.tick() });
   }
 
   async rename(from: string, to: string): Promise<void> {

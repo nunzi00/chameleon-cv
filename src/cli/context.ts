@@ -1,9 +1,10 @@
 /**
  * Contexto de la CLI: todo lo que toca el exterior (salida, sistema de ficheros, directorio
- * de trabajo) se inyecta para que los comandos sean funciones testeables al 100 %.
+ * de trabajo, extracción de PDF) se inyecta para que los comandos sean funciones testeables al 100 %.
  */
 import { NodeWritableFileSystem, type WritableFileSystem } from '../artifact';
 import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParser } from '../parsers';
+import { extractPdfText, type PdfExtractionResult } from '../pdf';
 import { readStdin } from './stdin';
 
 export interface CliContext {
@@ -15,6 +16,8 @@ export interface CliContext {
   readonly datasetFileSystem: FileSystem;
   readonly artifactFileSystem: WritableFileSystem;
   readonly parsers: readonly SourceParser[];
+  /** Extrae el texto de una oferta en PDF (contenido en un worker). */
+  readonly pdfExtractor: (bytes: Uint8Array) => Promise<PdfExtractionResult>;
 }
 
 export function createNodeContext(): CliContext {
@@ -30,5 +33,6 @@ export function createNodeContext(): CliContext {
     datasetFileSystem: new NodeFileSystem(),
     artifactFileSystem: new NodeWritableFileSystem(),
     parsers: defaultSourceParsers(),
+    pdfExtractor: (bytes) => extractPdfText(bytes),
   };
 }

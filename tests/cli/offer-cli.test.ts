@@ -12,8 +12,10 @@ import {
   formatMatchSummary,
   formatTrimReport,
   hasLimits,
+  isPdfSource,
   offerName,
   parseLimit,
+  pdfExitCode,
   readStream,
   resolveLimits,
   runCli,
@@ -22,7 +24,9 @@ import {
 import { JobRequirementsSchema } from '../../src/core/keywords';
 import type { MatchSummary } from '../../src/core/scoring';
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../src/parsers';
+import { extractPdfText } from '../../src/pdf';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
+import { makePdf } from '../helpers/pdf';
 import { BACKEND_OFFER } from '../fixtures/offer';
 import { selectionProfile } from '../fixtures/selection';
 
@@ -65,6 +69,7 @@ function compiled(extra: Record<string, string | MemoryEntry> = {}, overrides: P
     datasetFileSystem: fs,
     artifactFileSystem: fs,
     parsers: defaultSourceParsers(),
+    pdfExtractor: (bytes) => extractPdfText(bytes),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -269,5 +274,54 @@ describe('utilidades de oferta y límites', () => {
     expect(formatMatchSummary(empty, 'x')).toBe(
       'Oferta x · 0 requisitos reconocidos\nAdecuación: la oferta no menciona nada del vocabulario del perfil (etiqueta tu contenido o añade alias en skills.csv)\n\nCarencias (la oferta lo pide y el perfil no lo tiene etiquetado)\n  ninguna detectada\n',
     );
+  });
+});
+
+describe('ofertas en PDF (T-2.5)', () => {
+  let offerPdf: Buffer;
+
+  beforeAll(async () => {
+    offerPdf = await makePdf([BACKEND_OFFER.split('\n')]);
+  });
+
+  it('analyze-offer y generate-cv aceptan un PDF por la misma puerta, con el mismo resultado que el texto', async () => {
+    const analysis = compiled({ '/work/offers/acme-backend.pdf': { kind: 'file', content: '', bytes: offerPdf } });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.pdf'], analysis.context)).toBe(EXIT_OK);
+    const lines = analysis.stdout().split('\n');
+    expect(lines[0]).toBe('Oferta acme-backend · 7 requisitos reconocidos · 5 años de experiencia exigidos');
+    expect(lines[1]).toBe('Adecuación: 6 de 7 requisitos demostrados (86 %) · imprescindibles: 4 de 4');
+    const generation = compiled({ '/work/offers/acme-backend.pdf': { kind: 'file', content: '', bytes: offerPdf } });
+    expect(await runCli(['generate-cv', '-f', 'offers/acme-backend.pdf'], generation.context)).toBe(EXIT_OK);
+    expect(generation.stdout()).toBe('CV escrito en /work/output/cv-ada-ejemplo-acme-backend.md\n');
+  });
+
+  it('un PDF corrupto es un error de datos; uno demasiado grande o un tiempo agotado, del entorno', async () => {
+    const corrupt = compiled({ '/work/offers/rota.pdf': { kind: 'file', content: '', bytes: Buffer.from('no soy un pdf', 'utf8') } });
+    expect(await runCli(['analyze-offer', 'offers/rota.pdf'], corrupt.context)).toBe(EXIT_DATA_ERROR);
+    expect(corrupt.stderr()).toBe('No se pudo extraer el texto de «/work/offers/rota.pdf»: Invalid PDF structure.\n');
+
+    const huge = compiled({ '/work/offers/grande.pdf': { kind: 'file', content: '', bytes: new Uint8Array(10 * 1024 * 1024 + 1) } });
+    expect(await runCli(['analyze-offer', 'offers/grande.pdf'], huge.context)).toBe(EXIT_FAILURE);
+    expect(huge.stderr()).toBe('La oferta «/work/offers/grande.pdf» supera el máximo de 10 MiB\n');
+
+    const slow = compiled(
+      { '/work/offers/lenta.pdf': { kind: 'file', content: '', bytes: offerPdf } },
+      { pdfExtractor: () => Promise.resolve({ ok: false, code: 'timeout', message: 'La extracción superó los 20000 ms permitidos' }) },
+    );
+    expect(await runCli(['generate-cv', '-f', 'offers/lenta.pdf'], slow.context)).toBe(EXIT_FAILURE);
+    expect(slow.stderr()).toBe('No se pudo extraer el texto de «/work/offers/lenta.pdf»: La extracción superó los 20000 ms permitidos\n');
+
+    const blank = compiled({ '/work/offers/blanca.pdf': { kind: 'file', content: '', bytes: await makePdf([['']]) } });
+    expect(await runCli(['analyze-offer', 'offers/blanca.pdf'], blank.context)).toBe(EXIT_DATA_ERROR);
+    expect(blank.stderr()).toBe('La oferta está vacía\n');
+  });
+
+  it('isPdfSource y pdfExitCode', () => {
+    expect(isPdfSource('ofertas/x.PDF')).toBe(true);
+    expect(isPdfSource('ofertas/x.txt')).toBe(false);
+    expect(pdfExitCode('invalid')).toBe(EXIT_DATA_ERROR);
+    expect(pdfExitCode('too-many-pages')).toBe(EXIT_DATA_ERROR);
+    expect(pdfExitCode('timeout')).toBe(EXIT_FAILURE);
+    expect(pdfExitCode('failed')).toBe(EXIT_FAILURE);
   });
 });

@@ -12,6 +12,10 @@ export class NodeWritableFileSystem implements WritableFileSystem {
     return writeFile(path, content, { encoding: 'utf8', mode });
   }
 
+  writeBinaryFile(path: string, bytes: Uint8Array, mode: number): Promise<void> {
+    return writeFile(path, bytes, { mode });
+  }
+
   rename(from: string, to: string): Promise<void> {
     return rename(from, to);
   }
