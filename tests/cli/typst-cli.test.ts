@@ -5,6 +5,7 @@ import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, formatConflict, runCli, typstEx
 import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { type TypstRenderOptions, type TypstRenderResult } from '../../src/renderers/typst';
+import { installTypst, typstStatus } from '../../src/typst';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
 
@@ -45,6 +46,8 @@ function harness(result: TypstRenderResult, tree: Record<string, string | Memory
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
     typstRenderer,
+    typstInstall: (options, report) => installTypst(options, report),
+    typstStatus: (options) => typstStatus(options),
   };
   return { context, fs, calls, stdout: () => out.join(''), stderr: () => err.join('') };
 }

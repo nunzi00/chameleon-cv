@@ -1,11 +1,12 @@
 /**
- * CLI `cv` (T-1.4, T-1.8, T-2.4, T-2.7, T-2.8).
+ * CLI `cv` (T-1.4, T-1.8, T-2.4, T-2.7, T-2.8, T-3.2, T-3.3).
  */
 export * from './commands/analyze-offer';
 export * from './commands/build';
 export * from './commands/dataset';
 export * from './commands/generate-cv';
 export * from './commands/init';
+export * from './commands/typst';
 export * from './commands/validate';
 export * from './context';
 export * from './defaults';

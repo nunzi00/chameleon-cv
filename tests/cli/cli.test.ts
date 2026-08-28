@@ -26,6 +26,7 @@ import { selectForSpecialty } from '../../src/core/selection';
 import { NodeFileSystem, defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
+import { installTypst, typstStatus } from '../../src/typst';
 import { describeError } from '../../src/shared/errors';
 import { MemoryFileSystem, datasetTree, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
@@ -55,6 +56,8 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
+    typstInstall: (options, report) => installTypst(options, report),
+    typstStatus: (options) => typstStatus(options),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -334,6 +337,12 @@ describe('contexto real y errores no estándar', () => {
   it('el renderer Typst del contexto real busca el binario y explica su ausencia', async () => {
     const result = await createNodeContext().typstRenderer(selectionProfile(), { isExecutable: () => Promise.resolve(false) });
     expect(result).toMatchObject({ ok: false, error: { code: 'not-found' } });
+  });
+
+  it('el instalador y el estado de Typst del contexto real están cableados (sin tocar la red)', async () => {
+    const context = createNodeContext();
+    expect(await context.typstInstall({ platform: 'freebsd', arch: 'x64' }, () => undefined)).toMatchObject({ ok: false, code: 'unsupported-platform' });
+    expect(await context.typstStatus({ isExecutable: () => Promise.resolve(false) })).toMatchObject({ usable: false });
   });
 
   it('describeError da un mensaje legible para cualquier valor lanzado', () => {
