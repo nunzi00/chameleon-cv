@@ -72,7 +72,7 @@ interface DatasetError { readonly file: string; readonly line?: number; readonly
 
 ### 2.5 Renderers, no parsers
 
-Las salidas (Markdown en el MVP; PDF después) son *renderers*: `MasterProfile` + selección → fichero en `output/`. Para PDF se evaluará en su momento `pandoc` (binario externo, sin dependencias npm pesadas) frente a `puppeteer` (descarga Chromium, ~300 MB); decisión en T-2.6.
+Las salidas (Markdown y PDF) son *renderers*: `MasterProfile` + selección → fichero en `output/`. Ambos consumen el mismo modelo de vista (`CvView`): el Markdown pasa por una plantilla Handlebars; el PDF (T-2.6, `docs/pdf-integration.md`) se maqueta con código sobre `pdfkit`, con la fuente OFL Source Sans 3 embebida desde `templates/fonts/`, sin binarios externos ni red, y con salida reproducible byte a byte. Se descartaron `pandoc` (dependencia externa, LaTeX) y `puppeteer` (Chromium, ~300 MB, superficie de ataque); Typst queda como motor opcional en el backlog (B-4).
 
 ## 3. Capa de inteligencia: «co-piloto de carrera» (Hito 3, propuesto)
 
