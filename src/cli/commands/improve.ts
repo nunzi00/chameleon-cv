@@ -58,7 +58,8 @@ export function defaultReviewPath(date: Date, specialty: string | undefined, off
   return `${DEFAULT_OUTPUT_DIR}/revision-improve-${day}${specialty === undefined ? '' : `-${specialty}`}${offer === undefined ? '' : `-${offer}`}.md`;
 }
 
-function parseOnly(only: string | undefined): string[] | undefined {
+/** `--only a,b` → ids únicos y sin espacios; `undefined` si no se pasó. */
+export function parseOnly(only: string | undefined): string[] | undefined {
   if (only === undefined) {
     return undefined;
   }

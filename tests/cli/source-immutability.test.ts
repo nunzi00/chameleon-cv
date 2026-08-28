@@ -28,6 +28,10 @@ function provider(): LlmProvider {
     model: 'fake',
     complete: (request: LlmRequest) => {
       const input = JSON.parse(request.messages[1]?.content ?? '{}') as { text?: string };
+      if (request.schemaName === 'suggest-tags') {
+        const tags = { suggestions: [{ tag: 'kubernetes', reason: 'r' }] };
+        return Promise.resolve({ ok: true, json: tags, raw: JSON.stringify(tags), model: 'fake', usage: {}, elapsedMs: 1 });
+      }
       const json = { proposals: [{ text: input.text === undefined ? 'Senior Backend Engineer con PHP y Kubernetes; reduje la latencia p95 un 40 %.' : `Logré: ${input.text.replace(/\*\*/g, '')}`, rationale: 'r' }] };
       return Promise.resolve({ ok: true, json, raw: JSON.stringify(json), model: 'fake', usage: {}, elapsedMs: 1 });
     },
@@ -75,6 +79,8 @@ const COMMANDS: ReadonlyArray<readonly string[]> = [
   ['analyze-offer', 'offers/acme-backend.txt', '--explain'],
   ['improve', '--only', 'exp-acme-1'],
   ['summarize', '-s', 'backend'],
+  ['suggest', 'tags', 'Migré la plataforma a Kubernetes'],
+  ['suggest', 'tags', '--only', 'exp-acme-1'],
 ];
 
 describe('canon C9: inmutabilidad de la fuente de datos', () => {
