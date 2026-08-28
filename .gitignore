@@ -31,3 +31,6 @@ Thumbs.db
 .vscode/
 *.swp
 *~
+
+# Artefacto canónico generado por `build-profile` (datos personales en claro)
+data/dist/
