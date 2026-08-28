@@ -11,11 +11,12 @@ import { buildVocabulary, extractJobRequirements } from '../../core/keywords';
 import type { MasterProfile } from '../../core/schema';
 import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchReport, type ScoreLookup } from '../../core/scoring';
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
-import { renderMarkdownCv } from '../../renderers';
+import { renderMarkdownCv, renderPdfCv } from '../../renderers';
 import { describeError } from '../../shared/errors';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
+import type { CvFormat } from '../format';
 import { checkArtifactFreshness } from '../freshness';
 import { hasLimits, resolveLimits, type LimitOptions } from '../limits';
 import { readOfferText } from '../offer';
@@ -33,16 +34,28 @@ export interface GenerateCvOptions extends LimitOptions {
   readonly output?: string | undefined;
   readonly template?: string | undefined;
   readonly locale?: string | undefined;
+  readonly format: CvFormat;
   readonly explain: boolean;
   readonly stdout: boolean;
 }
 
-/** `output/cv-<nombre>[-<especialidad>][-<oferta>].md`, relativo al directorio de trabajo. */
-export function defaultOutputPath(profile: MasterProfile, specialty: string | undefined, offer?: string): string {
+/** `output/cv-<nombre>[-<especialidad>][-<oferta>].<formato>`, relativo al directorio de trabajo. */
+export function defaultOutputPath(profile: MasterProfile, specialty: string | undefined, offer?: string, format: CvFormat = 'md'): string {
   const name = slugify(profile.personal.fullName) || 'perfil';
   const specialtySuffix = specialty === undefined ? '' : `-${specialty}`;
   const offerSuffix = offer === undefined ? '' : `-${offer}`;
-  return `${DEFAULT_OUTPUT_DIR}/cv-${name}${specialtySuffix}${offerSuffix}.md`;
+  return `${DEFAULT_OUTPUT_DIR}/cv-${name}${specialtySuffix}${offerSuffix}.${format}`;
+}
+
+/** Incompatibilidades de `--format pdf` (`docs/pdf-integration.md` §3.4); se comprueban antes de leer nada. */
+export function formatConflict(options: Pick<GenerateCvOptions, 'format' | 'stdout' | 'template'>): string | undefined {
+  if (options.format !== 'pdf') {
+    return undefined;
+  }
+  if (options.stdout) {
+    return '«--stdout» solo admite «--format md»: el PDF es binario y se escribe siempre en un fichero (--output)';
+  }
+  return options.template === undefined ? undefined : '«--template» solo aplica a «--format md»: el PDF no usa plantilla';
 }
 
 function warnIfStale(context: CliContext, artifactPath: string, sourcesRoot: string): Promise<void> {
@@ -64,6 +77,11 @@ interface Prepared {
 }
 
 export async function runGenerateCv(context: CliContext, options: GenerateCvOptions): Promise<number> {
+  const conflict = formatConflict(options);
+  if (conflict !== undefined) {
+    context.stderr(`${conflict}\n`);
+    return EXIT_FAILURE;
+  }
   const artifactPath = resolve(context.cwd, options.profile);
   const artifact = await readProfileArtifact(context.artifactFileSystem, artifactPath);
   if (!artifact.ok) {
@@ -116,6 +134,12 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     }
   }
 
+  const outputPath = resolve(context.cwd, options.output ?? defaultOutputPath(trimmed.profile, options.specialty, prepared.offerName, options.format));
+  if (options.format === 'pdf') {
+    const pdf = await renderPdfCv(trimmed.profile, { locale: options.locale });
+    return writeCv(context, outputPath, () => context.artifactFileSystem.writeBinaryFile(outputPath, pdf, OUTPUT_MODE));
+  }
+
   let template: string | undefined;
   if (options.template !== undefined) {
     const templatePath = resolve(context.cwd, options.template);
@@ -132,10 +156,13 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     context.stdout(markdown);
     return EXIT_OK;
   }
-  const outputPath = resolve(context.cwd, options.output ?? defaultOutputPath(trimmed.profile, options.specialty, prepared.offerName));
+  return writeCv(context, outputPath, () => context.artifactFileSystem.writeFile(outputPath, markdown, OUTPUT_MODE));
+}
+
+async function writeCv(context: CliContext, outputPath: string, write: () => Promise<void>): Promise<number> {
   try {
     await context.artifactFileSystem.mkdir(dirname(outputPath));
-    await context.artifactFileSystem.writeFile(outputPath, markdown, OUTPUT_MODE);
+    await write();
   } catch (error) {
     context.stderr(`No se pudo escribir el CV en «${outputPath}»: ${describeError(error)}\n`);
     return EXIT_FAILURE;
