@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { FileSystem } from '../../src/parsers';
-import { BUILTIN_THEMES_DIRECTORY, DEFAULT_THEME, PAPER_SIZES, builtinThemeRoot, listThemes, loadTheme, parseThemeConfig, themeRoots, tomlErrorMessage, type ThemeRoot } from '../../src/themes';
+import { BUILTIN_THEMES_DIRECTORY, DEFAULT_THEME, PAPER_SIZES, builtinThemeRoot, inventoryThemes, listThemes, loadTheme, locateTheme, parseThemeConfig, themeRoots, tomlErrorMessage, type ThemeRoot } from '../../src/themes';
 import { defaultThemeConfig, defaultThemeToml, themeToml } from '../fixtures/theme';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 
@@ -115,5 +115,24 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     const base = new MemoryFileSystem({ '/work/themes/x/theme.toml': themeToml('x'), '/work/themes/x/template.typ': '' });
     const failing: FileSystem = { ...base, readDirectory: (path) => base.readDirectory(path), stat: (path) => base.stat(path), realPath: (path) => base.realPath(path), readBinaryFile: (path) => base.readBinaryFile(path), readTextFile: () => Promise.reject(new Error('EIO')) };
     expect(await loadTheme('x', [{ directory: '/work/themes', fileSystem: failing, builtin: false }])).toEqual({ ok: false, message: 'No se pudo leer /work/themes/x/theme.toml: EIO' });
+  });
+});
+
+describe('localización e inventario (T-5.3)', () => {
+  it('locateTheme encuentra el directorio sin validar; inventoryThemes describe origen, validez y ocultación', async () => {
+    const project: ThemeRoot = { directory: '/work/themes', fileSystem: new MemoryFileSystem({ '/work/themes/mio/theme.toml': themeToml('mio'), '/work/themes/mio/template.typ': '', '/work/themes/default/theme.toml': '[theme\n', '/work/themes/default/template.typ': '', '/work/themes/vacio/template.typ': '' }), builtin: false };
+    const roots = [project, builtinThemeRoot()];
+    expect(await locateTheme('vacio', roots)).toEqual({ name: 'vacio', directory: '/work/themes/vacio', root: project });
+    expect(await locateTheme('classic', roots)).toMatchObject({ name: 'classic', directory: join(BUILTIN_THEMES_DIRECTORY, 'classic'), root: { builtin: true } });
+    expect(await locateTheme('nada', roots)).toBeUndefined();
+    const inventory = await inventoryThemes(roots);
+    expect(inventory.map((entry) => [entry.name, entry.builtin, entry.shadows, entry.error === undefined])).toEqual([
+      ['default', false, true, false],
+      ['mio', false, false, true],
+      ['classic', true, false, true],
+    ]);
+    expect(inventory[0]?.error).toMatch(/^Tema «default» inválido/);
+    expect(inventory[2]?.description).toContain('Serif');
+    expect((await loadTheme('mio', roots)).ok && (await loadTheme('mio', roots))).toMatchObject({ theme: { root: project } });
   });
 });

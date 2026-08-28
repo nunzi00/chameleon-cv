@@ -13,6 +13,8 @@ import { runApplyCommand, type ApplyOptions } from './commands/apply';
 import { runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
+import { runThemeCreate, runThemeList, runThemePath, type ThemeCreateOptions } from './commands/theme';
+import { DEFAULT_THEME } from '../themes';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseEngine, parseFormat } from './format';
@@ -213,6 +215,27 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--build', 'recompila el artefacto antes', false)
     .action(async (text: string | undefined, options: Omit<SuggestTagsOptions, 'text'>) => {
       onExit(await runSuggestTagsCommand(context, { ...options, text }));
+    });
+
+  const theme = program.command('theme').description('temas de diseño de Typst: los distribuidos y los de themes/<nombre>/ de tu proyecto (T-5.1–T-5.3)');
+  theme
+    .command('list')
+    .description('lista los temas disponibles: nombre, origen (distribuido o del proyecto), descripción y cuál es el tema por defecto')
+    .action(async () => {
+      onExit(await runThemeList(context));
+    });
+  theme
+    .command('path <name>')
+    .description('imprime la ruta absoluta del directorio del tema, para copiarlo o editarlo')
+    .action(async (name: string) => {
+      onExit(await runThemePath(context, name));
+    });
+  theme
+    .command('create <name>')
+    .description('crea themes/<name>/ en tu proyecto a partir de un tema existente (theme.toml con el nuevo nombre y template.typ); nunca sobrescribe')
+    .option('--from <theme>', 'tema del que partir', DEFAULT_THEME)
+    .action(async (name: string, options: ThemeCreateOptions) => {
+      onExit(await runThemeCreate(context, name, options));
     });
 
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');

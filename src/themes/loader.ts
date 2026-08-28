@@ -1,5 +1,5 @@
 /**
- * Cargador de temas (T-5.1): un tema es un directorio `themes/<nombre>/` con `template.typ` y
+ * Cargador de temas (T-5.1, T-5.3): un tema es un directorio `themes/<nombre>/` con `template.typ` y
  * `theme.toml` (y, opcionalmente, `fonts/`). Se busca primero en `themes/` del proyecto del
  * usuario y después en los temas distribuidos con la herramienta; `default` es el tema por defecto.
  * El nombre se valida antes de tocar el disco: un tema no puede ser una ruta.
@@ -33,6 +33,8 @@ export interface LoadedTheme {
   readonly fontsDirectory: string | undefined;
   readonly config: ThemeConfig;
   readonly builtin: boolean;
+  /** Raíz en la que se encontró (su sistema de ficheros permite leer los ficheros del tema). */
+  readonly root: ThemeRoot;
 }
 
 export type ThemeLoadResult = { readonly ok: true; readonly theme: LoadedTheme } | { readonly ok: false; readonly message: string };
@@ -47,7 +49,7 @@ export function themeRoots(cwd: string, fileSystem: FileSystem, builtin: ThemeRo
   return project === builtin.directory ? [builtin] : [{ directory: project, fileSystem, builtin: false }, builtin];
 }
 
-async function kindOf(fileSystem: FileSystem, path: string): Promise<'file' | 'directory' | 'other' | 'missing'> {
+export async function kindOf(fileSystem: FileSystem, path: string): Promise<'file' | 'directory' | 'other' | 'missing'> {
   try {
     return (await fileSystem.stat(path)).kind;
   } catch {
@@ -74,42 +76,93 @@ export async function listThemes(roots: readonly ThemeRoot[]): Promise<string[]>
   return names;
 }
 
+export interface LocatedTheme {
+  readonly name: string;
+  readonly directory: string;
+  readonly root: ThemeRoot;
+}
+
+/** Directorio del tema en la primera raíz que lo tenga, sin validar su contenido (`cv theme path`). */
+export async function locateTheme(name: string, roots: readonly ThemeRoot[]): Promise<LocatedTheme | undefined> {
+  for (const root of roots) {
+    const directory = join(root.directory, name);
+    if ((await kindOf(root.fileSystem, directory)) === 'directory') {
+      return { name, directory, root };
+    }
+  }
+  return undefined;
+}
+
 export async function loadTheme(name: string, roots: readonly ThemeRoot[]): Promise<ThemeLoadResult> {
   if (!THEME_NAME_PATTERN.test(name)) {
     return { ok: false, message: `Nombre de tema inválido «${name}»: minúsculas, dígitos y guiones (p. ej. «default»)` };
   }
-  for (const root of roots) {
-    const directory = join(root.directory, name);
-    if ((await kindOf(root.fileSystem, directory)) !== 'directory') {
-      continue;
-    }
-    const configPath = join(directory, THEME_CONFIG_FILE);
-    const templatePath = join(directory, THEME_TEMPLATE_FILE);
-    for (const [path, file] of [
-      [configPath, THEME_CONFIG_FILE],
-      [templatePath, THEME_TEMPLATE_FILE],
-    ] as const) {
-      if ((await kindOf(root.fileSystem, path)) !== 'file') {
-        return { ok: false, message: `El tema «${name}» (${directory}) no tiene ${file}` };
-      }
-    }
-    let text: string;
-    try {
-      text = await root.fileSystem.readTextFile(configPath);
-    } catch (error) {
-      return { ok: false, message: `No se pudo leer ${configPath}: ${describeError(error)}` };
-    }
-    const parsed = parseThemeConfig(text);
-    if (!parsed.ok) {
-      return { ok: false, message: `Tema «${name}» inválido (${configPath}):\n${parsed.errors.map((error) => `  - ${error}`).join('\n')}` };
-    }
-    if (parsed.config.theme.name !== undefined && parsed.config.theme.name !== name) {
-      return { ok: false, message: `${configPath}: theme.name «${parsed.config.theme.name}» no coincide con el directorio «${name}»` };
-    }
-    const fonts = join(directory, THEME_FONTS_DIRECTORY);
-    const fontsDirectory = (await kindOf(root.fileSystem, fonts)) === 'directory' ? fonts : undefined;
-    return { ok: true, theme: { name, directory, templatePath, configPath, fontsDirectory, config: parsed.config, builtin: root.builtin } };
+  const located = await locateTheme(name, roots);
+  if (located === undefined) {
+    const available = await listThemes(roots);
+    return { ok: false, message: `No existe el tema «${name}» (buscado en ${roots.map((root) => root.directory).join(', ')}); disponibles: ${available.length === 0 ? 'ninguno' : available.join(', ')}` };
   }
-  const available = await listThemes(roots);
-  return { ok: false, message: `No existe el tema «${name}» (buscado en ${roots.map((root) => root.directory).join(', ')}); disponibles: ${available.length === 0 ? 'ninguno' : available.join(', ')}` };
+  const { directory, root } = located;
+  const configPath = join(directory, THEME_CONFIG_FILE);
+  const templatePath = join(directory, THEME_TEMPLATE_FILE);
+  for (const [path, file] of [
+    [configPath, THEME_CONFIG_FILE],
+    [templatePath, THEME_TEMPLATE_FILE],
+  ] as const) {
+    if ((await kindOf(root.fileSystem, path)) !== 'file') {
+      return { ok: false, message: `El tema «${name}» (${directory}) no tiene ${file}` };
+    }
+  }
+  let text: string;
+  try {
+    text = await root.fileSystem.readTextFile(configPath);
+  } catch (error) {
+    return { ok: false, message: `No se pudo leer ${configPath}: ${describeError(error)}` };
+  }
+  const parsed = parseThemeConfig(text);
+  if (!parsed.ok) {
+    return { ok: false, message: `Tema «${name}» inválido (${configPath}):\n${parsed.errors.map((error) => `  - ${error}`).join('\n')}` };
+  }
+  if (parsed.config.theme.name !== undefined && parsed.config.theme.name !== name) {
+    return { ok: false, message: `${configPath}: theme.name «${parsed.config.theme.name}» no coincide con el directorio «${name}»` };
+  }
+  const fonts = join(directory, THEME_FONTS_DIRECTORY);
+  const fontsDirectory = (await kindOf(root.fileSystem, fonts)) === 'directory' ? fonts : undefined;
+  return { ok: true, theme: { name, directory, templatePath, configPath, fontsDirectory, config: parsed.config, builtin: root.builtin, root } };
+}
+
+export interface ThemeInventoryEntry {
+  readonly name: string;
+  readonly directory: string;
+  readonly builtin: boolean;
+  /** Un tema del proyecto con el mismo nombre que uno distribuido: prevalece y lo oculta. */
+  readonly shadows: boolean;
+  readonly description: string | undefined;
+  /** Motivo por el que no se puede usar, si lo hay. */
+  readonly error: string | undefined;
+}
+
+/** Inventario para `cv theme list`: cada tema visible con su origen, descripción y validez. */
+export async function inventoryThemes(roots: readonly ThemeRoot[]): Promise<ThemeInventoryEntry[]> {
+  const builtinNames = new Set(await listThemes(roots.filter((root) => root.builtin)));
+  const entries: ThemeInventoryEntry[] = [];
+  const seen = new Set<string>();
+  for (const root of roots) {
+    for (const name of await listThemes([root])) {
+      if (seen.has(name)) {
+        continue;
+      }
+      seen.add(name);
+      const loaded = await loadTheme(name, [root]);
+      entries.push({
+        name,
+        directory: join(root.directory, name),
+        builtin: root.builtin,
+        shadows: !root.builtin && builtinNames.has(name),
+        description: loaded.ok ? loaded.theme.config.theme.description : undefined,
+        error: loaded.ok ? undefined : loaded.message,
+      });
+    }
+  }
+  return entries;
 }
