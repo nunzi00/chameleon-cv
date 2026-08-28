@@ -8,13 +8,14 @@ import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-of
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
+import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runLlmStatus } from './commands/llm';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
-import { parseLimit } from './limits';
+import { parseLimit, parseProposals } from './limits';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { packageVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
@@ -112,12 +113,48 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
       onExit(await runTypstStatus(context));
     });
 
+  program
+    .command('improve')
+    .description('co-piloto: propone reescrituras con más impacto para tus logros y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes')
+    .option('-s, --specialty <id>', 'solo los logros que entran en esa especialidad')
+    .option('-f, --from-job-offer <file>', 'oferta (texto o PDF; «-» = stdin): solo los logros que sobreviven a la adaptación, y sus términos guían la reescritura')
+    .option('-n, --top-n <n>', 'logros por experiencia/proyecto y transversales (como en generate-cv)', parseLimit)
+    .option('--max-skills <n>', '(como en generate-cv)', parseLimit)
+    .option('--max-projects <n>', '(como en generate-cv)', parseLimit)
+    .option('--max-certifications <n>', '(como en generate-cv)', parseLimit)
+    .option('--compact', 'preset de límites de generate-cv', false)
+    .option('--only <ids>', 'ids de logros separados por comas')
+    .option('--proposals <n>', 'propuestas por logro (1-3)', parseProposals, IMPROVE_DEFAULTS.proposals)
+    .option('--max-length <n>', 'longitud máxima de cada propuesta', parseLimit, IMPROVE_DEFAULTS.maxLength)
+    .option('--max-items <n>', 'logros como máximo por ejecución (presupuesto)', parseLimit, IMPROVE_DEFAULTS.maxItems)
+    .option('--redact-companies', 'seudonimiza también las empresas ([EMPRESA-n])', false)
+    .option('-l, --locale <locale>', 'idioma de las propuestas (por defecto, el del perfil)')
+    .option('-o, --output <file>', 'fichero de revisión (por defecto output/revision-improve-<fecha>[-<esp>][-<oferta>].md)')
+    .option('--no-cache', 'no leer ni guardar la caché local de respuestas')
+    .option('--show-prompt', 'imprime el prompt exacto y termina', false)
+    .option('--show-payload', 'imprime los fragmentos seudonimizados que saldrían', false)
+    .option('--dry-run', 'no envía nada: solo dice qué saldría y a dónde', false)
+    .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
+    .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
+    .option('--build', 'recompila el artefacto antes', false)
+    .action(async (options: ImproveOptions) => {
+      onExit(await runImproveCommand(context, options));
+    });
+
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');
   llm
     .command('status')
     .description('muestra el proveedor y el modelo locales que se usarían (CHAMELEON_LLM_PROVIDER, CHAMELEON_LLM_BASE_URL, CHAMELEON_LLM_MODEL) y si responden')
     .action(async () => {
       onExit(await runLlmStatus(context));
+    });
+  llm
+    .command('cache')
+    .description('caché local de respuestas del co-piloto')
+    .command('clear')
+    .description('vacía la caché local de respuestas (ficheros 0600 en tu caché de usuario)')
+    .action(async () => {
+      onExit(await runLlmCacheClear(context));
     });
 
   return program;

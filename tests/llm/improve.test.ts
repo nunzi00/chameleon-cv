@@ -112,6 +112,7 @@ describe('runImprove (canon C6: validado con zod; seudónimos deshechos)', () =>
       ok: true,
       proposals: [{ text: 'Rediseñé la caché de ACME Corp y reduje la latencia p95 un 40 %', rationale: 'verbo de acción' }],
       raw: '{}',
+      json: { proposals: [{ text: 'Rediseñé la caché de [EMPRESA-1] y reduje la latencia p95 un 40 %', rationale: 'verbo de acción' }] },
       model: 'fake',
       usage: { promptTokens: 1 },
       elapsedMs: 5,

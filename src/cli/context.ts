@@ -8,13 +8,14 @@ import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParse
 import { extractPdfText, type PdfExtractionResult } from '../pdf';
 import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
 import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
-import { llmStatus, type LlmStatus, type LlmStatusOptions } from '../llm';
+import { createNodeLlmCache, createProvider, llmStatus, resolveLlmConfig, type LlmCacheStore, type LlmProvider, type LlmStatus, type LlmStatusOptions } from '../llm';
 import { readStdin } from './stdin';
 
 export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
 export type TypstInstaller = (options: InstallOptions, report: Reporter) => Promise<InstallResult>;
 export type TypstStatusReporter = (options: StatusOptions) => Promise<TypstStatus>;
 export type LlmStatusReporter = (options: LlmStatusOptions) => Promise<LlmStatus>;
+export type LlmProviderResult = { readonly ok: true; readonly provider: LlmProvider } | { readonly ok: false; readonly message: string };
 
 export interface CliContext {
   readonly cwd: string;
@@ -35,6 +36,12 @@ export interface CliContext {
   readonly typstStatus: TypstStatusReporter;
   /** `cv llm status` (T-4.2): nunca envía datos; solo comprueba el proveedor local. */
   readonly llmStatus: LlmStatusReporter;
+  /** Proveedor de modelos configurado (T-4.3); inyectable para probar `cv improve` sin modelo. */
+  readonly llmProvider: () => LlmProviderResult;
+  /** Caché local de respuestas del co-piloto. */
+  readonly llmCache: LlmCacheStore;
+  /** Reloj (por defecto, el del sistema): fechas de los ficheros de revisión. */
+  readonly now?: (() => Date) | undefined;
 }
 
 export function createNodeContext(): CliContext {
@@ -55,5 +62,10 @@ export function createNodeContext(): CliContext {
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
+    llmProvider: () => {
+      const config = resolveLlmConfig();
+      return config.ok ? { ok: true, provider: createProvider(config.config) } : { ok: false, message: config.message };
+    },
+    llmCache: createNodeLlmCache(),
   };
 }

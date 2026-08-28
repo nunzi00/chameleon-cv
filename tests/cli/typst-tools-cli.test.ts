@@ -5,7 +5,7 @@ import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { TYPST_VERSION, renderTypstCv } from '../../src/renderers/typst';
 import type { InstallOptions, InstallResult, TypstStatus } from '../../src/typst';
-import { llmStatus } from '../../src/llm';
+import { MemoryLlmCache, llmStatus } from '../../src/llm';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
 interface Harness {
@@ -44,6 +44,8 @@ function harness(install: InstallResult, status: TypstStatus): Harness {
     typstInstall,
     typstStatus,
     llmStatus: (options) => llmStatus(options),
+    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmCache: new MemoryLlmCache(),
   };
   return { context, installs, stdout: () => out.join(''), stderr: () => err.join('') };
 }

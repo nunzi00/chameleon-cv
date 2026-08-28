@@ -22,8 +22,8 @@ export interface LlmRequest {
 }
 
 export interface LlmUsage {
-  readonly promptTokens?: number;
-  readonly completionTokens?: number;
+  readonly promptTokens?: number | undefined;
+  readonly completionTokens?: number | undefined;
 }
 
 export type LlmErrorCode = 'refused' | 'unreachable' | 'timeout' | 'http' | 'invalid-response' | 'invalid-json' | 'failed';

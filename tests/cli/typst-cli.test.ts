@@ -6,7 +6,7 @@ import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { type TypstRenderOptions, type TypstRenderResult } from '../../src/renderers/typst';
 import { installTypst, typstStatus } from '../../src/typst';
-import { llmStatus } from '../../src/llm';
+import { MemoryLlmCache, llmStatus } from '../../src/llm';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
 
@@ -50,6 +50,8 @@ function harness(result: TypstRenderResult, tree: Record<string, string | Memory
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
     llmStatus: (options) => llmStatus(options),
+    llmProvider: () => ({ ok: false, message: 'sin proveedor en las pruebas' }),
+    llmCache: new MemoryLlmCache(),
   };
   return { context, fs, calls, stdout: () => out.join(''), stderr: () => err.join('') };
 }

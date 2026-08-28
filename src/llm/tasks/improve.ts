@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { createRedaction, type Redaction } from '../../core/llm/redact';
 import type { Achievement, MasterProfile } from '../../core/schema';
-import type { LlmErrorCode, LlmProvider, LlmUsage } from '../provider';
+import type { LlmCompletion, LlmErrorCode, LlmProvider, LlmUsage } from '../provider';
 
 export const PROMPTS_DIRECTORY = resolve(__dirname, '..', '..', '..', 'prompts');
 export const IMPROVE_PROMPT_VERSION = 'improve.v1';
@@ -127,21 +127,21 @@ export interface ImproveProposal {
 export type ImproveErrorCode = LlmErrorCode | 'invalid-output';
 
 export type ImproveResult =
-  | { readonly ok: true; readonly proposals: readonly ImproveProposal[]; readonly raw: string; readonly model: string; readonly usage: LlmUsage; readonly elapsedMs: number; readonly promptVersion: string }
+  | {
+      readonly ok: true;
+      readonly proposals: readonly ImproveProposal[];
+      readonly raw: string;
+      /** JSON tal como lo devolvió el modelo (con seudónimos): lo que se cachea. */
+      readonly json: unknown;
+      readonly model: string;
+      readonly usage: LlmUsage;
+      readonly elapsedMs: number;
+      readonly promptVersion: string;
+    }
   | { readonly ok: false; readonly code: ImproveErrorCode; readonly message: string };
 
-/** Envía el fragmento, valida la salida y deshace los seudónimos en las propuestas. */
-export async function runImprove(provider: LlmProvider, fragment: ImproveFragment, prompt: string, timeoutMs?: number): Promise<ImproveResult> {
-  const completion = await provider.complete({
-    messages: [
-      { role: 'system', content: prompt },
-      { role: 'user', content: JSON.stringify(fragment.input) },
-    ],
-    schema: improveJsonSchema(),
-    schemaName: 'improve',
-    maxTokens: IMPROVE_LIMITS.maxTokens,
-    timeoutMs,
-  });
+/** Valida una respuesta (del proveedor o de la caché) y deshace los seudónimos en las propuestas. */
+export function interpretImprove(fragment: ImproveFragment, completion: LlmCompletion): ImproveResult {
   if (!completion.ok) {
     return { ok: false, code: completion.code, message: completion.message };
   }
@@ -153,9 +153,25 @@ export async function runImprove(provider: LlmProvider, fragment: ImproveFragmen
     ok: true,
     proposals: output.data.proposals.map((proposal) => ({ text: fragment.redaction.restore(proposal.text), rationale: fragment.redaction.restore(proposal.rationale) })),
     raw: completion.raw,
+    json: completion.json,
     model: completion.model,
     usage: completion.usage,
     elapsedMs: completion.elapsedMs,
     promptVersion: IMPROVE_PROMPT_VERSION,
   };
+}
+
+/** Envía el fragmento al proveedor e interpreta la respuesta. */
+export async function runImprove(provider: LlmProvider, fragment: ImproveFragment, prompt: string, timeoutMs?: number): Promise<ImproveResult> {
+  const completion = await provider.complete({
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user', content: JSON.stringify(fragment.input) },
+    ],
+    schema: improveJsonSchema(),
+    schemaName: 'improve',
+    maxTokens: IMPROVE_LIMITS.maxTokens,
+    timeoutMs,
+  });
+  return interpretImprove(fragment, completion);
 }
