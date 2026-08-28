@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tareas** | T-1.5 · [CORE] `SelectorEngine` (especificación) · T-1.7 · [GENERATOR] `MarkdownRenderer` (propuesta de plantilla) |
-| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v1, sin modificaciones; los seis invariantes de §2.5 son requisitos no negociables). T-1.5 implementada en `src/core/selection/`; T-1.7 pendiente. |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v1, sin modificaciones; los seis invariantes de §2.5 son requisitos no negociables). T-1.5 implementada en `src/core/selection/`; T-1.7 en `src/renderers/markdown/` + `templates/cv.md.hbs` (golden §5.4 verificado). |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Cómo se elige qué partes del `MasterProfile` van a un CV de una especialidad, con qué contrato, y con qué plantilla se renderiza. |
 

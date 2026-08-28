@@ -19,7 +19,8 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
     -   Hecho 2026-08-28: `src/core/selection/` (`selectForSpecialty`, `specialtyVocabulary`, `relevanceOf`; informe con motivos universal/matched/via-achievements/no-match). Suite con los ejemplos de la especificación y los seis invariantes canónicos (invariante 5 precisado en §2.5).
 -   [ ] **T-1.6: [TESTS] Pruebas unitarias.** Configurar `Jest` o `Vitest` para testear la lógica de los parsers y las funciones de selección de datos. Cobertura del 100% en la lógica de negocio.
     -   En curso 2026-08-28: harness adelantado (Vitest 4 + cobertura v8 con umbral 100 % sobre `src/core/**` y `src/parsers/**`; commit a700395). Pendiente: cubrir selección, renderer y CLI conforme se implementen T-1.5, T-1.7, T-1.4 y T-1.8.
--   [ ] **T-1.7: [GENERATOR] `MarkdownRenderer`.** Convierte un `MasterProfile` (seleccionado) en un CV en Markdown mediante Handlebars y un modelo de vista; plantilla base propuesta en `docs/selector-engine.md` §5 (pendiente de aprobación).
+-   [x] **T-1.7: [GENERATOR] `MarkdownRenderer`.** Convierte un `MasterProfile` (seleccionado) en un CV en Markdown mediante Handlebars y un modelo de vista; plantilla base aprobada en `docs/selector-engine.md` §5.
+    -   Hecho 2026-08-28: `src/renderers/markdown/` (`buildCvView` puro, etiquetas es/en por locale, fechas con Intl, orden cronológico, Handlebars `noEscape` + normalización) y `templates/cv.md.hbs`; golden `tests/fixtures/golden/cv-backend.md` = §5.4.
 -   [ ] **T-1.8: [CLI] Comando `generate-cv`.** Orquesta `profile.json` → `SelectorEngine` → `MarkdownRenderer` → `output/<cv>.md`. Culminación del MVP.
 
 ### Hito 2: Evolución - Adaptación por Oferta de Empleo (Target: 1 semana post-MVP)
