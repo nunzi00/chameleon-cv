@@ -5,14 +5,15 @@
  * Regla: **sin tags, siempre; con tags, solo si alguna coincide** con el vocabulario de la
  * especialidad (`tags ∪ {id}`). Un contenedor (experiencia, proyecto) se conserva si es
  * relevante o si alguno de sus logros coincide explícitamente; dentro de un contenedor
- * conservado se filtran los logros con la misma regla.
+ * conservado se filtran los logros con la misma regla. La tag reservada `#pin` (T-2.9) cuenta
+ * como coincidencia explícita con cualquier especialidad: ancla el ítem y arrastra su contenedor.
  *
  * Invariantes canónicos: pura y determinista, conserva el contrato, conserva el orden,
  * idempotente, monótona respecto al etiquetado y explicable (una decisión por ítem evaluado).
  */
-import type { Achievement, MasterProfile, Specialty } from '../schema';
+import { isPinned, type Achievement, type MasterProfile, type Specialty } from '../schema';
 
-export type SelectionReason = 'universal' | 'matched' | 'via-achievements' | 'no-match';
+export type SelectionReason = 'universal' | 'matched' | 'pinned' | 'via-achievements' | 'no-match';
 
 export type SelectionSection = 'experience' | 'projects' | 'education' | 'skills' | 'certifications' | 'achievements';
 
@@ -52,7 +53,9 @@ export type SelectionResult =
 
 export interface Relevance {
   readonly relevant: boolean;
+  /** Coincidencia explícita: alguna tag en el vocabulario, o la tag de anclaje `#pin`. */
   readonly explicit: boolean;
+  readonly pinned: boolean;
   readonly matchedTags: readonly string[];
 }
 
@@ -61,14 +64,18 @@ export function specialtyVocabulary(specialty: Specialty): ReadonlySet<string> {
   return new Set([specialty.id, ...specialty.tags]);
 }
 
-/** Relevancia de unas tags: universal (sin tags) o con coincidencia explícita. */
+/** Relevancia de unas tags: universal (sin tags), anclada (`#pin`) o con coincidencia explícita. */
 export function relevanceOf(tags: readonly string[], vocabulary: ReadonlySet<string>): Relevance {
   const matchedTags = tags.filter((tag) => vocabulary.has(tag));
-  const explicit = matchedTags.length > 0;
-  return { relevant: tags.length === 0 || explicit, explicit, matchedTags };
+  const pinned = isPinned(tags);
+  const explicit = pinned || matchedTags.length > 0;
+  return { relevant: tags.length === 0 || explicit, explicit, pinned, matchedTags };
 }
 
 function reasonFor(tags: readonly string[], relevance: Relevance): SelectionReason {
+  if (relevance.pinned) {
+    return 'pinned';
+  }
   if (tags.length === 0) {
     return 'universal';
   }
