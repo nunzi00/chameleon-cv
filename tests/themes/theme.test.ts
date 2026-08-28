@@ -67,7 +67,9 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     // Si el proyecto es el propio repositorio, no se busca dos veces en el mismo directorio.
     expect(themeRoots(join(BUILTIN_THEMES_DIRECTORY, '..'), new MemoryFileSystem({}))).toHaveLength(1);
-    expect(await listThemes([builtinThemeRoot()])).toEqual(['default']);
+    expect(await listThemes([builtinThemeRoot()])).toEqual(['classic', 'default']);
+    const classic = await loadTheme('classic', [builtinThemeRoot()]);
+    expect(classic).toMatchObject({ ok: true, theme: { name: 'classic', builtin: true, config: { theme: { name: 'classic', version: 1 }, fonts: { body: 'Libertinus Serif' }, page: { paper: 'a4' } } } });
   });
 
   it('el tema del proyecto prevalece, puede traer fonts/ y se lista antes que los distribuidos', async () => {
@@ -82,7 +84,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
       '/work/themes/suelto.txt': '',
     });
     const roots = [project, builtinThemeRoot()];
-    expect(await listThemes(roots)).toEqual(['default', 'mio']);
+    expect(await listThemes(roots)).toEqual(['default', 'mio', 'classic']);
     const mio = await loadTheme('mio', roots);
     expect(mio).toMatchObject({ ok: true, theme: { name: 'mio', directory: '/work/themes/mio', fontsDirectory: '/work/themes/mio/fonts', builtin: false, config: { page: { paper: 'us-letter' } } } });
     const shadowed = await loadTheme('default', roots);
@@ -103,7 +105,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     const roots = [project, builtinThemeRoot()];
     expect(await loadTheme('../default', roots)).toEqual({ ok: false, message: 'Nombre de tema inválido «../default»: minúsculas, dígitos y guiones (p. ej. «default»)' });
-    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, default` });
+    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, classic, default` });
     expect(await loadTheme('nada', [memoryRoot({})])).toEqual({ ok: false, message: 'No existe el tema «nada» (buscado en /work/themes); disponibles: ninguno' });
     expect(await loadTheme('sin-config', roots)).toEqual({ ok: false, message: 'El tema «sin-config» (/work/themes/sin-config) no tiene theme.toml' });
     expect(await loadTheme('sin-plantilla', roots)).toEqual({ ok: false, message: 'El tema «sin-plantilla» (/work/themes/sin-plantilla) no tiene template.typ' });

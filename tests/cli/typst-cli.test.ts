@@ -131,12 +131,38 @@ describe('cv generate-cv --theme (T-5.1)', () => {
 
     const unknown = harness(OK);
     expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'nada'], unknown.context)).toBe(EXIT_DATA_ERROR);
-    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: default\n$/);
+    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: classic, default\n$/);
     expect(unknown.calls).toEqual([]);
 
     const invalid = harness(OK, { '/work/themes/feo/theme.toml': themeToml('feo').replace('body = 10', 'body = 1'), '/work/themes/feo/template.typ': '' });
     expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'feo'], invalid.context)).toBe(EXIT_DATA_ERROR);
     expect(invalid.stderr()).toBe('Tema «feo» inválido (/work/themes/feo/theme.toml):\n  - sizes.body: Tamaño demasiado pequeño (mínimo 4 pt)\n');
     expect(typstExitCode('theme-invalid')).toBe(EXIT_DATA_ERROR);
+  });
+});
+
+describe('cv.toml (T-5.2): tema por defecto del proyecto y anulaciones', () => {
+  it('cv.toml elige el tema y anula valores solo para esa ejecución; --theme prevalece; lo inválido se explica antes de renderizar', async () => {
+    const h = harness(OK, { '/work/cv.toml': '[theme]\nname = "classic"\n[theme.colors]\nprimary = "#ff0000"\n[theme.fonts]\nbody = "Source Sans 3"\n' });
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--explain'], h.context)).toBe(EXIT_OK);
+    expect(h.calls[0]?.theme).toMatchObject({ name: 'classic', builtin: true, config: { colors: { primary: '#ff0000', accent: '#6b2737' }, fonts: { body: 'Source Sans 3', heading: 'Libertinus Serif' } } });
+    expect(h.stderr()).toContain('Tema: classic (distribuido); cv.toml anula colors.primary, fonts.body\n');
+
+    const flag = harness(OK, { '/work/cv.toml': '[theme]\nname = "classic"\n' });
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'default', '--explain'], flag.context)).toBe(EXIT_OK);
+    expect(flag.calls[0]?.theme).toMatchObject({ name: 'default', config: { colors: { primary: '#1b1b1b' } } });
+    expect(flag.stderr()).toContain('Tema: default (distribuido)\n');
+
+    const invalid = harness(OK, { '/work/cv.toml': '[theme]\nprimary_color = "#ff0000"\n' });
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst'], invalid.context)).toBe(EXIT_DATA_ERROR);
+    expect(invalid.stderr()).toMatch(/^Configuración inválida \(\/work\/cv\.toml\):\n  - theme: .*primary_color/);
+    expect(invalid.calls).toEqual([]);
+    const project = harness(OK, { '/work/themes/mio/theme.toml': themeToml('mio'), '/work/themes/mio/template.typ': '', '/work/cv.toml': '[theme.sizes]\nbody = 11\n' });
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'mio', '--explain'], project.context)).toBe(EXIT_OK);
+    expect(project.stderr()).toContain('Tema: mio (del proyecto); cv.toml anula sizes.body\n');
+    expect(project.calls[0]?.theme).toMatchObject({ name: 'mio', config: { sizes: { body: 11, name: 20 } } });
+    // Sin Typst, cv.toml no interviene: pdfkit y Markdown lo ignoran.
+    const markdown = harness(OK, { '/work/cv.toml': '[theme\n' });
+    expect(await runCli(['generate-cv'], markdown.context)).toBe(EXIT_OK);
   });
 });
