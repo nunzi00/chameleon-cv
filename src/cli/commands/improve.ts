@@ -18,6 +18,7 @@ import { buildBeforeUse } from './build';
 import { OUTPUT_MODE } from './generate-cv';
 import { consentToRemote } from './remote';
 import { prepareSelection, type SelectionOptions } from './selection';
+import { indexSources, withAchievementSources } from './sources';
 
 export interface ImproveOptions extends SelectionOptions {
   readonly profile: string;
@@ -172,10 +173,19 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
     },
   });
 
+  // Procedencia en las fuentes (T-4.7): fichero, línea y huella de cada original, para «cv improve apply».
+  const warn = (line: string): void => {
+    context.stderr(`${line}\n`);
+  };
+  const sources = await indexSources(context, resolve(context.cwd, options.data));
+  const located = sources.ok ? withAchievementSources(items, sources.index, warn) : items;
+  if (!sources.ok) {
+    warn(`Aviso: no se registrará la fuente de los logros (${sources.message}); «cv improve apply» no podrá aplicar esta revisión`);
+  }
   const generatedAt = now().toISOString();
   const review = formatReview(
-    { task: 'improve', generatedAt, specialty: options.specialty, offer: offerName, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: IMPROVE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
-    items,
+    { task: 'improve', generatedAt, specialty: options.specialty, offer: offerName, dataDir: options.data, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: IMPROVE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
+    located,
   );
   const outputPath = resolve(context.cwd, options.output ?? defaultReviewPath(now(), options.specialty, offerName));
   try {

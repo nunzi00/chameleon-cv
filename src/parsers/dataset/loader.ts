@@ -16,7 +16,7 @@ export interface LoadDatasetOptions {
 }
 
 export type DatasetResult =
-  | { readonly ok: true; readonly profile: MasterProfile; readonly files: readonly string[] }
+  | { readonly ok: true; readonly profile: MasterProfile; readonly files: readonly string[]; /** Procedencia (fichero:línea) de cada parte del perfil, para trazar un ítem hasta su fuente. */ readonly provenance: readonly Provenance[] }
   | { readonly ok: false; readonly errors: readonly DatasetError[] };
 
 /** Normaliza el texto leído: BOM fuera y finales de línea `\n`. */
@@ -90,7 +90,7 @@ export async function loadDataset(root: string, options: LoadDatasetOptions): Pr
 
   const validation = validateMasterProfile(merged.profile);
   if (validation.ok) {
-    return { ok: true, profile: validation.profile, files: plan.files.map((file) => file.path) };
+    return { ok: true, profile: validation.profile, files: plan.files.map((file) => file.path), provenance: merged.provenance };
   }
   return { ok: false, errors: sortErrors(validation.issues.map((issue) => locateIssue(issue, merged.provenance))) };
 }

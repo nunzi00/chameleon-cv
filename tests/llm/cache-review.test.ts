@@ -90,7 +90,7 @@ describe('fichero de revisión (canon C1/C9)', () => {
         '- proveedor: openai-compatible (http://127.0.0.1:8080) · modelo: default · prompt: improve.v1 · temperatura 0 · semilla 7',
         '- logros: 5 · propuestas: 5 · aceptadas: 4 · rechazadas: 1 · fallidos: 1 · desde caché: 1',
         '',
-        'La IA sugiere; tú decides. Nada se ha modificado en `data/sources/`. Marca con `[x]` las propuestas que quieras adoptar y cópialas a tus fuentes (o aplícalas con `cv improve apply` cuando exista). Las propuestas tachadas incumplen el canon C2 (integridad semántica): el motivo está al lado.',
+        'La IA sugiere; tú decides. Nada se ha modificado en `data/sources/`. Marca con `[x]` las propuestas que quieras adoptar y aplícalas con `cv improve apply <este fichero>` (crea una copia de seguridad y aborta si la fuente cambió) o cópialas a mano. Las propuestas tachadas incumplen el canon C2 (integridad semántica): el motivo está al lado.',
         '',
         '## exp-acme-1 · Senior Backend Engineer · ACME Corp',
         '',

@@ -47,8 +47,9 @@ function isRootFile(name: string): boolean {
   return ROOT_FILES.some((file) => file === name);
 }
 
+/** README y las copias de seguridad `*.bak` que deja `cv improve apply` (T-4.7) no son fuentes. */
 function isIgnoredRootFile(name: string): boolean {
-  return IGNORED_ROOT_FILES.some((file) => file === name);
+  return IGNORED_ROOT_FILES.some((file) => file === name) || /\.bak(\.\d+)?$/.test(name);
 }
 
 function sortedByName<T extends { readonly name: string }>(entries: readonly T[]): T[] {
