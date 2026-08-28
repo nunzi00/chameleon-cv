@@ -54,6 +54,8 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv build` (alias `build-profile`) | Compila las fuentes y escribe el artefacto canónico: la puerta de calidad del perfil. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `--check` (no escribe; falla si las fuentes tienen problemas o el artefacto falta o no está al día) · `-v, --verbose` |
 | `cv generate-cv` | Genera el CV en Markdown o PDF (pdfkit o Typst) a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `--engine <pdfkit\|typst>` · `--typst-path <file>` · `--typst-any-version` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
+| `cv typst install` | Descarga el release oficial de Typst 0.15.1 para tu plataforma, verifica su SHA-256 contra `src/typst/releases.json` y lo instala en la caché de usuario. Única operación de red de `cv`. | `--force` (reinstala) |
+| `cv typst status` | Qué binario de Typst se usaría (`--typst-path`, `CHAMELEON_TYPST`, caché, `PATH`), su versión y si es utilizable (código 0). | — |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
 
@@ -154,23 +156,31 @@ El CV se renderiza con Handlebars a partir de un modelo de vista ya formateado (
 
 ## Motor PDF de calidad editorial: Typst (opcional)
 
-`--format pdf` usa `pdfkit` por defecto (sin dependencias). Con `--engine typst` el CV se maqueta con [Typst](https://typst.app) a partir de la **misma vista estructurada** y la misma fuente embebida, con PDF etiquetado y determinista:
+`--format pdf` usa `pdfkit` por defecto: cero dependencias y un resultado correcto. Para un CV de **calidad de publicación**, `--engine typst` maqueta el mismo contenido con [Typst](https://typst.app) (0.15.1): jerarquía tipográfica cuidada (versalitas en las secciones, fechas alineadas a la derecha, tabla de skills, pie «nombre · n / total» solo si hay varias páginas), kerning y silabación profesionales, PDF etiquetado (accesible) y determinista, con la misma fuente Source Sans 3 embebida. Ambos motores parten de la **misma vista estructurada** del perfil: cambia la maquetación, nunca el contenido (la suite lo comprueba extrayendo el texto de los dos PDF).
+
+### Cómo
 
 ```bash
-cv generate-cv -s backend --format pdf --engine typst            # busca Typst 0.15.1 en --typst-path, CHAMELEON_TYPST, la caché de usuario o el PATH
-cv generate-cv -s backend --format pdf --engine typst -t mi.typ  # plantilla propia (debe exportar `cv`; su directorio es el root)
+cv typst install                                            # 1. descarga el release oficial para tu plataforma y lo verifica (una sola vez)
+cv typst status                                             # 2. qué binario se usaría, su versión y de dónde sale (código 0 si es utilizable)
+cv generate-cv -s backend --format pdf --engine typst       # 3. output/cv-<nombre>-backend.pdf con el diseño de referencia
+cv generate-cv -f oferta.pdf --compact --format pdf --engine typst   # todo lo demás (ofertas, recortes, #pin, --explain) funciona igual
 ```
 
-Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin ficheros intermedios, `--root` limitado al directorio de la plantilla, entorno vacío con interruptor de red (ningún paquete `@preview` se descarga), solo las fuentes de `templates/fonts`, 20 s y 32 MiB de límite. Sin binario, código 2 y la instrucción; una plantilla que no compila, código 1 con el diagnóstico.
+`cv typst install` es la **única operación de red** de `cv`, y solo ocurre cuando tú la pides: descarga por https con límite de tamaño, calcula el SHA-256 en streaming y lo compara con el manifiesto `src/typst/releases.json` (hashes fijados al versionar; un fichero alterado se elimina sin instalarse), extrae con el `tar` del sistema en un directorio temporal, comprueba `--version` y solo entonces coloca el binario en tu caché de usuario (`~/.cache/chameleon-cv/typst/0.15.1/typst`, permisos 0700; `~/Library/Caches` en macOS, `%LOCALAPPDATA%` en Windows). También sirve un Typst 0.15.1 ya instalado en el `PATH`, la variable `CHAMELEON_TYPST` o `--typst-path` (`--typst-any-version` acepta otra versión bajo tu responsabilidad).
 
-Para obtener el binario:
+Al generar, Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin ficheros intermedios (tus datos nunca pasan por argumentos ni por disco), `--root` limitado al directorio de la plantilla, entorno vacío con interruptor de red (ningún paquete `@preview` se descarga jamás), solo las fuentes de `templates/fonts`, 20 s y 32 MiB de límite. Sin binario, código 2 y la instrucción; una plantilla que no compila, código 1 con el diagnóstico de Typst.
+
+### Personalización
+
+El diseño de referencia es [`templates/typst/cv.typ`](templates/typst/cv.typ). Para adaptarlo o sustituirlo, copia ese fichero a tu directorio, edítalo y pásalo con `-t`:
 
 ```bash
-cv typst install   # descarga el release oficial 0.15.1 para tu plataforma, verifica su SHA-256 contra el manifiesto del repositorio y lo instala en tu caché de usuario
-cv typst status    # qué binario se usaría, su versión y de dónde sale (código 0 si es utilizable)
+cp templates/typst/cv.typ plantillas/mi-plantilla.typ
+cv generate-cv -s backend --format pdf --engine typst -t plantillas/mi-plantilla.typ
 ```
 
-`cv typst install` es la **única operación de red** de `cv`, y solo ocurre cuando tú la pides: descarga por https con límite de tamaño, calcula el SHA-256 en streaming y lo compara con `src/typst/releases.json` (hashes fijados al versionar; un fichero alterado se elimina sin instalarse), extrae con el `tar` del sistema en un directorio temporal, comprueba `--version` y solo entonces coloca el binario (`~/.cache/chameleon-cv/typst/0.15.1/typst`, permisos 0700; `~/Library/Caches` en macOS, `%LOCALAPPDATA%` en Windows). También sirve un Typst 0.15.1 del sistema o `--typst-path`.
+Tu plantilla solo tiene que exportar una función `cv(d)` que reciba la vista estructurada (nombre, contacto, resumen, experiencias, proyectos, skills, logros, formación, certificaciones e idiomas, con el Markdown en línea ya descompuesto en negritas, cursivas, código y enlaces). El contrato completo, las reglas del contenedor (qué puede leer e importar una plantilla) y un ejemplo mínimo están en [`docs/plantillas-typst.md`](docs/plantillas-typst.md).
 
 ## Seguridad y privacidad
 
@@ -189,4 +199,4 @@ npm run coverage     # cobertura: umbral 100 % en src/core, src/parsers, src/ren
 npm run dev          # ts-node con recarga
 ```
 
-Documentación de diseño: [`docs/arquitectura.md`](docs/arquitectura.md) (ecosistema de datos y capa de inteligencia), [`docs/formato-dataset.md`](docs/formato-dataset.md), [`docs/formato-csv.md`](docs/formato-csv.md), [`docs/selector-engine.md`](docs/selector-engine.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
+Documentación de diseño: [`docs/arquitectura.md`](docs/arquitectura.md) (ecosistema de datos y capa de inteligencia), [`docs/formato-dataset.md`](docs/formato-dataset.md), [`docs/formato-csv.md`](docs/formato-csv.md), [`docs/selector-engine.md`](docs/selector-engine.md), [`docs/scoring.md`](docs/scoring.md), [`docs/trimming-cli.md`](docs/trimming-cli.md), [`docs/pdf-integration.md`](docs/pdf-integration.md), [`docs/typst-integration.md`](docs/typst-integration.md) y [`docs/plantillas-typst.md`](docs/plantillas-typst.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
