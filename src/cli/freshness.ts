@@ -1,7 +1,7 @@
 /**
  * Frescura del artefacto (`docs/arquitectura.md` §2.4): `generate-cv` avisa si alguna fuente es
  * más reciente que `profile.json`. Nunca reconstruye por su cuenta: escribir el artefacto es
- * responsabilidad explícita de `cv build-profile`.
+ * responsabilidad explícita de `cv build` (o de `--build`).
  */
 import { planDataset, type FileSystem } from '../parsers';
 import { describeError } from '../shared/errors';
@@ -33,4 +33,14 @@ export async function checkArtifactFreshness(fs: FileSystem, artifactPath: strin
     mtimeMs: Number.NEGATIVE_INFINITY,
   });
   return newest.mtimeMs > artifactMtime ? { status: 'stale', newestSource: newest.path } : { status: 'fresh' };
+}
+
+/** Aviso estándar de `generate-cv` y `analyze-offer` cuando el artefacto puede estar obsoleto. */
+export async function warnIfStale(context: { readonly stderr: (text: string) => void; readonly datasetFileSystem: FileSystem }, artifactPath: string, sourcesRoot: string): Promise<void> {
+  const freshness = await checkArtifactFreshness(context.datasetFileSystem, artifactPath, sourcesRoot);
+  if (freshness.status === 'stale') {
+    context.stderr(`Aviso: ${freshness.newestSource} es más reciente que el artefacto; ejecuta «cv build» para regenerarlo\n`);
+  } else if (freshness.status === 'unknown') {
+    context.stderr(`Aviso: no se pudo comprobar si el artefacto está al día (${freshness.reason})\n`);
+  }
 }

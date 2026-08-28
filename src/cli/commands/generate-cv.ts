@@ -17,9 +17,10 @@ import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
 import type { CvFormat } from '../format';
-import { checkArtifactFreshness } from '../freshness';
+import { warnIfStale } from '../freshness';
 import { hasLimits, resolveLimits, type LimitOptions } from '../limits';
 import { readOfferText } from '../offer';
+import { buildBeforeUse } from './build';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK } from '../output';
 import { slugify } from '../slug';
 
@@ -37,6 +38,7 @@ export interface GenerateCvOptions extends LimitOptions {
   readonly format: CvFormat;
   readonly explain: boolean;
   readonly stdout: boolean;
+  readonly build: boolean;
 }
 
 /** `output/cv-<nombre>[-<especialidad>][-<oferta>].<formato>`, relativo al directorio de trabajo. */
@@ -58,16 +60,6 @@ export function formatConflict(options: Pick<GenerateCvOptions, 'format' | 'stdo
   return options.template === undefined ? undefined : '«--template» solo aplica a «--format md»: el PDF no usa plantilla';
 }
 
-function warnIfStale(context: CliContext, artifactPath: string, sourcesRoot: string): Promise<void> {
-  return checkArtifactFreshness(context.datasetFileSystem, artifactPath, sourcesRoot).then((freshness) => {
-    if (freshness.status === 'stale') {
-      context.stderr(`Aviso: ${freshness.newestSource} es más reciente que el artefacto; ejecuta «cv build-profile» para regenerarlo\n`);
-    } else if (freshness.status === 'unknown') {
-      context.stderr(`Aviso: no se pudo comprobar si el artefacto está al día (${freshness.reason})\n`);
-    }
-  });
-}
-
 interface Prepared {
   readonly profile: MasterProfile;
   readonly selection: SelectionReport | undefined;
@@ -83,6 +75,12 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     return EXIT_FAILURE;
   }
   const artifactPath = resolve(context.cwd, options.profile);
+  if (options.build) {
+    const built = await buildBeforeUse(context, options);
+    if (built !== EXIT_OK) {
+      return built;
+    }
+  }
   const artifact = await readProfileArtifact(context.artifactFileSystem, artifactPath);
   if (!artifact.ok) {
     for (const error of artifact.errors) {
@@ -90,7 +88,9 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     }
     return EXIT_DATA_ERROR;
   }
-  await warnIfStale(context, artifactPath, resolve(context.cwd, options.data));
+  if (!options.build) {
+    await warnIfStale(context, artifactPath, resolve(context.cwd, options.data));
+  }
 
   let prepared: Prepared = { profile: artifact.profile, selection: undefined, match: undefined, scoreOf: NO_SCORES, offerName: undefined };
   if (options.fromJobOffer !== undefined) {

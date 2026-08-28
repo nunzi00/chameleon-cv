@@ -217,7 +217,7 @@ describe('cv analyze-offer', () => {
     const stale = compiled();
     stale.fs.touch('/work/data/sources/profile.md', 900);
     expect(await runCli(['analyze-offer', 'offers/acme-backend.txt'], stale.context)).toBe(EXIT_OK);
-    expect(stale.stderr()).toBe('Aviso: profile.md es más reciente que el artefacto; ejecuta «cv build-profile» para regenerarlo\n');
+    expect(stale.stderr()).toBe('Aviso: profile.md es más reciente que el artefacto; ejecuta «cv build» para regenerarlo\n');
 
     const broken = compiled({ '/work/data/sources/notas.md': '' });
     expect(await runCli(['analyze-offer', 'offers/acme-backend.txt'], broken.context)).toBe(EXIT_OK);
@@ -362,5 +362,20 @@ describe('generate-cv --format pdf (T-2.6)', () => {
     failing.fs.failures.add('writeFile');
     expect(await runCli(['generate-cv', '--format', 'pdf'], failing.context)).toBe(EXIT_FAILURE);
     expect(failing.stderr()).toBe('No se pudo escribir el CV en «/work/output/cv-ada-ejemplo.pdf»: fallo simulado en writeFile\n');
+  });
+});
+
+describe('cv analyze-offer --build (T-2.7)', () => {
+  it('recompila el artefacto desde las fuentes antes de analizar y elimina el aviso de obsolescencia', async () => {
+    const stale = compiled();
+    stale.fs.touch('/work/data/sources/profile.md', 900);
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--build'], stale.context)).toBe(EXIT_OK);
+    expect(stale.stderr()).toBe('');
+    expect(stale.stdout()).toContain('Adecuación: la oferta no menciona nada del vocabulario del perfil');
+
+    const invalid = compiled({ '/work/data/sources/notas.md': '' });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--build'], invalid.context)).toBe(EXIT_DATA_ERROR);
+    expect(invalid.stdout()).toBe('');
+    expect(invalid.stderr()).toMatch(/\d+ problemas? en \/work\/data\/sources\n$/);
   });
 });

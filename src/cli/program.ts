@@ -5,7 +5,7 @@
 import { Command, CommanderError } from 'commander';
 
 import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-offer';
-import { runBuildProfile, type BuildProfileOptions } from './commands/build-profile';
+import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseFormat } from './format';
@@ -33,13 +33,15 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     });
 
   program
-    .command('build-profile')
-    .description(`compila las fuentes y escribe el artefacto canónico (por defecto ${DEFAULT_ARTIFACT_PATH})`)
+    .command('build')
+    .alias('build-profile')
+    .description(`compila las fuentes y escribe el artefacto canónico (por defecto ${DEFAULT_ARTIFACT_PATH}): la puerta de calidad del perfil`)
     .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
     .option('-o, --out <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
+    .option('--check', 'no escribe nada: falla si las fuentes tienen problemas o si el artefacto falta o no está al día', false)
     .option('-v, --verbose', 'muestra un resumen al terminar', false)
-    .action(async (options: BuildProfileOptions) => {
-      onExit(await runBuildProfile(context, options));
+    .action(async (options: BuildOptions) => {
+      onExit(await runBuild(context, options));
     });
 
   program
@@ -60,6 +62,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('-l, --locale <locale>', 'idioma de etiquetas y fechas (por defecto, el del perfil o «es»)')
     .option('--explain', 'explica en stderr qué se ha incluido, puntuado y recortado, y por qué', false)
     .option('--stdout', 'escribe el CV en la salida estándar en lugar de en un fichero (solo --format md)', false)
+    .option('--build', 'recompila el artefacto desde las fuentes antes de generar (equivale a un «cv build» previo)', false)
     .action(async (options: GenerateCvOptions) => {
       onExit(await runGenerateCv(context, options));
     });
@@ -73,6 +76,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
     .option('--explain', 'añade la auditoría por ítem', false)
     .option('--json', 'salida estructurada para scripts', false)
+    .option('--build', 'recompila el artefacto desde las fuentes antes de analizar (equivale a un «cv build» previo)', false)
     .action(async (offer: string, options: AnalyzeOfferOptions) => {
       onExit(await runAnalyzeOffer(context, offer, options));
     });

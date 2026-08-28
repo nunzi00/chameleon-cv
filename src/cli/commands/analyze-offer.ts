@@ -10,8 +10,9 @@ import { buildVocabulary, extractJobRequirements } from '../../core/keywords';
 import { summarizeMatch, tailorToOffer } from '../../core/scoring';
 import type { CliContext } from '../context';
 import { formatMatchReport, formatMatchSummary, formatSelectionReport } from '../explain';
-import { checkArtifactFreshness } from '../freshness';
+import { warnIfStale } from '../freshness';
 import { readOfferText } from '../offer';
+import { buildBeforeUse } from './build';
 import { EXIT_DATA_ERROR, EXIT_OK } from '../output';
 
 export interface AnalyzeOfferOptions {
@@ -20,10 +21,17 @@ export interface AnalyzeOfferOptions {
   readonly specialty?: string | undefined;
   readonly explain: boolean;
   readonly json: boolean;
+  readonly build: boolean;
 }
 
 export async function runAnalyzeOffer(context: CliContext, source: string, options: AnalyzeOfferOptions): Promise<number> {
   const artifactPath = resolve(context.cwd, options.profile);
+  if (options.build) {
+    const built = await buildBeforeUse(context, options);
+    if (built !== EXIT_OK) {
+      return built;
+    }
+  }
   const artifact = await readProfileArtifact(context.artifactFileSystem, artifactPath);
   if (!artifact.ok) {
     for (const error of artifact.errors) {
@@ -31,11 +39,8 @@ export async function runAnalyzeOffer(context: CliContext, source: string, optio
     }
     return EXIT_DATA_ERROR;
   }
-  const freshness = await checkArtifactFreshness(context.datasetFileSystem, artifactPath, resolve(context.cwd, options.data));
-  if (freshness.status === 'stale') {
-    context.stderr(`Aviso: ${freshness.newestSource} es más reciente que el artefacto; ejecuta «cv build-profile» para regenerarlo\n`);
-  } else if (freshness.status === 'unknown') {
-    context.stderr(`Aviso: no se pudo comprobar si el artefacto está al día (${freshness.reason})\n`);
+  if (!options.build) {
+    await warnIfStale(context, artifactPath, resolve(context.cwd, options.data));
   }
 
   const offer = await readOfferText(context, source);
