@@ -13,7 +13,7 @@ import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchRepo
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
 import { renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../../renderers';
 import { describeError } from '../../shared/errors';
-import { DEFAULT_THEME, loadTheme, themeRoots } from '../../themes';
+import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys, themeRoots } from '../../themes';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
@@ -89,18 +89,29 @@ function renderPdf(context: CliContext, profile: MasterProfile, options: Generat
 }
 
 async function renderWithTypst(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {
-  // Tema (T-5.1): `themes/<nombre>/` del proyecto o distribuido; su theme.toml se valida antes de arrancar Typst.
-  const loaded = await loadTheme(options.theme ?? DEFAULT_THEME, themeRoots(context.cwd, context.datasetFileSystem));
+  // Tema (T-5.1) y anulaciones de cv.toml (T-5.2): --theme > cv.toml [theme].name > default; theme.toml + [theme] de cv.toml, revalidado.
+  const project = await loadProjectConfig(context.cwd, context.datasetFileSystem);
+  if (!project.ok) {
+    context.stderr(`${project.message}\n`);
+    return EXIT_DATA_ERROR;
+  }
+  const overrides = project.config?.theme;
+  const loaded = await loadTheme(options.theme ?? overrides?.name ?? DEFAULT_THEME, themeRoots(context.cwd, context.datasetFileSystem));
   if (!loaded.ok) {
     context.stderr(`${loaded.message}\n`);
     return EXIT_DATA_ERROR;
+  }
+  const theme = applyThemeOverrides(loaded.theme, overrides);
+  if (options.explain) {
+    const keys = overriddenKeys(overrides);
+    context.stderr(`Tema: ${theme.name} (${theme.builtin ? 'distribuido' : 'del proyecto'})${keys.length === 0 ? '' : `; cv.toml anula ${keys.join(', ')}`}\n`);
   }
   const result = await context.typstRenderer(profile, {
     locale: options.locale,
     template: options.template === undefined ? undefined : resolve(context.cwd, options.template),
     explicitPath: options.typstPath === undefined ? undefined : resolve(context.cwd, options.typstPath),
     allowAnyVersion: options.typstAnyVersion,
-    theme: loaded.theme,
+    theme,
   });
   if (result.ok) {
     return result.pdf;

@@ -1,0 +1,44 @@
+# Tema «classic» de Chameleon CV (T-5.2): serif, sobrio y de aire académico. Cabecera centrada bajo un
+# doble filete, secciones en mayúsculas espaciadas, cuerpo justificado con partición de palabras.
+
+[theme]
+name = "classic"
+description = "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado"
+version = 1
+
+[colors]
+text = "#222222"
+primary = "#1f1f1f"
+secondary = "#5a5a5a"
+accent = "#6b2737"
+rule = "#9a9a9a"
+
+[fonts]                # Libertinus Serif viene embebida en Typst: no hace falta añadir ficheros
+body = "Libertinus Serif"
+heading = "Libertinus Serif"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 22
+headline = 11.5
+contact = 9.5
+section = 9.8
+title = 11
+meta = 9.5
+body = 10.5
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.65
+paragraph = 0.8
+list = 0.5
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 22
+right = 22
+bottom = 20
+left = 22

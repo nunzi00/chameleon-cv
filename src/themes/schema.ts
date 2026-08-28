@@ -89,16 +89,24 @@ export function tomlErrorMessage(error: unknown): string {
   return error instanceof TomlError ? `línea ${error.line}: ${first}` : first;
 }
 
-export function parseThemeConfig(text: string): ThemeParseResult {
+export type TomlParseResult<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly errors: readonly string[] };
+
+/** TOML → esquema zod; cada error lleva su ruta (`colors.primary: …`) o la línea del fallo de sintaxis. */
+export function parseTomlWith<T>(schema: z.ZodType<T>, text: string): TomlParseResult<T> {
   let data: unknown;
   try {
     data = parse(text);
   } catch (error) {
     return { ok: false, errors: [tomlErrorMessage(error)] };
   }
-  const result = ThemeConfigSchema.safeParse(data);
+  const result = schema.safeParse(data);
   if (!result.success) {
     return { ok: false, errors: result.error.issues.map((issue) => `${issue.path.length === 0 ? '<raíz>' : issue.path.join('.')}: ${issue.message}`) };
   }
-  return { ok: true, config: result.data };
+  return { ok: true, value: result.data };
+}
+
+export function parseThemeConfig(text: string): ThemeParseResult {
+  const parsed = parseTomlWith(ThemeConfigSchema, text);
+  return parsed.ok ? { ok: true, config: parsed.value } : parsed;
 }

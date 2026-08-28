@@ -23,7 +23,7 @@ import {
   type ProcessRunner,
   type TypstRenderOptions,
 } from '../../../src/renderers/typst';
-import { loadTheme } from '../../../src/themes';
+import { builtinThemeRoot, loadTheme } from '../../../src/themes';
 import { fullProfileInput, minimalProfileInput } from '../../fixtures/master-profile';
 import { selectionProfile } from '../../fixtures/selection';
 import { defaultThemeConfig, themeToml } from '../../fixtures/theme';
@@ -153,6 +153,18 @@ describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('renderTypstCv (bi
     expect(extracted).toEqual({ ok: true, text: GOLDEN_TYPST, pages: 1 });
     // El diseño (T-3.4) reordena líneas —fechas a la derecha, versalitas, tabla de skills—, nunca el contenido.
     expect(contentWords(GOLDEN_TYPST)).toEqual(contentWords(GOLDEN_PDFKIT));
+  });
+
+  it('el tema classic (serif, cabecera centrada, mayúsculas) conserva exactamente las palabras del diseño de referencia', async () => {
+    const classic = await loadTheme('classic', [builtinThemeRoot()]);
+    if (!classic.ok) throw new Error(classic.message);
+    const result = await renderTypstCv(backend(), { theme: classic.theme });
+    if (!result.ok) throw new Error(result.error.message);
+    const extracted = await extractPdfText(result.pdf);
+    expect(extracted).toMatchObject({ ok: true, pages: 1 });
+    const normalize = (text: string): string[] => contentWords(text.toLowerCase().replace(/[,–]/g, ' '));
+    expect(normalize(extracted.ok ? extracted.text : '')).toEqual(normalize(GOLDEN_PDFKIT));
+    expect(result.pdf.toString('latin1')).toContain('LibertinusSerif');
   });
 
   it('pagina los CV largos con pie de página «nombre · n / total» y mantiene los títulos pegados a su contenido', async () => {
