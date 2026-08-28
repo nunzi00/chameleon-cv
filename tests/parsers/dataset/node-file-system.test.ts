@@ -31,7 +31,7 @@ describe('NodeFileSystem', () => {
 
   it('resuelve rutas reales, describe ficheros y lee texto', async () => {
     expect(await fs.realPath(join(temporary, 'link.md'))).toBe(await fs.realPath(join(temporary, 'real.md')));
-    expect(await fs.stat(join(temporary, 'link.md'))).toEqual({ kind: 'file', size: 9 });
+    expect(await fs.stat(join(temporary, 'link.md'))).toEqual({ kind: 'file', size: 9, mtimeMs: expect.any(Number) });
     expect((await fs.stat(FIXTURE_ROOT)).kind).toBe('directory');
     expect(await fs.readTextFile(join(temporary, 'link.md'))).toBe('contenido');
   });
@@ -43,6 +43,7 @@ describe('clasificadores', () => {
     isDirectory: () => flags.directory === true,
     isSymbolicLink: () => flags.symlink === true,
     size: 7,
+    mtimeMs: 5,
   });
 
   it('entryKindOf prioriza el enlace simbólico y cae en «other» para el resto', () => {
@@ -53,8 +54,8 @@ describe('clasificadores', () => {
   });
 
   it('fileStatOf conserva el tamaño y clasifica en file/directory/other', () => {
-    expect(fileStatOf(fake({ file: true }))).toEqual({ kind: 'file', size: 7 });
-    expect(fileStatOf(fake({ directory: true }))).toEqual({ kind: 'directory', size: 7 });
-    expect(fileStatOf(fake({}))).toEqual({ kind: 'other', size: 7 });
+    expect(fileStatOf(fake({ file: true }))).toEqual({ kind: 'file', size: 7, mtimeMs: 5 });
+    expect(fileStatOf(fake({ directory: true }))).toEqual({ kind: 'directory', size: 7, mtimeMs: 5 });
+    expect(fileStatOf(fake({}))).toEqual({ kind: 'other', size: 7, mtimeMs: 5 });
   });
 });
