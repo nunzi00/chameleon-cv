@@ -71,7 +71,7 @@ export function scoreSelection(selection: Selection, requirements: JobRequiremen
 
   const coverage: Record<string, readonly string[]> = {};
   for (const term of requirements.terms) {
-    coverage[term.term] = [...scores.entries()].filter(([, score]) => score.terms.includes(term.term)).map(([id]) => id);
+    coverage[term.term] = decisions.filter((decision) => decision.included && decision.matchedTerms.includes(term.term)).map((decision) => decision.id);
   }
 
   const scoredProfile: MasterProfile = { ...profile, experience, projects, education, skills, certifications, achievements };
