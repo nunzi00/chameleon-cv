@@ -170,6 +170,8 @@ Aditiva, sin factores ocultos: la explicación de una puntuación es la lista de
 
 Un CV no deja de ser cronológico por adaptarse a una oferta: lo que cambia es **qué viñetas y skills aparecen primero**.
 
+Precisión (2026-08-28, T-2.9): los ítems con la tag reservada `pin` van **antes** que los puntuados («anclados primero, luego por puntuación, luego orden de documento»); `pin` no puntúa ni entra en el vocabulario (`buildVocabulary` la excluye), así que anclar no altera la adecuación medida ni el informe.
+
 ### 5.4 Informe de adecuación
 
 `MatchReport` amplía el informe del selector: cada decisión lleva `score` y `matchedTerms`; `coverage` dice, por cada término pedido, qué ítems incluidos lo demuestran (lista vacía = pedido y no demostrado); `requirements.gaps` lista lo que la oferta pide y el perfil ni siquiera tiene etiquetado. Con `--explain`:
