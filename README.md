@@ -161,7 +161,16 @@ cv generate-cv -s backend --format pdf --engine typst            # busca Typst 0
 cv generate-cv -s backend --format pdf --engine typst -t mi.typ  # plantilla propia (debe exportar `cv`; su directorio es el root)
 ```
 
-Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin ficheros intermedios, `--root` limitado al directorio de la plantilla, entorno vacío con interruptor de red (ningún paquete `@preview` se descarga), solo las fuentes de `templates/fonts`, 20 s y 32 MiB de límite. No se descarga nada: instala Typst 0.15.1 desde https://github.com/typst/typst/releases o con tu gestor de paquetes (`cv typst install` llegará en T-3.3). Sin binario, código 2 y la instrucción; una plantilla que no compila, código 1 con el diagnóstico.
+Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin ficheros intermedios, `--root` limitado al directorio de la plantilla, entorno vacío con interruptor de red (ningún paquete `@preview` se descarga), solo las fuentes de `templates/fonts`, 20 s y 32 MiB de límite. Sin binario, código 2 y la instrucción; una plantilla que no compila, código 1 con el diagnóstico.
+
+Para obtener el binario:
+
+```bash
+cv typst install   # descarga el release oficial 0.15.1 para tu plataforma, verifica su SHA-256 contra el manifiesto del repositorio y lo instala en tu caché de usuario
+cv typst status    # qué binario se usaría, su versión y de dónde sale (código 0 si es utilizable)
+```
+
+`cv typst install` es la **única operación de red** de `cv`, y solo ocurre cuando tú la pides: descarga por https con límite de tamaño, calcula el SHA-256 en streaming y lo compara con `src/typst/releases.json` (hashes fijados al versionar; un fichero alterado se elimina sin instalarse), extrae con el `tar` del sistema en un directorio temporal, comprueba `--version` y solo entonces coloca el binario (`~/.cache/chameleon-cv/typst/0.15.1/typst`, permisos 0700; `~/Library/Caches` en macOS, `%LOCALAPPDATA%` en Windows). También sirve un Typst 0.15.1 del sistema o `--typst-path`.
 
 ## Seguridad y privacidad
 
