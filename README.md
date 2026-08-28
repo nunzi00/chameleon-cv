@@ -55,6 +55,7 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv generate-cv` | Genera el CV en Markdown o PDF (pdfkit o Typst) a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `--engine <pdfkit\|typst>` · `--typst-path <file>` · `--typst-any-version` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 | `cv typst install` | Descarga el release oficial de Typst 0.15.1 para tu plataforma, verifica su SHA-256 contra `src/typst/releases.json` y lo instala en la caché de usuario. Única operación de red de `cv`. | `--force` (reinstala) |
+| `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden y qué claves remotas hay definidas (solo nombres). Nunca envía datos. | — |
 | `cv typst status` | Qué binario de Typst se usaría (`--typst-path`, `CHAMELEON_TYPST`, caché, `PATH`), su versión y si es utilizable (código 0). | — |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
@@ -181,6 +182,16 @@ cv generate-cv -s backend --format pdf --engine typst -t plantillas/mi-plantilla
 ```
 
 Tu plantilla solo tiene que exportar una función `cv(d)` que reciba la vista estructurada (nombre, contacto, resumen, experiencias, proyectos, skills, logros, formación, certificaciones e idiomas, con el Markdown en línea ya descompuesto en negritas, cursivas, código y enlaces). El contrato completo, las reglas del contenedor (qué puede leer e importar una plantilla) y un ejemplo mínimo están en [`docs/plantillas-typst.md`](docs/plantillas-typst.md).
+
+## Co-piloto de IA (en construcción)
+
+El Hito 4 añade un co-piloto que **sugiere** (reescribir logros, resumir, proponer etiquetas) y nunca decide ni escribe en tus fuentes; doctrina en [`docs/llm-integration.md`](docs/llm-integration.md). En esta versión solo está la base: proveedor local abstracto (Ollama nativo o cualquier servidor compatible con la API de OpenAI **en loopback**), seudonimización y el diagnóstico:
+
+```bash
+cv llm status   # proveedor y modelo locales que se usarían y si responden; código 0 si es utilizable. Nunca envía datos.
+```
+
+Configuración solo por variables `CHAMELEON_LLM_PROVIDER` (`ollama` por defecto, o `openai-compatible`), `CHAMELEON_LLM_BASE_URL` (por defecto `http://127.0.0.1:11434` u `:8080`; cualquier dirección que no sea local se rechaza) y `CHAMELEON_LLM_MODEL` (por defecto `qwen2.5:7b-instruct`). Los proveedores remotos exigirán `--provider` explícito en cada orden (T-4.5); las claves solo se leerán de `CHAMELEON_OPENAI_API_KEY`/`CHAMELEON_ANTHROPIC_API_KEY` o de un fichero 0600.
 
 ## Seguridad y privacidad
 

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-4.1 · [DESIGN] Propuesta de diseño técnico y principios para la integración de LLM |
-| **Estado** | **PROPUESTA** v1 (2026-08-28), pendiente de aprobación por el Director de Ingeniería. Hoja de ruta estratégica: no hay implementación. |
+| **Estado** | **APROBADA Y CANONIZADA** por el Director de Ingeniería el 2026-08-28: doctrina oficial para la integración de IA (los seis puntos de §8 ratificados; C2 y C3 elevados a invariantes). T-4.2 entregada (§9). |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Qué problema resuelve la IA, con qué cánones, con qué arquitectura (CLI, flujo de datos, elección y abstracción del modelo) y con qué garantías de seguridad y privacidad; y cómo se replanifica el Hito 4. |
 | **Base** | `docs/arquitectura.md` §3 (propuesta original y anotaciones canónicas), `docs/scoring.md` y `docs/trimming-cli.md` (lo que ya es determinista), `docs/typst-integration.md` (principios de consentimiento explícito de red y contenedor estricto), `docs/consolidacion.md`. |
@@ -156,7 +156,7 @@ Criterios de aceptación comunes: 100 % de cobertura con el doble de proveedor; 
 - **Deriva y disponibilidad de proveedores**: modelo fijado y registrado en cada revisión; sin SDKs que arrastren cambios.
 - **Idioma**: las tareas respetan el idioma del perfil (`meta.locale`); el prompt lo fija explícitamente.
 
-## 8. Puntos de decisión
+## 8. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. **Caso de uso principal**: `cv improve` (logros), con `summarize` y `suggest tags` como secundarios; el *matchmaking* sigue determinista y `cv match` queda sustituido por `analyze-offer` + `generate-cv -f`. Recomendación: aprobar.
 2. **Cánones C1–C10** (§3), en especial C1 (solo sugiere), C2 (sin invención, verificada por código) y C3 (remoto solo con consentimiento explícito y visible). Recomendación: aprobar como canon.
@@ -164,3 +164,10 @@ Criterios de aceptación comunes: 100 % de cobertura con el doble de proveedor; 
 4. **Datos y claves**: `redact` como única puerta de salida (sin contacto, `[NOMBRE]`, empresas opcionales), vista previa antes de enviar, claves solo `CHAMELEON_*` o fichero 0600. Recomendación: aprobar.
 5. **Salida**: el fichero de revisión como único canal; `apply` explícito e ítem a ítem en T-4.7 opcional. Recomendación: aprobar.
 6. **Replanificación del Hito 4** (§6: T-4.2–T-4.7, B-5; tres tareas antiguas cubiertas por el Hito 2). Recomendación: aprobar.
+
+## 9. Estado de la implementación
+
+- **T-4.2 (2026-08-28)**: entregada. `src/llm/http.ts` (cliente JSON con política explícita: en T-4.2 solo loopback, sin redirecciones, tiempo y tamaño acotados, errores tipificados), `provider.ts` (contrato `LlmProvider`), `ollama.ts` (API nativa `/api/chat` con `format: <JSON Schema>`, `/api/tags`, `/api/version`), `openai-compatible.ts` (`/v1/chat/completions` con `response_format: json_schema`, `/v1/models`), `config.ts` (solo `CHAMELEON_LLM_PROVIDER`/`BASE_URL`/`MODEL`; URL no local rechazada), `status.ts` + `cv llm status`, `tasks/improve.ts` (fragmento mínimo por construcción, prompt versionado `prompts/improve.v1.md`, JSON Schema derivado del mismo zod que valida la salida, seudónimos deshechos en las propuestas) y `src/core/llm/redact.ts` (canon C4). Cobertura 100 % con dobles HTTP locales; ninguna prueba toca la red.
+- **Spike real** (`npm run llm:spike -- templates/dataset exp-acme-1 php kubernetes`): esta máquina no tiene Ollama; se usó **llama.cpp `llama-server` b10679** (binario oficial CPU) sirviendo **Qwen2.5-7B-Instruct Q4_K_M** (4,7 GB, bartowski) en `127.0.0.1:8080`, es decir, el proveedor `openai-compatible`. Flujo completo verificado: logro → fragmento seudonimizado (`[NOMBRE]`, `[EMPRESA-1]`, sin contacto) → petición con esquema → JSON válido según zod → propuestas restauradas. Latencia 35 s en frío y 24 s en caliente (493 tokens de entrada, ~120 de salida, CPU Zen 5 de 10 núcleos); **determinista**: dos ejecuciones con `seed: 7` y `temperature: 0` devolvieron propuestas idénticas.
+- **Hallazgos**: (1) el modelo respetó las cifras (la comprobación informal de C2 no detectó ninguna inventada) pero **añadió hechos no numéricos** en un logro sin contexto («ingenieros backend», «mejorando su rendimiento»): el verificador C2 de T-4.3 debe comprobar entidades y términos —tecnologías, roles, sustantivos del vocabulario del perfil— además de números, y avisar también de los **hechos perdidos** (una propuesta omitió el «40 %»). (2) La seudonimización sustituía partes del nombre sin distinguir mayúsculas y convirtió «un programa de ejemplo» en «un programa de [NOMBRE]» (apellido «Ejemplo»): corregido en T-4.2 (partes del nombre y empresas con grafía exacta; el nombre completo, en cualquier grafía). (3) `llama-server` devuelve en `/v1/models` tanto `data` (OpenAI) como `models` (estilo Ollama); el proveedor lee `data`. (4) El proveedor Ollama nativo está verificado contra un doble local que reproduce su API documentada; queda pendiente ejecutarlo contra un Ollama real cuando esté disponible (mismo mecanismo que `CHAMELEON_TYPST` para Typst: variables `CHAMELEON_LLM_*`).
+- **Pendiente**: T-4.3 (`cv improve` con verificador C2 completo y fichero de revisión), T-4.4, T-4.5 (remotos con consentimiento), T-4.6, T-4.7.
