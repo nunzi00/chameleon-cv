@@ -22,6 +22,8 @@ describe('loadDataset sobre el dataset de ejemplo (disco real)', () => {
       'projects/chameleon.md',
       'education/universidad.md',
       'achievements.md',
+      'skills.csv',
+      'certifications.csv',
     ]);
     const { profile } = result;
     expect(profile.meta).toEqual({ schemaVersion: 1, locale: 'es-ES', updatedAt: '2026-08-28' });
@@ -56,7 +58,20 @@ describe('loadDataset sobre el dataset de ejemplo (disco real)', () => {
       ['ach-1', '2025-10'],
       ['ach-2', undefined],
     ]);
-    expect(profile.skills).toEqual([]);
-    expect(profile.certifications).toEqual([]);
+    expect(profile.skills.map((skill) => skill.id)).toEqual(['skill-1', 'skill-2', 'skill-3', 'skill-4', 'skill-5']);
+    expect(profile.skills[0]).toEqual({ id: 'skill-1', name: 'PHP', category: 'language', level: 'expert', years: 10, aliases: [], tags: ['php', 'backend'] });
+    expect(profile.skills[3]?.tags).toEqual(['c++']);
+    expect(profile.skills[4]).toEqual({
+      id: 'skill-5',
+      name: 'Liderazgo técnico',
+      category: 'soft',
+      level: 'advanced',
+      aliases: ['tech lead', 'team lead'],
+      tags: ['liderazgo'],
+    });
+    expect(profile.certifications).toEqual([
+      { id: 'cert-1', name: 'CKA', issuer: 'CNCF', date: '2022-05-10', url: 'https://example.com/cert/cka', tags: ['kubernetes', 'devops'] },
+      { id: 'cert-2', name: 'Symfony Certified Developer', issuer: 'SensioLabs', date: '2021', tags: ['symfony', 'php'] },
+    ]);
   });
 });

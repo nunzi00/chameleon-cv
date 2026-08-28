@@ -1,0 +1,6 @@
+name,category,level,years,aliases,tags
+PHP,language,expert,10,,php|backend
+Symfony,framework,expert,8,,symfony|php|backend
+Kubernetes,platform,advanced,5,k8s,kubernetes|devops|platform
+"C++",language,intermediate,3,cpp,c++
+Liderazgo técnico,soft,advanced,,tech lead|team lead,liderazgo

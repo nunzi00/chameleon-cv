@@ -1,0 +1,3 @@
+name,issuer,date,url,tags
+CKA,CNCF,2022-05-10,https://example.com/cert/cka,kubernetes|devops
+Symfony Certified Developer,SensioLabs,2021,,symfony|php

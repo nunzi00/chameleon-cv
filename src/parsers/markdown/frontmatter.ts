@@ -7,6 +7,7 @@ import { isMap, isNode, isScalar, isSeq, LineCounter, parseDocument } from 'yaml
 import { formatPath, type SchemaPath } from '../../core/schema';
 import type { DatasetError } from '../dataset/types';
 import { isPlainObject } from '../shared/objects';
+import { firstLine } from '../shared/text';
 
 export interface Frontmatter {
   /** Datos tal cual los devuelve YAML failsafe: cadenas, listas y mapas. */
@@ -30,11 +31,6 @@ interface YamlErrorLike {
 export function yamlErrorLine(error: YamlErrorLike, blockLine: number): number {
   const position = error.linePos?.[0];
   return position === undefined ? blockLine : blockLine + position.line;
-}
-
-export function firstLine(text: string): string {
-  const newline = text.indexOf('\n');
-  return newline === -1 ? text : text.slice(0, newline);
 }
 
 /** Línea de fichero en la que empieza un nodo YAML, si el parser la registró. */

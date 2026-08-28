@@ -10,7 +10,7 @@ import { onlyList, parseMarkdownDocument } from './document';
 import { parseAchievementList } from './achievements';
 import { entityKindForDirectory, parseEntityFile } from './entities';
 import { parseProfileFile } from './profile';
-import { createLocator, validateSection } from './section-validation';
+import { createLocator, validateSection } from '../shared/section-validation';
 
 const AchievementsSchema = z.array(AchievementSchema);
 

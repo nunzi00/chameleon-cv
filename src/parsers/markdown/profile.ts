@@ -9,7 +9,7 @@ import type { DatasetError, ParseResult, Provenance } from '../dataset/types';
 import { stripEmptyValues } from '../shared/objects';
 import { parseMarkdownDocument, sliceNodes } from './document';
 import { parseFrontmatter } from './frontmatter';
-import { createLocator, validateSection } from './section-validation';
+import { createLocator, validateSection } from '../shared/section-validation';
 
 const META_KEYS = ['schemaVersion', 'locale', 'updatedAt'] as const;
 
