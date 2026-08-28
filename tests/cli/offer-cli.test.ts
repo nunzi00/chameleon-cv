@@ -325,3 +325,42 @@ describe('ofertas en PDF (T-2.5)', () => {
     expect(pdfExitCode('failed')).toBe(EXIT_FAILURE);
   });
 });
+
+describe('generate-cv --format pdf (T-2.6)', () => {
+  it('escribe un PDF con permisos 0600 y nombre por defecto .pdf, también con oferta', async () => {
+    const harness = compiled();
+    expect(await runCli(['generate-cv', '-s', 'backend', '--format', 'pdf'], harness.context)).toBe(EXIT_OK);
+    expect(harness.stdout()).toBe('CV escrito en /work/output/cv-ada-ejemplo-backend.pdf\n');
+    const written = harness.fs.file('/work/output/cv-ada-ejemplo-backend.pdf');
+    expect(written?.mode).toBe(0o600);
+    expect(Buffer.from(written?.bytes ?? []).subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    const extracted = await extractPdfText(written?.bytes ?? new Uint8Array());
+    expect(extracted).toMatchObject({ ok: true, pages: 1 });
+    expect(extracted.ok && extracted.text).toContain('Ada Ejemplo');
+
+    const withOffer = compiled({ '/work/offers/acme-backend.txt': BACKEND_OFFER });
+    expect(await runCli(['generate-cv', '-f', 'offers/acme-backend.txt', '--format', 'PDF', '-o', 'salida/cv.pdf'], withOffer.context)).toBe(EXIT_OK);
+    expect(withOffer.stdout()).toBe('CV escrito en /work/salida/cv.pdf\n');
+    expect(withOffer.fs.file('/work/salida/cv.pdf')?.mode).toBe(0o600);
+  });
+
+  it('--stdout y --template son incompatibles con pdf, y un formato desconocido es un error de uso', async () => {
+    const stdout = compiled();
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--stdout'], stdout.context)).toBe(EXIT_FAILURE);
+    expect(stdout.stderr()).toBe('«--stdout» solo admite «--format md»: el PDF es binario y se escribe siempre en un fichero (--output)\n');
+    expect(stdout.fs.log).toEqual([]);
+
+    const template = compiled();
+    expect(await runCli(['generate-cv', '--format', 'pdf', '-t', 'mi.hbs'], template.context)).toBe(EXIT_FAILURE);
+    expect(template.stderr()).toBe('«--template» solo aplica a «--format md»: el PDF no usa plantilla\n');
+
+    const unknown = compiled();
+    expect(await runCli(['generate-cv', '--format', 'docx'], unknown.context)).toBe(EXIT_FAILURE);
+    expect(unknown.stderr()).toContain("error: option '--format <fmt>' argument 'docx' is invalid. formatos admitidos: md, pdf");
+
+    const failing = compiled();
+    failing.fs.failures.add('writeFile');
+    expect(await runCli(['generate-cv', '--format', 'pdf'], failing.context)).toBe(EXIT_FAILURE);
+    expect(failing.stderr()).toBe('No se pudo escribir el CV en «/work/output/cv-ada-ejemplo.pdf»: fallo simulado en writeFile\n');
+  });
+});

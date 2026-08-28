@@ -8,6 +8,7 @@ import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-of
 import { runBuildProfile, type BuildProfileOptions } from './commands/build-profile';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runValidate, type ValidateOptions } from './commands/validate';
+import { parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit } from './limits';
@@ -45,7 +46,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .command('generate-cv')
     .description(`genera el CV en Markdown a partir del artefacto (por defecto en ${DEFAULT_OUTPUT_DIR}/cv-<nombre>[-<especialidad>][-<oferta>].md)`)
     .option('-s, --specialty <id>', 'especialidad: elige la versión del CV (titular, resumen y filtro); sin ella, el CV completo')
-    .option('-f, --from-job-offer <file>', 'oferta de empleo en texto plano («-» = entrada estándar): afina el CV puntuando y reordenando')
+    .option('-f, --from-job-offer <file>', 'oferta de empleo en texto plano o PDF («-» = entrada estándar, solo texto): afina el CV puntuando y reordenando')
     .option('-n, --top-n <n>', 'logros por experiencia/proyecto y logros transversales', parseLimit)
     .option('--max-skills <n>', 'skills como máximo', parseLimit)
     .option('--max-projects <n>', 'proyectos como máximo', parseLimit)
@@ -54,10 +55,11 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
     .option('-o, --output <file>', 'fichero de salida')
-    .option('-t, --template <file>', 'plantilla Handlebars propia (por defecto templates/cv.md.hbs)')
+    .option('--format <fmt>', 'formato de salida: md o pdf', parseFormat, 'md')
+    .option('-t, --template <file>', 'plantilla Handlebars propia (por defecto templates/cv.md.hbs; solo --format md)')
     .option('-l, --locale <locale>', 'idioma de etiquetas y fechas (por defecto, el del perfil o «es»)')
     .option('--explain', 'explica en stderr qué se ha incluido, puntuado y recortado, y por qué', false)
-    .option('--stdout', 'escribe el CV en la salida estándar en lugar de en un fichero', false)
+    .option('--stdout', 'escribe el CV en la salida estándar en lugar de en un fichero (solo --format md)', false)
     .action(async (options: GenerateCvOptions) => {
       onExit(await runGenerateCv(context, options));
     });
