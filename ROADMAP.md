@@ -29,10 +29,10 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
 
 ### Hito 2: Evolución - Adaptación por Oferta de Empleo (Target: 1 semana post-MVP)
 
--   [ ] **T-2.1: [NLP] Módulo de extracción de keywords de ofertas.** Implementar una función que reciba el texto de una oferta y extraiga entidades clave (tecnologías, skills) usando librerías como `natural` o, inicialmente, una combinación de regex y diccionarios predefinidos para mantenerlo ligero.
-    -   Especificación en `docs/scoring.md` (2026-08-28, pendiente de aprobación): el perfil como diccionario (tags + nombres y alias de skills), énfasis por secciones, pesos por tag, carencias con diccionario incorporado; sin `natural` en esta fase.
--   [ ] **T-2.2: [CORE] Lógica de 'scoring' y selección.** Diseñar un algoritmo que puntúe los logros y skills del 'MasterProfile' en función de las keywords extraídas de la oferta.
-    -   Especificación en `docs/scoring.md` (2026-08-28, pendiente de aprobación): especialidad virtual inducida por la oferta + `selectForSpecialty` sin cambios; fórmula aditiva; reordenación solo de logros y skills; `MatchReport` con cobertura y carencias.
+-   [x] **T-2.1: [NLP] Módulo de extracción de keywords de ofertas.** Implementar una función que reciba el texto de una oferta y extraiga entidades clave (tecnologías, skills) usando librerías como `natural` o, inicialmente, una combinación de regex y diccionarios predefinidos para mantenerlo ligero.
+    -   Hecho 2026-08-28 (`docs/scoring.md` aprobado): `src/core/keywords/` — contrato `JobRequirements` (zod), el perfil como diccionario (tags + nombres y alias de skills), énfasis por secciones es/en, años exigidos, matching con límites propios y enmascarado, carencias con diccionario incorporado. Sin `natural`.
+-   [x] **T-2.2: [CORE] Lógica de 'scoring' y selección.** Diseñar un algoritmo que puntúe los logros y skills del 'MasterProfile' en función de las keywords extraídas de la oferta.
+    -   Hecho 2026-08-28: `src/core/scoring/` — especialidad virtual `offer` sobre `selectForSpecialty` sin cambios (`tailorToOffer`, con `--specialty` real opcional), `scoreSelection` aditivo (contenedor = propio + logros), reordenación solo de logros y skills, `MatchReport` con cobertura; informe `--explain` de adecuación (`formatMatchReport`).
 -   [ ] **T-2.3: [GENERATOR] Mejorar el motor de plantillas.** Permitir que la plantilla renderice dinámicamente solo los 'N' mejores puntos para cada sección, basado en el scoring.
 -   [ ] **T-2.4: [CLI] Ampliar la CLI.** Añadir el comando `generate --from-job-offer <path_to_offer.txt>`.
 -   [ ] **T-2.5: [PARSER] Soporte básico para PDF (entrada).** Investigar e implementar `pdf-parse` para extraer texto de ofertas de empleo en formato PDF.

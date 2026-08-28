@@ -177,11 +177,18 @@ Un CV no deja de ser cronológico por adaptarse a una oferta: lo que cambia es *
 ```
 Oferta: 7 requisitos reconocidos, 5 años exigidos · carencias: rendimiento, observabilidad, aws, gcp
   php (required ×2, 1.25) · symfony (required ×2, 1.25) · kubernetes (required, 1.00) · performance (required, 1.00) · backend (unknown, 0.75) · kafka (desirable, 0.50) · tech lead (desirable, 0.50)
-+ experience exp-acme: matched (php, symfony, kubernetes) · 7.75
-    + exp-acme-1: matched (php) · 2.25 [php, performance]
-    + exp-acme-k8s: matched (kubernetes) · 2.00 [kubernetes]
++ experience exp-acme: matched (php, symfony, kubernetes) · 7.75 [php, symfony, kubernetes]
+    + exp-acme-1: matched (performance, php) · 2.25 [php, symfony, performance]
+    + exp-acme-k8s: matched (kubernetes, devops) · 2.00 [kubernetes]
     - exp-acme-3: no-match
++ experience exp-startup: matched (liderazgo) · 0.50 [tech lead]
+…
 No demostrado: kafka
+```
+
+Entre paréntesis, las tags que coincidieron con el vocabulario de selección; entre corchetes, los términos de la oferta que aportan puntuación (un término da evidencia a todas las tags de su skill: `symfony` evidencia `php` porque la skill Symfony está etiquetada con `php`).
+
+```
 ```
 
 ### 5.5 Invariantes (se verifican en los tests)
