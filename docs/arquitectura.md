@@ -76,6 +76,8 @@ Las salidas (Markdown y PDF) son *renderers*: `MasterProfile` + selección → f
 
 ## 3. Capa de inteligencia: «co-piloto de carrera» (propuesto; en el roadmap como Hito 4 desde el 2026-08-28, al asignarse el Hito 3 a Typst)
 
+> **Nota (2026-08-28, T-4.1)**: esta sección es la propuesta original. `docs/llm-integration.md` la redefine: el *matchmaking* quedó cubierto de forma determinista por el Hito 2 (T-2.1–T-2.4), y la IA pasa a redactar y proponer (`cv improve`, `cv summarize`, `cv suggest tags`). Las anotaciones de §3.3 siguen siendo canónicas y se amplían allí (cánones C1–C10).
+
 ### 3.1 Abstracción (`src/core/llm/`)
 
 ```ts
