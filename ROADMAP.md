@@ -38,7 +38,9 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
 -   [x] **T-2.4: [CLI] Ampliar la CLI.** Añadir el comando `generate --from-job-offer <path_to_offer.txt>`.
     -   Hecho 2026-08-28: `cv generate-cv --from-job-offer <fichero|->` con `--top-n`, `--max-skills`, `--max-projects`, `--max-certifications`, `--compact` y `--explain` ampliado (adecuación + recortes); sufijo de oferta en la salida; `cv analyze-offer <oferta>` (resumen legible, `--explain`, `--json`, stdin con `-`). README actualizado.
 -   [ ] **T-2.5: [PARSER] Soporte básico para PDF (entrada).** Investigar e implementar `pdf-parse` para extraer texto de ofertas de empleo en formato PDF.
+    -   Nota de decisión conjunta con T-2.6 en `docs/pdf-integration.md` (2026-08-28, pendiente de aprobación): `pdfjs-dist` directo, endurecido y en un worker aislado con límites; spike de extracción verificado.
 -   [ ] **T-2.6: [RENDER] Salida PDF (propuesto 2026-08-28).** Renderer PDF a partir de `profile.json` (evaluar `pandoc` frente a `puppeteer`, `docs/arquitectura.md` §2.5).
+    -   Nota de decisión conjunta con T-2.5 en `docs/pdf-integration.md` (2026-08-28, pendiente de aprobación): `pdfkit` desde el modelo de vista con fuente embebida; Pandoc y Puppeteer descartados; verificación por round-trip con T-2.5.
 
 ### Hito 3: Co-piloto de carrera - Matchmaking asistido por LLM (Propuesto 2026-08-28, pendiente de planificación)
 
@@ -55,3 +57,4 @@ Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt
 -   [ ] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build-profile → generate-cv` (registrado 2026-08-28).
 -   [ ] **B-2: [CLI] `cv init`.** Copiar el dataset de ejemplo a `data/sources/` para arrancar un perfil nuevo (registrado 2026-08-28).
 -   [ ] **B-3: [CORE] Tag reservada `#pin`.** Fijar un ítem en cualquier oferta, no solo por especialidad (registrado 2026-08-28 en `docs/trimming-cli.md` §3.3).
+-   [ ] **B-4: [RENDER] Motor PDF opcional Typst.** `--engine typst` con plantilla `templates/cv.typ.hbs` cuando el binario esté instalado; máxima calidad tipográfica sin tocar el núcleo (registrado 2026-08-28 en `docs/pdf-integration.md` §3.3).
