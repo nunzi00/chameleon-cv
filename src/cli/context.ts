@@ -8,11 +8,13 @@ import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParse
 import { extractPdfText, type PdfExtractionResult } from '../pdf';
 import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
 import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
+import { llmStatus, type LlmStatus, type LlmStatusOptions } from '../llm';
 import { readStdin } from './stdin';
 
 export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
 export type TypstInstaller = (options: InstallOptions, report: Reporter) => Promise<InstallResult>;
 export type TypstStatusReporter = (options: StatusOptions) => Promise<TypstStatus>;
+export type LlmStatusReporter = (options: LlmStatusOptions) => Promise<LlmStatus>;
 
 export interface CliContext {
   readonly cwd: string;
@@ -31,6 +33,8 @@ export interface CliContext {
   readonly typstInstall: TypstInstaller;
   /** `cv typst status`. */
   readonly typstStatus: TypstStatusReporter;
+  /** `cv llm status` (T-4.2): nunca envía datos; solo comprueba el proveedor local. */
+  readonly llmStatus: LlmStatusReporter;
 }
 
 export function createNodeContext(): CliContext {
@@ -50,5 +54,6 @@ export function createNodeContext(): CliContext {
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
+    llmStatus: (options) => llmStatus(options),
   };
 }

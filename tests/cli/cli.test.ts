@@ -27,6 +27,7 @@ import { NodeFileSystem, defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
 import { installTypst, typstStatus } from '../../src/typst';
+import { llmStatus } from '../../src/llm';
 import { describeError } from '../../src/shared/errors';
 import { MemoryFileSystem, datasetTree, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
@@ -58,6 +59,7 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
+    llmStatus: (options) => llmStatus(options),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -343,6 +345,10 @@ describe('contexto real y errores no estándar', () => {
     const context = createNodeContext();
     expect(await context.typstInstall({ platform: 'freebsd', arch: 'x64' }, () => undefined)).toMatchObject({ ok: false, code: 'unsupported-platform' });
     expect(await context.typstStatus({ isExecutable: () => Promise.resolve(false) })).toMatchObject({ usable: false });
+  });
+
+  it('el estado del co-piloto del contexto real solo habla con loopback', async () => {
+    expect(await createNodeContext().llmStatus({ env: { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } })).toMatchObject({ usable: false, health: { ok: false, code: 'unreachable' } });
   });
 
   it('describeError da un mensaje legible para cualquier valor lanzado', () => {

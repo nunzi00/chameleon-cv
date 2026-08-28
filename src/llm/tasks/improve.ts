@@ -1,0 +1,161 @@
+/**
+ * Tarea `improve` (T-4.2: espina dorsal; T-4.3: comando completo). Construye el fragmento
+ * mínimo de un logro (canon C4: solo lo que la tarea necesita, seudonimizado), lo envía con el
+ * prompt versionado (C5) y valida la respuesta con zod (C6). El verificador «sin invención» (C2)
+ * y el fichero de revisión llegan en T-4.3.
+ */
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+import { z } from 'zod';
+
+import { createRedaction, type Redaction } from '../../core/llm/redact';
+import type { Achievement, MasterProfile } from '../../core/schema';
+import type { LlmErrorCode, LlmProvider, LlmUsage } from '../provider';
+
+export const PROMPTS_DIRECTORY = resolve(__dirname, '..', '..', '..', 'prompts');
+export const IMPROVE_PROMPT_VERSION = 'improve.v1';
+export const IMPROVE_LIMITS = { maxLength: 220, proposals: 2, maxTokens: 600 } as const;
+
+export const ImproveContextSchema = z.strictObject({
+  role: z.string().optional(),
+  company: z.string().optional(),
+  technologies: z.array(z.string()),
+  specialty: z.string().optional(),
+  offerTerms: z.array(z.string()),
+});
+
+/** Lo único que sale hacia el modelo: por construcción no hay email, teléfono, ubicación ni enlaces. */
+export const ImproveInputSchema = z.strictObject({
+  id: z.string(),
+  text: z.string().min(1).max(600),
+  impact: z.string().optional(),
+  locale: z.string(),
+  maxLength: z.int().positive(),
+  proposals: z.int().min(1).max(3),
+  context: ImproveContextSchema,
+});
+
+export const ImproveOutputSchema = z.strictObject({
+  proposals: z.array(z.strictObject({ text: z.string().min(1).max(400), rationale: z.string().max(200) })).min(1).max(3),
+});
+
+export type ImproveInput = z.output<typeof ImproveInputSchema>;
+export type ImproveOutput = z.output<typeof ImproveOutputSchema>;
+
+/** JSON Schema de la salida, derivado del mismo esquema zod que la valida. */
+export function improveJsonSchema(): Record<string, unknown> {
+  return z.toJSONSchema(ImproveOutputSchema) as Record<string, unknown>;
+}
+
+export interface FragmentOptions {
+  readonly locale?: string | undefined;
+  readonly offerTerms?: readonly string[] | undefined;
+  readonly proposals?: number | undefined;
+  readonly maxLength?: number | undefined;
+  /** Seudonimizar también la empresa del contenedor (`[EMPRESA-1]`). */
+  readonly redactCompanies?: boolean | undefined;
+}
+
+export interface ImproveFragment {
+  readonly input: ImproveInput;
+  readonly redaction: Redaction;
+}
+
+interface Located {
+  readonly achievement: Achievement;
+  readonly role?: string | undefined;
+  readonly company?: string | undefined;
+  readonly technologies: readonly string[];
+}
+
+function locate(profile: MasterProfile, id: string): Located | undefined {
+  for (const item of profile.experience) {
+    const achievement = item.achievements.find((candidate) => candidate.id === id);
+    if (achievement !== undefined) {
+      return { achievement, role: item.role, company: item.company, technologies: item.technologies };
+    }
+  }
+  for (const item of profile.projects) {
+    const achievement = item.achievements.find((candidate) => candidate.id === id);
+    if (achievement !== undefined) {
+      return { achievement, role: item.role, company: item.name, technologies: item.technologies };
+    }
+  }
+  const achievement = profile.achievements.find((candidate) => candidate.id === id);
+  return achievement === undefined ? undefined : { achievement, technologies: [] };
+}
+
+/** Fragmento seudonimizado de un logro por `id`; `undefined` si no existe. */
+export function buildImproveFragment(profile: MasterProfile, id: string, options: FragmentOptions = {}): ImproveFragment | undefined {
+  const located = locate(profile, id);
+  if (located === undefined) {
+    return undefined;
+  }
+  const redaction = createRedaction({
+    fullName: profile.personal.fullName,
+    companies: options.redactCompanies === true && located.company !== undefined ? [located.company] : [],
+  });
+  const specialty = profile.specialties[0]?.title;
+  const input: ImproveInput = ImproveInputSchema.parse({
+    id,
+    text: redaction.redact(located.achievement.text),
+    ...(located.achievement.impact === undefined ? {} : { impact: redaction.redact(located.achievement.impact) }),
+    locale: options.locale ?? profile.meta.locale ?? 'es',
+    maxLength: options.maxLength ?? IMPROVE_LIMITS.maxLength,
+    proposals: options.proposals ?? IMPROVE_LIMITS.proposals,
+    context: {
+      ...(located.role === undefined ? {} : { role: redaction.redact(located.role) }),
+      ...(located.company === undefined ? {} : { company: redaction.redact(located.company) }),
+      technologies: located.technologies.map((technology) => redaction.redact(technology)),
+      ...(specialty === undefined ? {} : { specialty: redaction.redact(specialty) }),
+      offerTerms: [...(options.offerTerms ?? [])],
+    },
+  });
+  return { input, redaction };
+}
+
+export async function loadPrompt(version: string = IMPROVE_PROMPT_VERSION, directory: string = PROMPTS_DIRECTORY): Promise<string> {
+  return (await readFile(resolve(directory, `${version}.md`), 'utf8')).trim();
+}
+
+export interface ImproveProposal {
+  readonly text: string;
+  readonly rationale: string;
+}
+
+export type ImproveErrorCode = LlmErrorCode | 'invalid-output';
+
+export type ImproveResult =
+  | { readonly ok: true; readonly proposals: readonly ImproveProposal[]; readonly raw: string; readonly model: string; readonly usage: LlmUsage; readonly elapsedMs: number; readonly promptVersion: string }
+  | { readonly ok: false; readonly code: ImproveErrorCode; readonly message: string };
+
+/** Envía el fragmento, valida la salida y deshace los seudónimos en las propuestas. */
+export async function runImprove(provider: LlmProvider, fragment: ImproveFragment, prompt: string, timeoutMs?: number): Promise<ImproveResult> {
+  const completion = await provider.complete({
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user', content: JSON.stringify(fragment.input) },
+    ],
+    schema: improveJsonSchema(),
+    schemaName: 'improve',
+    maxTokens: IMPROVE_LIMITS.maxTokens,
+    timeoutMs,
+  });
+  if (!completion.ok) {
+    return { ok: false, code: completion.code, message: completion.message };
+  }
+  const output = ImproveOutputSchema.safeParse(completion.json);
+  if (!output.success) {
+    return { ok: false, code: 'invalid-output', message: `La respuesta no cumple el esquema de «improve»: ${output.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; ')}` };
+  }
+  return {
+    ok: true,
+    proposals: output.data.proposals.map((proposal) => ({ text: fragment.redaction.restore(proposal.text), rationale: fragment.redaction.restore(proposal.rationale) })),
+    raw: completion.raw,
+    model: completion.model,
+    usage: completion.usage,
+    elapsedMs: completion.elapsedMs,
+    promptVersion: IMPROVE_PROMPT_VERSION,
+  };
+}

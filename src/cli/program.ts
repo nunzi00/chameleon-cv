@@ -8,6 +8,7 @@ import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-of
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
+import { runLlmStatus } from './commands/llm';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseEngine, parseFormat } from './format';
@@ -109,6 +110,14 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .description('muestra qué binario de Typst se usaría, su versión y de dónde sale')
     .action(async () => {
       onExit(await runTypstStatus(context));
+    });
+
+  const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');
+  llm
+    .command('status')
+    .description('muestra el proveedor y el modelo locales que se usarían (CHAMELEON_LLM_PROVIDER, CHAMELEON_LLM_BASE_URL, CHAMELEON_LLM_MODEL) y si responden')
+    .action(async () => {
+      onExit(await runLlmStatus(context));
     });
 
   return program;
