@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tareas** | T-2.1 · [NLP] Extracción de palabras clave de ofertas · T-2.2 · [CORE] Lógica de *scoring* y selección |
-| **Estado** | **PROPUESTA v1 — pendiente de aprobación del Director de Ingeniería** (2026-08-28) |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v1; los seis puntos de §10 ratificados; es doctrina del proyecto). T-2.1 implementada en `src/core/keywords/`; T-2.2 en `src/core/scoring/`. |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | El contrato `JobRequirements`, cómo se extraen los requisitos de una oferta de forma determinista, cómo se puntúan los ítems del perfil y cómo encaja todo con el `SelectorEngine` existente. |
 | **Base** | `docs/selector-engine.md` (regla de tags, contrato `Selection`, invariantes) y `docs/arquitectura.md` §3 (la capa LLM producirá el mismo `JobRequirements`). |
@@ -105,7 +105,7 @@ Se unen los conjuntos cuando un término procede de varias fuentes (`php` → `{
 
 ### 4.3 Énfasis por secciones
 
-Una línea corta (≤ 60 caracteres) que contiene uno de estos patrones abre una sección que dura hasta la siguiente línea de ese tipo:
+Una línea de tipo **encabezado** —corta (≤ 60 caracteres) y, además, terminada en «:» o de tres palabras como mucho— que contiene uno de estos patrones abre una sección que dura hasta el siguiente encabezado. Una línea normal que contiene un patrón («Experiencia con Kafka es un plus») toma ese énfasis **solo para sí misma** (precisión 2026-08-28, tras la implementación: evita que una frase suelta reclasifique todo lo que la sigue):
 
 | Énfasis | Patrones (es/en, sin acentos, insensible a mayúsculas) | Peso base |
 |---|---|---|
@@ -117,7 +117,7 @@ El énfasis de un término es el **más fuerte** de las líneas en que aparece (
 
 ### 4.4 Años de experiencia
 
-Patrones sobre la línea normalizada: `N+ años`, `N años`, `N-M años`, `N years`, `N+ yrs`. De cada mención se toma el mínimo (`3-5` → 3). `experienceYears` = el **mayor** de los mínimos hallados (si la oferta pide 5 años en una cosa y 2 en otra, exige 5). Es informativo: no puntúa en esta versión.
+Patrones sobre la línea normalizada: `N+ años`, `N años`, `N-M años`, `N years`, `N+ yrs`, **solo en líneas que mencionan «experiencia»/«experience»** (precisión 2026-08-28: «empresa con 20 años» no es un requisito) y con un máximo plausible de 40. De cada mención se toma el mínimo (`3-5` → 3). `experienceYears` = el **mayor** de los mínimos hallados (si la oferta pide 5 años en una cosa y 2 en otra, exige 5). Es informativo: no puntúa en esta versión.
 
 ### 4.5 Matching y pesos
 
@@ -175,8 +175,8 @@ Un CV no deja de ser cronológico por adaptarse a una oferta: lo que cambia es *
 `MatchReport` amplía el informe del selector: cada decisión lleva `score` y `matchedTerms`; `coverage` dice, por cada término pedido, qué ítems incluidos lo demuestran (lista vacía = pedido y no demostrado); `requirements.gaps` lista lo que la oferta pide y el perfil ni siquiera tiene etiquetado. Con `--explain`:
 
 ```
-Oferta: 6 requisitos reconocidos, 5 años exigidos · carencias: aws, gcp, observabilidad
-  php (required ×2, 1.25) · symfony (required ×2, 1.25) · kubernetes (required, 1.00) · performance (required, 1.00) · kafka (desirable, 0.50) · tech lead (desirable, 0.50)
+Oferta: 7 requisitos reconocidos, 5 años exigidos · carencias: rendimiento, observabilidad, aws, gcp
+  php (required ×2, 1.25) · symfony (required ×2, 1.25) · kubernetes (required, 1.00) · performance (required, 1.00) · backend (unknown, 0.75) · kafka (desirable, 0.50) · tech lead (desirable, 0.50)
 + experience exp-acme: matched (php, symfony, kubernetes) · 7.75
     + exp-acme-1: matched (php) · 2.25 [php, performance]
     + exp-acme-k8s: matched (kubernetes) · 2.00 [kubernetes]
@@ -223,10 +223,11 @@ Términos extraídos:
 | `symfony` | 2 | required | 1.25 | symfony, php, backend |
 | `kubernetes` | 1 | required | 1.00 | kubernetes, devops, platform |
 | `performance` | 1 | required | 1.00 | performance |
+| `backend` | 1 (título) | unknown | 0.75 | backend |
 | `kafka` | 1 | desirable | 0.50 | kafka |
 | `tech lead` | 1 | desirable | 0.50 | liderazgo |
 
-`experienceYears = 5`. Carencias (diccionario): `aws`, `gcp`, `observabilidad`. Pesos por tag: php 1.25 · backend 1.25 · symfony 1.25 · kubernetes 1.00 · devops 1.00 · platform 1.00 · performance 1.00 · kafka 0.50 · liderazgo 0.50.
+`experienceYears = 5`. Carencias (diccionario, en orden de aparición): `rendimiento`, `observabilidad`, `aws`, `gcp` (`rendimiento` porque el perfil etiqueta `performance`, no su sinónimo en castellano: un alias lo resolvería). Pesos por tag: php 1.25 · backend 1.25 (máximo entre `php`/`symfony` a 1.25 y `backend` a 0.75) · symfony 1.25 · kubernetes 1.00 · devops 1.00 · platform 1.00 · performance 1.00 · kafka 0.50 · liderazgo 0.50.
 
 Selección por la especialidad virtual (tags de la oferta) y puntuación:
 
@@ -243,7 +244,7 @@ Selección por la especialidad virtual (tags de la oferta) y puntuación:
 | Certificaciones: `Symfony Certified` 2.50 · `CKA` 2.00 | | |
 | Logros transversales: `ach-2` [liderazgo, comunidad] 0.50 · `ach-1` excluido | | |
 
-Efecto en el CV: en ACME, el logro de latencia (2.25) precede al de Kubernetes (2.00); en habilidades, dentro de cada categoría, primero lo más pedido. La cobertura señala `kafka` como pedido y no demostrado, y las carencias `aws`, `gcp`, `observabilidad`.
+Efecto en el CV: en ACME, el logro de latencia (2.25) precede al de Kubernetes (2.00); en habilidades, dentro de cada categoría, primero lo más pedido. La cobertura señala `kafka` como pedido y no demostrado, y las carencias `rendimiento`, `observabilidad`, `aws`, `gcp`.
 
 ## 7. Integración prevista en la CLI (T-2.4)
 
@@ -270,7 +271,7 @@ Efecto en el CV: en ACME, el logro de latencia (2.25) precede al de Kubernetes (
 | Módulos | `src/core/keywords/` (vocabulary, sections, extractor, dictionary, schema) y `src/core/scoring/` (scorer, ranking, report) | Lógica pura; cobertura 100 %. |
 | Tests | Fixture de oferta de §6 con tabla de términos esperada, invariantes (§5.5), golden del bloque `--explain` | Igual que el selector. |
 
-## 10. Puntos que requieren decisión del Director
+## 10. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. **El perfil como diccionario** (tags + nombres y alias de skills; `technologies` fuera) y el diccionario incorporado solo para carencias (§2, §4.2). Recomendación: aprobar.
 2. **Énfasis por secciones y pesos** 1 / 0.75 / 0.5 con refuerzo por frecuencia hasta ×1.75 (§4.3, §4.5). Recomendación: aprobar (son opciones con valores por defecto, ajustables sin tocar código).
@@ -279,4 +280,4 @@ Efecto en el CV: en ACME, el logro de latencia (2.25) precede al de Kubernetes (
 5. **`cv analyze-offer`** como comando adicional en T-2.4 (§7). Recomendación: aprobar.
 6. **Sin `natural`** en esta fase (§8). Recomendación: aprobar.
 
-Con la aprobación se marca el documento como APROBADO y se implementan T-2.1 y T-2.2 (en ese orden, cada una con su cobertura al 100 %).
+Aprobados los seis puntos sin modificaciones. Precisiones registradas tras la implementación: encabezados de sección (§4.3), años solo en líneas de experiencia (§4.4) y el término `backend` del título en el ejemplo (§6).
