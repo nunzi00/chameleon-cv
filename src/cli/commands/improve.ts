@@ -7,27 +7,21 @@
 import { dirname, resolve } from 'node:path';
 
 import { readProfileArtifact } from '../../artifact';
-import { buildVocabulary, extractJobRequirements } from '../../core/keywords';
 import type { MasterProfile } from '../../core/schema';
-import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type ScoreLookup } from '../../core/scoring';
-import { selectForSpecialty } from '../../core/selection';
 import { DEFAULT_SEED, DEFAULT_TEMPERATURE, IMPROVE_LIMITS, IMPROVE_PROMPT_VERSION, buildImproveFragment, formatReview, loadPrompt, reviewStats, runImproveBatch, type FragmentOptions } from '../../llm';
 import { describeError } from '../../shared/errors';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { warnIfStale } from '../freshness';
-import { hasLimits, resolveLimits, type LimitOptions } from '../limits';
-import { readOfferText } from '../offer';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, pluralize } from '../output';
 import { buildBeforeUse } from './build';
 import { OUTPUT_MODE } from './generate-cv';
+import { prepareSelection, type SelectionOptions } from './selection';
 
-export interface ImproveOptions extends LimitOptions {
+export interface ImproveOptions extends SelectionOptions {
   readonly profile: string;
   readonly data: string;
   readonly build: boolean;
-  readonly specialty?: string | undefined;
-  readonly fromJobOffer?: string | undefined;
   readonly only?: string | undefined;
   readonly proposals: number;
   readonly maxLength: number;
@@ -90,38 +84,11 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
   }
 
   // Selección determinista: los mismos logros que verían el CV (especialidad, oferta, límites).
-  let profile = artifact.profile;
-  let scoreOf: ScoreLookup = NO_SCORES;
-  let offerName: string | undefined;
-  let offerTerms: string[] = [];
-  if (options.fromJobOffer !== undefined) {
-    const offer = await readOfferText(context, options.fromJobOffer);
-    if (!offer.ok) {
-      context.stderr(`${offer.message}\n`);
-      return offer.exitCode;
-    }
-    const requirements = extractJobRequirements(offer.offer.text, buildVocabulary(artifact.profile));
-    const tailored = tailorToOffer(artifact.profile, requirements, { specialtyId: options.specialty });
-    if (!tailored.ok) {
-      context.stderr(`${tailored.error.message}\n`);
-      return EXIT_DATA_ERROR;
-    }
-    profile = tailored.scored.profile;
-    scoreOf = scoresFromReport(tailored.scored.report);
-    offerName = offer.offer.name;
-    offerTerms = requirements.terms.map((term) => term.term);
-  } else if (options.specialty !== undefined) {
-    const selection = selectForSpecialty(artifact.profile, options.specialty);
-    if (!selection.ok) {
-      context.stderr(`${selection.error.message}\n`);
-      return EXIT_DATA_ERROR;
-    }
-    profile = selection.selection.profile;
+  const prepared = await prepareSelection(context, artifact.profile, options);
+  if (!prepared.ok) {
+    return prepared.exitCode;
   }
-  const limits = resolveLimits(options);
-  if (hasLimits(limits)) {
-    profile = applyLimits(profile, limits, scoreOf).profile;
-  }
+  const { profile, offerName, offerTerms } = prepared.prepared;
 
   let ids = parseOnly(options.only) ?? achievementIds(profile);
   if (ids.length === 0) {
@@ -187,7 +154,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
 
   const generatedAt = now().toISOString();
   const review = formatReview(
-    { generatedAt, specialty: options.specialty, offer: offerName, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: IMPROVE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
+    { task: 'improve', generatedAt, specialty: options.specialty, offer: offerName, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: IMPROVE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
     items,
   );
   const outputPath = resolve(context.cwd, options.output ?? defaultReviewPath(now(), options.specialty, offerName));

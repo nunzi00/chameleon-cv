@@ -46,6 +46,22 @@ describe('verifyProposal (canon C2: integridad semántica completa)', () => {
     expect(withVocabulary.violations).toEqual([{ code: 'VIOLATION_C2_FACT_OMITTED', details: ['google', 'cloud', 'build', 'google cloud'] }]);
   });
 
+  it('para síntesis: sin vigilar el contexto nuevo, con hechos clave y cobertura', () => {
+    const corpus = 'Senior Backend Engineer\nACME Corp\nPHP 8\nKubernetes\nReduje la latencia p95 un 40 %.';
+    const options = { contextAdded: false, keyFacts: ['php', 'kubernetes', ''], vocabulary: ['php', 'kubernetes', 'aws'] };
+    expect(verifyProposal(corpus, 'Ingeniera con años de experiencia en plataformas robustas usando PHP; reduje la latencia p95 un 40 %.', options)).toEqual({
+      accepted: true,
+      violations: [],
+      coverage: { mentioned: ['php'], missing: ['kubernetes'] },
+    });
+    expect(verifyProposal(corpus, 'Ingeniera con experiencia en AWS y 3 equipos.', options)).toEqual({
+      accepted: false,
+      violations: [{ code: 'VIOLATION_C2_NUMBER_ADDED', details: ['3'] }, { code: 'VIOLATION_C2_ENTITY_ADDED', details: ['AWS', 'aws'] }, { code: 'VIOLATION_C2_FACT_OMITTED', details: ['php', 'kubernetes'] }],
+      coverage: { mentioned: [], missing: ['php', 'kubernetes'] },
+    });
+    expect(verifyProposal(corpus, 'Perfil con experiencia consolidada.', { contextAdded: false, keyFacts: [] })).toEqual({ accepted: true, violations: [], coverage: { mentioned: [], missing: [] } });
+  });
+
   it('rechaza propuestas vacías, idénticas o demasiado largas', () => {
     expect(verifyProposal(ORIGINAL, '   ', OPTIONS)).toEqual({ accepted: false, violations: [{ code: 'VIOLATION_EMPTY', details: [] }] });
     expect(verifyProposal(ORIGINAL, 'Reduje la latencia p95 del checkout un 40 % rediseñando la capa de caché.', OPTIONS)).toEqual({ accepted: false, violations: [{ code: 'VIOLATION_NO_CHANGE', details: [] }] });
@@ -79,6 +95,9 @@ describe('verifyProposal (canon C2: integridad semántica completa)', () => {
     expect(tokenize('Delivered features quickly', 'en').map((token) => token.kind)).toEqual(['verb', 'word', 'word']);
     expect(tokenize('uso de web y css').map((token) => token.kind)).toEqual(['short', 'stop', 'short', 'stop', 'short']);
     expect(tokenize('')).toEqual([]);
+    // Mayúscula tras punto o salto de línea: inicio de frase, no nombre propio.
+    expect(tokenize('Reduje costes. Certificada CKA.\nLideré equipos').map((token) => `${token.raw}:${token.kind}`)).toEqual(['Reduje:word', 'costes:word', 'Certificada:verb', 'CKA:technical', 'Lideré:verb', 'equipos:word']);
+    expect(tokenize('Trabajé en Madrid. Madrid es grande').map((token) => `${token.raw}:${token.kind}`)).toEqual(['Trabajé:verb', 'en:stop', 'Madrid:proper', 'Madrid:word', 'es:stop', 'grande:word']);
     expect(tokenize('**...**')).toEqual([]);
     expect(stem('mentoria', 'es')).toBe('mentor');
     expect(stem('mentora', 'es')).toBe('mentor');

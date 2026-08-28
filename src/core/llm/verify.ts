@@ -21,9 +21,16 @@ export interface Violation {
   readonly details: readonly string[];
 }
 
+export interface Coverage {
+  readonly mentioned: readonly string[];
+  readonly missing: readonly string[];
+}
+
 export interface Verdict {
   readonly accepted: boolean;
   readonly violations: readonly Violation[];
+  /** Solo con `keyFacts`: qué hechos clave menciona la propuesta y cuáles no. */
+  readonly coverage?: Coverage;
 }
 
 export interface VerifyOptions {
@@ -33,6 +40,16 @@ export interface VerifyOptions {
   readonly vocabulary?: Iterable<string> | undefined;
   readonly maxLength?: number | undefined;
   readonly locale?: string | undefined;
+  /**
+   * Vigilar también las palabras de contenido nuevas (por defecto sí). Una síntesis (resumen)
+   * necesita conectores y sustantivos nuevos: ahí se desactiva y solo cuentan cifras y entidades.
+   */
+  readonly contextAdded?: boolean | undefined;
+  /**
+   * Hechos clave que la propuesta debería mencionar (resúmenes): sustituye la comprobación de
+   * omisión palabra a palabra por «al menos uno de estos», e informa de la cobertura.
+   */
+  readonly keyFacts?: readonly string[] | undefined;
 }
 
 type TokenKind = 'number' | 'technical' | 'proper' | 'word' | 'verb' | 'stop' | 'short';
@@ -89,7 +106,7 @@ function isVerbLike(lowerRaw: string, locale: string): boolean {
   return suffixes.some((suffix) => lowerRaw.endsWith(suffix) && lowerRaw.length > suffix.length + 2);
 }
 
-function classify(raw: string, index: number, locale: string): Token {
+function classify(raw: string, sentenceStart: boolean, locale: string): Token {
   const norm = normalizeText(raw);
   const letters = [...raw].filter((character) => /\p{L}/u.test(character));
   const digits = /\d/u.test(raw);
@@ -105,7 +122,7 @@ function classify(raw: string, index: number, locale: string): Token {
   if (letters.length < 2) {
     return { raw, norm, stem: norm, kind: 'short' };
   }
-  if (index > 0 && /\p{Lu}/u.test(raw.charAt(0))) {
+  if (!sentenceStart && /\p{Lu}/u.test(raw.charAt(0))) {
     return { raw, norm, stem: stem(norm, locale), kind: 'proper' };
   }
   if (letters.length < MIN_STEM) {
@@ -117,9 +134,22 @@ function classify(raw: string, index: number, locale: string): Token {
   return { raw, norm, stem: stem(norm, locale), kind: 'word' };
 }
 
+/** Tokens con su clase; una mayúscula tras un punto, un salto de línea o al inicio no es nombre propio. */
 export function tokenize(text: string, locale = 'es'): Token[] {
-  const matches = stripMarkdown(text).match(/[\p{L}\p{N}][\p{L}\p{N}.,+#/%-]*/gu) ?? [];
-  return matches.map((match) => match.replace(/[.,/-]+$/u, '')).filter((match) => match !== '').map((raw, index) => classify(raw, index, locale));
+  const clean = stripMarkdown(text);
+  const tokens: Token[] = [];
+  let previousEnd = 0;
+  let sentenceStart = true;
+  for (const match of clean.matchAll(/[\p{L}\p{N}][\p{L}\p{N}.,+#/%-]*/gu)) {
+    const raw = match[0].replace(/[.,/-]+$/u, '');
+    const gap = clean.slice(previousEnd, match.index);
+    previousEnd = match.index + match[0].length;
+    const startsSentence = sentenceStart || /[.!?:\n]/u.test(gap);
+    // El punto final viaja pegado al token («costes.»): el siguiente empieza frase.
+    sentenceStart = /[.!?:]$/u.test(match[0]);
+    tokens.push(classify(raw, startsSentence, locale));
+  }
+  return tokens;
 }
 
 interface Facts {
@@ -187,24 +217,36 @@ export function verifyProposal(original: string, proposal: string, options: Veri
     violations.push({ code: 'VIOLATION_C2_ENTITY_ADDED', details: [...new Set(entitiesAdded)] });
   }
 
-  const reportedAsEntity = new Set(candidate.vocabulary.values());
-  const contextAdded = proposalTokens
-    .filter((token) => token.kind === 'word' && !known.stems.has(token.stem) && !known.stems.has(token.norm) && !reportedAsEntity.has(token.norm))
-    .map((token) => token.raw);
-  if (contextAdded.length > 0) {
-    violations.push({ code: 'VIOLATION_C2_CONTEXT_ADDED', details: [...new Set(contextAdded)] });
+  if (options.contextAdded !== false) {
+    const reportedAsEntity = new Set(candidate.vocabulary.values());
+    const contextAdded = proposalTokens
+      .filter((token) => token.kind === 'word' && !known.stems.has(token.stem) && !known.stems.has(token.norm) && !reportedAsEntity.has(token.norm))
+      .map((token) => token.raw);
+    if (contextAdded.length > 0) {
+      violations.push({ code: 'VIOLATION_C2_CONTEXT_ADDED', details: [...new Set(contextAdded)] });
+    }
   }
 
-  const omitted = [
-    ...[...source.numbers].filter((number) => !candidate.numbers.has(number)),
-    ...[...source.entities].filter((entity) => !candidate.entities.has(entity) && !candidate.stems.has(stem(entity, locale))),
-    ...[...source.vocabulary].filter((term) => !candidate.vocabulary.has(term)),
-  ];
-  if (omitted.length > 0) {
-    violations.push({ code: 'VIOLATION_C2_FACT_OMITTED', details: [...new Set(omitted)] });
+  if (options.keyFacts === undefined) {
+    const omitted = [
+      ...[...source.numbers].filter((number) => !candidate.numbers.has(number)),
+      ...[...source.entities].filter((entity) => !candidate.entities.has(entity) && !candidate.stems.has(stem(entity, locale))),
+      ...[...source.vocabulary].filter((term) => !candidate.vocabulary.has(term)),
+    ];
+    if (omitted.length > 0) {
+      violations.push({ code: 'VIOLATION_C2_FACT_OMITTED', details: [...new Set(omitted)] });
+    }
+    return { accepted: violations.length === 0, violations };
   }
 
-  return { accepted: violations.length === 0, violations };
+  const normalizedProposal = normalizeLine(cleanProposal);
+  const keyFacts = [...new Set(options.keyFacts.map((fact) => normalizeLine(fact)).filter((fact) => fact !== ''))];
+  const mentioned = keyFacts.filter((fact) => containsTerm(normalizedProposal, fact));
+  const missing = keyFacts.filter((fact) => !mentioned.includes(fact));
+  if (keyFacts.length > 0 && mentioned.length === 0) {
+    violations.push({ code: 'VIOLATION_C2_FACT_OMITTED', details: keyFacts });
+  }
+  return { accepted: violations.length === 0, violations, coverage: { mentioned, missing } };
 }
 
 /** Etiqueta legible de un veredicto: «✓ aceptada» o «✗ CODE (detalles) · CODE (…)». */

@@ -20,6 +20,7 @@ export interface StructuredContainer {
 }
 
 export interface StructuredExperience extends StructuredContainer {
+  readonly id: string;
   readonly role: string;
   readonly company: string;
   readonly period: string;
@@ -27,6 +28,7 @@ export interface StructuredExperience extends StructuredContainer {
 }
 
 export interface StructuredProject extends StructuredContainer {
+  readonly id: string;
   readonly name: string;
   readonly role?: string;
   readonly meta: string;
@@ -112,6 +114,7 @@ export function buildStructuredView(profile: MasterProfile, locale: string): Str
     contact: runsOf(view.contact),
     summary: blocksOf(view.summary),
     experience: view.experience.map((item) => ({
+      id: item.id,
       role: item.role,
       company: item.company,
       period: item.period,
@@ -121,6 +124,7 @@ export function buildStructuredView(profile: MasterProfile, locale: string): Str
       technologies: item.technologies,
     })),
     projects: view.projects.map((item) => ({
+      id: item.id,
       name: item.name,
       ...optional('role', item.role),
       meta: item.meta,

@@ -10,6 +10,7 @@ import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runLlmStatus } from './commands/llm';
+import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
 import { parseEngine, parseFormat } from './format';
@@ -139,6 +140,33 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--build', 'recompila el artefacto antes', false)
     .action(async (options: ImproveOptions) => {
       onExit(await runImproveCommand(context, options));
+    });
+
+  program
+    .command('summarize')
+    .description('co-piloto: propone el resumen profesional a partir del perfil filtrado y lo verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes')
+    .option('-s, --specialty <id>', 'resumen para esa versión del CV')
+    .option('-f, --from-job-offer <file>', 'oferta (texto o PDF; «-» = stdin): resumen orientado a ella con el perfil adaptado')
+    .option('-n, --top-n <n>', '(como en generate-cv)', parseLimit)
+    .option('--max-skills <n>', '(como en generate-cv)', parseLimit)
+    .option('--max-projects <n>', '(como en generate-cv)', parseLimit)
+    .option('--max-certifications <n>', '(como en generate-cv)', parseLimit)
+    .option('--compact', 'preset de límites de generate-cv', false)
+    .option('--paragraphs <n>', 'párrafos del resumen (1-3)', parseProposals, SUMMARIZE_DEFAULTS.paragraphs)
+    .option('--proposals <n>', 'propuestas (1-3)', parseProposals, SUMMARIZE_DEFAULTS.proposals)
+    .option('--max-length <n>', 'longitud máxima total de cada propuesta', parseLimit, SUMMARIZE_DEFAULTS.maxLength)
+    .option('--redact-companies', 'seudonimiza también las empresas ([EMPRESA-n])', false)
+    .option('-l, --locale <locale>', 'idioma del resumen (por defecto, el del perfil)')
+    .option('-o, --output <file>', 'fichero de revisión (por defecto output/revision-summarize-<fecha>[-<esp>][-<oferta>].md)')
+    .option('--no-cache', 'no leer ni guardar la caché local de respuestas')
+    .option('--show-prompt', 'imprime el prompt exacto y termina', false)
+    .option('--show-payload', 'imprime el perfil seudonimizado que saldría', false)
+    .option('--dry-run', 'no envía nada: solo dice qué saldría y a dónde', false)
+    .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
+    .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
+    .option('--build', 'recompila el artefacto antes', false)
+    .action(async (options: SummarizeOptions) => {
+      onExit(await runSummarizeCommand(context, options));
     });
 
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');
