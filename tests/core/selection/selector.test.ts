@@ -201,8 +201,8 @@ describe('utilidades', () => {
 
   it('relevanceOf distingue universal, coincidencia explícita y sin coincidencia', () => {
     const vocabulary = new Set(['php', 'kafka']);
-    expect(relevanceOf([], vocabulary)).toEqual({ relevant: true, explicit: false, matchedTags: [] });
-    expect(relevanceOf(['go', 'php'], vocabulary)).toEqual({ relevant: true, explicit: true, matchedTags: ['php'] });
-    expect(relevanceOf(['go'], vocabulary)).toEqual({ relevant: false, explicit: false, matchedTags: [] });
+    expect(relevanceOf([], vocabulary)).toEqual({ relevant: true, explicit: false, pinned: false, matchedTags: [] });
+    expect(relevanceOf(['go', 'php'], vocabulary)).toEqual({ relevant: true, explicit: true, pinned: false, matchedTags: ['php'] });
+    expect(relevanceOf(['go'], vocabulary)).toEqual({ relevant: false, explicit: false, pinned: false, matchedTags: [] });
   });
 });

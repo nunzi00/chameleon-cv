@@ -1,9 +1,10 @@
 /**
  * Puntuación contra una oferta (T-2.2, `docs/scoring.md` §5.2–5.4): aditiva y transparente.
- * Reordena solo logros y skills; el resto conserva su orden (el renderer lo hará cronológico).
+ * Reordena solo logros y skills —anclados (`#pin`) primero, luego por puntuación—; el resto
+ * conserva su orden (el renderer lo hará cronológico).
  */
 import type { JobRequirements } from '../keywords';
-import type { Achievement, MasterProfile, Skill } from '../schema';
+import { isPinned, type Achievement, type MasterProfile, type Skill } from '../schema';
 import type { Selection } from '../selection';
 import type { MatchReport, ScoredDecision, ScoredSelection, ScoringOptions } from './types';
 
@@ -32,8 +33,9 @@ function round(value: number, decimals: number): number {
   return Math.round(value * factor) / factor;
 }
 
-function byScoreDescending<T>(items: ReadonlyArray<{ readonly item: T; readonly score: number }>): T[] {
-  return [...items].sort((a, b) => b.score - a.score).map(({ item }) => item);
+/** Anclados primero, luego puntuación descendente; el orden de entrada decide los empates (sort estable). */
+function byScoreDescending<T extends Tagged>(items: ReadonlyArray<{ readonly item: T; readonly score: number }>): T[] {
+  return [...items].sort((a, b) => Number(isPinned(b.item.tags)) - Number(isPinned(a.item.tags)) || b.score - a.score).map(({ item }) => item);
 }
 
 export function scoreSelection(selection: Selection, requirements: JobRequirements, options: ScoringOptions = {}): ScoredSelection {

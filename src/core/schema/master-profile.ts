@@ -85,6 +85,17 @@ export const KeywordSchema = z
   });
 
 const TagListSchema = z.array(TagSchema).max(50).transform(unique).default([]);
+
+/**
+ * Tag reservada de anclaje (`#pin`, T-2.9, `docs/consolidacion.md` §4): el ítem es relevante
+ * para toda especialidad y oferta, va primero y nunca se recorta. No puntúa ni entra en el
+ * vocabulario, y una especialidad no puede usarla como id ni como tag.
+ */
+export const PIN_TAG = 'pin';
+
+export function isPinned(tags: readonly string[]): boolean {
+  return tags.includes(PIN_TAG);
+}
 const KeywordListSchema = z.array(KeywordSchema).max(50).transform(unique).default([]);
 
 /** Nombres de tecnologías tal y como deben mostrarse (`PHP 8.3`, `Kubernetes`). */
@@ -302,6 +313,23 @@ export const MasterProfileSchema = MasterProfileShape.superRefine((profile, ctx)
       message: `Identificador duplicado "${duplicate.id}": ya se usa en ${formatPath(duplicate.firstPath)}`,
     });
   }
+  profile.specialties.forEach((specialty, index) => {
+    if (specialty.id === PIN_TAG) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['specialties', index, 'id'],
+        message: `"${PIN_TAG}" está reservado: es la tag de anclaje (#pin) y no puede ser el id de una especialidad`,
+      });
+    }
+    const pinIndex = specialty.tags.indexOf(PIN_TAG);
+    if (pinIndex !== -1) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['specialties', index, 'tags', pinIndex],
+        message: `"${PIN_TAG}" está reservado: es la tag de anclaje (#pin) y no forma parte del vocabulario de una especialidad`,
+      });
+    }
+  });
 });
 
 /* ───────────────────────────── unicidad de ids ───────────────────────────── */

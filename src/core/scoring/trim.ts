@@ -1,10 +1,11 @@
 /**
  * Recorte «N mejores» (T-2.3, `docs/trimming-cli.md` §3): vive en el núcleo, no en la plantilla.
- * Un solo ranking —puntuación descendente y, a igual puntuación, orden de documento—; los
- * supervivientes conservan el orden con el que llegaron. Sin oferta todos puntúan 0 y el
- * ranking es el orden de documento.
+ * Un solo ranking —anclados (`#pin`, T-2.9) primero, puntuación descendente y, a igual
+ * puntuación, orden de documento—; los supervivientes conservan el orden con el que llegaron.
+ * Sin oferta todos puntúan 0 y el ranking es el orden de documento. Un ítem anclado nunca se
+ * recorta: consume plaza del límite y, si hay más anclados que plazas, sobreviven todos ellos.
  */
-import type { Achievement, MasterProfile } from '../schema';
+import { isPinned, type Achievement, type MasterProfile } from '../schema';
 import type { MatchReport } from './types';
 
 export interface SectionLimits {
@@ -59,21 +60,30 @@ export interface KeepResult<T> {
   readonly removed: ReadonlyArray<{ readonly item: T; readonly score: number }>;
 }
 
+interface Trimmable {
+  readonly id: string;
+  /** Sin tags = sin anclaje posible. */
+  readonly tags?: readonly string[] | undefined;
+}
+
 /**
- * Conserva los `limit` mejores por `(puntuación desc, índice asc)` manteniendo el orden de
- * entrada de los supervivientes. `undefined` = sin límite; `0` = ninguno.
+ * Conserva los `limit` mejores por `(anclado desc, puntuación desc, índice asc)` manteniendo el
+ * orden de entrada de los supervivientes; los anclados sobreviven siempre. `undefined` = sin
+ * límite; `0` = ninguno (salvo anclados).
  */
-export function keepTop<T extends { readonly id: string }>(items: readonly T[], limit: number | undefined, scoreOf: ScoreLookup): KeepResult<T> {
+export function keepTop<T extends Trimmable>(items: readonly T[], limit: number | undefined, scoreOf: ScoreLookup): KeepResult<T> {
   if (limit === undefined) {
     return { kept: [...items], removed: [] };
   }
   const ranked = items
-    .map((item, index) => ({ item, index, score: scoreOf(item.id) }))
-    .sort((a, b) => b.score - a.score || a.index - b.index);
-  const survivors = new Set(ranked.slice(0, Math.max(0, limit)).map((entry) => entry.index));
+    .map((item, index) => ({ item, index, score: scoreOf(item.id), pinned: isPinned(item.tags ?? []) }))
+    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.score - a.score || a.index - b.index);
+  const pinnedCount = ranked.filter((entry) => entry.pinned).length;
+  const keep = Math.max(limit, pinnedCount, 0);
+  const survivors = new Set(ranked.slice(0, keep).map((entry) => entry.index));
   return {
     kept: items.filter((_, index) => survivors.has(index)),
-    removed: ranked.slice(Math.max(0, limit)).map(({ item, score }) => ({ item, score })),
+    removed: ranked.slice(keep).map(({ item, score }) => ({ item, score })),
   };
 }
 
@@ -88,7 +98,7 @@ export function applyLimits(profile: MasterProfile, limits: SectionLimits, score
     removed.push(...result.removed.map(({ item, score }) => ({ section, id: item.id, parentId: container.id, score })));
     return { ...container, achievements: result.kept };
   };
-  const trimFlat = <T extends { readonly id: string }>(section: RemovableSection, items: readonly T[], limit: number | undefined): T[] => {
+  const trimFlat = <T extends Trimmable>(section: RemovableSection, items: readonly T[], limit: number | undefined): T[] => {
     const result = keepTop(items, limit, scoreOf);
     removed.push(...result.removed.map(({ item, score }) => ({ section, id: item.id, score })));
     return result.kept;
