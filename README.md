@@ -23,7 +23,10 @@ Sin `npm link`, cualquier comando se ejecuta como `npm run cv -- <comando> [opci
 
 ## Flujo de trabajo
 
-1. **Escribe tus fuentes** en `data/sources/` (formato en la sección siguiente). Para empezar, copia el dataset de ejemplo: `cp -r tests/fixtures/dataset/* data/sources/`.
+1. **Arranca** un espacio de trabajo y **escribe tus fuentes** en `data/sources/` (formato en la sección siguiente):
+   ```bash
+   cv init                  # crea data/sources/ con un dataset de ejemplo y un .gitignore; nunca sobrescribe nada
+   ```
 2. **Compila** el artefacto canónico (`data/dist/profile.json`, validado, permisos 0600). Es la puerta de calidad del perfil —el `tsc` de tus datos—: estricta, silenciosa si todo va bien y, si hay problemas, los verás **todos** a la vez con fichero y línea (`experience/acme.md:4: start: Fecha inválida: …`):
    ```bash
    cv build                 # compila (alias: build-profile)
@@ -46,6 +49,7 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 
 | Comando | Qué hace | Opciones |
 |---|---|---|
+| `cv init [dir]` | Crea un espacio de trabajo: `data/sources/` con el dataset de ejemplo (permisos 0600) y un `.gitignore` con `data/dist/` y `output/`. Si algún destino existe, lista los conflictos y no escribe nada. | `--template <dir>` (dataset de ejemplo alternativo) |
 | `cv validate` | Comprueba las fuentes sin escribir nada. | `-d, --data <dir>` (por defecto `data/sources`) |
 | `cv build` (alias `build-profile`) | Compila las fuentes y escribe el artefacto canónico: la puerta de calidad del perfil. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `--check` (no escribe; falla si las fuentes tienen problemas o el artefacto falta o no está al día) · `-v, --verbose` |
 | `cv generate-cv` | Genera el CV en Markdown o PDF a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
