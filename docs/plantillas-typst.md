@@ -66,6 +66,10 @@ El segundo argumento es el `theme.toml` del tema, ya validado por la CLI (`src/t
 
 Una clave desconocida o un valor fuera de rango se rechaza con su ruta antes de arrancar Typst; una plantilla que ignore el tema sigue siendo válida (solo tiene que aceptar el argumento).
 
+## 2.2 Anulaciones desde `cv.toml`
+
+El `theme` que recibe tu plantilla ya lleva aplicadas las anulaciones de `cv.toml` (raíz del proyecto), si existe: su sección `[theme]` usa las mismas tablas y claves que `theme.toml` (`[theme.colors] primary = "#7a1f1f"`, `[theme.page.margins] top = 25`…) y se valida con el mismo esquema; la fusión es en cascada —tema base, después las anulaciones— y el resultado se revalida entero antes de arrancar Typst. `[theme] name = "classic"` fija el tema por defecto del proyecto (`--theme` prevalece). Nada de esto toca los ficheros del tema.
+
 ## 3. Cómo empezar: copia el tema de referencia
 
 La forma recomendada es copiar el tema [`themes/default`](../themes/default) a tu proyecto y editarlo:

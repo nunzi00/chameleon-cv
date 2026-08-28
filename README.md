@@ -181,6 +181,8 @@ Al generar, Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin f
 
 El aspecto lo decide un **tema**: un directorio `themes/<nombre>/` con `theme.toml` —las variables de diseño: colores, tipografías, tamaños, espaciados y página, **validadas** antes de arrancar Typst— y `template.typ`, la maquetación, que recibe la vista estructurada y esas variables. El tema `default` distribuido es el diseño de referencia; `--theme <nombre>` elige otro, buscándolo primero en `themes/` de tu proyecto y después entre los distribuidos.
 
+Se distribuyen dos temas: **`default`** (Source Sans 3, jerarquía sobria con versalitas y fechas alineadas) y **`classic`** (serif Libertinus, cabecera centrada bajo un doble filete, secciones en mayúsculas y cuerpo justificado: aire académico o tradicional). Ambos maquetan exactamente el mismo contenido; la suite lo comprueba extrayendo el texto de los PDF.
+
 ```bash
 cp -r /ruta/a/chameleon-cv/themes/default themes/mio                 # 1. copia el tema de referencia a tu proyecto
 $EDITOR themes/mio/theme.toml                                         # 2. colores, fuentes, tamaños, márgenes o papel, sin tocar código
@@ -209,7 +211,21 @@ paper = "a4"             # a4, a5, a3, us-letter, us-legal
 top = 17
 ```
 
-Una clave desconocida, un color que no sea `#rrggbb` o un tamaño fuera de rango se rechazan con la ruta del error (`colors.primary: …`) antes de arrancar Typst. Para cambiar la **maquetación**, edita `template.typ` del tema: debe exportar `cv(d, theme)`, que recibe la vista estructurada (nombre, contacto, resumen, experiencias, proyectos, skills, logros, formación, certificaciones e idiomas, con el Markdown en línea ya descompuesto) y el tema ya validado; `-t plantilla.typ` sigue sirviendo para una plantilla suelta, que recibe el mismo `theme`. El contrato completo, las reglas del contenedor (qué puede leer e importar una plantilla) y un ejemplo mínimo están en [`docs/plantillas-typst.md`](docs/plantillas-typst.md).
+Una clave desconocida, un color que no sea `#rrggbb` o un tamaño fuera de rango se rechazan con la ruta del error (`colors.primary: …`) antes de arrancar Typst.
+
+**`cv.toml`, el centro de configuración del proyecto.** Un fichero opcional en la raíz del proyecto cuya sección `[theme]` elige el tema por defecto (`name`; `--theme` prevalece) y **anula** valores del `theme.toml` del tema en uso —con su mismo vocabulario y su misma validación— solo para esa ejecución, sin bifurcar el tema. `--explain` dice qué tema se usa y qué anula.
+
+```toml
+[theme]
+name = "classic"          # tema por defecto del proyecto
+
+[theme.colors]
+primary = "#7a1f1f"       # anula solo esta clave del theme.toml de classic
+
+[theme.fonts]
+body = "Source Sans 3"
+```
+ Para cambiar la **maquetación**, edita `template.typ` del tema: debe exportar `cv(d, theme)`, que recibe la vista estructurada (nombre, contacto, resumen, experiencias, proyectos, skills, logros, formación, certificaciones e idiomas, con el Markdown en línea ya descompuesto) y el tema ya validado; `-t plantilla.typ` sigue sirviendo para una plantilla suelta, que recibe el mismo `theme`. El contrato completo, las reglas del contenedor (qué puede leer e importar una plantilla) y un ejemplo mínimo están en [`docs/plantillas-typst.md`](docs/plantillas-typst.md).
 
 ## Co-piloto de IA
 
