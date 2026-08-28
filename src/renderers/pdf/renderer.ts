@@ -1,16 +1,15 @@
 /**
  * PdfRenderer (T-2.6, `docs/pdf-integration.md` §3.2): `MasterProfile` → PDF con pdfkit, desde
- * el mismo `CvView` que el renderer Markdown. Sin plantilla textual: la maquetación es código.
- * Fuente OFL embebida, metadatos fijos → salida reproducible; sin red ni recursos externos.
+ * la misma `StructuredView` que el motor Typst (T-3.2). Sin plantilla textual: la maquetación
+ * es código. Fuente OFL embebida, metadatos fijos → salida reproducible; sin red ni recursos externos.
  */
 import PDFDocument from 'pdfkit';
 
 import type { MasterProfile } from '../../core/schema';
 import { expandIsoDate } from '../../core/schema';
 import { DEFAULT_LOCALE } from '../markdown/renderer';
-import { buildCvView, type AchievementView, type CvView } from '../markdown/view';
+import { buildStructuredView, type Block, type Run, type StructuredAchievement, type StructuredView } from '../structured';
 import { DEFAULT_FONTS, type FontFiles } from './fonts';
-import { blocks, inlineRuns, type Block, type Run } from './inline';
 
 export interface PdfRenderOptions {
   readonly locale?: string | undefined;
@@ -132,63 +131,52 @@ const plain = (text: string): Run[] => [{ text, bold: false, italic: false, code
 const bold = (text: string): Run[] => [{ text, bold: true, italic: false, code: false, link: undefined }];
 const italic = (text: string): Run[] => [{ text, bold: false, italic: true, code: false, link: undefined }];
 
-function achievementRuns(achievement: AchievementView): Run[] {
-  const runs = inlineRuns(achievement.text);
-  return achievement.impact === undefined ? runs : [...runs, ...italic(` (${achievement.impact})`)];
+function achievementRuns(achievement: StructuredAchievement): Run[] {
+  return achievement.impact === undefined ? [...achievement.runs] : [...achievement.runs, ...italic(` (${achievement.impact})`)];
 }
 
-function renderView(doc: Document, view: CvView): void {
+function renderContainer(layout: Layout, view: StructuredView, heading: string, subtitle: string, item: StructuredView['experience'][number] | StructuredView['projects'][number]): void {
+  layout.title(heading);
+  if (subtitle !== '') {
+    layout.meta(subtitle);
+  }
+  layout.blocks(item.summary);
+  for (const achievement of item.achievements) {
+    layout.bullet(achievementRuns(achievement));
+  }
+  if (item.technologies !== '') {
+    layout.gap(0.2);
+    layout.paragraph([...italic(`${view.labels.technologies}: `), ...plain(item.technologies)], SIZE.meta, COLOR.muted);
+  }
+  layout.gap(0.7);
+}
+
+function renderView(doc: Document, view: StructuredView): void {
   const layout = new Layout(doc);
   layout.paragraph(plain(view.fullName), SIZE.name);
   if (view.headline !== undefined) {
     layout.paragraph(bold(view.headline), SIZE.headline, COLOR.muted);
   }
-  if (view.contact !== '') {
+  if (view.contact.length > 0) {
     layout.gap(0.2);
-    layout.paragraph(inlineRuns(view.contact), SIZE.contact, COLOR.muted);
+    layout.paragraph(view.contact, SIZE.contact, COLOR.muted);
   }
-  if (view.summary !== undefined) {
+  if (view.summary.length > 0) {
     layout.gap(0.6);
-    layout.blocks(blocks(view.summary));
+    layout.blocks(view.summary);
   }
 
   if (view.experience.length > 0) {
     layout.section(view.labels.experience);
     for (const item of view.experience) {
-      layout.title(`${item.role} · ${item.company}`);
-      layout.meta(item.location === undefined ? item.period : `${item.period} · ${item.location}`);
-      if (item.summary !== undefined) {
-        layout.blocks(blocks(item.summary));
-      }
-      for (const achievement of item.achievements) {
-        layout.bullet(achievementRuns(achievement));
-      }
-      if (item.technologies !== '') {
-        layout.gap(0.2);
-        layout.paragraph([...italic(`${view.labels.technologies}: `), ...plain(item.technologies)], SIZE.meta, COLOR.muted);
-      }
-      layout.gap(0.7);
+      renderContainer(layout, view, `${item.role} · ${item.company}`, item.location === undefined ? item.period : `${item.period} · ${item.location}`, item);
     }
   }
 
   if (view.projects.length > 0) {
     layout.section(view.labels.projects);
     for (const item of view.projects) {
-      layout.title(item.role === undefined ? item.name : `${item.name} · ${item.role}`);
-      if (item.meta !== '') {
-        layout.meta(item.meta);
-      }
-      if (item.summary !== undefined) {
-        layout.blocks(blocks(item.summary));
-      }
-      for (const achievement of item.achievements) {
-        layout.bullet(achievementRuns(achievement));
-      }
-      if (item.technologies !== '') {
-        layout.gap(0.2);
-        layout.paragraph([...italic(`${view.labels.technologies}: `), ...plain(item.technologies)], SIZE.meta, COLOR.muted);
-      }
-      layout.gap(0.7);
+      renderContainer(layout, view, item.role === undefined ? item.name : `${item.name} · ${item.role}`, item.meta, item);
     }
   }
 
@@ -238,7 +226,7 @@ export function renderPdfCv(profile: MasterProfile, options: PdfRenderOptions = 
   const locale = options.locale ?? profile.meta.locale ?? DEFAULT_LOCALE;
   const fonts = options.fonts ?? DEFAULT_FONTS;
   const created = options.createdAt ?? creationDate(profile);
-  const view = buildCvView(profile, locale);
+  const view = buildStructuredView(profile, locale);
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: PAGE.size,

@@ -4,3 +4,5 @@
  */
 export * from './markdown';
 export * from './pdf';
+export * from './structured';
+export * from './typst';
