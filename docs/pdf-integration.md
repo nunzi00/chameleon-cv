@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tareas** | T-2.5 · [PARSER] Soporte básico para PDF (entrada) · T-2.6 · [RENDER] Salida PDF |
-| **Estado** | **PROPUESTA v1 — nota de decisión técnica pendiente de aprobación del Director de Ingeniería** (2026-08-28) |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (los seis puntos de §6 canonizados). T-2.5 en `src/pdf/`; T-2.6 en `src/renderers/pdf/`. |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Con qué librería se extrae el texto de una oferta en PDF, con qué motor se genera el CV en PDF y cómo se integran ambas con la arquitectura vigente sin comprometer seguridad, portabilidad ni privacidad. |
 | **Criterios (Director de Ingeniería)** | T-2.5: **seguridad** ante todo (*headless*, robusta, historial mínimo de vulnerabilidades, procesamiento contenido). T-2.6: **calidad frente a dependencias**, mantenimiento, portabilidad (Windows/macOS/Linux) y privacidad (nada sale del equipo). |
@@ -52,11 +52,11 @@ Binarios en la máquina de desarrollo: `pdftotext` (poppler 26.08) presente; `pa
 ### 2.2 Recomendación: `pdfjs-dist` directo, endurecido y contenido
 
 1. **Dependencia directa de `pdfjs-dist`** (sin envoltorios): el mantenedor es Mozilla, la cadencia de parches es la del visor de Firefox y no hay capa intermedia que retrase un arreglo de seguridad ni que añada superficie.
-2. **Opciones endurecidas fijas** (no configurables): `isEvalSupported: false`, `disableFontFace: true`, `useSystemFonts: false`, `stopAtErrors: true`, `verbosity: 0`, sin `cMapUrl` ni `standardFontDataUrl`. Solo se pide texto (`getTextContent`); nunca se rasteriza ni se cargan fuentes: el contenido de la oferta no puede ejecutar nada.
+2. **Opciones endurecidas fijas** (no configurables): `disableFontFace: true`, `useSystemFonts: false`, `stopAtErrors: true`, `verbosity: 0`, sin `cMapUrl` ni `standardFontDataUrl`. Solo se pide texto (`getTextContent`); nunca se rasteriza ni se cargan fuentes: el contenido de la oferta no puede ejecutar nada. Precisión tras la implementación (2026-08-28): **pdf.js ≥ 5 eliminó por completo el código evaluado dinámicamente**; la opción `isEvalSupported` ya no existe en 6.x y el build no contiene ningún `new Function` (verificado), de modo que el vector CVE-2024-4367 desaparece por construcción, no por configuración.
 3. **Contención**: la extracción corre en un **`worker_threads` Worker** con `resourceLimits` (memoria) y un **tiempo máximo** (p. ej. 20 s) tras el cual se llama a `terminate()`; el *worker* recibe bytes y devuelve texto, sin acceso al artefacto ni a `output/`. Un PDF patológico no puede colgar ni tumbar la CLI.
 4. **Límites de entrada**: ≤ 10 MiB por fichero (frente a 1 MiB del texto plano), ≤ 50 páginas, texto resultante ≤ 1 MiB (después se aplica el mismo camino que el texto plano).
 5. **Misma puerta**: `readOfferText` despacha por extensión: `.pdf` → extracción → texto normalizado → `extractJobRequirements`. `generate-cv --from-job-offer oferta.pdf` y `analyze-offer oferta.pdf` funcionan sin ninguna otra opción. Por `stdin` (`-`) solo se admite texto.
-6. **Riesgo a verificar en el spike de implementación**: la carga del *worker* en desarrollo (`ts-node`/Vitest) frente a `dist/`; se resolverá con un fichero de *worker* precompilado o con el *loader* de `ts-node`, sin afectar al diseño.
+6. **Riesgo resuelto en la implementación**: el *worker* es un módulo ESM autocontenido (`src/pdf/worker.mts`, compilado a `dist/pdf/worker.mjs`) que solo importa paquetes; Node lo carga nativamente en desarrollo (*type stripping*) y compilado en `dist/`, sin `ts-node` ni precompilación aparte. Verificado con Vitest y con el binario compilado.
 
 `pdftotext` queda descartado por portabilidad (binario externo en las tres plataformas), no por calidad; `pdf-parse`/`unpdf` por ser capas sobre el mismo pdf.js.
 
@@ -122,7 +122,7 @@ Coste asumido: la maquetación se programa (no se escribe en CSS); es el precio 
 
 Orden: T-2.5 primero (habilita el test de aceptación de T-2.6), después T-2.6.
 
-## 6. Puntos que requieren decisión del Director
+## 6. Puntos de decisión (todos aprobados el 2026-08-28)
 
 1. **T-2.5 = `pdfjs-dist` directo**, endurecido, en un *worker* con tiempo y memoria acotados, límites 10 MiB / 50 páginas / 20 s, misma puerta `readOfferText` (§2.2). Recomendación: aprobar.
 2. **T-2.6 = `pdfkit` desde el modelo de vista**, sin Pandoc ni Puppeteer (§3.2). Recomendación: aprobar.

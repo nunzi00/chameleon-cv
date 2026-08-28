@@ -117,7 +117,7 @@ Detalles y ejemplos en [`docs/selector-engine.md`](docs/selector-engine.md).
 
 ## Adaptar el CV a una oferta de empleo
 
-Guarda el texto de la oferta en un fichero (o pégalo por la entrada estándar) y:
+Guarda la oferta en un fichero de texto **o en PDF** (el texto se extrae en un proceso aislado, con límites de 10 MiB y 50 páginas), o pégala por la entrada estándar, y:
 
 ```bash
 cv analyze-offer ofertas/acme-backend.txt          # ¿encajo? qué demuestro, qué no y qué me falta
