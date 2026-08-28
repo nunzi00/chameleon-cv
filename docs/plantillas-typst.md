@@ -72,10 +72,12 @@ El `theme` que recibe tu plantilla ya lleva aplicadas las anulaciones de `cv.tom
 
 ## 3. Cómo empezar: copia el tema de referencia
 
-La forma recomendada es copiar el tema [`themes/default`](../themes/default) a tu proyecto y editarlo:
+La forma recomendada es levantar tu tema con `cv theme create` (copia `theme.toml` —con el nuevo nombre— y `template.typ` del tema que indiques, `default` si no dices otro) y editarlo:
 
 ```bash
-cp -r /ruta/a/chameleon-cv/themes/default themes/mio
+cv theme list                                   # temas disponibles: distribuidos y de tu proyecto
+cv theme create mio --from classic              # themes/mio/ a partir de classic (o de default, sin --from)
+cv theme path default                           # ruta del tema de referencia, por si quieres mirarlo
 cv generate-cv -s backend --format pdf --engine typst --theme mio
 ```
 

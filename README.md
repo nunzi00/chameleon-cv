@@ -62,6 +62,9 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv llm cache clear` | Vacía la caché local de respuestas del co-piloto. | — |
 | `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden, de dónde saldría cada clave remota (nunca su valor) y la lista blanca de hosts. Sin `--provider` nunca envía datos; con `--provider openai|anthropic` comprueba también ese proveedor remoto. | — |
 | `cv typst status` | Qué binario de Typst se usaría (`--typst-path`, `CHAMELEON_TYPST`, caché, `PATH`), su versión y si es utilizable (código 0). | — |
+| `cv theme list` | Temas de Typst disponibles: nombre, origen (distribuido o `themes/` del proyecto), descripción, validez y cuál es el tema por defecto (`cv.toml` o `default`). | — |
+| `cv theme path <nombre>` | Ruta absoluta del directorio del tema (para copiarlo o editarlo); si existe pero no es utilizable, la imprime con un aviso. | — |
+| `cv theme create <nombre>` | Crea `themes/<nombre>/` en tu proyecto a partir de un tema existente (`theme.toml` con el nuevo nombre y `template.typ`, más `fonts/` si lo tiene); nunca sobrescribe. | `--from <tema>` (por defecto `default`) |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
 
@@ -184,9 +187,11 @@ El aspecto lo decide un **tema**: un directorio `themes/<nombre>/` con `theme.to
 Se distribuyen dos temas: **`default`** (Source Sans 3, jerarquía sobria con versalitas y fechas alineadas) y **`classic`** (serif Libertinus, cabecera centrada bajo un doble filete, secciones en mayúsculas y cuerpo justificado: aire académico o tradicional). Ambos maquetan exactamente el mismo contenido; la suite lo comprueba extrayendo el texto de los PDF.
 
 ```bash
-cp -r /ruta/a/chameleon-cv/themes/default themes/mio                 # 1. copia el tema de referencia a tu proyecto
+cv theme list                                                        # qué temas hay, de dónde salen y cuál es el de por defecto
+cv theme create mio --from classic                                   # 1. themes/mio/ en tu proyecto a partir de un tema existente
 $EDITOR themes/mio/theme.toml                                         # 2. colores, fuentes, tamaños, márgenes o papel, sin tocar código
 cv generate-cv -s backend --format pdf --engine typst --theme mio    # 3. genera con tu tema
+cv theme path classic                                                # dónde vive un tema, para mirarlo o copiar sus ficheros
 ```
 
 Un extracto de [`themes/default/theme.toml`](themes/default/theme.toml) (el fichero completo está comentado):
