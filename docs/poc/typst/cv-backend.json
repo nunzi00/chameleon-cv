@@ -1,0 +1,158 @@
+{
+  "lang": "es",
+  "labels": {
+    "experience": "Experiencia",
+    "projects": "Proyectos",
+    "skills": "Habilidades",
+    "achievements": "Logros destacados",
+    "education": "Formación",
+    "certifications": "Certificaciones",
+    "languages": "Idiomas",
+    "technologies": "Tecnologías",
+    "link": "enlace",
+    "present": "actualidad",
+    "native": "nativo",
+    "categories": {
+      "language": "Lenguajes",
+      "framework": "Frameworks",
+      "library": "Librerías",
+      "tool": "Herramientas",
+      "platform": "Plataformas",
+      "database": "Bases de datos",
+      "cloud": "Cloud",
+      "methodology": "Metodologías",
+      "domain": "Dominio",
+      "soft": "Competencias",
+      "other": "Otras"
+    }
+  },
+  "fullName": "Ada Ejemplo",
+  "headline": "Senior Backend Engineer",
+  "contact": [
+    {
+      "text": "Madrid, España · ada@example.com · +34 600 000 000 · ",
+      "bold": false,
+      "italic": false,
+      "code": false
+    },
+    {
+      "text": "GitHub",
+      "bold": false,
+      "italic": false,
+      "code": false,
+      "link": "https://github.com/ada-ejemplo"
+    }
+  ],
+  "summary": [
+    {
+      "runs": [
+        {
+          "text": "APIs y sistemas distribuidos para esta especialidad.",
+          "bold": false,
+          "italic": false,
+          "code": false
+        }
+      ],
+      "bullet": false,
+      "code": false
+    }
+  ],
+  "experience": [
+    {
+      "role": "Senior Backend Engineer",
+      "company": "ACME Corp",
+      "period": "mar 2021 – jun 2024",
+      "location": "Madrid (remoto)",
+      "summary": [
+        {
+          "runs": [
+            {
+              "text": "Plataforma de pagos con 2 M de transacciones/mes.",
+              "bold": false,
+              "italic": false,
+              "code": false
+            }
+          ],
+          "bullet": false,
+          "code": false
+        }
+      ],
+      "achievements": [
+        {
+          "runs": [
+            {
+              "text": "Reduje la latencia p95 un 40 %.",
+              "bold": false,
+              "italic": false,
+              "code": false
+            }
+          ],
+          "impact": "-40 % p95"
+        },
+        {
+          "runs": [
+            {
+              "text": "Lideré la migración a Kubernetes.",
+              "bold": false,
+              "italic": false,
+              "code": false
+            }
+          ]
+        },
+        {
+          "runs": [
+            {
+              "text": "Responsable del área de pagos.",
+              "bold": false,
+              "italic": false,
+              "code": false
+            }
+          ]
+        }
+      ],
+      "technologies": "PHP 8.3, Symfony 6.4, Kubernetes"
+    }
+  ],
+  "projects": [],
+  "skillGroups": [
+    {
+      "label": "Lenguajes",
+      "names": "PHP"
+    },
+    {
+      "label": "Plataformas",
+      "names": "Kubernetes"
+    },
+    {
+      "label": "Competencias",
+      "names": "Comunicación"
+    }
+  ],
+  "achievements": [],
+  "education": [
+    {
+      "degree": "Grado en Ingeniería Informática",
+      "field": "Software",
+      "institution": "Universidad Ejemplo",
+      "period": "2010 – 2014"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "CKA",
+      "issuer": "CNCF",
+      "date": "may 2022",
+      "url": "https://example.com/cert/cka"
+    }
+  ],
+  "languages": [
+    {
+      "name": "Español",
+      "level": "nativo"
+    },
+    {
+      "name": "Inglés",
+      "level": "C1"
+    }
+  ]
+}
