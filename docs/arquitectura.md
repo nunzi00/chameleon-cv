@@ -68,7 +68,7 @@ interface DatasetError { readonly file: string; readonly line?: number; readonly
 - Única entrada de generadores, CLI y capa de inteligencia.
 - Contiene datos personales en claro: `data/dist/` está en `.gitignore` y se escribe con permisos `0600`.
 - **Se re-valida al leer** con `parseMasterProfile`: no se confía en un fichero de disco aunque lo hayamos escrito nosotros.
-- `generate` comprobará si alguna fuente es más reciente que el artefacto y avisará o reconstruirá (a decidir en T-1.5), para no producir CVs con datos obsoletos.
+- `generate-cv` comprueba si alguna fuente es más reciente que el artefacto y **avisa** (decidido en T-1.8: nunca reconstruye por su cuenta; escribir el artefacto es responsabilidad explícita de `build-profile`), para no producir CVs con datos obsoletos sin saberlo.
 
 ### 2.5 Renderers, no parsers
 
@@ -120,3 +120,4 @@ Ratificadas por el Director de Ingeniería como **principios canónicos del proy
 | 2026-08-28 | Disposición **A** (un fichero por entidad) para las entidades narrativas de `data/sources/`; `docs/formato-dataset.md` aprobado íntegramente (v2). | Director de Ingeniería. |
 | 2026-08-28 | Principios canónicos ratificados: fusión sin sobrescritura (§2.3), manejo del artefacto `profile.json` (§2.4), validación zod de toda salida del modelo y política de egreso de red *opt-in* (§3.3). | Director de Ingeniería (ratificación); Director Técnico (redacción). |
 | 2026-08-28 | El binario de la CLI se llama **`cv`** (`cv <comando> [opciones]`): claridad y brevedad para el usuario. Artefacto escrito por `cv build-profile` con escritura atómica y permisos 0600; `cv validate` no escribe nada. | Director de Ingeniería (nombre); Director Técnico (implementación T-1.4). |
+| 2026-08-28 | `cv generate-cv` avisa (no reconstruye) si el artefacto está obsoleto; los CV de `output/` se escriben con permisos 0600 y nombre `cv-<nombre>[-<especialidad>].md`. Hito 1 (MVP) completado. | Director Técnico (T-1.8), bajo la orden de cierre del Director de Ingeniería. |

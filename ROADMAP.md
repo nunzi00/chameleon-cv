@@ -6,7 +6,7 @@
 
 ### Hito 1: MVP - Generador por Especialidad (Target: 3 días)
 
-Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selección por especialidad (T-1.5) se especifica e implementa antes que sus consumidores. Orden de ejecución: **T-1.5 → T-1.7 → T-1.4 → T-1.8**.
+Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selección por especialidad (T-1.5) se especifica e implementa antes que sus consumidores. Orden de ejecución: **T-1.5 → T-1.7 → T-1.4 → T-1.8**. **Hito 1 completado el 2026-08-28** (MVP: flujo `cv validate → cv build-profile → cv generate-cv`).
 
 -   [x] **T-1.1: [CORE] Diseño del Esquema de Datos Unificado.** Definir una interfaz TypeScript ('MasterProfile') que represente de forma agnóstica toda la información de un candidato (datos personales, experiencia, proyectos, skills, logros).
     -   Hecho 2026-08-28: `src/core/schema/` (esquema zod como fuente única, tipos derivados, validación y saneado en tiempo de ejecución, unicidad de ids; 100 % de cobertura). Commits 9aee96e y a700395.
@@ -18,11 +18,12 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
     -   Hecho 2026-08-28: binario **`cv`** (`bin` en package.json; `npm run cv -- …` con ts-node). `cv build-profile [--data] [--out] [-v]` (silencioso en éxito; errores `fichero:línea` en stderr; artefacto atómico con permisos 0600 en `src/artifact/`) y `cv validate`. Códigos de salida: 0 ok, 1 datos inválidos, 2 uso o entorno. CLI testeable con contexto inyectado (`src/cli/`).
 -   [x] **T-1.5: [CORE] `SelectorEngine`.** Módulo de lógica pura que filtra un `MasterProfile` según la especialidad (tags): algoritmo de selección, firma principal e informe explicable. Especificación aprobada en `docs/selector-engine.md`.
     -   Hecho 2026-08-28: `src/core/selection/` (`selectForSpecialty`, `specialtyVocabulary`, `relevanceOf`; informe con motivos universal/matched/via-achievements/no-match). Suite con los ejemplos de la especificación y los seis invariantes canónicos (invariante 5 precisado en §2.5).
--   [ ] **T-1.6: [TESTS] Pruebas unitarias.** Configurar `Jest` o `Vitest` para testear la lógica de los parsers y las funciones de selección de datos. Cobertura del 100% en la lógica de negocio.
-    -   En curso 2026-08-28: harness adelantado (Vitest 4 + cobertura v8 con umbral 100 % sobre `src/core/**` y `src/parsers/**`; commit a700395). Umbral aplicado a `src/core`, `src/parsers`, `src/renderers`, `src/artifact`, `src/cli` y `src/shared`; solo queda fuera `src/index.ts` (cableado del proceso). Pendiente: T-1.8.
+-   [x] **T-1.6: [TESTS] Pruebas unitarias.** Configurar `Jest` o `Vitest` para testear la lógica de los parsers y las funciones de selección de datos. Cobertura del 100% en la lógica de negocio.
+    -   En curso 2026-08-28: harness adelantado (Vitest 4 + cobertura v8 con umbral 100 % sobre `src/core/**` y `src/parsers/**`; commit a700395). Umbral aplicado a `src/core`, `src/parsers`, `src/renderers`, `src/artifact`, `src/cli` y `src/shared`; solo queda fuera `src/index.ts` (cableado del proceso). Cerrada 2026-08-28 con T-1.8: 292 tests y el flujo completo documentado en README.md.
 -   [x] **T-1.7: [GENERATOR] `MarkdownRenderer`.** Convierte un `MasterProfile` (seleccionado) en un CV en Markdown mediante Handlebars y un modelo de vista; plantilla base aprobada en `docs/selector-engine.md` §5.
     -   Hecho 2026-08-28: `src/renderers/markdown/` (`buildCvView` puro, etiquetas es/en por locale, fechas con Intl, orden cronológico, Handlebars `noEscape` + normalización) y `templates/cv.md.hbs`; golden `tests/fixtures/golden/cv-backend.md` = §5.4.
--   [ ] **T-1.8: [CLI] Comando `generate-cv`.** Orquesta `profile.json` → `SelectorEngine` → `MarkdownRenderer` → `output/<cv>.md`. Culminación del MVP.
+-   [x] **T-1.8: [CLI] Comando `generate-cv`.** Orquesta `profile.json` → `SelectorEngine` → `MarkdownRenderer` → `output/<cv>.md`. Culminación del MVP.
+    -   Hecho 2026-08-28: `cv generate-cv [-s <id>] [-p artefacto] [-o salida] [-t plantilla] [-l locale] [--explain] [--stdout]`; lee y re-valida `profile.json`, avisa si alguna fuente es más reciente (nunca reconstruye por su cuenta), selecciona por especialidad o genera el CV completo, escribe `output/cv-<nombre>[-<especialidad>].md` con permisos 0600. README de uso con el flujo `validate → build-profile → generate-cv`.
 
 ### Hito 2: Evolución - Adaptación por Oferta de Empleo (Target: 1 semana post-MVP)
 
