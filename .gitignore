@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+
+# Artefactos de compilación
+dist/
+*.tsbuildinfo
+
+# CVs generados: nunca se versionan
+output/
+
+# Tests y cobertura
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Entorno local (secretos)
+.env
+.env.*
+!.env.example
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
