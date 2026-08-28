@@ -6,6 +6,7 @@ export interface WritableFileSystem {
   /** Crea el directorio y sus padres si no existen. */
   mkdir(path: string): Promise<void>;
   writeFile(path: string, content: string, mode: number): Promise<void>;
+  writeBinaryFile(path: string, bytes: Uint8Array, mode: number): Promise<void>;
   rename(from: string, to: string): Promise<void>;
   chmod(path: string, mode: number): Promise<void>;
   readFile(path: string): Promise<string>;

@@ -24,6 +24,7 @@ import {
 import { parseMasterProfile } from '../../src/core/schema';
 import { selectForSpecialty } from '../../src/core/selection';
 import { NodeFileSystem, defaultSourceParsers } from '../../src/parsers';
+import { extractPdfText } from '../../src/pdf';
 import { describeError } from '../../src/shared/errors';
 import { MemoryFileSystem, datasetTree, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
@@ -51,6 +52,7 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     datasetFileSystem: fs,
     artifactFileSystem: fs,
     parsers: defaultSourceParsers(),
+    pdfExtractor: (bytes) => extractPdfText(bytes),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -247,6 +249,7 @@ describe('cv (programa)', () => {
         stat: () => Promise.resolve({ kind: 'directory', size: 0, mtimeMs: 0 }),
         realPath: (path) => Promise.resolve(path),
         readTextFile: () => Promise.resolve(''),
+        readBinaryFile: () => Promise.resolve(new Uint8Array()),
       },
     });
     await expect(runCli(['validate'], h.context)).rejects.toThrow('EACCES');
@@ -320,6 +323,10 @@ describe('contexto real y errores no estándar', () => {
     expect(context.artifactFileSystem).toBeInstanceOf(NodeWritableFileSystem);
     context.stdout('');
     context.stderr('');
+  });
+
+  it('el extractor de PDF del contexto real contiene la extracción en un worker', async () => {
+    expect(await createNodeContext().pdfExtractor(Buffer.from('no soy un pdf', 'utf8'))).toEqual({ ok: false, code: 'invalid', message: 'Invalid PDF structure.' });
   });
 
   it('describeError da un mensaje legible para cualquier valor lanzado', () => {

@@ -58,4 +58,8 @@ export class NodeFileSystem implements FileSystem {
   readTextFile(path: string): Promise<string> {
     return readFile(path, 'utf8');
   }
+
+  readBinaryFile(path: string): Promise<Uint8Array> {
+    return readFile(path);
+  }
 }

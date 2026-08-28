@@ -34,6 +34,7 @@ describe('NodeFileSystem', () => {
     expect(await fs.stat(join(temporary, 'link.md'))).toEqual({ kind: 'file', size: 9, mtimeMs: expect.any(Number) });
     expect((await fs.stat(FIXTURE_ROOT)).kind).toBe('directory');
     expect(await fs.readTextFile(join(temporary, 'link.md'))).toBe('contenido');
+    expect(Buffer.from(await fs.readBinaryFile(join(temporary, 'real.md'))).toString('utf8')).toBe('contenido');
   });
 });
 

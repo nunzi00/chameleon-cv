@@ -23,4 +23,6 @@ export interface FileSystem {
   stat(path: string): Promise<FileStat>;
   realPath(path: string): Promise<string>;
   readTextFile(path: string): Promise<string>;
+  /** Contenido binario (ofertas en PDF). */
+  readBinaryFile(path: string): Promise<Uint8Array>;
 }

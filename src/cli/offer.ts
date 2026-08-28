@@ -1,10 +1,12 @@
 /**
- * Lectura de la oferta de empleo (`docs/trimming-cli.md` §4.1): un fichero de texto o la entrada
- * estándar (`-`), con límite de tamaño; vacía es error de datos.
+ * Lectura de la oferta de empleo (`docs/trimming-cli.md` §4.1, `docs/pdf-integration.md` §2.2):
+ * un fichero de texto, un PDF (texto extraído en un worker contenido) o la entrada estándar
+ * (`-`, solo texto), con límites de tamaño; vacía es error de datos.
  */
 import { basename, extname, resolve } from 'node:path';
 
 import { normalizeInput } from '../core/keywords';
+import { DEFAULT_PDF_LIMITS, type PdfErrorCode } from '../pdf';
 import { describeError } from '../shared/errors';
 import type { CliContext } from './context';
 import { EXIT_DATA_ERROR, EXIT_FAILURE } from './output';
@@ -13,6 +15,7 @@ import { slugify } from './slug';
 export const OFFER_MAX_BYTES = 1024 * 1024;
 export const STDIN_SOURCE = '-';
 const STDIN_NAME = 'oferta';
+const PDF_EXTENSION = /\.pdf$/i;
 
 export interface OfferText {
   /** Texto normalizado (sin BOM, finales de línea `\n`). */
@@ -39,6 +42,26 @@ export function offerName(source: string): string {
   return source === STDIN_SOURCE ? STDIN_NAME : slugify(basename(source, extname(source))) || STDIN_NAME;
 }
 
+export function isPdfSource(source: string): boolean {
+  return PDF_EXTENSION.test(source);
+}
+
+/** Un PDF inválido o excesivo es un problema de datos; un fallo o un tiempo agotado, del entorno. */
+export function pdfExitCode(code: PdfErrorCode): number {
+  return code === 'timeout' || code === 'failed' ? EXIT_FAILURE : EXIT_DATA_ERROR;
+}
+
+async function readPdfOffer(context: CliContext, path: string, size: number): Promise<OfferResult | string> {
+  if (size > DEFAULT_PDF_LIMITS.maxBytes) {
+    return { ok: false, message: `La oferta «${path}» supera el máximo de 10 MiB`, exitCode: EXIT_FAILURE };
+  }
+  const extracted = await context.pdfExtractor(await context.datasetFileSystem.readBinaryFile(path));
+  if (!extracted.ok) {
+    return { ok: false, message: `No se pudo extraer el texto de «${path}»: ${extracted.message}`, exitCode: pdfExitCode(extracted.code) };
+  }
+  return extracted.text;
+}
+
 export async function readOfferText(context: CliContext, source: string): Promise<OfferResult> {
   let raw: string;
   if (source === STDIN_SOURCE) {
@@ -50,10 +73,18 @@ export async function readOfferText(context: CliContext, source: string): Promis
       if (info.kind !== 'file') {
         return { ok: false, message: `La oferta «${path}» no es un fichero`, exitCode: EXIT_FAILURE };
       }
-      if (info.size > OFFER_MAX_BYTES) {
-        return { ok: false, message: `La oferta «${path}» supera el máximo de 1 MiB`, exitCode: EXIT_FAILURE };
+      if (isPdfSource(source)) {
+        const pdf = await readPdfOffer(context, path, info.size);
+        if (typeof pdf !== 'string') {
+          return pdf;
+        }
+        raw = pdf;
+      } else {
+        if (info.size > OFFER_MAX_BYTES) {
+          return { ok: false, message: `La oferta «${path}» supera el máximo de 1 MiB`, exitCode: EXIT_FAILURE };
+        }
+        raw = await context.datasetFileSystem.readTextFile(path);
       }
-      raw = await context.datasetFileSystem.readTextFile(path);
     } catch (error) {
       return { ok: false, message: `No se pudo leer la oferta «${path}»: ${describeError(error)}`, exitCode: EXIT_FAILURE };
     }

@@ -107,4 +107,11 @@ describe('NodeWritableFileSystem (disco real)', () => {
     await fs.remove(path);
     expect(await readProfileArtifact(fs, path)).toMatchObject({ ok: false, errors: [expect.stringContaining('No existe el artefacto')] });
   });
+
+  it('escribe ficheros binarios con el modo indicado', async () => {
+    const path = join(temporary, 'salida.bin');
+    await fs.writeBinaryFile(path, new Uint8Array([0x25, 0x50, 0x44, 0x46]), 0o600);
+    expect(await readFile(path)).toEqual(Buffer.from('%PDF', 'utf8'));
+    expect((await stat(path)).mode & 0o777).toBe(0o600);
+  });
 });
