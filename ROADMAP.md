@@ -34,7 +34,9 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
 -   [x] **T-2.2: [CORE] Lógica de 'scoring' y selección.** Diseñar un algoritmo que puntúe los logros y skills del 'MasterProfile' en función de las keywords extraídas de la oferta.
     -   Hecho 2026-08-28: `src/core/scoring/` — especialidad virtual `offer` sobre `selectForSpecialty` sin cambios (`tailorToOffer`, con `--specialty` real opcional), `scoreSelection` aditivo (contenedor = propio + logros), reordenación solo de logros y skills, `MatchReport` con cobertura; informe `--explain` de adecuación (`formatMatchReport`).
 -   [ ] **T-2.3: [GENERATOR] Mejorar el motor de plantillas.** Permitir que la plantilla renderice dinámicamente solo los 'N' mejores puntos para cada sección, basado en el scoring.
+    -   Especificación conjunta con T-2.4 en `docs/trimming-cli.md` (2026-08-28, pendiente de aprobación): recorte en el núcleo (`trim.ts`), un solo ranking (puntuación · orden de documento), universales sin privilegio, límites `--top-n` / `--max-*` y preset `--compact`.
 -   [ ] **T-2.4: [CLI] Ampliar la CLI.** Añadir el comando `generate --from-job-offer <path_to_offer.txt>`.
+    -   Especificación conjunta con T-2.3 en `docs/trimming-cli.md` (2026-08-28, pendiente de aprobación): matriz `--from-job-offer` × `--specialty`, sufijo de oferta en el nombre de salida, `cv analyze-offer` (resumen / `--explain` / `--json`, stdin con `-`).
 -   [ ] **T-2.5: [PARSER] Soporte básico para PDF (entrada).** Investigar e implementar `pdf-parse` para extraer texto de ofertas de empleo en formato PDF.
 -   [ ] **T-2.6: [RENDER] Salida PDF (propuesto 2026-08-28).** Renderer PDF a partir de `profile.json` (evaluar `pandoc` frente a `puppeteer`, `docs/arquitectura.md` §2.5).
 
@@ -48,7 +50,8 @@ Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt
 -   [ ] **T-3.4: [LLM] Perfil a medida y análisis de adecuación.** `TailoredResult { profile, analysis }` validado con zod; el perfil pasa por `parseMasterProfile`; envío minimizado (perfil filtrado por especialidad, sin datos de contacto).
 -   [ ] **T-3.5: [CLI] Comando `match <url|fichero>`.** CV a medida + informe `strengths / perfectMatches / potentialGaps` en consola.
 
-### Backlog (mejoras registradas, pendientes de priorizar)
+### Backlog (mejoras registradas; se priorizarán en la fase de consolidación «Hito 2.5», según el Director de Ingeniería)
 
 -   [ ] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build-profile → generate-cv` (registrado 2026-08-28).
 -   [ ] **B-2: [CLI] `cv init`.** Copiar el dataset de ejemplo a `data/sources/` para arrancar un perfil nuevo (registrado 2026-08-28).
+-   [ ] **B-3: [CORE] Tag reservada `#pin`.** Fijar un ítem en cualquier oferta, no solo por especialidad (registrado 2026-08-28 en `docs/trimming-cli.md` §3.3).
