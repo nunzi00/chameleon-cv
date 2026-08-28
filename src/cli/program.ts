@@ -10,6 +10,7 @@ import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
+import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
@@ -173,6 +174,32 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--build', 'recompila el artefacto antes', false)
     .action(async (options: SummarizeOptions) => {
       onExit(await runSummarizeCommand(context, options));
+    });
+
+  const suggest = program.command('suggest').description('co-piloto: sugerencias estructurales a partir del diccionario cerrado del perfil (las tags de tus especialidades); nunca escribe en tus fuentes');
+  suggest
+    .command('tags [text]')
+    .description('propone, solo del diccionario cerrado (las tags de las especialidades), las etiquetas de un texto («-» = stdin) o de los logros del perfil; imprime por stdout una lista limpia para copiarla en tus fuentes (#tag1 #tag2)')
+    .option('-s, --specialty <id>', 'restringe el diccionario a las tags de esa especialidad')
+    .option('--only <ids>', 'ids de logros separados por comas')
+    .option('--untagged', 'solo los logros sin etiquetas', false)
+    .option('--max-tags <n>', 'etiquetas como máximo por logro (1-10)', parseMaxTags, SUGGEST_TAGS_DEFAULTS.maxTags)
+    .option('--max-items <n>', 'logros como máximo por ejecución (presupuesto)', parseLimit, SUGGEST_TAGS_DEFAULTS.maxItems)
+    .option('--redact-companies', 'seudonimiza también las empresas ([EMPRESA-n])', false)
+    .option('-l, --locale <locale>', 'idioma de las justificaciones (por defecto, el del perfil)')
+    .option('--explain', 'explica cada etiqueta: evidencia calculada por código (literal, contexto, inferida), si es nueva y la justificación del modelo', false)
+    .option('--no-cache', 'no leer ni guardar la caché local de respuestas')
+    .option('--show-prompt', 'imprime el prompt exacto y termina', false)
+    .option('--show-payload', 'imprime los fragmentos seudonimizados que saldrían', false)
+    .option('--dry-run', 'no envía nada: solo dice qué saldría y a dónde', false)
+    .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
+    .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
+    .option('--provider <id>', 'proveedor de modelos: ollama u openai-compatible (locales) o, con consentimiento explícito de red, openai o anthropic')
+    .option('--model <name>', 'modelo del proveedor elegido')
+    .option('--yes', 'acepta por adelantado el aviso de coste de un proveedor remoto', false)
+    .option('--build', 'recompila el artefacto antes', false)
+    .action(async (text: string | undefined, options: Omit<SuggestTagsOptions, 'text'>) => {
+      onExit(await runSuggestTagsCommand(context, { ...options, text }));
     });
 
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');

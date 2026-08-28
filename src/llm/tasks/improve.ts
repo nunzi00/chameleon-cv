@@ -62,33 +62,36 @@ export interface ImproveFragment {
   readonly redaction: Redaction;
 }
 
-interface Located {
+export interface LocatedAchievement {
   readonly achievement: Achievement;
   readonly role?: string | undefined;
   readonly company?: string | undefined;
   readonly technologies: readonly string[];
+  /** Tags del contenedor (experiencia o proyecto); vacío en los transversales. */
+  readonly containerTags: readonly string[];
 }
 
-function locate(profile: MasterProfile, id: string): Located | undefined {
+/** Localiza un logro por `id` en experiencias, proyectos y transversales, con el contexto de su contenedor. */
+export function locateAchievement(profile: MasterProfile, id: string): LocatedAchievement | undefined {
   for (const item of profile.experience) {
     const achievement = item.achievements.find((candidate) => candidate.id === id);
     if (achievement !== undefined) {
-      return { achievement, role: item.role, company: item.company, technologies: item.technologies };
+      return { achievement, role: item.role, company: item.company, technologies: item.technologies, containerTags: item.tags };
     }
   }
   for (const item of profile.projects) {
     const achievement = item.achievements.find((candidate) => candidate.id === id);
     if (achievement !== undefined) {
-      return { achievement, role: item.role, company: item.name, technologies: item.technologies };
+      return { achievement, role: item.role, company: item.name, technologies: item.technologies, containerTags: item.tags };
     }
   }
   const achievement = profile.achievements.find((candidate) => candidate.id === id);
-  return achievement === undefined ? undefined : { achievement, technologies: [] };
+  return achievement === undefined ? undefined : { achievement, technologies: [], containerTags: [] };
 }
 
 /** Fragmento seudonimizado de un logro por `id`; `undefined` si no existe. */
 export function buildImproveFragment(profile: MasterProfile, id: string, options: FragmentOptions = {}): ImproveFragment | undefined {
-  const located = locate(profile, id);
+  const located = locateAchievement(profile, id);
   if (located === undefined) {
     return undefined;
   }
