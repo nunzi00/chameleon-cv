@@ -100,6 +100,8 @@ Implementaciones previstas: `OllamaLlmService` (local, **por defecto**), `Anthro
 
 ### 3.3 Anotaciones técnicas de obligado cumplimiento
 
+Ratificadas por el Director de Ingeniería como **principios canónicos del proyecto** el 2026-08-28, junto con las de §2.3 (fusión sin sobrescritura) y §2.4 (manejo del artefacto `profile.json`).
+
 - **Toda salida del modelo se valida con zod** (`JobRequirements`, `TailoredResult`) antes de usarse: JSON inválido es error, no *best effort*. El perfil a medida pasa por `parseMasterProfile`: el modelo no puede inventar campos ni romper el contrato.
 - `MatchAnalysis` vive **fuera** de `MasterProfile` (en `TailoredResult`), no en `meta`: el esquema es estricto y `meta` describe el documento, no una candidatura.
 - **Egreso de red = opt-in explícito.** Por defecto todo es local (Ollama). Enviar el perfil a un proveedor remoto exige un flag explícito (p. ej. `--provider anthropic`) y muestra qué se envía. Claves solo por variables de entorno; nunca en ficheros del repositorio.
@@ -116,3 +118,4 @@ Implementaciones previstas: `OllamaLlmService` (local, **por defecto**), `Anthro
 | 2026-08-28 | Certificaciones en CSV (`certifications.csv`), no en Markdown. | Director de Ingeniería. |
 | 2026-08-28 | Capa LLM abstracta con implementación local por defecto; Hito 3 propuesto en el roadmap, pendiente de planificación. | ídem. |
 | 2026-08-28 | Disposición **A** (un fichero por entidad) para las entidades narrativas de `data/sources/`; `docs/formato-dataset.md` aprobado íntegramente (v2). | Director de Ingeniería. |
+| 2026-08-28 | Principios canónicos ratificados: fusión sin sobrescritura (§2.3), manejo del artefacto `profile.json` (§2.4), validación zod de toda salida del modelo y política de egreso de red *opt-in* (§3.3). | Director de Ingeniería (ratificación); Director Técnico (redacción). |
