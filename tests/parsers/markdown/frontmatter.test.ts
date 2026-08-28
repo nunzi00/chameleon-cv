@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { LineCounter, Pair, Scalar, YAMLMap, YAMLSeq } from 'yaml';
 
-import { collectLines, firstLine, parseFrontmatter, yamlErrorLine, yamlNodeLine } from '../../../src/parsers/markdown/frontmatter';
+import { collectLines, parseFrontmatter, yamlErrorLine, yamlNodeLine } from '../../../src/parsers/markdown/frontmatter';
+import { firstLine } from '../../../src/parsers/shared/text';
 
 function expectErrors(yaml: string): readonly { file: string; line?: number | undefined; message: string }[] {
   const result = parseFrontmatter(yaml, 'f.md', 1);

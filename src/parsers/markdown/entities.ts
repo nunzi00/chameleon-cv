@@ -21,7 +21,7 @@ import { stripEmptyValues } from '../shared/objects';
 import { parseAchievementList, type ParsedAchievement } from './achievements';
 import { onlyList, parseMarkdownDocument, sliceNodes, type DocumentSection } from './document';
 import { parseFrontmatter } from './frontmatter';
-import { createLocator, validateSection } from './section-validation';
+import { createLocator, validateSection } from '../shared/section-validation';
 
 export interface EntityKind {
   readonly directory: EntityDirectory;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { createLocator, validateSection } from '../../../src/parsers/markdown/section-validation';
+import { createLocator, validateSection } from '../../../src/parsers/shared/section-validation';
 
 describe('createLocator', () => {
   const locate = createLocator(new Map([['links', 6], ['links[0].url', 8]]), 1);
