@@ -1,6 +1,6 @@
 # Roadmap del Proyecto: Chameleon CV
 
-> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2 en curso.**
+> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2: todas las tareas (T-2.1–T-2.6) cerradas el 2026-08-28 — 372 tests, 100 % de cobertura; pendiente de declaración por el Director de Ingeniería.**
 
 ## Stack Tecnológico: Node.js con TypeScript
 
@@ -39,7 +39,8 @@ Replanificado el 2026-08-28 por el Director de Ingeniería: la lógica de selecc
     -   Hecho 2026-08-28: `cv generate-cv --from-job-offer <fichero|->` con `--top-n`, `--max-skills`, `--max-projects`, `--max-certifications`, `--compact` y `--explain` ampliado (adecuación + recortes); sufijo de oferta en la salida; `cv analyze-offer <oferta>` (resumen legible, `--explain`, `--json`, stdin con `-`). README actualizado.
 -   [x] **T-2.5: [PARSER] Soporte básico para PDF (entrada).** Investigar e implementar `pdf-parse` para extraer texto de ofertas de empleo en formato PDF.
     -   Hecho 2026-08-28 (`docs/pdf-integration.md` aprobado): `src/pdf/` — `extractPdfText` con límites (10 MiB, 50 páginas, 1 MiB de texto, 20 s, 512 MB) y `worker_threads` aislado (`worker.mts` ESM autocontenido, cargado nativamente por Node en desarrollo y compilado en `dist/`); `pdfjs-dist` 6.2 endurecido (sin fuentes ni render; pdf.js ≥ 5 ya no evalúa código). `readOfferText` acepta `.pdf` en `generate-cv -f` y `analyze-offer`.
--   [ ] **T-2.6: [RENDER] Salida PDF (propuesto 2026-08-28).** Renderer PDF a partir de `profile.json` (evaluar `pandoc` frente a `puppeteer`, `docs/arquitectura.md` §2.5).
+-   [x] **T-2.6: [RENDER] Salida PDF (propuesto 2026-08-28).** Renderer PDF a partir de `profile.json`.
+    -   Hecho 2026-08-28 (`docs/pdf-integration.md` §3): `src/renderers/pdf/` — `renderPdfCv` con `pdfkit` desde el mismo `CvView` que Markdown (Markdown en línea → runs vía mdast), fuente OFL Source Sans 3 embebida (`templates/fonts/`), salida reproducible (fecha de creación fija = `meta.updatedAt`), paginación automática. CLI: `--format md|pdf` (`.pdf` con 0600; `--stdout` y `--template` solo con md). Aceptación: *round-trip* CV → PDF → texto (T-2.5) reproduce un golden; sin `/JavaScript` ni acciones automáticas.
     -   Nota de decisión conjunta con T-2.5 en `docs/pdf-integration.md` (2026-08-28, pendiente de aprobación): `pdfkit` desde el modelo de vista con fuente embebida; Pandoc y Puppeteer descartados; verificación por round-trip con T-2.5.
 
 ### Hito 3: Co-piloto de carrera - Matchmaking asistido por LLM (Propuesto 2026-08-28, pendiente de planificación)

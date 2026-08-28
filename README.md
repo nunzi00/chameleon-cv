@@ -3,7 +3,7 @@
 Generador de CVs dinámicos y personalizados a partir de tus propias fuentes (Markdown y CSV). Mantienes **un solo conjunto de datos** —experiencias, proyectos, logros, habilidades— y generas un CV distinto para cada especialidad con un comando. Todo se procesa en local: sin red, sin telemetría.
 
 ```
-data/sources/ (tú editas)  ──cv build-profile──►  data/dist/profile.json  ──cv generate-cv──►  output/cv-<nombre>-<especialidad>.md
+data/sources/ (tú editas)  ──cv build-profile──►  data/dist/profile.json  ──cv generate-cv──►  output/cv-<nombre>-<especialidad>.md | .pdf
 ```
 
 ## Requisitos
@@ -39,6 +39,7 @@ Sin `npm link`, cualquier comando se ejecuta como `npm run cv -- <comando> [opci
    cv generate-cv                                # CV completo, sin selección
    cv generate-cv -s backend --explain           # además, explica en stderr qué se incluyó y por qué
    cv generate-cv -s backend --stdout            # imprime el Markdown en lugar de escribir un fichero
+   cv generate-cv -s backend --format pdf        # output/cv-<nombre>-backend.pdf (fuente embebida, sin dependencias externas)
    ```
 
 Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: experience/acme.md es más reciente que el artefacto; ejecuta «cv build-profile»`.
@@ -49,7 +50,7 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 |---|---|---|
 | `cv validate` | Comprueba las fuentes sin escribir nada. | `-d, --data <dir>` (por defecto `data/sources`) |
 | `cv build-profile` | Compila las fuentes y escribe el artefacto canónico. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `-v, --verbose` |
-| `cv generate-cv` | Genera el CV en Markdown a partir del artefacto. | `-s, --specialty <id>` · `-f, --from-job-offer <file>` (`-` = stdin) · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
+| `cv generate-cv` | Genera el CV en Markdown o PDF a partir del artefacto. | `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
@@ -137,13 +138,14 @@ Especificación: [`docs/scoring.md`](docs/scoring.md) y [`docs/trimming-cli.md`]
 
 ## Plantillas propias
 
-El CV se renderiza con Handlebars a partir de un modelo de vista ya formateado (fechas según el idioma, periodos, skills agrupadas por categoría, línea de contacto). La plantilla base es [`templates/cv.md.hbs`](templates/cv.md.hbs); cópiala, adáptala y pásala con `--template mi-plantilla.hbs`. Las etiquetas de sección (`labels.experience`, `labels.present`…) salen del idioma (`meta.locale` del perfil o `--locale`): hay tablas en castellano e inglés.
+El CV se renderiza con Handlebars a partir de un modelo de vista ya formateado (fechas según el idioma, periodos, skills agrupadas por categoría, línea de contacto). La plantilla base es [`templates/cv.md.hbs`](templates/cv.md.hbs); cópiala, adáptala y pásala con `--template mi-plantilla.hbs`. La plantilla solo aplica al Markdown: el PDF (`--format pdf`) se maqueta con código a partir del mismo modelo de vista, con la fuente Source Sans 3 (licencia OFL, en `templates/fonts/`) embebida, y no admite `--stdout` ni `--template`. Las etiquetas de sección (`labels.experience`, `labels.present`…) salen del idioma (`meta.locale` del perfil o `--locale`): hay tablas en castellano e inglés.
 
 ## Seguridad y privacidad
 
 - Todo se procesa en local; la herramienta no abre conexiones de red ni envía telemetría.
-- `data/dist/profile.json` y los CV de `output/` contienen datos personales: se escriben con permisos `0600` (solo tu usuario) y ambos directorios están en `.gitignore`. Si algún día este repositorio tuviera remoto, excluye también `data/sources/`.
+- `data/dist/profile.json` y los CV de `output/` (Markdown y PDF) contienen datos personales: se escriben con permisos `0600` (solo tu usuario) y ambos directorios están en `.gitignore`. Si algún día este repositorio tuviera remoto, excluye también `data/sources/`.
 - Solo se leen ficheros `.md`/`.csv` dentro del dataset; los enlaces simbólicos que apuntan fuera son un error; YAML sin tipado implícito ni alias; toda entrada pasa por un esquema estricto (longitudes, caracteres de control, URLs solo `http(s)`).
+- Las ofertas en PDF se procesan en un *worker* aislado con límites (10 MiB, 50 páginas, 20 s, 512 MB), sin cargar fuentes ni renderizar; el PDF generado no contiene código ni acciones automáticas y se produce sin red ni binarios externos.
 - El artefacto se **re-valida** cada vez que se lee: no se confía en un fichero de disco aunque lo hayamos escrito nosotros.
 
 ## Desarrollo

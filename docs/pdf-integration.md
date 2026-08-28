@@ -132,3 +132,12 @@ Orden: T-2.5 primero (habilita el test de aceptación de T-2.6), después T-2.6.
 6. **Verificación por *round-trip*** como test de aceptación de T-2.6 (§1.2, §4). Recomendación: aprobar.
 
 Con la aprobación se marca el documento como APROBADO y se implementan T-2.5 y T-2.6 (en ese orden, cada una con su cobertura al 100 %).
+
+## 7. Estado de la implementación (2026-08-28)
+
+- **T-2.5 (entrada)**: `src/pdf/extract-text.ts` + `src/pdf/worker.mts` (ESM autocontenido, cargado nativamente por Node en desarrollo y como `dist/pdf/worker.mjs` compilado). Límites aplicados tal cual §2.2; pdf.js 6.2 sin código evaluable (§2.2, punto 2). `generate-cv -f` y `analyze-offer` aceptan `.pdf`; por `stdin` solo texto.
+- **T-2.6 (salida)**: `src/renderers/pdf/` — `inline.ts` (Markdown en línea → runs con negrita/cursiva/código/enlace, reutilizando mdast) y `renderer.ts` (`renderPdfCv`, maquetación con `pdfkit` sobre el mismo `CvView` que Markdown: A4, márgenes de 56 pt, Source Sans 3 Regular/Semibold/It embebida, código en Courier, viñetas, regla bajo cada sección, paginación automática). Fuente elegida: **Source Sans 3** (release 3.052R de Adobe, tres estilos estáticos, 1,2 MB con la licencia OFL en `templates/fonts/`); Inter quedó descartada por tamaño (sus estáticos superan los 300 KB por estilo).
+- **Reproducibilidad**: la fecha de creación/modificación es `meta.updatedAt` del perfil o una constante (2000-01-01) si no la declara; `Producer`/`Creator` fijos; dos renderizados del mismo perfil son idénticos byte a byte (verificado en tests).
+- **Aceptación (§6, punto 6)**: `tests/renderers/pdf/renderer.test.ts` renderiza el CV backend de `docs/selector-engine.md` §5.4, extrae el texto con T-2.5 y lo compara con el golden `tests/fixtures/golden/cv-backend.pdf.txt`; además comprueba fuente embebida (`/FontFile2`), ausencia de `/JavaScript`, `/Launch`, `/OpenAction`, `/AA` y `/EmbeddedFile`, y la paginación de CV largos.
+- **Defecto detectado por el round-trip y corregido antes de cerrar**: un run vacío al final de una línea (p. ej. certificación sin emisor ni fecha) no cerraba la línea en `pdfkit` y la viñeta siguiente se fundía con la anterior; el renderer descarta ahora los runs vacíos y escribe una línea en blanco explícita cuando no queda ninguno.
+- **Enlaces**: los enlaces explícitos (contacto, certificaciones, Markdown en logros) se conservan como anotaciones `/URI` clicables; no implican ninguna carga externa al generar ni al abrir el PDF.
