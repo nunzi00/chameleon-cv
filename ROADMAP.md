@@ -53,9 +53,16 @@ Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt
 -   [ ] **T-3.4: [LLM] Perfil a medida y análisis de adecuación.** `TailoredResult { profile, analysis }` validado con zod; el perfil pasa por `parseMasterProfile`; envío minimizado (perfil filtrado por especialidad, sin datos de contacto).
 -   [ ] **T-3.5: [CLI] Comando `match <url|fichero>`.** CV a medida + informe `strengths / perfectMatches / potentialGaps` en consola.
 
-### Backlog (mejoras registradas; se priorizarán en la fase de consolidación «Hito 2.5», según el Director de Ingeniería)
+### Hito 2.5: Consolidación y calidad de vida (ordenado por el Director de Ingeniería el 2026-08-28; `docs/consolidacion.md`)
 
--   [ ] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build-profile → generate-cv` (registrado 2026-08-28).
+-   [x] **T-2.7: [CLI] `cv build` unificado (ref. B-1).** La puerta de calidad del perfil, el `tsc` de los datos: estricta, silenciosa, primer paso de cualquier CI.
+    -   Hecho 2026-08-28: `src/cli/commands/build.ts` — `cv build [-d] [-o] [--check] [-v]` (`build-profile` queda como alias); `--check` no escribe y falla si las fuentes tienen problemas o el artefacto falta o no está al día (comparación semántica del contenido, no por fechas); `--build` en `generate-cv` y `analyze-offer` recompila antes de trabajar. Mensajes y docs apuntan a `cv build`.
+-   [ ] **T-2.8: [CLI] `cv init` (ref. B-2).** Crear la estructura de directorios y los ficheros de ejemplo para arrancar un perfil nuevo.
+-   [ ] **T-2.9: [CORE] Sintaxis de anclaje `#pin` (ref. B-3).** Fijar logros o ítems cruciales en cualquier oferta, por encima de los algoritmos de recorte.
+
+### Backlog (mejoras registradas)
+
+-   [x] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build → generate-cv` (registrado 2026-08-28). → Entregado en T-2.7.
 -   [ ] **B-2: [CLI] `cv init`.** Copiar el dataset de ejemplo a `data/sources/` para arrancar un perfil nuevo (registrado 2026-08-28).
 -   [ ] **B-3: [CORE] Tag reservada `#pin`.** Fijar un ítem en cualquier oferta, no solo por especialidad (registrado 2026-08-28 en `docs/trimming-cli.md` §3.3).
 -   [ ] **B-4: [RENDER] Motor PDF opcional Typst.** `--engine typst` con plantilla `templates/cv.typ.hbs` cuando el binario esté instalado; máxima calidad tipográfica sin tocar el núcleo (registrado 2026-08-28 en `docs/pdf-integration.md` §3.3).
