@@ -58,7 +58,7 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv improve` | Co-piloto: propone reescrituras con más impacto para los logros seleccionados y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--only <ids>` · `--proposals <1-3>` · `--max-length <n>` · `--max-items <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--build` |
 | `cv summarize` | Co-piloto: propone el resumen profesional a partir del perfil filtrado (especialidad, oferta, límites) y lo verifica (canon C2); fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--paragraphs <1-3>` · `--proposals <1-3>` · `--max-length <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--build` |
 | `cv llm cache clear` | Vacía la caché local de respuestas del co-piloto. | — |
-| `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden y qué claves remotas hay definidas (solo nombres). Nunca envía datos. | — |
+| `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden, de dónde saldría cada clave remota (nunca su valor) y la lista blanca de hosts. Sin `--provider` nunca envía datos; con `--provider openai|anthropic` comprueba también ese proveedor remoto. | — |
 | `cv typst status` | Qué binario de Typst se usaría (`--typst-path`, `CHAMELEON_TYPST`, caché, `PATH`), su versión y si es utilizable (código 0). | — |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
@@ -188,7 +188,7 @@ Tu plantilla solo tiene que exportar una función `cv(d)` que reciba la vista es
 
 ## Co-piloto de IA
 
-El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C10) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos exigirán `--provider` explícito en cada orden (T-4.5).
+El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C11) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada (véase [Proveedores remotos](#proveedores-remotos-opcional)).
 
 ```bash
 cv llm status                                   # proveedor y modelo locales que se usarían y si responden (nunca envía datos)
@@ -198,6 +198,9 @@ cv improve --only exp-acme-1 --show-payload --dry-run   # muestra exactamente qu
 cv improve --show-prompt                        # imprime el prompt versionado (prompts/improve.v1.md)
 cv summarize -s backend                         # propone el resumen profesional («summary») a partir del perfil filtrado por esa especialidad
 cv summarize -f oferta.pdf --paragraphs 3       # … orientado a una oferta, con el perfil adaptado a ella
+cv improve -s backend --provider openai        # remoto explícito: muestra el coste estimado y pide confirmación antes de enviar
+cv summarize -s backend --provider anthropic --yes   # … --yes acepta el aviso por adelantado (scripts); --model elige el modelo
+cv llm status --provider openai                 # comprueba ese proveedor remoto (clave, lista blanca, modelos); sin --provider no accede a la red
 cv llm cache clear                              # vacía la caché local de respuestas
 ```
 
@@ -206,6 +209,17 @@ cv llm cache clear                              # vacía la caché local de resp
 `cv summarize` hace lo mismo con el **resumen profesional**: envía una representación textual y seudonimizada del perfil **ya filtrado** (con los años de experiencia calculados por código, para que el modelo no tenga que inventarlos) y escribe `output/revision-summarize-<fecha>[-<esp>][-<oferta>].md` con dos o tres propuestas verificadas: se rechaza toda cifra o entidad que no esté en el perfil y toda propuesta que no mencione ninguno de los hechos clave (las etiquetas de la especialidad y los términos de la oferta que el perfil demuestra); cada propuesta indica qué hechos clave menciona y cuáles no. Copia la que prefieras al `summary` de `profile.md` o de la especialidad.
 
 Configuración solo por variables `CHAMELEON_LLM_PROVIDER` (`ollama` por defecto, o `openai-compatible`: llama.cpp `llama-server`, LM Studio…), `CHAMELEON_LLM_BASE_URL` (por defecto `http://127.0.0.1:11434` u `:8080`; cualquier dirección que no sea local se rechaza) y `CHAMELEON_LLM_MODEL` (por defecto `qwen2.5:7b-instruct`). Con un modelo de 7B en CPU cuenta con 20–40 s por logro: usa `--only`, `--top-n` y `--max-items` para acotar el lote.
+
+### Proveedores remotos (opcional)
+
+Para usar la API de OpenAI (`--provider openai`, modelo por defecto `gpt-4o-mini`) o de Anthropic (`--provider anthropic`, `claude-sonnet-4-5`) se aplican, por diseño, cuatro reglas:
+
+- **Solo explícito, en cada orden.** El remoto no puede ser el proveedor por defecto (`CHAMELEON_LLM_PROVIDER=openai` se rechaza): cada `improve` o `summarize` que quiera salir de tu máquina lo dice con `--provider openai|anthropic`; sin él, todo sigue siendo local. `--model <nombre>` elige el modelo.
+- **Claves nunca interactivas ni en texto plano inseguro.** Se leen, en este orden, de la variable `CHAMELEON_OPENAI_API_KEY` / `CHAMELEON_ANTHROPIC_API_KEY` o del fichero `~/.config/chameleon-cv/keys.json` (`` si está definida; `%APPDATA%\chameleon-cv\keys.json` en Windows) con permisos **0600** y forma `{"openai": "sk-…", "anthropic": "sk-ant-…"}`. Un fichero legible por otros usuarios se rechaza con la orden `chmod 600` que lo arregla; el programa nunca pregunta la clave, nunca la imprime, nunca la guarda y no lee `OPENAI_API_KEY` ni variables de otras herramientas.
+- **Lista blanca de hosts.** Solo `https` y solo hacia `api.openai.com` y `api.anthropic.com`; una pasarela propia exige declarar su host en `CHAMELEON_LLM_ALLOWED_HOSTS` (separados por comas) y la URL base en `CHAMELEON_OPENAI_BASE_URL` / `CHAMELEON_ANTHROPIC_BASE_URL`. Sin redirecciones: lo que no esté en la lista se rechaza en código antes de abrir la conexión.
+- **Conciencia de coste.** Antes de la primera petición la orden muestra cuántas peticiones saldrán, una estimación de tokens de entrada (4 caracteres ≈ 1 token) y el máximo de salida, avisa de que puede incurrir en costes y pide confirmación (`s/N`); sin terminal interactiva se cancela salvo que pases `--yes`. Lo que sale es exactamente lo mismo que con un proveedor local: el fragmento seudonimizado que enseña `--show-payload`.
+
+`cv llm status` dice de dónde saldría cada clave (`ninguna`, `definida en CHAMELEON_…`, `fichero de claves`, `permisos abiertos`) sin mostrar su valor, y con `--provider <remoto>` verifica clave, lista blanca y modelos disponibles.
 
 ## Seguridad y privacidad
 
