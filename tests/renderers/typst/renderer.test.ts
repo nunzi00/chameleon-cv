@@ -23,8 +23,11 @@ import {
   type ProcessRunner,
   type TypstRenderOptions,
 } from '../../../src/renderers/typst';
+import { loadTheme } from '../../../src/themes';
 import { fullProfileInput, minimalProfileInput } from '../../fixtures/master-profile';
 import { selectionProfile } from '../../fixtures/selection';
+import { defaultThemeConfig, themeToml } from '../../fixtures/theme';
+import { MemoryFileSystem } from '../../helpers/memory-file-system';
 
 const PDF = Buffer.from('%PDF-1.7 falso', 'latin1');
 const VERSION_OK: ProcessOutcome = { kind: 'exited', status: 0, stdout: Buffer.from(`typst ${TYPST_VERSION} (abc)\n`), stderr: '' };
@@ -78,7 +81,7 @@ describe('renderTypstCv (runner simulado)', () => {
     expect(calls).toHaveLength(2);
     expect(calls[0]).toMatchObject({ file: '/opt/typst', args: ['--version'] });
     const compile = calls[1];
-    expect(compile).toMatchObject({ file: '/opt/typst', cwd: dirname(DEFAULT_TYPST_TEMPLATE), input: mainDocument(buildStructuredView(profile, 'es'), '/cv.typ') });
+    expect(compile).toMatchObject({ file: '/opt/typst', cwd: dirname(DEFAULT_TYPST_TEMPLATE), input: mainDocument(buildStructuredView(profile, 'es'), '/template.typ', defaultThemeConfig()) });
     expect(compile?.args).toEqual(expect.arrayContaining(['--root', dirname(DEFAULT_TYPST_TEMPLATE), '--font-path', FONTS_DIRECTORY, '--creation-timestamp', '946684800']));
     expect(compile?.env).toMatchObject({ HTTPS_PROXY: NETWORK_KILL_SWITCH });
     expect(compile?.env?.['HOME']).toBeUndefined();
@@ -101,7 +104,7 @@ describe('renderTypstCv (runner simulado)', () => {
       error: { code: 'template-unreadable', message: 'No se pudo leer la plantilla Typst «/no/existe.typ»' },
     });
     expect(await isReadableFile(DEFAULT_TYPST_TEMPLATE)).toBe(true);
-    expect(readFileSync(DEFAULT_TYPST_TEMPLATE, 'utf8')).toContain('#let cv(d)');
+    expect(readFileSync(DEFAULT_TYPST_TEMPLATE, 'utf8')).toContain('#let cv(d, theme)');
   });
 
   it('traduce los errores de compilación y las excepciones del runner', async () => {
@@ -171,12 +174,12 @@ describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('renderTypstCv (bi
     try {
       await writeFile(join(directory, 'secreto.txt'), 'no', 'utf8');
       const templates = join(directory, 'tpl');
-      await writeFile(join(directory, 'escape.typ'), '#let cv(d) = read("../secreto.txt")\n', 'utf8');
-      await writeFile(join(directory, 'absolute.typ'), '#let cv(d) = read("/etc/passwd")\n', 'utf8');
-      await writeFile(join(directory, 'package.typ'), '#import "@preview/tablex:0.0.9": tablex\n#let cv(d) = tablex()\n', 'utf8');
+      await writeFile(join(directory, 'escape.typ'), '#let cv(d, theme) = read("../secreto.txt")\n', 'utf8');
+      await writeFile(join(directory, 'absolute.typ'), '#let cv(d, theme) = read("/etc/passwd")\n', 'utf8');
+      await writeFile(join(directory, 'package.typ'), '#import "@preview/tablex:0.0.9": tablex\n#let cv(d, theme) = tablex()\n', 'utf8');
       // Typst corta por sí mismo los bucles infinitos («loop seems to be infinite»); un trabajo finito pero
       // enorme (cientos de miles de páginas) es lo que debe matar nuestro límite de tiempo.
-      await writeFile(join(directory, 'loop.typ'), '#let cv(d) = { for i in range(300000) { [p#i]; pagebreak() } }\n', 'utf8');
+      await writeFile(join(directory, 'loop.typ'), '#let cv(d, theme) = { for i in range(300000) { [p#i]; pagebreak() } }\n', 'utf8');
       void templates;
 
       const escape = await renderTypstCv(backend(), { template: join(directory, 'escape.typ') });
@@ -198,5 +201,28 @@ describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('renderTypstCv (bi
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+});
+
+describe('renderTypstCv con temas (T-5.1)', () => {
+  it('usa la plantilla y las fuentes del tema cargado, y sin tema carga el default distribuido', async () => {
+    const calls: ProcessRequest[] = [];
+    const fs = new MemoryFileSystem({ '/work/themes/mio/theme.toml': themeToml('mio'), '/work/themes/mio/template.typ': '#let cv(d, theme) = d.fullName', '/work/themes/mio/fonts/x.ttf': '' });
+    const loaded = await loadTheme('mio', [{ directory: '/work/themes', fileSystem: fs, builtin: false }]);
+    if (!loaded.ok) throw new Error(loaded.message);
+    const result = await renderTypstCv(backend(), { ...FOUND, theme: loaded.theme, isReadable: () => Promise.resolve(true), runner: fakeRunner(VERSION_OK, { kind: 'exited', status: 0, stdout: PDF, stderr: '' }, calls) });
+    expect(result.ok).toBe(true);
+    expect(calls[1]).toMatchObject({ cwd: '/work/themes/mio' });
+    expect(calls[1]?.args).toEqual(expect.arrayContaining(['--root', '/work/themes/mio', '--font-path', FONTS_DIRECTORY, '--font-path', '/work/themes/mio/fonts']));
+    expect(calls[1]?.input).toContain('\\"paper\\":\\"us-letter\\"');
+    expect(calls[1]?.input?.startsWith('#import "/template.typ": cv\n')).toBe(true);
+    // Plantilla propia con el tema: el root es el de la plantilla; el tema sigue viajando.
+    const custom: ProcessRequest[] = [];
+    await renderTypstCv(backend(), { ...FOUND, theme: loaded.theme, template: '/plantillas/mia.typ', isReadable: () => Promise.resolve(true), runner: fakeRunner(VERSION_OK, { kind: 'exited', status: 0, stdout: PDF, stderr: '' }, custom) });
+    expect(custom[1]).toMatchObject({ cwd: '/plantillas' });
+    expect(custom[1]?.input).toContain('\\"name\\":\\"mio\\"');
+    // Sin tema y sin el default distribuido a mano: error explicado.
+    const missing = await renderTypstCv(backend(), { ...FOUND, builtinThemes: { directory: '/vacio', fileSystem: new MemoryFileSystem({}), builtin: true }, runner: fakeRunner(VERSION_OK, VERSION_OK) });
+    expect(missing).toEqual({ ok: false, error: { code: 'theme-invalid', message: 'No existe el tema «default» (buscado en /vacio); disponibles: ninguno' } });
   });
 });

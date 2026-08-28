@@ -3,6 +3,7 @@
  * por nosotros. Los datos viajan como **literal de cadena** (solo escapes de cadena): nunca son
  * código, nunca están en `argv` y nunca tocan el disco.
  */
+import type { ThemeConfig } from '../../themes';
 import type { StructuredView } from '../structured';
 
 /** Literal de cadena Typst: `\`, `"` y los caracteres de control se escapan; el resto va tal cual. */
@@ -16,8 +17,8 @@ export function typstStringLiteral(text: string): string {
 
 /**
  * Documento principal: importa la función `cv` de la plantilla (ruta absoluta dentro del `--root`)
- * y la aplica a la vista decodificada desde el literal JSON.
+ * y la aplica a la vista y al tema (T-5.1), ambos decodificados desde literales JSON.
  */
-export function mainDocument(view: StructuredView, importPath: string): string {
-  return `#import ${typstStringLiteral(importPath)}: cv\n#cv(json(bytes(${typstStringLiteral(JSON.stringify(view))})))\n`;
+export function mainDocument(view: StructuredView, importPath: string, theme: ThemeConfig): string {
+  return `#import ${typstStringLiteral(importPath)}: cv\n#cv(json(bytes(${typstStringLiteral(JSON.stringify(view))})), json(bytes(${typstStringLiteral(JSON.stringify(theme))})))\n`;
 }

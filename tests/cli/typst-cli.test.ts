@@ -7,6 +7,7 @@ import { extractPdfText } from '../../src/pdf';
 import { type TypstRenderOptions, type TypstRenderResult } from '../../src/renderers/typst';
 import { installTypst, typstStatus } from '../../src/typst';
 import { MemoryLlmCache, llmStatus } from '../../src/llm';
+import { themeToml } from '../fixtures/theme';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
 
@@ -66,13 +67,13 @@ describe('cv generate-cv --format pdf --engine typst (T-3.2)', () => {
     expect(h.stdout()).toBe('CV escrito en /work/output/cv-ada-ejemplo-backend.pdf\n');
     expect(h.stderr()).toBe('');
     expect(h.fs.file('/work/output/cv-ada-ejemplo-backend.pdf')).toMatchObject({ mode: 0o600, bytes: PDF });
-    expect(h.calls).toEqual([{ locale: undefined, template: undefined, explicitPath: undefined, allowAnyVersion: false }]);
+    expect(h.calls).toEqual([{ locale: undefined, template: undefined, explicitPath: undefined, allowAnyVersion: false, theme: expect.objectContaining({ name: 'default', builtin: true }) }]);
 
     const custom = harness(OK, { '/work/plantillas/mia.typ': '#let cv(d) = d.fullName' });
     expect(
       await runCli(['generate-cv', '--format', 'pdf', '--engine', 'TYPST', '-t', 'plantillas/mia.typ', '--typst-path', 'bin/typst', '--typst-any-version', '-l', 'en', '-o', 'salida/cv.pdf'], custom.context),
     ).toBe(EXIT_OK);
-    expect(custom.calls).toEqual([{ locale: 'en', template: '/work/plantillas/mia.typ', explicitPath: '/work/bin/typst', allowAnyVersion: true }]);
+    expect(custom.calls).toEqual([{ locale: 'en', template: '/work/plantillas/mia.typ', explicitPath: '/work/bin/typst', allowAnyVersion: true, theme: expect.objectContaining({ name: 'default' }) }]);
     expect(custom.fs.file('/work/salida/cv.pdf')?.mode).toBe(0o600);
   });
 
@@ -104,6 +105,7 @@ describe('cv generate-cv --format pdf --engine typst (T-3.2)', () => {
       [['--format', 'pdf', '-t', 'x.hbs'], '«--template» solo aplica a «--format md» o a «--engine typst»: pdfkit no usa plantilla'],
       [['--typst-path', 'x'], '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»'],
       [['--format', 'pdf', '--typst-any-version'], '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»'],
+      [['--theme', 'mio'], '«--theme» solo aplica a «--engine typst» (con --format pdf)'],
     ];
     for (const [args, message] of cases) {
       const h = harness(OK);
@@ -112,11 +114,29 @@ describe('cv generate-cv --format pdf --engine typst (T-3.2)', () => {
       expect(h.calls).toEqual([]);
       expect(h.fs.log).toEqual([]);
     }
-    expect(formatConflict({ format: 'md', stdout: false, template: 'x.hbs', engine: 'pdfkit', typstPath: undefined, typstAnyVersion: false })).toBeUndefined();
-    expect(formatConflict({ format: 'pdf', stdout: false, template: 'x.typ', engine: 'typst', typstPath: undefined, typstAnyVersion: false })).toBeUndefined();
+    expect(formatConflict({ format: 'md', stdout: false, template: 'x.hbs', engine: 'pdfkit', typstPath: undefined, typstAnyVersion: false, theme: undefined })).toBeUndefined();
+    expect(formatConflict({ format: 'pdf', stdout: false, template: 'x.typ', engine: 'typst', typstPath: undefined, typstAnyVersion: false, theme: undefined })).toBeUndefined();
 
     const unknown = harness(OK);
     expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'latex'], unknown.context)).toBe(EXIT_FAILURE);
     expect(unknown.stderr()).toContain("error: option '--engine <engine>' argument 'latex' is invalid. motores admitidos: pdfkit, typst");
+  });
+});
+
+describe('cv generate-cv --theme (T-5.1)', () => {
+  it('carga un tema del proyecto (themes/<nombre>/) y lo pasa al renderizador; explica los temas inexistentes o inválidos', async () => {
+    const h = harness(OK, { '/work/themes/mio/theme.toml': themeToml('mio'), '/work/themes/mio/template.typ': '#let cv(d, theme) = d.fullName' });
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'mio'], h.context)).toBe(EXIT_OK);
+    expect(h.calls[0]?.theme).toMatchObject({ name: 'mio', directory: '/work/themes/mio', templatePath: '/work/themes/mio/template.typ', builtin: false, config: { colors: { primary: '#222222' } } });
+
+    const unknown = harness(OK);
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'nada'], unknown.context)).toBe(EXIT_DATA_ERROR);
+    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: default\n$/);
+    expect(unknown.calls).toEqual([]);
+
+    const invalid = harness(OK, { '/work/themes/feo/theme.toml': themeToml('feo').replace('body = 10', 'body = 1'), '/work/themes/feo/template.typ': '' });
+    expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'feo'], invalid.context)).toBe(EXIT_DATA_ERROR);
+    expect(invalid.stderr()).toBe('Tema «feo» inválido (/work/themes/feo/theme.toml):\n  - sizes.body: Tamaño demasiado pequeño (mínimo 4 pt)\n');
+    expect(typstExitCode('theme-invalid')).toBe(EXIT_DATA_ERROR);
   });
 });

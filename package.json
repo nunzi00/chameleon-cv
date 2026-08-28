@@ -36,6 +36,7 @@
     "pdfkit": "^0.20.1",
     "remark-frontmatter": "^5.0.0",
     "remark-parse": "^11.0.0",
+    "smol-toml": "^1.8.0",
     "unified": "^11.0.5",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"

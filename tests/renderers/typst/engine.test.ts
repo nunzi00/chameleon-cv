@@ -41,7 +41,7 @@ const REQUEST: CompileRequest = {
   binary: '/opt/typst',
   source: '#import "/cv.typ": cv\n#cv(json(bytes("{}")))\n',
   root: '/tpl',
-  fontsDirectory: '/fonts',
+  fontsDirectories: ['/fonts'],
   creationTimestamp: 946684800,
 };
 
