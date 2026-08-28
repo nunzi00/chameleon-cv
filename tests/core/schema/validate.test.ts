@@ -25,7 +25,13 @@ describe('validateMasterProfile', () => {
     const result = validateMasterProfile({ personal: { fullName: 'Ada', links: [{ label: 'x', url: 'nope' }] } });
     expect(result).toEqual({
       ok: false,
-      issues: [{ path: 'personal.links[0].url', message: 'URL inválida: solo se admiten direcciones http(s)' }],
+      issues: [
+        {
+          path: 'personal.links[0].url',
+          segments: ['personal', 'links', 0, 'url'],
+          message: 'URL inválida: solo se admiten direcciones http(s)',
+        },
+      ],
     });
   });
 });

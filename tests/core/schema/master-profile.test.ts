@@ -202,14 +202,22 @@ describe('unicidad de identificadores', () => {
   it('rechaza un id repetido entre colecciones e indica dónde apareció por primera vez', () => {
     const issues = expectIssues(profile({ experience: [experience({ id: 'dup' })], projects: [{ id: 'dup', name: 'P' }] }));
     expect(issues).toEqual([
-      { path: 'projects[0].id', message: 'Identificador duplicado "dup": ya se usa en experience[0].id' },
+      {
+        path: 'projects[0].id',
+        segments: ['projects', 0, 'id'],
+        message: 'Identificador duplicado "dup": ya se usa en experience[0].id',
+      },
     ]);
   });
 
   it('rechaza un logro anidado cuyo id coincide con el de otro ítem', () => {
     const issues = expectIssues(profile({ experience: [experience({ id: 'exp-1', achievements: [{ id: 'exp-1', text: 'T' }] })] }));
     expect(issues).toEqual([
-      { path: 'experience[0].achievements[0].id', message: 'Identificador duplicado "exp-1": ya se usa en experience[0].id' },
+      {
+        path: 'experience[0].achievements[0].id',
+        segments: ['experience', 0, 'achievements', 0, 'id'],
+        message: 'Identificador duplicado "exp-1": ya se usa en experience[0].id',
+      },
     ]);
   });
 

@@ -4,6 +4,8 @@ import { formatPath, type SchemaPath } from './path';
 /** Problema detectado al validar; `path` es una expresión de acceso (`experience[0].dates.end`) o `''` para la raíz. */
 export interface ValidationIssue {
   readonly path: string;
+  /** Ruta sin formatear, para localizar el valor en su origen (p. ej. fichero y línea). */
+  readonly segments: SchemaPath;
   readonly message: string;
 }
 
@@ -30,6 +32,7 @@ interface RawIssue {
 
 const toValidationIssue = (issue: RawIssue): ValidationIssue => ({
   path: formatPath(issue.path),
+  segments: issue.path,
   message: issue.message,
 });
 
