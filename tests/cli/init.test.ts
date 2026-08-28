@@ -8,6 +8,7 @@ import { NodeWritableFileSystem, type WritableFileSystem } from '../../src/artif
 import { EXIT_FAILURE, EXIT_OK, GITIGNORE_ENTRIES, SOURCE_MODE, TEMPLATE_DATASET_DIR, listTemplateFiles, runCli, type CliContext } from '../../src/cli';
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
+import { renderTypstCv } from '../../src/renderers/typst';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 
 interface Harness {
@@ -46,6 +47,7 @@ function harness(tree: Record<string, string | MemoryEntry> = TEMPLATE, override
     artifactFileSystem: fs,
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
+    typstRenderer: (profile, options) => renderTypstCv(profile, options),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -166,6 +168,7 @@ describe('cv init', () => {
       artifactFileSystem: new NodeWritableFileSystem(),
       parsers: defaultSourceParsers(),
       pdfExtractor: (bytes) => extractPdfText(bytes),
+      typstRenderer: (profile, options) => renderTypstCv(profile, options),
     };
     try {
       expect(TEMPLATE_DATASET_DIR.endsWith(join('templates', 'dataset'))).toBe(true);

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EXIT_DATA_ERROR, EXIT_OK, runCli, type CliContext } from '../../src/cli';
 import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
+import { renderTypstCv } from '../../src/renderers/typst';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 
 interface Harness {
@@ -38,6 +39,7 @@ function harness(tree: Record<string, string | MemoryEntry> = DATASET): Harness 
     artifactFileSystem: fs,
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
+    typstRenderer: (profile, options) => renderTypstCv(profile, options),
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
 }

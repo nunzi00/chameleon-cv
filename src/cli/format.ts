@@ -16,3 +16,20 @@ export function parseFormat(value: string): CvFormat {
   }
   return normalized;
 }
+
+/** Motores de `--format pdf` (T-3.2, `docs/typst-integration.md` §6.2): `pdfkit` por defecto, `typst` opcional. */
+export const CV_ENGINES = ['pdfkit', 'typst'] as const;
+export type CvEngine = (typeof CV_ENGINES)[number];
+
+export function isCvEngine(value: string): value is CvEngine {
+  return (CV_ENGINES as readonly string[]).includes(value);
+}
+
+/** Parser de commander para `--engine`. */
+export function parseEngine(value: string): CvEngine {
+  const normalized = value.trim().toLowerCase();
+  if (!isCvEngine(normalized)) {
+    throw new InvalidArgumentError(`motores admitidos: ${CV_ENGINES.join(', ')}`);
+  }
+  return normalized;
+}
