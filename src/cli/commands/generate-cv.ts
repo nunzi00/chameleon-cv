@@ -13,6 +13,7 @@ import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchRepo
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
 import { renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../../renderers';
 import { describeError } from '../../shared/errors';
+import { DEFAULT_THEME, loadTheme, themeRoots } from '../../themes';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
@@ -40,6 +41,8 @@ export interface GenerateCvOptions extends LimitOptions {
   readonly engine: CvEngine;
   readonly typstPath?: string | undefined;
   readonly typstAnyVersion: boolean;
+  /** `--theme`: tema de diseño de Typst (T-5.1); por defecto `default`. */
+  readonly theme?: string | undefined;
   readonly explain: boolean;
   readonly stdout: boolean;
   readonly build: boolean;
@@ -53,12 +56,15 @@ export function defaultOutputPath(profile: MasterProfile, specialty: string | un
   return `${DEFAULT_OUTPUT_DIR}/cv-${name}${specialtySuffix}${offerSuffix}.${format}`;
 }
 
-type ConflictOptions = Pick<GenerateCvOptions, 'format' | 'stdout' | 'template' | 'engine' | 'typstPath' | 'typstAnyVersion'>;
+type ConflictOptions = Pick<GenerateCvOptions, 'format' | 'stdout' | 'template' | 'engine' | 'typstPath' | 'typstAnyVersion' | 'theme'>;
 
 /** Incompatibilidades de `--format pdf` y `--engine` (`docs/pdf-integration.md` §3.4, `docs/typst-integration.md` §6.2); se comprueban antes de leer nada. */
 export function formatConflict(options: ConflictOptions): string | undefined {
   if (options.engine !== 'typst' && (options.typstPath !== undefined || options.typstAnyVersion)) {
     return '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»';
+  }
+  if (options.engine !== 'typst' && options.theme !== undefined) {
+    return '«--theme» solo aplica a «--engine typst» (con --format pdf)';
   }
   if (options.format !== 'pdf') {
     return options.engine === 'typst' ? '«--engine» solo aplica a «--format pdf»' : undefined;
@@ -74,7 +80,7 @@ export function formatConflict(options: ConflictOptions): string | undefined {
 
 /** La plantilla Typst que no compila es un problema de datos (1); binario ausente, versión, tiempo o proceso, del entorno (2). */
 export function typstExitCode(code: TypstRenderErrorCode): number {
-  return code === 'compile-error' ? EXIT_DATA_ERROR : EXIT_FAILURE;
+  return code === 'compile-error' || code === 'theme-invalid' ? EXIT_DATA_ERROR : EXIT_FAILURE;
 }
 
 /** PDF con el motor elegido; un número es un código de salida ya explicado en stderr. */
@@ -83,11 +89,18 @@ function renderPdf(context: CliContext, profile: MasterProfile, options: Generat
 }
 
 async function renderWithTypst(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {
+  // Tema (T-5.1): `themes/<nombre>/` del proyecto o distribuido; su theme.toml se valida antes de arrancar Typst.
+  const loaded = await loadTheme(options.theme ?? DEFAULT_THEME, themeRoots(context.cwd, context.datasetFileSystem));
+  if (!loaded.ok) {
+    context.stderr(`${loaded.message}\n`);
+    return EXIT_DATA_ERROR;
+  }
   const result = await context.typstRenderer(profile, {
     locale: options.locale,
     template: options.template === undefined ? undefined : resolve(context.cwd, options.template),
     explicitPath: options.typstPath === undefined ? undefined : resolve(context.cwd, options.typstPath),
     allowAnyVersion: options.typstAnyVersion,
+    theme: loaded.theme,
   });
   if (result.ok) {
     return result.pdf;

@@ -121,7 +121,8 @@ export interface CompileRequest {
   readonly source: string;
   /** Directorio con la plantilla y solo la plantilla (`--root`). */
   readonly root: string;
-  readonly fontsDirectory: string;
+  /** Directorios de fuentes (`--font-path`, repetible): los distribuidos y, si existe, `fonts/` del tema. */
+  readonly fontsDirectories: readonly string[];
   /** Segundos desde la época para `CreationDate` (reproducibilidad). */
   readonly creationTimestamp: number;
   readonly timeoutMs?: number | undefined;
@@ -136,8 +137,7 @@ export function typstArguments(request: CompileRequest): string[] {
     '-',
     '--root',
     request.root,
-    '--font-path',
-    request.fontsDirectory,
+    ...request.fontsDirectories.flatMap((directory) => ['--font-path', directory]),
     '--ignore-system-fonts',
     '--package-path',
     NO_PACKAGES_DIRECTORY,

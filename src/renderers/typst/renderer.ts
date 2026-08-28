@@ -13,6 +13,7 @@ import { describeError } from '../../shared/errors';
 import { DEFAULT_LOCALE } from '../markdown/renderer';
 import { FONTS_DIRECTORY } from '../pdf/fonts';
 import { creationDate } from '../pdf/renderer';
+import { DEFAULT_THEME, builtinThemeRoot, loadTheme, type LoadedTheme, type ThemeRoot } from '../../themes';
 import { buildStructuredView } from '../structured';
 import {
   TYPST_ENV_VARIABLE,
@@ -30,13 +31,17 @@ import {
 } from './engine';
 import { mainDocument } from './source';
 
-/** Plantilla base distribuida (`templates/typst/cv.typ`); su directorio es el `--root`. */
-export const DEFAULT_TYPST_TEMPLATE = resolve(__dirname, '..', '..', '..', 'templates', 'typst', 'cv.typ');
+/** Plantilla del tema distribuido `default` (`themes/default/template.typ`); su directorio es el `--root`. */
+export const DEFAULT_TYPST_TEMPLATE = resolve(__dirname, '..', '..', '..', 'themes', DEFAULT_THEME, 'template.typ');
 
 export interface TypstRenderOptions extends LocateOptions {
   readonly locale?: string | undefined;
-  /** Plantilla `.typ` propia; debe exportar `cv`. Por defecto la distribuida. */
+  /** Plantilla `.typ` propia; debe exportar `cv(d, theme)`. Por defecto, la del tema. */
   readonly template?: string | undefined;
+  /** Tema ya cargado (T-5.1); por defecto, el tema `default` distribuido. */
+  readonly theme?: LoadedTheme | undefined;
+  /** Origen del tema `default` cuando no se pasa `theme` (inyectable en las pruebas). */
+  readonly builtinThemes?: ThemeRoot | undefined;
   readonly allowAnyVersion?: boolean | undefined;
   readonly createdAt?: Date | undefined;
   readonly fontsDirectory?: string | undefined;
@@ -45,7 +50,7 @@ export interface TypstRenderOptions extends LocateOptions {
   readonly isReadable?: ((path: string) => Promise<boolean>) | undefined;
 }
 
-export type TypstRenderErrorCode = 'not-found' | 'version-mismatch' | 'template-unreadable' | CompileErrorCode;
+export type TypstRenderErrorCode = 'not-found' | 'version-mismatch' | 'template-unreadable' | 'theme-invalid' | CompileErrorCode;
 
 export interface TypstRenderError {
   readonly code: TypstRenderErrorCode;
@@ -93,7 +98,15 @@ export async function renderTypstCv(profile: MasterProfile, options: TypstRender
     };
   }
 
-  const template = resolve(options.template ?? DEFAULT_TYPST_TEMPLATE);
+  let theme = options.theme;
+  if (theme === undefined) {
+    const loaded = await loadTheme(DEFAULT_THEME, [options.builtinThemes ?? builtinThemeRoot()]);
+    if (!loaded.ok) {
+      return { ok: false, error: { code: 'theme-invalid', message: loaded.message } };
+    }
+    theme = loaded.theme;
+  }
+  const template = resolve(options.template ?? theme.templatePath);
   if (!(await (options.isReadable ?? isReadableFile)(template))) {
     return { ok: false, error: { code: 'template-unreadable', message: `No se pudo leer la plantilla Typst «${template}»` } };
   }
@@ -106,9 +119,9 @@ export async function renderTypstCv(profile: MasterProfile, options: TypstRender
     result = await compileTypst(
       {
         binary: binary.path,
-        source: mainDocument(view, `/${basename(template)}`),
+        source: mainDocument(view, `/${basename(template)}`, theme.config),
         root: dirname(template),
-        fontsDirectory: options.fontsDirectory ?? FONTS_DIRECTORY,
+        fontsDirectories: [options.fontsDirectory ?? FONTS_DIRECTORY, ...(theme.fontsDirectory === undefined ? [] : [theme.fontsDirectory])],
         creationTimestamp: Math.floor(created.getTime() / 1000),
         timeoutMs: options.timeoutMs,
         env,

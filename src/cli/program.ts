@@ -78,6 +78,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--engine <engine>', 'motor de --format pdf: pdfkit (por defecto, sin dependencias) o typst (binario oficial, calidad editorial)', parseEngine, 'pdfkit')
     .option('--typst-path <file>', 'binario de Typst (por defecto: CHAMELEON_TYPST, la caché de usuario o el PATH)')
     .option('--typst-any-version', 'acepta una versión de Typst distinta de la fijada', false)
+    .option('--theme <name>', 'tema de diseño para --engine typst: themes/<name>/ del proyecto o de los distribuidos (por defecto «default»)')
     .option('-t, --template <file>', 'plantilla propia: Handlebars con --format md (por defecto templates/cv.md.hbs), .typ con --engine typst (por defecto templates/typst/cv.typ)')
     .option('-l, --locale <locale>', 'idioma de etiquetas y fechas (por defecto, el del perfil o «es»)')
     .option('--explain', 'explica en stderr qué se ha incluido, puntuado y recortado, y por qué', false)
