@@ -5,6 +5,7 @@
  * ranking es el orden de documento.
  */
 import type { Achievement, MasterProfile } from '../schema';
+import type { MatchReport } from './types';
 
 export interface SectionLimits {
   /** Logros por experiencia y por proyecto (`--top-n`). */
@@ -46,6 +47,12 @@ export type ScoreLookup = (id: string) => number;
 
 /** Sin oferta: todos puntúan 0 y manda el orden de documento. */
 export const NO_SCORES: ScoreLookup = () => 0;
+
+/** Puntuaciones de un informe de adecuación; un id desconocido puntúa 0. */
+export function scoresFromReport(report: MatchReport): ScoreLookup {
+  const scores = new Map(report.decisions.map((decision) => [decision.id, decision.score]));
+  return (id) => scores.get(id) ?? 0;
+}
 
 export interface KeepResult<T> {
   readonly kept: T[];

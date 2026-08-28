@@ -4,11 +4,14 @@
  */
 import { NodeWritableFileSystem, type WritableFileSystem } from '../artifact';
 import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParser } from '../parsers';
+import { readStdin } from './stdin';
 
 export interface CliContext {
   readonly cwd: string;
   readonly stdout: (text: string) => void;
   readonly stderr: (text: string) => void;
+  /** Lee toda la entrada estándar (para la oferta con «-»). */
+  readonly stdin: () => Promise<string>;
   readonly datasetFileSystem: FileSystem;
   readonly artifactFileSystem: WritableFileSystem;
   readonly parsers: readonly SourceParser[];
@@ -23,6 +26,7 @@ export function createNodeContext(): CliContext {
     stderr: (text) => {
       process.stderr.write(text);
     },
+    stdin: readStdin,
     datasetFileSystem: new NodeFileSystem(),
     artifactFileSystem: new NodeWritableFileSystem(),
     parsers: defaultSourceParsers(),

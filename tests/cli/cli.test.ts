@@ -47,6 +47,7 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     stderr: (text) => {
       err.push(text);
     },
+    stdin: () => Promise.resolve(''),
     datasetFileSystem: fs,
     artifactFileSystem: fs,
     parsers: defaultSourceParsers(),

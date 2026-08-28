@@ -1,5 +1,7 @@
-import type { MatchReport } from '../core/scoring';
+import type { MasterProfile } from '../core/schema';
+import { labelOrId, type MatchReport, type MatchSummary, type RemovedItem, type SectionLimits } from '../core/scoring';
 import type { ItemDecision, SelectionReport } from '../core/selection';
+import { describeLimits } from './limits';
 
 function decisionLine(decision: ItemDecision, suffix = ''): string {
   const marker = decision.included ? '+' : '-';
@@ -41,6 +43,55 @@ export function formatMatchReport(report: MatchReport): string {
     .filter((term) => !report.decisions.some((decision) => decision.included && decision.matchedTerms.includes(term)));
   if (requirements.terms.length > 0) {
     lines.push(uncovered.length === 0 ? 'Todos los requisitos reconocidos están demostrados' : `No demostrado: ${uncovered.join(', ')}`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+/** Resumen de recortes (`docs/trimming-cli.md` §4.4), agrupado por contenedor o sección. */
+export function formatTrimReport(removed: readonly RemovedItem[], limits: SectionLimits, profileBeforeTrim: MasterProfile): string {
+  const header = `Recortes (${describeLimits(limits)})`;
+  if (removed.length === 0) {
+    return `${header}: ninguno\n`;
+  }
+  const groups = new Map<string, string[]>();
+  for (const item of removed) {
+    const key = item.parentId ?? item.section;
+    const label = item.parentId === undefined ? `${item.id} ${labelOrId(profileBeforeTrim, item.section, item.id)}` : item.id;
+    const entries = groups.get(key) ?? [];
+    entries.push(`${label} (${item.score.toFixed(2)})`);
+    groups.set(key, entries);
+  }
+  const lines = [`${header}: ${removed.length} ${removed.length === 1 ? 'ítem fuera' : 'ítems fuera'}`];
+  for (const [key, entries] of groups) {
+    lines.push(`  ${key}: ${entries.join(', ')}`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+/** Resumen de adecuación de `cv analyze-offer` (`docs/trimming-cli.md` §4.5). */
+export function formatMatchSummary(summary: MatchSummary, offer: string): string {
+  const years = summary.experienceYears === undefined ? '' : ` · ${summary.experienceYears} años de experiencia exigidos`;
+  const lines = [`Oferta ${offer} · ${summary.recognized} requisitos reconocidos${years}`];
+  if (summary.recognized === 0) {
+    lines.push('Adecuación: la oferta no menciona nada del vocabulario del perfil (etiqueta tu contenido o añade alias en skills.csv)');
+  } else {
+    lines.push(
+      `Adecuación: ${summary.demonstrated} de ${summary.recognized} requisitos demostrados (${Math.round(summary.ratio * 100)} %) · imprescindibles: ${summary.requiredDemonstrated} de ${summary.requiredTotal}`,
+    );
+  }
+  const demonstrated = summary.terms.filter((term) => term.evidence.length > 0);
+  const missing = summary.terms.filter((term) => term.evidence.length === 0);
+  const termLine = (term: MatchSummary['terms'][number]): string =>
+    `  ${term.term.padEnd(14)} ${`${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''}`.padEnd(13)} ${term.weight.toFixed(2)}`;
+  if (demonstrated.length > 0) {
+    lines.push('', 'Demostrados', ...demonstrated.map((term) => `${termLine(term)}  ← ${term.evidence.join(', ')}`));
+  }
+  if (missing.length > 0) {
+    lines.push('', 'No demostrados', ...missing.map((term) => `${termLine(term)}   (si lo tienes, etiquétalo o añade un alias en skills.csv)`));
+  }
+  lines.push('', 'Carencias (la oferta lo pide y el perfil no lo tiene etiquetado)', summary.gaps.length === 0 ? '  ninguna detectada' : `  ${summary.gaps.join(' · ')}`);
+  if (summary.topEvidence.length > 0) {
+    lines.push('', 'Mejores evidencias', ...summary.topEvidence.map((evidence, index) => `  ${index + 1}. ${evidence.id} · ${evidence.label} (${evidence.score.toFixed(2)})`));
   }
   return `${lines.join('\n')}\n`;
 }

@@ -49,7 +49,8 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 |---|---|---|
 | `cv validate` | Comprueba las fuentes sin escribir nada. | `-d, --data <dir>` (por defecto `data/sources`) |
 | `cv build-profile` | Compila las fuentes y escribe el artefacto canónico. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `-v, --verbose` |
-| `cv generate-cv` | Genera el CV en Markdown a partir del artefacto. | `-s, --specialty <id>` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
+| `cv generate-cv` | Genera el CV en Markdown a partir del artefacto. | `-s, --specialty <id>` · `-f, --from-job-offer <file>` (`-` = stdin) · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) |
+| `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 
 Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible).
 
@@ -113,6 +114,26 @@ La regla de selección cabe en una frase: **sin tags, siempre; con tags, solo si
 - `--explain` muestra cada decisión: `+ experience exp-acme: universal`, `    - exp-acme-3: no-match`, `+ projects proj-platform: via-achievements`.
 
 Detalles y ejemplos en [`docs/selector-engine.md`](docs/selector-engine.md).
+
+## Adaptar el CV a una oferta de empleo
+
+Guarda el texto de la oferta en un fichero (o pégalo por la entrada estándar) y:
+
+```bash
+cv analyze-offer ofertas/acme-backend.txt          # ¿encajo? qué demuestro, qué no y qué me falta
+cv generate-cv -f ofertas/acme-backend.txt         # CV afinado: output/cv-<nombre>-acme-backend.md
+cv generate-cv -f ofertas/acme-backend.txt -s backend --top-n 4 --max-skills 12
+cv generate-cv -f - --compact < oferta.txt         # oferta por stdin, preset de una página
+```
+
+Cómo funciona, en tres frases: **`--specialty` elige la versión del CV, `--from-job-offer` la afina y los límites la condensan.**
+
+- **El perfil es el diccionario.** La oferta se lee buscando tu propio vocabulario: tags, nombres y alias de tus skills (`k8s`, `tech lead`). Lo que la oferta pide y tu perfil ni siquiera tiene etiquetado sale como *carencia*. Si tienes algo y no se reconoce, etiquétalo o añade un alias en `skills.csv`.
+- **Puntuación transparente.** Cada requisito pesa según dónde aparece (`Requisitos` 1.0 · resto 0.75 · `Deseable` 0.5, con refuerzo por repetición) y cada ítem suma los pesos de sus tags. Los logros dentro de cada experiencia y las skills se reordenan por puntuación; experiencias, formación, proyectos y certificaciones siguen cronológicos.
+- **Recorte «N mejores».** `--top-n` limita los logros por experiencia/proyecto y los transversales; `--max-skills`, `--max-projects` y `--max-certifications`, el resto. `--compact` equivale a `--top-n 4 --max-skills 12 --max-projects 4 --max-certifications 5`. Los ítems sin tags puntúan 0: van detrás y son los primeros en caer. Sin oferta, todos puntúan 0 y `--top-n` conserva los N primeros tal como los escribiste.
+- `--explain` cuenta cada decisión: qué entró y por qué, qué puntuó cuánto y qué se recortó. `cv analyze-offer --json` da lo mismo en JSON para scripts.
+
+Especificación: [`docs/scoring.md`](docs/scoring.md) y [`docs/trimming-cli.md`](docs/trimming-cli.md).
 
 ## Plantillas propias
 
