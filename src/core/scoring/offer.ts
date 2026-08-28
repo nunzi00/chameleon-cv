@@ -22,8 +22,8 @@ export function offerSpecialty(profile: MasterProfile, requirements: JobRequirem
 
 export interface TailorOptions {
   /** Especialidad real que elige la versión del CV; sin ella, la virtual de la oferta. */
-  readonly specialtyId?: string;
-  readonly scoring?: ScoringOptions;
+  readonly specialtyId?: string | undefined;
+  readonly scoring?: ScoringOptions | undefined;
 }
 
 export type TailorResult =

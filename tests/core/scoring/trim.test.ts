@@ -11,6 +11,7 @@ import {
   keepTop,
   labelFor,
   labelOrId,
+  scoresFromReport,
   summarizeMatch,
   tailorToOffer,
   type ScoreLookup,
@@ -108,6 +109,13 @@ describe('applyLimits: ejemplo de docs/trimming-cli.md §3.6', () => {
 
   it('el preset compacto es 4 / 4 / 12 / 4 / 5', () => {
     expect(COMPACT_LIMITS).toEqual({ achievementsPerContainer: 4, achievements: 4, skills: 12, projects: 4, certifications: 5 });
+  });
+
+  it('scoresFromReport devuelve la puntuación de cada decisión y 0 para ids desconocidos', async () => {
+    const scored = await scoredExample();
+    const scoreOf = scoresFromReport(scored.report);
+    expect(scoreOf('exp-acme')).toBe(7.75);
+    expect(scoreOf('nope')).toBe(0);
   });
 });
 

@@ -1,29 +1,35 @@
 /**
- * `cv generate-cv`: la culminación del MVP. `profile.json` → `SelectorEngine` → `MarkdownRenderer`
- * → `output/<cv>.md`. Nunca lee las fuentes para generar (solo para avisar si el artefacto está
- * obsoleto) y solo escribe dentro del destino indicado.
+ * `cv generate-cv`: `profile.json` → (oferta) → selección → puntuación → recorte → renderer →
+ * `output/<cv>.md` (`docs/trimming-cli.md` §4). Regla práctica: `--specialty` elige la versión
+ * del CV, `--from-job-offer` la afina y los límites la condensan. Nunca lee las fuentes para
+ * generar (solo para avisar si el artefacto está obsoleto) y solo escribe en el destino.
  */
 import { dirname, resolve } from 'node:path';
 
 import { readProfileArtifact } from '../../artifact';
+import { buildVocabulary, extractJobRequirements } from '../../core/keywords';
 import type { MasterProfile } from '../../core/schema';
+import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchReport, type ScoreLookup } from '../../core/scoring';
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
 import { renderMarkdownCv } from '../../renderers';
 import { describeError } from '../../shared/errors';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
-import { formatSelectionReport } from '../explain';
+import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
 import { checkArtifactFreshness } from '../freshness';
+import { hasLimits, resolveLimits, type LimitOptions } from '../limits';
+import { readOfferText } from '../offer';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK } from '../output';
 import { slugify } from '../slug';
 
 /** El CV contiene datos personales: solo el propietario puede leerlo. */
 export const OUTPUT_MODE = 0o600;
 
-export interface GenerateCvOptions {
+export interface GenerateCvOptions extends LimitOptions {
   readonly profile: string;
   readonly data: string;
   readonly specialty?: string | undefined;
+  readonly fromJobOffer?: string | undefined;
   readonly output?: string | undefined;
   readonly template?: string | undefined;
   readonly locale?: string | undefined;
@@ -31,11 +37,12 @@ export interface GenerateCvOptions {
   readonly stdout: boolean;
 }
 
-/** `output/cv-<nombre>[-<especialidad>].md`, relativo al directorio de trabajo. */
-export function defaultOutputPath(profile: MasterProfile, specialty: string | undefined): string {
+/** `output/cv-<nombre>[-<especialidad>][-<oferta>].md`, relativo al directorio de trabajo. */
+export function defaultOutputPath(profile: MasterProfile, specialty: string | undefined, offer?: string): string {
   const name = slugify(profile.personal.fullName) || 'perfil';
-  const suffix = specialty === undefined ? '' : `-${specialty}`;
-  return `${DEFAULT_OUTPUT_DIR}/cv-${name}${suffix}.md`;
+  const specialtySuffix = specialty === undefined ? '' : `-${specialty}`;
+  const offerSuffix = offer === undefined ? '' : `-${offer}`;
+  return `${DEFAULT_OUTPUT_DIR}/cv-${name}${specialtySuffix}${offerSuffix}.md`;
 }
 
 function warnIfStale(context: CliContext, artifactPath: string, sourcesRoot: string): Promise<void> {
@@ -46,6 +53,14 @@ function warnIfStale(context: CliContext, artifactPath: string, sourcesRoot: str
       context.stderr(`Aviso: no se pudo comprobar si el artefacto está al día (${freshness.reason})\n`);
     }
   });
+}
+
+interface Prepared {
+  readonly profile: MasterProfile;
+  readonly selection: SelectionReport | undefined;
+  readonly match: MatchReport | undefined;
+  readonly scoreOf: ScoreLookup;
+  readonly offerName: string | undefined;
 }
 
 export async function runGenerateCv(context: CliContext, options: GenerateCvOptions): Promise<number> {
@@ -59,19 +74,46 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
   }
   await warnIfStale(context, artifactPath, resolve(context.cwd, options.data));
 
-  let profile = artifact.profile;
-  let report: SelectionReport | undefined;
-  if (options.specialty !== undefined) {
-    const selection = selectForSpecialty(profile, options.specialty);
+  let prepared: Prepared = { profile: artifact.profile, selection: undefined, match: undefined, scoreOf: NO_SCORES, offerName: undefined };
+  if (options.fromJobOffer !== undefined) {
+    const offer = await readOfferText(context, options.fromJobOffer);
+    if (!offer.ok) {
+      context.stderr(`${offer.message}\n`);
+      return offer.exitCode;
+    }
+    const requirements = extractJobRequirements(offer.offer.text, buildVocabulary(artifact.profile));
+    const tailored = tailorToOffer(artifact.profile, requirements, { specialtyId: options.specialty });
+    if (!tailored.ok) {
+      context.stderr(`${tailored.error.message}\n`);
+      return EXIT_DATA_ERROR;
+    }
+    prepared = {
+      profile: tailored.scored.profile,
+      selection: tailored.scored.selection.report,
+      match: tailored.scored.report,
+      scoreOf: scoresFromReport(tailored.scored.report),
+      offerName: offer.offer.name,
+    };
+  } else if (options.specialty !== undefined) {
+    const selection = selectForSpecialty(artifact.profile, options.specialty);
     if (!selection.ok) {
       context.stderr(`${selection.error.message}\n`);
       return EXIT_DATA_ERROR;
     }
-    profile = selection.selection.profile;
-    report = selection.selection.report;
+    prepared = { ...prepared, profile: selection.selection.profile, selection: selection.selection.report };
   }
+
+  const limits = resolveLimits(options);
+  const trimmed = applyLimits(prepared.profile, limits, prepared.scoreOf);
+
   if (options.explain) {
-    context.stderr(report === undefined ? 'Sin especialidad: se genera el CV completo, sin selección\n' : formatSelectionReport(report));
+    context.stderr(prepared.selection === undefined ? 'Sin especialidad: se genera el CV completo, sin selección\n' : formatSelectionReport(prepared.selection));
+    if (prepared.match !== undefined) {
+      context.stderr(formatMatchReport(prepared.match));
+    }
+    if (hasLimits(limits)) {
+      context.stderr(formatTrimReport(trimmed.removed, limits, prepared.profile));
+    }
   }
 
   let template: string | undefined;
@@ -84,13 +126,13 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
       return EXIT_FAILURE;
     }
   }
-  const markdown = renderMarkdownCv(profile, { locale: options.locale, template });
+  const markdown = renderMarkdownCv(trimmed.profile, { locale: options.locale, template });
 
   if (options.stdout) {
     context.stdout(markdown);
     return EXIT_OK;
   }
-  const outputPath = resolve(context.cwd, options.output ?? defaultOutputPath(profile, options.specialty));
+  const outputPath = resolve(context.cwd, options.output ?? defaultOutputPath(trimmed.profile, options.specialty, prepared.offerName));
   try {
     await context.artifactFileSystem.mkdir(dirname(outputPath));
     await context.artifactFileSystem.writeFile(outputPath, markdown, OUTPUT_MODE);
