@@ -9,7 +9,7 @@ import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
 import { runValidate, type ValidateOptions } from './commands/validate';
-import { parseFormat } from './format';
+import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit } from './limits';
@@ -68,7 +68,10 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
     .option('-o, --output <file>', 'fichero de salida')
     .option('--format <fmt>', 'formato de salida: md o pdf', parseFormat, 'md')
-    .option('-t, --template <file>', 'plantilla Handlebars propia (por defecto templates/cv.md.hbs; solo --format md)')
+    .option('--engine <engine>', 'motor de --format pdf: pdfkit (por defecto, sin dependencias) o typst (binario oficial, calidad editorial)', parseEngine, 'pdfkit')
+    .option('--typst-path <file>', 'binario de Typst (por defecto: CHAMELEON_TYPST, la caché de usuario o el PATH)')
+    .option('--typst-any-version', 'acepta una versión de Typst distinta de la fijada', false)
+    .option('-t, --template <file>', 'plantilla propia: Handlebars con --format md (por defecto templates/cv.md.hbs), .typ con --engine typst (por defecto templates/typst/cv.typ)')
     .option('-l, --locale <locale>', 'idioma de etiquetas y fechas (por defecto, el del perfil o «es»)')
     .option('--explain', 'explica en stderr qué se ha incluido, puntuado y recortado, y por qué', false)
     .option('--stdout', 'escribe el CV en la salida estándar en lugar de en un fichero (solo --format md)', false)

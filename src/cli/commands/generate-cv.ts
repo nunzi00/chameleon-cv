@@ -11,12 +11,12 @@ import { buildVocabulary, extractJobRequirements } from '../../core/keywords';
 import type { MasterProfile } from '../../core/schema';
 import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchReport, type ScoreLookup } from '../../core/scoring';
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
-import { renderMarkdownCv, renderPdfCv } from '../../renderers';
+import { renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../../renderers';
 import { describeError } from '../../shared/errors';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
-import type { CvFormat } from '../format';
+import type { CvEngine, CvFormat } from '../format';
 import { warnIfStale } from '../freshness';
 import { hasLimits, resolveLimits, type LimitOptions } from '../limits';
 import { readOfferText } from '../offer';
@@ -36,6 +36,10 @@ export interface GenerateCvOptions extends LimitOptions {
   readonly template?: string | undefined;
   readonly locale?: string | undefined;
   readonly format: CvFormat;
+  /** Motor de `--format pdf` (T-3.2). */
+  readonly engine: CvEngine;
+  readonly typstPath?: string | undefined;
+  readonly typstAnyVersion: boolean;
   readonly explain: boolean;
   readonly stdout: boolean;
   readonly build: boolean;
@@ -49,15 +53,47 @@ export function defaultOutputPath(profile: MasterProfile, specialty: string | un
   return `${DEFAULT_OUTPUT_DIR}/cv-${name}${specialtySuffix}${offerSuffix}.${format}`;
 }
 
-/** Incompatibilidades de `--format pdf` (`docs/pdf-integration.md` §3.4); se comprueban antes de leer nada. */
-export function formatConflict(options: Pick<GenerateCvOptions, 'format' | 'stdout' | 'template'>): string | undefined {
+type ConflictOptions = Pick<GenerateCvOptions, 'format' | 'stdout' | 'template' | 'engine' | 'typstPath' | 'typstAnyVersion'>;
+
+/** Incompatibilidades de `--format pdf` y `--engine` (`docs/pdf-integration.md` §3.4, `docs/typst-integration.md` §6.2); se comprueban antes de leer nada. */
+export function formatConflict(options: ConflictOptions): string | undefined {
+  if (options.engine !== 'typst' && (options.typstPath !== undefined || options.typstAnyVersion)) {
+    return '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»';
+  }
   if (options.format !== 'pdf') {
-    return undefined;
+    return options.engine === 'typst' ? '«--engine» solo aplica a «--format pdf»' : undefined;
   }
   if (options.stdout) {
     return '«--stdout» solo admite «--format md»: el PDF es binario y se escribe siempre en un fichero (--output)';
   }
-  return options.template === undefined ? undefined : '«--template» solo aplica a «--format md»: el PDF no usa plantilla';
+  if (options.engine === 'pdfkit' && options.template !== undefined) {
+    return '«--template» solo aplica a «--format md» o a «--engine typst»: pdfkit no usa plantilla';
+  }
+  return undefined;
+}
+
+/** La plantilla Typst que no compila es un problema de datos (1); binario ausente, versión, tiempo o proceso, del entorno (2). */
+export function typstExitCode(code: TypstRenderErrorCode): number {
+  return code === 'compile-error' ? EXIT_DATA_ERROR : EXIT_FAILURE;
+}
+
+/** PDF con el motor elegido; un número es un código de salida ya explicado en stderr. */
+function renderPdf(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {
+  return options.engine === 'typst' ? renderWithTypst(context, profile, options) : renderPdfCv(profile, { locale: options.locale });
+}
+
+async function renderWithTypst(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {
+  const result = await context.typstRenderer(profile, {
+    locale: options.locale,
+    template: options.template === undefined ? undefined : resolve(context.cwd, options.template),
+    explicitPath: options.typstPath === undefined ? undefined : resolve(context.cwd, options.typstPath),
+    allowAnyVersion: options.typstAnyVersion,
+  });
+  if (result.ok) {
+    return result.pdf;
+  }
+  context.stderr(result.error.code === 'compile-error' ? `La plantilla Typst no compiló:\n${result.error.message}\n` : `${result.error.message}\n`);
+  return typstExitCode(result.error.code);
 }
 
 interface Prepared {
@@ -136,7 +172,10 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
 
   const outputPath = resolve(context.cwd, options.output ?? defaultOutputPath(trimmed.profile, options.specialty, prepared.offerName, options.format));
   if (options.format === 'pdf') {
-    const pdf = await renderPdfCv(trimmed.profile, { locale: options.locale });
+    const pdf = await renderPdf(context, trimmed.profile, options);
+    if (typeof pdf === 'number') {
+      return pdf;
+    }
     return writeCv(context, outputPath, () => context.artifactFileSystem.writeBinaryFile(outputPath, pdf, OUTPUT_MODE));
   }
 

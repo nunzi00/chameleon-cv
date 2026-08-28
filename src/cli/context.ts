@@ -3,9 +3,13 @@
  * de trabajo, extracción de PDF) se inyecta para que los comandos sean funciones testeables al 100 %.
  */
 import { NodeWritableFileSystem, type WritableFileSystem } from '../artifact';
+import type { MasterProfile } from '../core/schema';
 import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParser } from '../parsers';
 import { extractPdfText, type PdfExtractionResult } from '../pdf';
+import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
 import { readStdin } from './stdin';
+
+export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
 
 export interface CliContext {
   readonly cwd: string;
@@ -18,6 +22,8 @@ export interface CliContext {
   readonly parsers: readonly SourceParser[];
   /** Extrae el texto de una oferta en PDF (contenido en un worker). */
   readonly pdfExtractor: (bytes: Uint8Array) => Promise<PdfExtractionResult>;
+  /** Renderiza con Typst (proceso hijo contenido); inyectable para probar la CLI sin binario. */
+  readonly typstRenderer: TypstRenderer;
 }
 
 export function createNodeContext(): CliContext {
@@ -34,5 +40,6 @@ export function createNodeContext(): CliContext {
     artifactFileSystem: new NodeWritableFileSystem(),
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
+    typstRenderer: (profile, options) => renderTypstCv(profile, options),
   };
 }

@@ -25,6 +25,7 @@ import { parseMasterProfile } from '../../src/core/schema';
 import { selectForSpecialty } from '../../src/core/selection';
 import { NodeFileSystem, defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
+import { renderTypstCv } from '../../src/renderers/typst';
 import { describeError } from '../../src/shared/errors';
 import { MemoryFileSystem, datasetTree, type MemoryEntry } from '../helpers/memory-file-system';
 import { selectionProfile } from '../fixtures/selection';
@@ -53,6 +54,7 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     artifactFileSystem: fs,
     parsers: defaultSourceParsers(),
     pdfExtractor: (bytes) => extractPdfText(bytes),
+    typstRenderer: (profile, options) => renderTypstCv(profile, options),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -327,6 +329,11 @@ describe('contexto real y errores no estándar', () => {
 
   it('el extractor de PDF del contexto real contiene la extracción en un worker', async () => {
     expect(await createNodeContext().pdfExtractor(Buffer.from('no soy un pdf', 'utf8'))).toEqual({ ok: false, code: 'invalid', message: 'Invalid PDF structure.' });
+  });
+
+  it('el renderer Typst del contexto real busca el binario y explica su ausencia', async () => {
+    const result = await createNodeContext().typstRenderer(selectionProfile(), { isExecutable: () => Promise.resolve(false) });
+    expect(result).toMatchObject({ ok: false, error: { code: 'not-found' } });
   });
 
   it('describeError da un mensaje legible para cualquier valor lanzado', () => {
