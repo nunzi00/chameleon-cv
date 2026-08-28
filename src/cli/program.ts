@@ -9,6 +9,7 @@ import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
+import { runApplyCommand, type ApplyOptions } from './commands/apply';
 import { runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
@@ -23,7 +24,7 @@ import { packageVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
 
 export function createProgram(context: CliContext, onExit: (code: number) => void): Command {
-  const program = new Command()
+  const program = new Command().enablePositionalOptions()
     .name('cv')
     .description('Chameleon CV: genera CVs dinámicos y personalizados a partir de tus fuentes Markdown y CSV. Todo se procesa en local.')
     .version(packageVersion(), '-V, --version', 'muestra la versión')
@@ -115,9 +116,11 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
       onExit(await runTypstStatus(context));
     });
 
-  program
+  const improve = program
     .command('improve')
-    .description('co-piloto: propone reescrituras con más impacto para tus logros y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes')
+    // Las opciones de «improve apply» (--dry-run, -d) no deben ser capturadas por «improve» (mismos nombres).
+    .enablePositionalOptions()
+    .description('co-piloto: propone reescrituras con más impacto para tus logros y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes (salvo «improve apply», que aplica lo que marques)')
     .option('-s, --specialty <id>', 'solo los logros que entran en esa especialidad')
     .option('-f, --from-job-offer <file>', 'oferta (texto o PDF; «-» = stdin): solo los logros que sobreviven a la adaptación, y sus términos guían la reescritura')
     .option('-n, --top-n <n>', 'logros por experiencia/proyecto y transversales (como en generate-cv)', parseLimit)
@@ -144,6 +147,15 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--build', 'recompila el artefacto antes', false)
     .action(async (options: ImproveOptions) => {
       onExit(await runImproveCommand(context, options));
+    });
+  improve
+    .command('apply <review>')
+    .description('aplica a tus fuentes las propuestas marcadas [x] en un fichero de revisión de improve o summarize: solo lo marcado, cambio mínimo, copia de seguridad previa (<fichero>.bak) y comprobación por huella (si el original cambió, no escribe nada)')
+    .option('-d, --data <dir>', 'directorio de fuentes (por defecto, el registrado en la revisión o data/sources)')
+    .option('--delete-review', 'elimina el fichero de revisión tras aplicarlo', false)
+    .option('--dry-run', 'muestra qué cambiaría sin escribir nada', false)
+    .action(async (review: string, options: Omit<ApplyOptions, 'review'>) => {
+      onExit(await runApplyCommand(context, { ...options, review }));
     });
 
   program

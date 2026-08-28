@@ -29,6 +29,7 @@ import { buildBeforeUse } from './build';
 import { OUTPUT_MODE } from './generate-cv';
 import { consentToRemote } from './remote';
 import { prepareSelection, type SelectionOptions } from './selection';
+import { indexSources, summarySource } from './sources';
 
 export interface SummarizeOptions extends SelectionOptions {
   readonly profile: string;
@@ -140,9 +141,18 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
 
   const location = `Resumen profesional${options.specialty === undefined ? '' : ` · ${options.specialty}`}${offerName === undefined ? '' : ` · oferta ${offerName}`}`;
   const item = await runSummarizeTask({ profile: artifact.profile, fragment, provider, prompt, location, cache: options.cache ? context.llmCache : undefined, now });
+  // Procedencia (T-4.7): dónde vive el resumen que «cv improve apply» sustituiría, y su huella.
+  const warn = (line: string): void => {
+    context.stderr(`${line}\n`);
+  };
+  const sources = await indexSources(context, resolve(context.cwd, options.data));
+  const source = sources.ok ? summarySource(sources.index, options.specialty, offerName, warn) : undefined;
+  if (!sources.ok) {
+    warn(`Aviso: no se registrará la fuente del resumen (${sources.message}); «cv improve apply» no podrá aplicar esta revisión`);
+  }
   const review = formatReview(
-    { task: 'summarize', generatedAt: now().toISOString(), specialty: options.specialty, offer: offerName, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: SUMMARIZE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
-    [item],
+    { task: 'summarize', generatedAt: now().toISOString(), specialty: options.specialty, offer: offerName, dataDir: options.data, provider: { id: provider.id, baseUrl: provider.baseUrl, model: provider.model }, promptVersion: SUMMARIZE_PROMPT_VERSION, temperature: DEFAULT_TEMPERATURE, seed: DEFAULT_SEED },
+    [{ ...item, source }],
   );
   const outputPath = resolve(context.cwd, options.output ?? defaultSummaryReviewPath(now(), options.specialty, offerName));
   try {

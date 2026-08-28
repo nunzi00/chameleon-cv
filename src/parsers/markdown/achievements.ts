@@ -31,6 +31,15 @@ function isMetadataKey(key: string): key is MetadataKey {
   return METADATA_KEYS.some((candidate) => candidate === key);
 }
 
+/**
+ * Corte en crudo (sin colapsar líneas): longitud del texto sin la cola de `#hashtags` ni el espacio
+ * que la precede. `cv improve apply` reemplaza exactamente ese tramo y conserva la cola tal cual.
+ */
+export function rawTextLength(raw: string): number {
+  const match = TRAILING_HASHTAGS.exec(raw);
+  return (match === null ? raw : raw.slice(0, match.index)).trimEnd().length;
+}
+
 /** Separa los `#hashtags` finales del texto y une las líneas de continuación con un espacio. */
 export function splitTrailingHashtags(raw: string): { text: string; tags: string[] } {
   const collapsed = raw.replace(/\s*\n\s*/g, ' ');
