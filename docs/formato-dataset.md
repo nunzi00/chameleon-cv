@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | **Tarea** | T-1.2 · [PARSER] Parser para Markdown |
-| **Estado** | **PROPUESTA v2 — pendiente de aprobación del Director de Ingeniería** (v1: 2026-08-28; v2: integra el análisis estratégico recogido en `docs/arquitectura.md`) |
+| **Estado** | **APROBADO** por el Director de Ingeniería el 2026-08-28 (v2, sin modificaciones; disposición **A**). Especificación canónica del formato; T-1.2 implementada en `src/parsers/`. |
 | **Autor** | Claude (Director Técnico) |
 | **Decide** | Cómo se escriben las fuentes Markdown y cómo se mapean a `MasterProfile` (`src/core/schema/`). |
-| **Decisión abierta** | §3.1: un fichero por entidad (recomendado) o un único `profile.md`. |
+| **Decisión §3.1** | Disposición **A**: un fichero por entidad (aprobada). La B queda documentada como alternativa descartada. |
 
 ## 1. Objetivo y alcance
 
@@ -52,7 +52,7 @@ data/sources/
 | `education/<nombre>.md` | `education[]` | `edu-<nombre de fichero>` | no |
 | `achievements.md` | `achievements[]` | `ach-<posición>` | no |
 | `skills.csv` | `skills[]` | (T-1.3) | no |
-| `certifications.csv` | `certifications[]` | (T-1.3) | no |
+| `certifications.csv` | `certifications[]` | (T-1.3; según el análisis estratégico — confirmar en T-1.3 si se prefiere `certifications/*.md`) | no |
 
 Reglas del recorrido:
 
@@ -62,9 +62,9 @@ Reglas del recorrido:
 - Es **error**: cualquier otro `.md`, `.csv` o directorio en la raíz (`experiencia/` es un error, no un olvido silencioso) y cualquier subdirectorio dentro de un directorio de entidades.
 - Varios idiomas o variantes = varios datasets (`data/sources/es/`, `data/sources/en/`); véase §11.
 
-### 3.1 Decisión abierta: disposición de las entidades narrativas
+### 3.1 Disposición de las entidades narrativas (decidida: A)
 
-El análisis estratégico sitúa experiencias, proyectos y formación **dentro de `profile.md`**; la v1 de esta propuesta los reparte en **un fichero por entidad**. Ambas disposiciones quedan especificadas para que la implementación arranque en cuanto se decida. El resto del documento (frontmatter, logros, mapeo, validación, seguridad) es común.
+El análisis estratégico situaba experiencias, proyectos y formación **dentro de `profile.md`**; la v1 de esta propuesta los reparte en **un fichero por entidad**. El Director de Ingeniería aprobó la **disposición A** el 2026-08-28; la B se conserva aquí como alternativa descartada, con su comparativa.
 
 **Disposición A — un fichero por entidad (recomendada).** La descrita en el árbol anterior.
 
@@ -274,13 +274,13 @@ Los mensajes **no reproducen el contenido** del fichero (solo ruta, línea y cla
 | Parser propio línea a línea | Los casos límite de Markdown (continuaciones, listas anidadas, `#` en código o URLs) reinventarían un parser real, peor. |
 | Leer las fuentes en cada `generate`, sin artefacto | Descartado por el análisis estratégico: el artefacto canónico da una sola fuente de verdad a generadores, CLI y LLM, y separa «editar» de «generar». |
 
-## 14. Puntos que requieren decisión del Director
+## 14. Puntos de decisión (todos aprobados el 2026-08-28)
 
-1. **Disposición A o B** (§3.1). Recomendación: **A**.
+1. **Disposición A o B** (§3.1). Recomendación: **A**. → **A, aprobada**.
 2. Claves de frontmatter en **inglés** (= nombres del esquema) frente a castellano. Recomendación: inglés.
 3. Ids de logro **posicionales** con `id:` explícito opcional. Recomendación: sí.
 4. **Un dataset por idioma** en el MVP, con `.<locale>.md` reservado para *overlays* futuros. Recomendación: sí.
 5. Política **estricta** en la raíz del dataset (solo `README.md` se ignora; lo demás desconocido es error). Recomendación: sí.
 6. Adoptar `remark`/`unified` (ESM) mediante `require(esm)` y fijar `engines.node >= 22.12`. Recomendación: sí.
 
-Con la aprobación (o las modificaciones que indique) se actualiza este documento a estado **APROBADO** y arranca la implementación de T-1.2.
+Aprobados los seis puntos sin modificaciones. Implementación: `src/parsers/markdown/` (parser puro) y `src/parsers/dataset/` (cargador con sistema de ficheros inyectable), con el dataset de ejemplo en `tests/fixtures/dataset/`.
