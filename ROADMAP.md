@@ -1,6 +1,6 @@
 # Roadmap del Proyecto: Chameleon CV
 
-> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2 (Adaptación Dinámica) declarado COMPLETO Y VALIDADO por el Director de Ingeniería el 2026-08-28.** **Hito 2.5 (consolidación): T-2.7, T-2.8 y T-2.9 cerradas el 2026-08-28 — 392 tests, 100 % de cobertura; pendiente de declaración.** B-4 (Typst) permanece en el backlog.
+> **Estado (2026-08-28): Hito 1 (MVP) completado — victoria declarada por el Director de Ingeniería.** Flujo `cv validate → cv build-profile → cv generate-cv` operativo, 292 tests, 100 % de cobertura en toda la lógica. **Hito 2 (Adaptación Dinámica) declarado COMPLETO Y VALIDADO por el Director de Ingeniería el 2026-08-28.** **Hito 2.5 (Consolidación y Calidad de Vida) declarado COMPLETO Y VALIDADO por el Director de Ingeniería el 2026-08-28** (392 tests, 100 % de cobertura). **Hito 3 (Representación Profesional) abierto el 2026-08-28: T-3.1 entregada (nota `docs/typst-integration.md`, PROPUESTA pendiente de aprobación).**
 
 ## Stack Tecnológico: Node.js con TypeScript
 
@@ -62,9 +62,17 @@ Visión y restricciones en `docs/arquitectura.md` §3. Todo egreso de red es opt
 -   [x] **T-2.9: [CORE] Sintaxis de anclaje `#pin` (ref. B-3).** Fijar logros o ítems cruciales en cualquier oferta, por encima de los algoritmos de recorte.
     -   Hecho 2026-08-28: tag reservada `pin` (`PIN_TAG`/`isPinned` en el esquema; rechazada como id o tag de especialidad). Selección: coincidencia explícita con cualquier especialidad (razón `pinned`, arrastra contenedor). Orden: anclados primero, luego puntuación, luego documento (reordenación por oferta y ranking del recorte). Recorte: nunca se recorta, consume plaza. Puntuación: no puntúa ni entra en el vocabulario. Docs precisadas en `selector-engine.md`, `scoring.md`, `trimming-cli.md`, `formato-dataset.md` y README.
 
+### Hito 3: Representación Profesional (ordenado por el Director de Ingeniería el 2026-08-28; objetivo: Typst como motor PDF de calidad editorial)
+
+-   [x] **T-3.1: [RESEARCH] Investigación y PoC de la integración con Typst.** Gestión del binario, interfaz y seguridad, lenguaje de plantillas, rendimiento y recomendación.
+    -   Hecho 2026-08-28: `docs/typst-integration.md` (PROPUESTA v1) con evidencia ejecutada sobre Typst 0.15.1: stdin→stdout sin ficheros intermedios, `--root` verificado, hallazgo de descarga de paquetes `` y su interruptor de red (proxy), PDF determinista y etiquetado, round-trip idéntico al golden de pdfkit, 32 ms/29 MB por CV. PoC reproducible en `docs/poc/typst/` (`cv.typ` sobre `CvView`). Recomendación: motor opcional `--engine typst` sobre el binario oficial contenido; sin descarga en `npm install` (`cv typst install` explícito con SHA-256 fijados).
+-   [ ] **T-3.2: [RENDER] Motor Typst contenido.** `StructuredView` compartida, `source.ts`, `engine.ts`, `renderTypstCv`, `--engine pdfkit|typst`, tests al 100 % y round-trip (pendiente de aprobación de T-3.1).
+-   [ ] **T-3.3: [CLI] `cv typst install|status`.** Descarga explícita del release oficial con SHA-256 fijados en `src/typst/releases.json` (pendiente de aprobación).
+-   [ ] **T-3.4: [RENDER] Diseño tipográfico de `templates/typst/cv.typ`** y documentación de usuario (pendiente de aprobación).
+
 ### Backlog (mejoras registradas)
 
 -   [x] **B-1: [CLI] `cv generate-cv --build`.** Recompilar el artefacto antes de generar, como atajo explícito del flujo `build → generate-cv` (registrado 2026-08-28). → Entregado en T-2.7.
 -   [x] **B-2: [CLI] `cv init`.** Copiar el dataset de ejemplo a `data/sources/` para arrancar un perfil nuevo (registrado 2026-08-28). → Entregado en T-2.8.
 -   [x] **B-3: [CORE] Tag reservada `#pin`.** Fijar un ítem en cualquier oferta, no solo por especialidad (registrado 2026-08-28 en `docs/trimming-cli.md` §3.3). → Entregado en T-2.9.
--   [ ] **B-4: [RENDER] Motor PDF opcional Typst.** `--engine typst` con plantilla `templates/cv.typ.hbs` cuando el binario esté instalado; máxima calidad tipográfica sin tocar el núcleo (registrado 2026-08-28 en `docs/pdf-integration.md` §3.3).
+-   [x] **B-4: [RENDER] Motor PDF opcional Typst.** `--engine typst` con plantilla propia cuando el binario esté instalado; máxima calidad tipográfica sin tocar el núcleo (registrado 2026-08-28 en `docs/pdf-integration.md` §3.3). → Promovido a Hito 3 (T-3.1 investigada; T-3.2–T-3.4 propuestas).
