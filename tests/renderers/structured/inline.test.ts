@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { blocks, inlineRuns, nodeRuns, type Run } from '../../../src/renderers/pdf';
+import { blocks, inlineRuns, nodeRuns, type Run } from '../../../src/renderers/structured';
 
 const plain = (text: string): Run => ({ text, bold: false, italic: false, code: false, link: undefined });
 
