@@ -8,6 +8,8 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
+import { canonicalPdf } from './compare';
+
 export interface ClientResult {
   readonly status: number;
   readonly stdout: string;
@@ -31,6 +33,19 @@ const NEW_PROJECT = '---\nname: Proyecto por la API\nrole: Autora\nstart: 2026-0
 type Json = Record<string, unknown>;
 const object = (value: unknown): Json => value as Json;
 const summarizeStatus = (body: unknown): unknown => ({ ...object(body), typst: { usable: object(object(body)['typst'])['usable'] }, llm: { usable: object(object(body)['llm'])['usable'] } });
+/** Los tamaños de los PDF dependen de la zlib del Node que los generó: no se imprimen. */
+const withoutPdfBytes = (body: unknown): unknown => {
+  const value = object(body);
+  const output = value['output'];
+  if (typeof output === 'object' && output !== null && object(output)['kind'] === 'pdf') {
+    const { bytes: _bytes, ...rest } = object(output);
+    return { ...value, output: rest };
+  }
+  if (Array.isArray(value['files'])) {
+    return { ...value, files: (value['files'] as Json[]).map((file) => (String(file['name']).endsWith('.pdf') ? { name: file['name'] } : file)) };
+  }
+  return body;
+};
 const summarizeProfile = (body: unknown): unknown => {
   const profile = object(body);
   const personal = object(profile['personal']);
@@ -52,8 +67,8 @@ const CALLS: readonly Call[] = [
   { method: 'POST', path: '/build', body: {} },
   { method: 'GET', path: '/profile', render: summarizeProfile },
   { method: 'POST', path: '/generate', body: { specialty: 'backend' } },
-  { method: 'POST', path: '/generate', body: { specialty: 'backend', format: 'pdf', offer: { workspaceFile: 'offers/nexo-senior-backend.txt' }, compact: true } },
-  { method: 'GET', path: '/output' },
+  { method: 'POST', path: '/generate', body: { specialty: 'backend', format: 'pdf', offer: { workspaceFile: 'offers/nexo-senior-backend.txt' }, compact: true }, render: withoutPdfBytes },
+  { method: 'GET', path: '/output', render: withoutPdfBytes },
   { method: 'GET', path: '/output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf' },
   { method: 'POST', path: '/analyze-offer', body: { offer: { text: OFFER }, specialty: 'backend' } },
   { method: 'GET', path: '/themes' },
@@ -88,6 +103,9 @@ async function render(response: Response, call: Call): Promise<string> {
     return JSON.stringify(canonical(call.render === undefined ? body : call.render(body)), null, 2);
   }
   const bytes = Buffer.from(await response.arrayBuffer());
+  if (type === 'application/pdf') {
+    return `<pdf · sha256 canónico ${createHash('sha256').update(canonicalPdf(bytes)).digest('hex')}>`;
+  }
   return `<${bytes.length} bytes · sha256 ${createHash('sha256').update(bytes).digest('hex')} · ${type}>`;
 }
 

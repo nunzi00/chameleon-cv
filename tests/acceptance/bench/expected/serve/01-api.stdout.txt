@@ -830,7 +830,6 @@
 ### POST /generate → 200
 {
   "output": {
-    "bytes": 39034,
     "kind": "pdf",
     "name": "cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf",
     "path": "output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf"
@@ -2445,7 +2444,6 @@
 {
   "files": [
     {
-      "bytes": 39034,
       "name": "cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf"
     },
     {
@@ -2456,7 +2454,7 @@
 }
 
 ### GET /output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf → 200
-<39034 bytes · sha256 e08cc76cd3f396567ce3a69a17977642b3b8e3567219ba227ca93f4d81e2e301 · application/pdf>
+<pdf · sha256 canónico dd97cb87235b7b4773c25d1bfe3e8324761ffeefe1d9711c3a94e67b726397e6>
 
 ### POST /analyze-offer → 200
 {

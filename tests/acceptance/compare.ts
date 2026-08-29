@@ -1,9 +1,13 @@
 /**
  * Comparación de artefactos para el arnés de aceptación determinista (T-5.5.2): coincidencia
  * perfecta o una explicación legible de la diferencia. Texto y JSON se comparan byte a byte y,
- * si difieren, se muestra un diff por líneas; los PDF se comparan byte a byte y, si difieren, se
- * extrae su texto para enseñar qué cambió (además de tamaño y páginas). Sin dependencias.
+ * si difieren, se muestra un diff por líneas; los PDF se comparan byte a byte y, si difieren, en su
+ * forma canónica (flujos descomprimidos, sin longitudes ni tabla xref): dos implementaciones de zlib
+ * (la zlib-ng de Arch frente a la del Node oficial) comprimen distinto el mismo contenido y el arnés no
+ * debe confundir eso con un cambio. Si tampoco así coinciden, se extrae el texto para enseñar qué cambió.
  */
+import { inflateSync } from 'node:zlib';
+
 import { extractPdfText } from '../../src/pdf';
 
 export interface Mismatch {
@@ -99,10 +103,51 @@ export function compareBytes(what: string, expected: Uint8Array, actual: Uint8Ar
   return { what, detail: `${expected.byteLength} bytes esperados, ${actual.byteLength} obtenidos` };
 }
 
-/** PDF: bytes idénticos o, si no, la diferencia en texto, páginas y tamaño. */
+const STREAM = /stream\r?\n/g;
+
+/**
+ * Forma canónica de un PDF: cada flujo `FlateDecode` descomprimido (si se puede), sin `/Length` (cambia
+ * con la compresión), sin las entradas de la tabla `xref` ni el desplazamiento de `startxref` (cambian con
+ * los tamaños). El resto —objetos, diccionarios, tráiler, lo que siga a `%%EOF`— se conserva tal cual. Dos
+ * PDF con el mismo contenido comprimido por dos zlib distintas tienen la misma forma canónica.
+ */
+export function canonicalPdf(bytes: Uint8Array): Buffer {
+  const source = Buffer.from(bytes);
+  const parts: Buffer[] = [];
+  let cursor = 0;
+  STREAM.lastIndex = 0;
+  for (let match = STREAM.exec(source.toString('latin1')); match !== null; match = STREAM.exec(source.toString('latin1'))) {
+    const start = match.index + match[0].length;
+    const end = source.indexOf('endstream', start, 'latin1');
+    if (end === -1) {
+      break;
+    }
+    const head = source.subarray(cursor, start);
+    const data = source.subarray(start, end);
+    let payload = data;
+    if (/\/FlateDecode/.test(head.toString('latin1'))) {
+      try {
+        payload = inflateSync(data.subarray(0, data.length - (data.at(-1) === 0x0a ? (data.at(-2) === 0x0d ? 2 : 1) : 0)));
+      } catch {
+        payload = data;
+      }
+    }
+    parts.push(Buffer.from(head.toString('latin1').replace(/\/Length \d+/g, '/Length').replace(/\/Filter ?\/FlateDecode/g, ''), 'latin1'), payload);
+    cursor = end;
+    STREAM.lastIndex = end;
+  }
+  parts.push(source.subarray(cursor));
+  const canonical = Buffer.concat(parts)
+    .toString('latin1')
+    .replace(/\nxref\n[\s\S]*?\ntrailer\n/g, '\ntrailer\n')
+    .replace(/startxref\n\d+\n/g, 'startxref\n');
+  return Buffer.from(canonical, 'latin1');
+}
+
+/** PDF: bytes idénticos, o forma canónica idéntica (solo cambia la compresión), o la diferencia en texto, páginas y tamaño. */
 export async function comparePdf(what: string, expected: Uint8Array, actual: Uint8Array): Promise<Mismatch | undefined> {
   const bytes = compareBytes(what, expected, actual);
-  if (bytes === undefined) {
+  if (bytes === undefined || canonicalPdf(expected).equals(canonicalPdf(actual))) {
     return undefined;
   }
   const [before, after] = await Promise.all([extractPdfText(Buffer.from(expected)), extractPdfText(Buffer.from(actual))]);
