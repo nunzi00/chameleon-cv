@@ -48,6 +48,8 @@ cv generate-cv --format pdf --engine typst
 
 - `needs-typst`: el bloque solo corre si hay un Typst utilizable (`CHAMELEON_TYPST` o la caché de usuario); si no, se **omite de forma visible**.
 - `needs-llm`: solo con `CHAMELEON_DOCS_LLM=1` y un modelo local en marcha; la CI nunca lo ejecuta.
+- `needs-docker`: solo con `CHAMELEON_DOCS_DOCKER=1`, un demonio de Docker y la imagen `chameleon-cv:local` (`npm run docker:build`); el trabajo `docker` de la CI lo ejecuta.
+- `files:` en la cabecera copia ficheros del repositorio al espacio de trabajo (los ficheros de Compose del tutorial 5); `cleanup:` ejecuta órdenes al terminar (`docker compose down -v`).
 - Los bloques sin la palabra `tutorial` son ilustrativos y no se ejecutan (instalación, órdenes con proveedores remotos…).
 - Cada bloque parte del directorio raíz del espacio de trabajo (un `cd` no persiste entre bloques).
 

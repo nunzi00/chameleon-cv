@@ -46,6 +46,7 @@ export default defineConfig({
           text: 'Guía de usuario',
           items: [
             { text: 'Inicio rápido', link: '/guide/quickstart' },
+            { text: 'Chameleon CV en Docker', link: '/guide/docker' },
             { text: 'Conceptos', link: '/guide/concepts' },
             { text: 'Formato de las fuentes', link: '/guide/sources' },
             { text: 'Generar el CV', link: '/guide/generate' },
@@ -67,6 +68,7 @@ export default defineConfig({
             { text: '2 · Un CV para tres ofertas', link: '/tutorials/three-offers' },
             { text: '3 · Tu propio tema', link: '/tutorials/own-theme' },
             { text: '4 · El co-piloto con Ollama', link: '/tutorials/copilot-ollama' },
+            { text: '5 · Todo en un contenedor', link: '/tutorials/docker' },
           ],
         },
       ],

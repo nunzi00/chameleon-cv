@@ -16,12 +16,13 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 - **Adaptación a una oferta** (texto, entrada estándar o PDF): el CV se afina con una puntuación transparente y se recorta a lo mejor; `analyze-offer` dice qué demuestras y qué te falta.
 - **Salida** en Markdown (plantillas Handlebars) o PDF: pdfkit sin dependencias, o Typst con temas de calidad editorial (`default`, `classic` o los tuyos).
 - **Co-piloto de IA** que sugiere y nunca decide: reescrituras, resúmenes y etiquetas verificados por código, local por defecto y con consentimiento explícito para cualquier proveedor remoto.
-- **Distribución cuidada**: ejecutable autónomo para linux-x64 con `sha256` y atestación de procedencia, o directamente desde el repositorio. Licencia MIT.
+- **Distribución cuidada**: ejecutable autónomo para linux-x64 con `sha256` y atestación de procedencia, imagen Docker con Compose (incluido un modelo de IA local opcional), o directamente desde el repositorio. Licencia MIT.
 
 ## Requisitos
 
 - **Ejecutable autónomo**: Linux x86-64 con glibc ≥ 2.28, `libstdc++` y `libatomic` (presentes en cualquier distribución de escritorio; en una imagen mínima de contenedor hay que instalarlas); no necesita Node. El motor Typst es opcional (`cv typst install`).
 - **Desde el repositorio**: Node.js **≥ 22.12** (el proyecto usa `require(esm)` nativo) y npm; para empaquetar el ejecutable, Node ≥ 26.
+- **Docker**: Docker Engine ≥ 24 con Compose v2 (o Docker Desktop); no necesita nada más.
 
 ## Instalación
 
@@ -35,6 +36,17 @@ gh attestation verify chameleon-cv-<versión>-linux-x64.tar.gz --owner nunzi00  
 ```
 
 El archivo incluye `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` (licencias de Node.js y de los paquetes embebidos) y `LICENSE-SourceSans3.md`. Los assets que necesitan ser ficheros reales (temas y fuentes para Typst, dataset de `cv init`) se materializan en la caché de usuario (`~/.cache/chameleon-cv/assets/<versión>/`), con su SHA-256 comprobado en cada uso. El mismo archivo se construye en local con `npm install && npm run package` (Node ≥ 26; queda en `build/release/`).
+
+**Docker** (todo en un contenedor, con la IA local opcional): el contenedor corre sin red, sin privilegios y con el sistema de ficheros de solo lectura; tus datos quedan en `./my-profile`.
+
+```bash
+mkdir -p my-profile && printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" > .env   # Linux: los ficheros serán tuyos
+docker compose build && docker compose run --rm chameleon-cv init
+docker compose run --rm chameleon-cv build && docker compose run --rm chameleon-cv generate-cv -s backend --format pdf --engine typst
+docker compose -f compose.yml -f compose.ai.yml run --rm chameleon-cv llm status   # IA local con Ollama (≈ 8 GB la primera vez)
+```
+
+Guía completa: [Chameleon CV en Docker](https://nunzi00.github.io/chameleon-cv/guide/docker).
 
 **Desde el repositorio** (desarrollo):
 
@@ -115,6 +127,7 @@ npm run build && npm run test:acceptance:deterministic   # aceptación: el binar
 npm run test:acceptance:ai                                # aceptación de IA con un modelo local (Ollama por defecto): valida el proceso, no el texto
 npm run docs:check                                        # portal: referencia generada desde la CLI, sincronización, build sin enlaces muertos y tutoriales ejecutados
 npm run package                                           # ejecutable autónomo, prueba de humo y tar.gz reproducible con .sha256 y THIRD-PARTY-NOTICES.md (build/release/)
+npm run docker:build && npm run docker:smoke              # imagen Docker (chameleon-cv:local) y su prueba de humo: volumen, usuario sin privilegios, Typst, endurecida, red compartida
 npm run release:notes -- 1.0.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
 ```
 
