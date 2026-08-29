@@ -1,0 +1,11 @@
+# Servidor local de la API con el modelo local de compose.ai.yml (T-7.4b). Chameleon CV comparte la red de
+# Ollama (network_mode: service:ollama), así que el puerto se publica en el servicio ollama:
+#   docker compose -f compose.yml -f compose.ai.yml -f compose.serve-ai.yml up
+#   docker compose logs chameleon-cv | grep Token
+# Solo en el loopback del anfitrión. Los trabajos del co-piloto usan Ollama; nada sale de tu máquina.
+services:
+  ollama:
+    ports:
+      - "127.0.0.1:4310:4310"
+  chameleon-cv:
+    command: ["serve", "--host", "0.0.0.0", "--port", "4310"]

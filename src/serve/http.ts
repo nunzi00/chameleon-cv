@@ -15,7 +15,8 @@ export const JSON_BODY_LIMIT = 1024 * 1024;
 
 export type ServerErrorCode = AppErrorCode | 'unauthorized' | 'forbidden-host' | 'forbidden-origin' | 'bad-request' | 'method-not-allowed' | 'payload-too-large' | 'precondition-required' | 'remote-disabled' | 'consent-required';
 
-const STATUS: Readonly<Record<ServerErrorCode, number>> = {
+/** Correspondencia código de error → estado HTTP (también alimenta la referencia generada de la API). */
+export const ERROR_STATUS: Readonly<Record<ServerErrorCode, number>> = {
   usage: 400,
   'bad-request': 400,
   'unsafe-path': 400,
@@ -34,7 +35,7 @@ const STATUS: Readonly<Record<ServerErrorCode, number>> = {
 };
 
 export function statusOf(code: ServerErrorCode): number {
-  return STATUS[code];
+  return ERROR_STATUS[code];
 }
 
 export function errorResponse(code: ServerErrorCode, message: string, extra: Readonly<Record<string, unknown>> = {}, headers?: Readonly<Record<string, string>>): RouteResponse {

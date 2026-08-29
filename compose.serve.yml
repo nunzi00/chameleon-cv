@@ -1,0 +1,11 @@
+# Chameleon CV como servidor local de la API desde Docker (T-7.4b, docs/api-headless.md §7). Sin IA.
+#   docker compose -f compose.yml -f compose.serve.yml up
+#   docker compose logs chameleon-cv | grep Token          # la URL con el token de sesión
+# El puerto se publica SOLO en el loopback del anfitrión: nadie más en la red puede llegar al servidor.
+# Con el modelo local (compose.ai.yml) usa compose.serve-ai.yml en lugar de este fichero.
+services:
+  chameleon-cv:
+    network_mode: bridge                   # sustituye el «none» del perfil base: hace falta red para publicar el puerto
+    command: ["serve", "--host", "0.0.0.0", "--port", "4310"]
+    ports:
+      - "127.0.0.1:4310:4310"

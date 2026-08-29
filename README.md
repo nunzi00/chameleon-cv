@@ -128,7 +128,7 @@ npm run test:acceptance:ai                                # aceptación de IA co
 npm run docs:check                                        # portal: referencia generada desde la CLI, sincronización, build sin enlaces muertos y tutoriales ejecutados
 npm run package                                           # ejecutable autónomo, prueba de humo y tar.gz reproducible con .sha256 y THIRD-PARTY-NOTICES.md (build/release/)
 npm run docker:build && npm run docker:smoke              # imagen Docker (chameleon-cv:local) y su prueba de humo: volumen, usuario sin privilegios, Typst, endurecida, red compartida
-npm run release:notes -- 1.0.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
+npm run release:notes -- 1.1.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
 ```
 
 Cómo contribuir: [`CONTRIBUTING.md`](CONTRIBUTING.md). Pruebas de aceptación: [`docs/acceptance-testing.md`](docs/acceptance-testing.md). Integración continua (`.github/workflows/ci.yml`), release por tag (`release.yml`: empaqueta linux-x64, acepta el binario, publica `tar.gz`, `.sha256`, `SHA256SUMS.txt`, atestación y las notas de `CHANGELOG.md`) y portal (`pages.yml`): [`docs/packaging-and-release.md`](docs/packaging-and-release.md) y [`docs/docs-portal.md`](docs/docs-portal.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).

@@ -4,12 +4,30 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-29
+
+El núcleo como producto: la API local (`cv serve`) completa —incluidos los trabajos del co-piloto—, el portal de documentación y el ecosistema Docker. Hito 7 (T-7.1, T-7.2, T-7.4) del [ROADMAP](ROADMAP.md).
+
 ### Añadido
 
 - Portal de documentación (`website/`, VitePress) publicado en GitHub Pages: guía de usuario, referencia de comandos generada desde la ayuda de la CLI, tutoriales ejecutables verificados en la integración continua, sección para desarrolladores (arquitectura y cánones C1–C15, contribuir, pruebas, extender, empaquetado) y notas de diseño sincronizadas desde `docs/`. `CONTRIBUTING.md`. README reducido a puerta de entrada.
 - Cánones C14, «El núcleo es el producto», y C15, «La documentación es código verificable».
 - `cv serve`: servidor local de la API (`/api/v1`) sobre el espacio de trabajo —solo `127.0.0.1`, token de sesión, `Host`/`Origin` comprobados, sin CORS— con estado, fuentes (huellas e `If-Match`), validar, compilar, perfil, generar, salida, análisis de ofertas, extracción de PDF y temas; la CLI y el servidor comparten la capa de casos de uso `src/app/`.
+- El co-piloto en la API como **trabajos**: `POST /jobs/improve`, `/jobs/summarize` y `/jobs/suggest-tags` (202 con `Location` y qué saldrá hacia dónde), estado y eventos en directo (`GET /jobs/{id}/events`, Server-Sent Events), cancelación (`DELETE /jobs/{id}`: la petición en curso al modelo se aborta), consentimiento de coste en dos pasos para proveedores remotos (`cv serve --allow-remote` y `409 consent-required` con estimación y `estimateId` de un solo uso), y revisiones (`GET /reviews`, `GET`/`PUT` con `If-Match`/`DELETE /reviews/{name}`, `POST /reviews/{name}/apply` con plan por defecto).
+- Referencia de la API generada desde el propio servidor (`/reference/api`), guía «La API local (cv serve)» y tutorial 6 «La API desde la terminal», ejecutable en la integración continua.
+- `compose.serve.yml` y `compose.serve-ai.yml`: `cv serve` desde Docker con el puerto publicado solo en el loopback del anfitrión.
 - Ecosistema Docker: `Dockerfile` multi-etapa (runtime sin Node; variante distroless), `compose.yml` sin red y endurecido, `compose.ai.yml` con Ollama en loopback compartido (`network_mode: service:ollama`) y `compose.gpu.yml`; prueba de humo de la imagen (`npm run docker:smoke`), trabajo `docker` en la integración continua, guía «Chameleon CV en Docker» y tutorial 5.
+
+### Cambiado
+
+- `cv improve`, `cv summarize`, `cv suggest tags` y `cv improve apply` son clientes de los casos de uso de `src/app/` (planificar sin red → proveedor y consentimiento → ejecutar con progreso y cancelación), con la misma salida byte a byte. Toda petición al modelo admite una señal de cancelación (`AbortSignal`), combinada con el tiempo máximo.
+- Los flujos de integración continua y de release generan las notas con `npm run --silent`, para que la cabecera de npm no se cuele en la release.
+
+### Corregido
+
+- El arnés de aceptación compara los PDF de forma canónica (flujos descomprimidos): una compilación de Node con zlib-ng produce bytes distintos pero documentos idénticos, y la integración continua en GitHub lo señalaba como diferencia.
+- Los flujos de CI y release invocaban un script `lint` inexistente.
+- El flujo de documentación ya no intenta activar GitHub Pages con el token de la acción (no tiene permiso): Pages se activa una vez desde los ajustes del repositorio.
 
 ## [1.0.0] - 2026-08-29
 

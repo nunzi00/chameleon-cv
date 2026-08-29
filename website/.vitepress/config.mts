@@ -53,6 +53,7 @@ export default defineConfig({
             { text: 'Adaptar el CV a una oferta', link: '/guide/offers' },
             { text: 'Typst y temas', link: '/guide/typst-themes' },
             { text: 'Co-piloto de IA', link: '/guide/copilot' },
+            { text: 'La API local (cv serve)', link: '/guide/api' },
             { text: 'Seguridad y privacidad', link: '/guide/security' },
             { text: 'Solución de problemas', link: '/guide/troubleshooting' },
           ],
@@ -63,12 +64,13 @@ export default defineConfig({
         {
           text: 'Tutoriales',
           items: [
-            { text: 'Los cuatro tutoriales', link: '/tutorials/' },
+            { text: 'Los seis tutoriales', link: '/tutorials/' },
             { text: '1 · Tu perfil desde cero', link: '/tutorials/profile-from-scratch' },
             { text: '2 · Un CV para tres ofertas', link: '/tutorials/three-offers' },
             { text: '3 · Tu propio tema', link: '/tutorials/own-theme' },
             { text: '4 · El co-piloto con Ollama', link: '/tutorials/copilot-ollama' },
             { text: '5 · Todo en un contenedor', link: '/tutorials/docker' },
+            { text: '6 · La API desde la terminal', link: '/tutorials/api' },
           ],
         },
       ],
