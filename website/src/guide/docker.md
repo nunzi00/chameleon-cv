@@ -52,6 +52,24 @@ docker compose -f compose.yml -f compose.ai.yml -f compose.gpu.yml run --rm cham
 
 Las claves de proveedores remotos, si las usas, llegan por `environment` en una superposición tuya (`CHAMELEON_OPENAI_API_KEY`…) o montando tu `keys.json` (0600) en `/home/cv/.config/chameleon-cv/keys.json`; el resto de reglas ([consentimiento, lista blanca, coste](/guide/copilot#proveedores-remotos-opcional)) se aplican igual.
 
+## La API desde el contenedor
+
+`compose.serve.yml` arranca `cv serve` dentro del contenedor y publica el puerto **solo en el loopback del anfitrión** (`127.0.0.1:4310`): nadie más en tu red puede llegar a él. El token de sesión sale en los logs:
+
+```bash
+docker compose -f compose.yml -f compose.serve.yml up -d
+docker compose logs chameleon-cv | grep Token      # http://127.0.0.1:4310/#token=…
+docker compose down
+```
+
+Dentro del contenedor el servidor escucha en `0.0.0.0` (es la única forma de que Docker publique el puerto), pero la comprobación de `Host` sigue admitiendo solo `127.0.0.1` y `localhost`, que es lo que ve tu navegador. Con el modelo local de `compose.ai.yml`, Chameleon CV comparte la red de Ollama, así que el puerto se publica en ese servicio: usa `compose.serve-ai.yml` en lugar de `compose.serve.yml`:
+
+```bash
+docker compose -f compose.yml -f compose.ai.yml -f compose.serve-ai.yml up -d
+```
+
+Los trabajos del co-piloto hablan con Ollama por el loopback compartido; nada sale de tu máquina. La guía [La API local](/guide/api) explica cómo usar el servidor.
+
 ## Qué hay en la imagen
 
 | Dentro | Fuera |
