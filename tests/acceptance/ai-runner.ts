@@ -15,7 +15,7 @@
 import { spawnSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { closedDictionary } from '../../src/core/llm/tags';
 import { policyOptions, verifyProposal } from '../../src/core/llm/verify';
@@ -121,9 +121,13 @@ interface Run {
   readonly seconds: number;
 }
 
+/** Cómo se invoca la CLI: `node dist/index.js` o el ejecutable autónomo (`--binary`). */
+let command: readonly [file: string, ...leading: string[]] = [process.execPath, CLI_PATH];
+
 function run(workspace: string, env: Readonly<Record<string, string>>, args: readonly string[]): Run {
   const started = Date.now();
-  const result = spawnSync(process.execPath, [CLI_PATH, ...args], { cwd: workspace, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const [file, ...leading] = command;
+  const result = spawnSync(file, [...leading, ...args], { cwd: workspace, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr, seconds: (Date.now() - started) / 1000 };
 }
 
@@ -208,15 +212,20 @@ export function localLlmEnvironment(source: NodeJS.ProcessEnv): Record<string, s
   return env;
 }
 
-export async function runAiAcceptance(): Promise<number> {
-  const distProblem = await checkDist();
-  if (distProblem !== undefined) {
-    console.error(distProblem);
-    return 2;
+export async function runAiAcceptance(binary?: string): Promise<number> {
+  if (binary === undefined) {
+    const distProblem = await checkDist();
+    if (distProblem !== undefined) {
+      console.error(distProblem);
+      return 2;
+    }
+    command = [process.execPath, CLI_PATH];
+  } else {
+    command = [resolve(binary)];
   }
   const llmEnv = localLlmEnvironment(process.env);
   const status = await llmStatus({ env: llmEnv });
-  console.log('Arnés de aceptación de IA · precondición: proveedor local\n' + formatLlmStatus(status).trimEnd());
+  console.log(`Arnés de aceptación de IA · ejecutable: ${binary === undefined ? 'node dist/index.js' : resolve(binary)} · precondición: proveedor local\n${formatLlmStatus(status).trimEnd()}`);
   if (!status.usable) {
     console.error(
       [
@@ -335,7 +344,9 @@ export async function runAiAcceptance(): Promise<number> {
 }
 
 if (require.main === module) {
-  runAiAcceptance()
+  const args = process.argv.slice(2);
+  const at = args.indexOf('--binary');
+  runAiAcceptance(at === -1 ? undefined : args[at + 1])
     .then((code) => {
       process.exitCode = code;
     })

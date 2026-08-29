@@ -19,7 +19,8 @@
     "acceptance:bench": "ts-node -T -P tests/tsconfig.json tests/acceptance/bench/generate.ts",
     "test:acceptance:deterministic": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts",
     "test:acceptance:ai": "ts-node -T -P tests/tsconfig.json tests/acceptance/ai-runner.ts",
-    "acceptance:update": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts --update"
+    "acceptance:update": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts --update",
+    "package": "ts-node -T scripts/package.ts"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",

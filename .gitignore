@@ -3,6 +3,7 @@ node_modules/
 
 # Artefactos de compilación (solo en la raíz: los artefactos esperados de tests/acceptance sí se versionan)
 /dist/
+/build/
 *.tsbuildinfo
 
 # CVs generados: nunca se versionan (solo en la raíz)
