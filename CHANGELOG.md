@@ -6,7 +6,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ### Añadido
 
-- Interfaz web (T-7.5a, en curso): `cv serve` sirve en `/` la aplicación de `gui/` (Svelte 5 + Vite) que viaja como assets, por lista cerrada y con CSP estricta; sesión por el fragmento de la URL guardada en la pestaña; pantallas **Estado** (artefacto, Typst, co-piloto, temas; validar, compilar y apagar) y **Fuentes** (explorador, editor CodeMirror cargado bajo demanda, guardado con `If-Match` y diálogo de conflicto, validación tras guardar, creación de ficheros). Contrato tipado de la API (`src/serve/contract.ts`) compartido con la GUI.
+- Interfaz web (T-7.5a, en curso): `cv serve` sirve en `/` la aplicación de `gui/` (Svelte 5 + Vite) que viaja como assets, por lista cerrada y con CSP estricta; sesión por el fragmento de la URL guardada en la pestaña; pantallas **Estado** (artefacto, Typst, co-piloto, temas; validar, compilar y apagar), **Fuentes** (explorador, editor CodeMirror cargado bajo demanda, guardado con `If-Match` y diálogo de conflicto, validación tras guardar, creación de ficheros), **Generar** (especialidad, oferta por texto, PDF subido o fichero, formato y motor, tema, límites; análisis de adecuación a la oferta; PDF en el visor del navegador o Markdown con descarga; informe de decisiones; creación de temas) y **Salidas** (los ficheros de `output/` con vista previa y descarga). Contrato tipado de la API (`src/serve/contract.ts`) compartido con la GUI.
 
 ## [1.1.1] - 2026-08-29
 
