@@ -1,0 +1,14 @@
+{
+  "name": "chameleon-cv-website",
+  "private": true,
+  "description": "Portal de documentación de Chameleon CV (VitePress).",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}

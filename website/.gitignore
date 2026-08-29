@@ -1,0 +1,13 @@
+# Dependencias y salida de VitePress
+node_modules/
+.vitepress/dist/
+.vitepress/cache/
+# Generado en cada build (npm run docs:generate): barras laterales, referencia desde la CLI y ficheros sincronizados
+.vitepress/reference-sidebar.json
+.vitepress/design-sidebar.json
+src/reference/
+src/design/
+src/changelog.md
+src/license.md
+src/developers/contributing.md
+src/developers/roadmap.md
