@@ -6,22 +6,31 @@ Generador de CVs dinámicos y personalizados a partir de tus propias fuentes (Ma
 data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ──cv generate-cv──►  output/cv-<nombre>-<especialidad>.md | .pdf
 ```
 
+## Qué hace
+
+- **Un perfil, muchos CV.** Escribes tus fuentes una vez (Markdown y CSV, validadas con rigor) y cada especialidad —`backend`, `engineering-manager`…— genera su propia versión con un comando.
+- **Adaptación a una oferta** (texto, entrada estándar o PDF): el CV se afina con una puntuación transparente y se recorta a lo mejor; `analyze-offer` dice qué demuestras y qué te falta.
+- **Salida** en Markdown (plantillas Handlebars) o PDF: pdfkit sin dependencias, o Typst con temas de calidad editorial (`default`, `classic` o los tuyos).
+- **Co-piloto de IA** que sugiere y nunca decide: reescrituras, resúmenes y etiquetas verificados por código, local por defecto y con consentimiento explícito para cualquier proveedor remoto.
+- **Distribución cuidada**: ejecutable autónomo para linux-x64 con `sha256` y atestación de procedencia, o directamente desde el repositorio. Licencia MIT.
+
 ## Requisitos
 
-- Node.js **≥ 22.12** (el proyecto usa `require(esm)` nativo).
-- npm.
+- **Ejecutable autónomo**: Linux x86-64 con glibc ≥ 2.28; no necesita Node. El motor Typst es opcional (`cv typst install`).
+- **Desde el repositorio**: Node.js **≥ 22.12** (el proyecto usa `require(esm)` nativo) y npm; para empaquetar el ejecutable, Node ≥ 26.
 
 ## Instalación
 
-**Ejecutable autónomo** (sin Node instalado): un único fichero por plataforma que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Hasta la primera *release* pública se genera desde el repositorio (Node ≥ 26):
+**Ejecutable autónomo** (recomendado): un único fichero que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Descarga de la página de *Releases* del repositorio el archivo `chameleon-cv-<versión>-linux-x64.tar.gz` y su `.sha256`, verifica y extrae:
 
 ```bash
-npm install && npm run package                  # build/release/chameleon-cv-<versión>-<os>-<arch>.tar.gz (+ .sha256)
-tar -xzf build/release/chameleon-cv-*-linux-x64.tar.gz && cd chameleon-cv-*-linux-x64
-./cv --version                                  # el binario funciona en cualquier directorio; `cv typst install` sigue siendo opcional
+sha256sum -c chameleon-cv-<versión>-linux-x64.tar.gz.sha256      # «OK»: el archivo es exactamente el publicado
+tar -xzf chameleon-cv-<versión>-linux-x64.tar.gz && cd chameleon-cv-<versión>-linux-x64
+./cv --version                                  # funciona desde cualquier directorio: copia `cv` a tu PATH si quieres
+gh attestation verify chameleon-cv-<versión>-linux-x64.tar.gz --owner <propietario-del-repositorio>   # opcional: procedencia SLSA firmada
 ```
 
-Los assets que necesitan ser ficheros reales (temas y fuentes para Typst, dataset de `cv init`) se materializan en la caché de usuario (`~/.cache/chameleon-cv/assets/<versión>/`), con su SHA-256 comprobado en cada uso.
+El archivo incluye `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` (licencias de Node.js y de los paquetes embebidos) y `LICENSE-SourceSans3.md`. Los assets que necesitan ser ficheros reales (temas y fuentes para Typst, dataset de `cv init`) se materializan en la caché de usuario (`~/.cache/chameleon-cv/assets/<versión>/`), con su SHA-256 comprobado en cada uso. El mismo archivo se construye en local con `npm install && npm run package` (Node ≥ 26; queda en `build/release/`).
 
 **Desde el repositorio** (desarrollo):
 
@@ -67,12 +76,12 @@ Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: expe
 | `cv generate-cv` | Genera el CV en Markdown o PDF (pdfkit o Typst) a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `--engine <pdfkit\|typst>` · `--typst-path <file>` · `--typst-any-version` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) · `--theme <nombre>` (tema de Typst: `themes/<nombre>/`, por defecto `default`) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
 | `cv typst install` | Descarga el release oficial de Typst 0.15.1 para tu plataforma, verifica su SHA-256 contra `src/typst/releases.json` y lo instala en la caché de usuario. Única operación de red de `cv`. | `--force` (reinstala) |
-| `cv improve` | Co-piloto: propone reescrituras con más impacto para los logros seleccionados y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--only <ids>` · `--proposals <1-3>` · `--max-length <n>` · `--max-items <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--build` |
+| `cv improve` | Co-piloto: propone reescrituras con más impacto para los logros seleccionados y las verifica (canon C2); escribe un fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--only <ids>` · `--proposals <1-3>` · `--max-length <n>` · `--max-items <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--provider <openai\|anthropic>` · `--model <name>` · `--yes` · `--build` |
 | `cv improve apply <revisión>` | Aplica a tus fuentes las propuestas marcadas `[x]` en una revisión de `improve` o `summarize`: solo lo marcado, cambio mínimo, copia `<fichero>.bak` previa y huella comprobada (si el original cambió, no escribe nada). La única orden que escribe en `data/sources/`. | `-d` · `--dry-run` · `--delete-review` |
-| `cv summarize` | Co-piloto: propone el resumen profesional a partir del perfil filtrado (especialidad, oferta, límites) y lo verifica (canon C2); fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--paragraphs <1-3>` · `--proposals <1-3>` · `--max-length <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--build` |
+| `cv summarize` | Co-piloto: propone el resumen profesional a partir del perfil filtrado (especialidad, oferta, límites) y lo verifica (canon C2); fichero de revisión, nunca tus fuentes. | `-s` · `-f` · `-n/--max-*/--compact` · `--paragraphs <1-3>` · `--proposals <1-3>` · `--max-length <n>` · `--redact-companies` · `-l` · `-o` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--provider <openai\|anthropic>` · `--model <name>` · `--yes` · `--build` |
 | `cv suggest tags [texto]` | Co-piloto: propone, solo del diccionario cerrado (las tags de tus especialidades), las etiquetas de un texto («-» = stdin) o de los logros del perfil, con la evidencia de cada una calculada por código; imprime por stdout la línea lista para pegar (`#tag1 #tag2`), nunca toca tus fuentes. | `-s <esp>` (acota el diccionario) · `--only <ids>` · `--untagged` · `--max-tags <1-10>` · `--max-items <n>` · `--redact-companies` · `-l` · `--explain` · `--no-cache` · `--show-prompt` · `--show-payload` · `--dry-run` · `-p` · `-d` · `--provider` · `--model` · `--yes` · `--build` |
 | `cv llm cache clear` | Vacía la caché local de respuestas del co-piloto. | — |
-| `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden, de dónde saldría cada clave remota (nunca su valor) y la lista blanca de hosts. Sin `--provider` nunca envía datos; con `--provider openai|anthropic` comprueba también ese proveedor remoto. | — |
+| `cv llm status` | Proveedor y modelo de IA locales que se usarían (`CHAMELEON_LLM_*`), si responden, de dónde saldría cada clave remota (nunca su valor) y la lista blanca de hosts. Sin `--provider` nunca envía datos; con `--provider openai|anthropic` comprueba también ese proveedor remoto. | `--provider <openai\|anthropic>` (accede a la red) · `--model <name>` |
 | `cv typst status` | Qué binario de Typst se usaría (`--typst-path`, `CHAMELEON_TYPST`, caché, `PATH`), su versión y si es utilizable (código 0). | — |
 | `cv theme list` | Temas de Typst disponibles: nombre, origen (distribuido o `themes/` del proyecto), descripción, validez y cuál es el tema por defecto (`cv.toml` o `default`). | — |
 | `cv theme path <nombre>` | Ruta absoluta del directorio del tema (para copiarlo o editarlo); si existe pero no es utilizable, la imprime con un aviso. | — |
@@ -246,7 +255,7 @@ body = "Source Sans 3"
 
 ## Co-piloto de IA
 
-El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C11) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada (véase [Proveedores remotos](#proveedores-remotos-opcional)).
+El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C13) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada (véase [Proveedores remotos](#proveedores-remotos-opcional)).
 
 ```bash
 cv llm status                                   # proveedor y modelo locales que se usarían y si responden (nunca envía datos)
@@ -290,7 +299,7 @@ Para usar la API de OpenAI (`--provider openai`, modelo por defecto `gpt-4o-mini
 ## Seguridad y privacidad
 
 - Todo se procesa en local; la herramienta no abre conexiones de red ni envía telemetría.
-- `data/dist/profile.json` y los CV de `output/` (Markdown y PDF) contienen datos personales: se escriben con permisos `0600` (solo tu usuario) y ambos directorios están en `.gitignore`. Si algún día este repositorio tuviera remoto, excluye también `data/sources/`.
+- `data/dist/profile.json` y los CV de `output/` (Markdown y PDF) contienen datos personales: se escriben con permisos `0600` (solo tu usuario) y ambos directorios están en `.gitignore`. Si versionas tu espacio de trabajo, recuerda que `data/sources/` contiene tus datos personales: mantenlo en un repositorio privado o exclúyelo también.
 - `cv improve apply` es la única orden que escribe en `data/sources/`: solo con tu marca `[x]`, tras crear `<fichero>.bak` (0600) y comprobar por huella que el original no cambió; una revisión manipulada no puede apuntar fuera del directorio de fuentes.
 - Solo se leen ficheros `.md`/`.csv` dentro del dataset; los enlaces simbólicos que apuntan fuera son un error; YAML sin tipado implícito ni alias; toda entrada pasa por un esquema estricto (longitudes, caracteres de control, URLs solo `http(s)`).
 - Las ofertas en PDF se procesan en un *worker* aislado con límites (10 MiB, 50 páginas, 20 s, 512 MB), sin cargar fuentes ni renderizar; el PDF generado no contiene código ni acciones automáticas y se produce sin red ni binarios externos.
@@ -301,12 +310,18 @@ Para usar la API de OpenAI (`--provider openai`, modelo por defecto `gpt-4o-mini
 ```bash
 npm run typecheck    # TypeScript estricto (src y tests)
 npm test             # suite (Vitest)
-npm run coverage     # cobertura: umbral 100 % en src/core, src/parsers, src/renderers, src/artifact, src/cli y src/shared
+npm run coverage     # cobertura: umbral 100 % en toda la lógica de src/
 npm run dev          # ts-node con recarga
 npm run build && npm run test:acceptance:deterministic   # aceptación: el binario compilado sobre el banco de pruebas, coincidencia perfecta con lo esperado
 npm run test:acceptance:ai                                # aceptación de IA con un modelo local (Ollama por defecto): valida el proceso, no el texto
+npm run package                                           # ejecutable autónomo, prueba de humo y tar.gz reproducible con .sha256 y THIRD-PARTY-NOTICES.md (build/release/)
+npm run release:notes -- 1.0.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
 ```
 
-Las pruebas de aceptación —qué prueban, cómo se ejecutan, cómo se regeneran deliberadamente los artefactos esperados y qué requiere la de IA— están en [`docs/acceptance-testing.md`](docs/acceptance-testing.md). La integración continua (`.github/workflows/ci.yml`, en cada push y pull request) ejecuta typecheck, lint, cobertura con Typst real y el arnés determinista; el release (`release.yml`, con un tag `vX.Y.Z`) empaqueta linux-x64, acepta el binario con el arnés y publica el `tar.gz`, su `.sha256`, `SHA256SUMS.txt` y una atestación de procedencia; `npm run package` produce el mismo ejecutable en local ([`docs/packaging-and-release.md`](docs/packaging-and-release.md)).
+Las pruebas de aceptación —qué prueban, cómo se ejecutan, cómo se regeneran deliberadamente los artefactos esperados y qué requiere la de IA— están en [`docs/acceptance-testing.md`](docs/acceptance-testing.md). La integración continua (`.github/workflows/ci.yml`, en cada push y pull request) ejecuta typecheck, cobertura al 100 % con Typst real y el arnés determinista; el release (`release.yml`, con un tag `vX.Y.Z`) exige que `CHANGELOG.md` tenga la sección de la versión, empaqueta linux-x64, acepta el binario con el arnés y publica el `tar.gz`, su `.sha256`, `SHA256SUMS.txt` y una atestación de procedencia con esas notas; `npm run package` produce el mismo ejecutable en local ([`docs/packaging-and-release.md`](docs/packaging-and-release.md)).
 
 Documentación de diseño: [`docs/arquitectura.md`](docs/arquitectura.md) (ecosistema de datos y capa de inteligencia), [`docs/formato-dataset.md`](docs/formato-dataset.md), [`docs/formato-csv.md`](docs/formato-csv.md), [`docs/selector-engine.md`](docs/selector-engine.md), [`docs/scoring.md`](docs/scoring.md), [`docs/trimming-cli.md`](docs/trimming-cli.md), [`docs/pdf-integration.md`](docs/pdf-integration.md), [`docs/typst-integration.md`](docs/typst-integration.md), [`docs/plantillas-typst.md`](docs/plantillas-typst.md), [`docs/llm-integration.md`](docs/llm-integration.md), [`docs/acceptance-testing.md`](docs/acceptance-testing.md) y [`docs/packaging-and-release.md`](docs/packaging-and-release.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
+
+## Licencia
+
+Chameleon CV es software libre bajo la [licencia MIT](LICENSE). Las fuentes Source Sans 3 de `templates/fonts/` se distribuyen bajo la SIL Open Font License 1.1 ([`templates/fonts/LICENSE-SourceSans3.md`](templates/fonts/LICENSE-SourceSans3.md)). El ejecutable autónomo incorpora Node.js y paquetes npm de terceros: sus licencias y avisos van en el `THIRD-PARTY-NOTICES.md` de cada archivo de release. Typst se descarga aparte, solo a petición, desde su release oficial (Apache-2.0). Historial de versiones: [`CHANGELOG.md`](CHANGELOG.md).
