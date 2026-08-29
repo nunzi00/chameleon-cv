@@ -14,8 +14,7 @@ Docker Engine 24 o superior con Compose v2 (`docker compose`), o Docker Desktop.
 ```bash
 git clone https://github.com/nunzi00/chameleon-cv.git && cd chameleon-cv
 mkdir -p my-profile                                      # créalo tú: si lo crea Docker al montar el volumen, será de root
-printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" > .env   # Linux: los ficheros de my-profile serán tuyos
-docker compose build                                     # unos dos minutos (o npm run docker:build)
+docker compose pull                                      # la imagen publicada (ghcr.io/nunzi00/chameleon-cv, ≈ 104 MB); ver «La imagen publicada»
 docker compose run --rm chameleon-cv init                # my-profile/data/sources con el dataset de ejemplo
 docker compose run --rm chameleon-cv build
 docker compose run --rm chameleon-cv generate-cv -s backend --format pdf --engine typst
@@ -24,6 +23,8 @@ alias cv='docker compose run --rm -T chameleon-cv'      # y a partir de aquí, c
 
 `docker compose run --rm chameleon-cv <orden>` es el patrón: un contenedor efímero por orden, sin procesos ociosos, con los códigos de salida reales. `-T` desactiva la pseudoterminal para las órdenes que leen de la entrada estándar (`generate-cv -f -`, `analyze-offer -`). Las rutas dentro del contenedor son relativas a `/work`, que es tu `my-profile`.
 
+También puedes **construir la imagen en local** con el mismo nombre (`docker compose build`, unos dos minutos, o `npm run docker:build`). Es lo recomendable en Linux si tu usuario no tiene el UID 1000: la imagen publicada corre como `1000:1000` y los ficheros que deje en `my-profile` serían de ese usuario; con `printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" > .env` la construcción local usa el tuyo. En Docker Desktop (macOS y Windows) la propiedad se traduce sola y la imagen publicada sirve tal cual.
+
 ## Cómo está montado
 
 `compose.yml` (perfil base):
@@ -31,7 +32,7 @@ alias cv='docker compose run --rm -T chameleon-cv'      # y a partir de aquí, c
 - **`network_mode: none`**: el contenedor no tiene red. Ninguna orden del perfil base la necesita: Typst viaja dentro de la imagen y el ejecutable no habla con nadie.
 - **Volúmenes**: `./my-profile:/work` (fuentes, artefacto, CV y revisiones: datos personales, en tu máquina y con tus permisos) y `cv-cache:/home/cv/.cache` (assets materializados y caché de respuestas del co-piloto; volumen con nombre, persistente).
 - **Endurecimiento**: usuario `cv` sin privilegios (tu UID/GID), raíz de solo lectura, `/tmp` en tmpfs, sin capacidades (`cap_drop: ALL`), `no-new-privileges`, `init` para las señales.
-- **Imagen**: `chameleon-cv:local`, construida desde el repositorio con `build.args` (`UID`, `GID`, `VERSION`, `REVISION`); T-7.3 la publicará en `ghcr.io/nunzi00/chameleon-cv`.
+- **Imagen**: `ghcr.io/nunzi00/chameleon-cv:<versión>` por defecto (la publicada; `CHAMELEON_CV_IMAGE` la cambia, y una prueba de la suite exige que la versión por defecto sea la de `package.json`), construible en local con `build.args` (`UID`, `GID`, `VERSION`, `REVISION`).
 
 ## La IA local: `compose.ai.yml`
 
@@ -69,6 +70,29 @@ docker compose -f compose.yml -f compose.ai.yml -f compose.serve-ai.yml up -d
 ```
 
 Los trabajos del co-piloto hablan con Ollama por el loopback compartido; nada sale de tu máquina. La guía [La API local](/guide/api) explica cómo usar el servidor.
+
+## La imagen publicada
+
+Cada release publica la imagen en **GitHub Container Registry** desde el mismo flujo que el ejecutable, y solo después de que la imagen recién construida pase la prueba de humo en cada arquitectura:
+
+| Etiqueta | Qué es |
+|---|---|
+| `ghcr.io/nunzi00/chameleon-cv:1.1.1` | La versión exacta (la misma que `cv --version` y que el tar.gz); es la que fija `compose.yml`. |
+| `:1.1` · `:1` · `:latest` | Alias móviles a la última 1.1.x / 1.x / estable. Las prereleases (`1.2.0-rc.1`) no mueven ningún alias. |
+| `:1.1.1-distroless` (y `:1-distroless`, `:latest-distroless`) | La variante sobre `distroless/cc`: sin shell ni gestor de paquetes, usuario `nonroot` (65532), para quien priorice la superficie mínima. |
+
+- **Arquitecturas**: `linux/amd64` y `linux/arm64` (Apple Silicon sin emulación) en un solo índice; Docker elige la suya.
+- **Verificar lo que descargas**: la imagen lleva SBOM y procedencia de BuildKit dentro del registro, y una atestación de procedencia firmada (Sigstore) por el flujo de release, igual que el ejecutable:
+
+```bash
+gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.1.1 --owner nunzi00
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.1.1 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.1.1 --format '{{ json .Provenance }}'
+```
+
+- **Usuario**: la imagen publicada corre como `cv` con UID/GID `1000`. Si en Linux tu usuario es otro, construye en local (arriba) o ejecuta la variante distroless con `--user "$(id -u):$(id -g)"`, que no depende de un directorio personal.
+- **Otra imagen o versión**: `CHAMELEON_CV_IMAGE=ghcr.io/nunzi00/chameleon-cv:1 docker compose run --rm chameleon-cv --version` (o la tuya, `chameleon-cv:local`).
+- **`docker run` sin Compose**: `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.1.1 --help`.
 
 ## Qué hay en la imagen
 
