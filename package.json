@@ -1,6 +1,6 @@
 {
   "name": "chameleon-cv",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Chameleon CV: generador de CVs dinámicos y personalizados a partir de datos fuente (Markdown, CSV). CLI 100% local, sin telemetría.",
   "private": true,
   "license": "MIT",
@@ -40,7 +40,9 @@
     "gui:check": "npm --prefix gui run check",
     "gui:dev": "npm --prefix gui run watch",
     "docker:build": "docker build --target runtime --build-arg \"UID=$(id -u)\" --build-arg \"GID=$(id -g)\" --build-arg \"VERSION=$(node -p \"require('./package.json').version\")\" --build-arg \"REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)\" -t chameleon-cv:local .",
-    "docker:smoke": "bash scripts/docker-smoke.sh chameleon-cv:local"
+    "docker:smoke": "bash scripts/docker-smoke.sh chameleon-cv:local",
+    "gui:e2e": "npm --prefix gui run e2e",
+    "gui:screenshots": "npm --prefix gui run screenshots"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",

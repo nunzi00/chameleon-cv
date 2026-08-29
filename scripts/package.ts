@@ -8,7 +8,7 @@
  *   npm run package            # build/release/chameleon-cv-<versión>-<os>-<arch>.tar.gz (+ SHA-256)
  *   npm run package -- --no-smoke   # sin prueba de humo (solo para depurar el empaquetado)
  */
-import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
+import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -26,7 +26,7 @@ const PLATFORM = `${process.platform}-${process.arch}`;
 const EXECUTABLE = process.platform === 'win32' ? 'cv.exe' : 'cv';
 
 /** Prefijos de assets que viajan en el binario (claves = rutas del repositorio). */
-const ASSET_ROOTS = ['themes', 'templates/fonts', 'templates/dataset', 'prompts'] as const;
+const ASSET_ROOTS = ['themes', 'templates/fonts', 'templates/dataset', 'prompts', 'gui/dist'] as const;
 const ASSET_FILES = ['package.json', 'templates/cv.md.hbs'] as const;
 
 function log(message: string): void {
@@ -77,6 +77,49 @@ function step(title: string): void {
   log(`\n▸ ${title}`);
 }
 
+/** `cv serve` desde el binario: la interfaz web viaja dentro (GET / con el HTML de la SPA) y la API responde con el token. */
+async function smokeServe(executable: string, cwd: string, env: NodeJS.ProcessEnv): Promise<void> {
+  const child = spawn(executable, ['serve', '--port', '0'], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  let stderr = '';
+  child.stderr.on('data', (chunk: Buffer) => {
+    stderr += chunk.toString('utf8');
+  });
+  const started = await new Promise<{ url: string; token: string } | undefined>((resolve) => {
+    const deadline = setTimeout(() => resolve(undefined), 15000);
+    const check = (): void => {
+      const match = /Interfaz: (http:\/\/127\.0\.0\.1:\d+\/)#token=(\S+)/.exec(stderr);
+      if (match !== null) {
+        clearTimeout(deadline);
+        resolve({ url: String(match[1]), token: String(match[2]) });
+      }
+    };
+    child.stderr.on('data', check);
+    child.on('exit', () => {
+      clearTimeout(deadline);
+      resolve(undefined);
+    });
+  });
+  if (started === undefined) {
+    child.kill();
+    fail(`humo: «cv serve» no anunció la interfaz en 15 s\n${stderr}`);
+  }
+  try {
+    const page = await fetch(started.url);
+    const html = await page.text();
+    if (page.status !== 200 || !html.includes('<script type="module"')) {
+      fail(`humo: GET / devolvió ${page.status} sin la interfaz web`);
+    }
+    const status = await fetch(`${started.url}api/v1/status`, { headers: { Authorization: `Bearer ${started.token}` } });
+    if (status.status !== 200) {
+      fail(`humo: GET /api/v1/status devolvió ${status.status}`);
+    }
+    await fetch(`${started.url}api/v1/shutdown`, { method: 'POST', headers: { Authorization: `Bearer ${started.token}`, 'Content-Type': 'application/json' }, body: '{}' });
+    log('  ✓ cv serve: la interfaz web viaja en el binario y la API responde con el token');
+  } finally {
+    child.kill();
+  }
+}
+
 async function main(): Promise<void> {
   const started = Date.now();
   const major = Number(process.versions.node.split('.')[0]);
@@ -88,7 +131,7 @@ async function main(): Promise<void> {
   const smoke = !process.argv.includes('--no-smoke');
   log(`Empaquetado de Chameleon CV ${version} para ${PLATFORM} con Node ${process.version} (${process.execPath})`);
 
-  step('1/7 Compilación limpia (tsc)');
+  step('1/8 Compilación limpia (tsc)');
   rmSync(join(ROOT, 'dist'), { recursive: true, force: true });
   const tsc = run(process.execPath, [join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc'), '-p', 'tsconfig.json']);
   if (tsc.status !== 0) {
@@ -97,13 +140,24 @@ async function main(): Promise<void> {
   rmSync(BUILD, { recursive: true, force: true });
   mkdirSync(BUILD, { recursive: true });
 
-  step('2/7 Bundles (esbuild): CLI y worker de PDF');
+  step('2/8 Bundles (esbuild): CLI y worker de PDF');
   const common = { bundle: true, platform: 'node' as const, format: 'cjs' as const, target: 'node26', external: ['@napi-rs/canvas', 'canvas'], logLevel: 'warning' as const, legalComments: 'none' as const, plugins: [pdfkitStandardFonts], absWorkingDir: ROOT, metafile: true as const };
   const cli = await build({ ...common, entryPoints: [join(ROOT, 'dist', 'index.js')], outfile: join(BUILD, 'cv.cjs') });
   const worker = await build({ ...common, entryPoints: [join(ROOT, 'src', 'pdf', 'worker.mts')], outfile: join(BUILD, 'worker.js') });
   log(`  cv.cjs ${megabytes(statSync(join(BUILD, 'cv.cjs')).size)} · worker.js ${megabytes(statSync(join(BUILD, 'worker.js')).size)}`);
 
-  step('3/7 Manifiesto de assets (SHA-256) y sea-config');
+  step('3/8 Interfaz web (gui/dist: la SPA que cv serve sirve desde el ejecutable)');
+  if (!existsSync(join(ROOT, 'gui', 'node_modules'))) {
+    fail('faltan las dependencias de la interfaz web: ejecuta «npm ci --prefix gui»');
+  }
+  const gui = run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['--prefix', 'gui', 'run', 'build'], { cwd: ROOT });
+  if (gui.status !== 0) {
+    fail(`la construcción de la interfaz web falló:\n${gui.stderr}${gui.stdout}`);
+  }
+  const guiFiles = listFiles(join(ROOT, 'gui', 'dist'));
+  log(`  gui/dist: ${guiFiles.length} ficheros, ${megabytes(guiFiles.reduce((sum, file) => sum + statSync(join(ROOT, 'gui', 'dist', file)).size, 0))}`);
+
+  step('4/8 Manifiesto de assets (SHA-256) y sea-config');
   const assets: Record<string, string> = {};
   const files: Record<string, { sha256: string; bytes: number }> = {};
   const add = (key: string, path: string): void => {
@@ -128,7 +182,7 @@ async function main(): Promise<void> {
   const config = { main: 'cv.cjs', output: EXECUTABLE, disableExperimentalSEAWarning: true, useCodeCache: true, assets };
   writeFileSync(join(BUILD, 'sea-config.json'), `${JSON.stringify(config, null, 2)}\n`);
 
-  step('4/7 Ejecutable (node --build-sea)');
+  step('5/8 Ejecutable (node --build-sea)');
   const sea = run(process.execPath, ['--build-sea=sea-config.json'], { cwd: BUILD });
   if (sea.status !== 0) {
     fail(`node --build-sea falló:\n${sea.stdout}${sea.stderr}`);
@@ -144,7 +198,7 @@ async function main(): Promise<void> {
   log(`  ${executable} ${megabytes(statSync(executable).size)}`);
 
   if (smoke) {
-    step('5/7 Prueba de humo del binario (espacio temporal, entorno mínimo)');
+    step('6/8 Prueba de humo del binario (espacio temporal, entorno mínimo)');
     const temporary = mkdtempSync(join(tmpdir(), 'cv-package-smoke-'));
     try {
       const workspace = join(temporary, 'ws');
@@ -186,14 +240,15 @@ async function main(): Promise<void> {
         log(`  ✓ ${label}`);
       }
       log(`  (Typst ${env['CHAMELEON_TYPST'] === undefined ? 'no disponible: caso omitido' : 'probado'})`);
+      await smokeServe(executable, workspace, env);
     } finally {
       rmSync(temporary, { recursive: true, force: true });
     }
   } else {
-    step('5/7 Prueba de humo omitida (--no-smoke)');
+    step('6/8 Prueba de humo omitida (--no-smoke)');
   }
 
-  step('6/7 Avisos de licencias de terceros (THIRD-PARTY-NOTICES.md)');
+  step('7/8 Avisos de licencias de terceros (THIRD-PARTY-NOTICES.md)');
   const fs = new NodeFileSystem();
   const packages = await collectPackageNotices(ROOT, packageRootsFromInputs([...Object.keys(cli.metafile.inputs), ...Object.keys(worker.metafile.inputs)]), fs);
   const node = await findNodeLicense(nodeLicenseCandidates(process.execPath, process.env), fs);
@@ -208,7 +263,7 @@ async function main(): Promise<void> {
   writeFileSync(join(BUILD, 'THIRD-PARTY-NOTICES.md'), notices);
   log(`  ${packages.length} paquetes npm (${packages.filter((item) => item.text === undefined).length} sin texto en el paquete) · Node.js ${process.version} (${node.path})`);
 
-  step('7/7 Archivo reproducible');
+  step('8/8 Archivo reproducible');
   mkdirSync(RELEASE, { recursive: true });
   const name = `chameleon-cv-${version}-${PLATFORM}`;
   const stage = join(RELEASE, 'stage', name);

@@ -25,6 +25,10 @@ interface Call {
   readonly anonymous?: boolean;
   /** Reduce la respuesta a lo determinista antes de imprimirla. */
   readonly render?: (body: unknown) => unknown;
+  /** Ruta de la interfaz web (raíz del servidor) en lugar de /api/v1; `<script>` = el módulo que enlaza el HTML anterior. */
+  readonly site?: boolean;
+  /** Solo tipo de contenido y caché (los ficheros con hash cambian con cada construcción). */
+  readonly headersOnly?: boolean;
 }
 
 const OFFER = 'Senior Backend Engineer\n\nRequisitos:\n- PHP y Symfony en producción.\n- Kubernetes y Kafka.\n\nDeseable:\n- Contract testing.\n';
@@ -88,7 +92,17 @@ const CALLS: readonly Call[] = [
   { method: 'DELETE', path: '/status' },
   { method: 'GET', path: '/status', anonymous: true },
   { method: 'POST', path: '/validate', body: {}, headers: { Origin: 'http://evil.example' } },
+  // La interfaz web (T-7.5): la lista cerrada de gui/dist, sin token; los nombres con hash se normalizan.
+  { method: 'GET', path: '/', site: true, anonymous: true },
+  { method: 'GET', path: '<script>', site: true, anonymous: true, headersOnly: true },
+  { method: 'GET', path: '/index.html', site: true, anonymous: true },
+  { method: 'GET', path: '/assets/nope.js', site: true, anonymous: true },
 ];
+
+/** `/assets/index-Bi0q-oYA.js` → `/assets/index-<HASH>.js`. */
+function normalizeAssets(text: string): string {
+  return text.replace(/\/assets\/([A-Za-z]+)-[A-Za-z0-9_-]+\.(js|css)/g, '/assets/$1-<HASH>.$2');
+}
 
 /** Claves ordenadas y sin fechas de modificación: el JSON queda determinista. */
 function canonical(value: unknown): unknown {
@@ -108,6 +122,13 @@ function canonical(value: unknown): unknown {
 
 async function render(response: Response, call: Call): Promise<string> {
   const type = response.headers.get('content-type') ?? '';
+  if (call.headersOnly === true) {
+    await response.arrayBuffer();
+    return `<${type} · ${response.headers.get('cache-control') ?? ''}>`;
+  }
+  if (type.startsWith('text/html')) {
+    return `${normalizeAssets(await response.text()).trimEnd()}\n[csp: ${response.headers.get('content-security-policy') ?? ''} · cache: ${response.headers.get('cache-control') ?? ''}]`;
+  }
   if (type.startsWith('application/json')) {
     const body: unknown = await response.json();
     return JSON.stringify(canonical(call.render === undefined ? body : call.render(body)), null, 2);
@@ -121,14 +142,14 @@ async function render(response: Response, call: Call): Promise<string> {
 
 export async function runApiClient(command: readonly string[], workspace: string, env: NodeJS.ProcessEnv): Promise<ClientResult> {
   const [file, ...leading] = command;
-  const child = spawn(String(file), [...leading, 'serve', '--port', '0', '--api-only'], { cwd: workspace, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(String(file), [...leading, 'serve', '--port', '0'], { cwd: workspace, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let stderr = '';
   child.stdout.on('data', () => undefined);
   const exited = new Promise<number>((resolve) => child.once('exit', (code) => resolve(code ?? -1)));
   const started = await new Promise<{ url: string; token: string } | undefined>((resolve) => {
     child.stderr.on('data', (chunk: Buffer) => {
       stderr += chunk.toString('utf8');
-      const match = /Token: (http:\/\/127\.0\.0\.1:\d+\/)#token=(\S+)/.exec(stderr);
+      const match = /Interfaz: (http:\/\/127\.0\.0\.1:\d+\/)#token=(\S+)/.exec(stderr);
       if (match !== null) {
         resolve({ url: String(match[1]), token: String(match[2]) });
       }
@@ -143,13 +164,19 @@ export async function runApiClient(command: readonly string[], workspace: string
   }
   const lines: string[] = [];
   try {
+    let script = '';
     for (const call of CALLS) {
-      const response = await fetch(`${started.url}api/v1${call.path}`, {
+      const path = call.path === '<script>' ? script : call.path;
+      const response = await fetch(call.site === true ? `${started.url}${path.replace(/^\//, '')}` : `${started.url}api/v1${path}`, {
         method: call.method,
         headers: { ...(call.anonymous === true ? {} : { Authorization: `Bearer ${started.token}` }), ...(call.body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(call.headers ?? {}) },
         ...(call.body === undefined ? {} : { body: JSON.stringify(call.body) }),
       });
-      lines.push(`### ${call.method} ${call.path}${call.anonymous === true ? ' (sin token)' : ''} → ${response.status}`, await render(response, call), '');
+      const clone = response.clone();
+      lines.push(`### ${call.method} ${normalizeAssets(path)}${call.anonymous === true ? ' (sin token)' : ''} → ${response.status}`, await render(response, call), '');
+      if (call.path === '/' && call.site === true) {
+        script = /src="(\/assets\/[^"]+\.js)"/.exec(await clone.text())?.[1] ?? '/assets/index-desconocido.js';
+      }
     }
     const shutdown = await fetch(`${started.url}api/v1/shutdown`, { method: 'POST', headers: { Authorization: `Bearer ${started.token}` } });
     lines.push(`### POST /shutdown → ${shutdown.status}`, JSON.stringify(await shutdown.json()), '');
