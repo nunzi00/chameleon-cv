@@ -41,7 +41,7 @@ El archivo incluye `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` (licencia
 **Docker** (todo en un contenedor, con la IA local opcional): la imagen se publica en `ghcr.io/nunzi00/chameleon-cv` (linux/amd64 y linux/arm64, con SBOM y atestación de procedencia) en cada release; el contenedor corre sin red, sin privilegios y con el sistema de ficheros de solo lectura; tus datos quedan en `./my-profile`.
 
 ```bash
-docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.2.0 --help   # sin clonar nada
+docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.3.0 --help   # sin clonar nada
 mkdir -p my-profile && docker compose pull && docker compose run --rm chameleon-cv init  # o con Compose (docker compose build la construye en local con tu UID/GID)
 docker compose run --rm chameleon-cv build && docker compose run --rm chameleon-cv generate-cv -s backend --format pdf --engine typst
 docker compose -f compose.yml -f compose.ai.yml run --rm chameleon-cv llm status   # IA local con Ollama (≈ 8 GB la primera vez)
@@ -129,7 +129,7 @@ npm run test:acceptance:ai                                # aceptación de IA co
 npm run docs:check                                        # portal: referencia generada desde la CLI, sincronización, build sin enlaces muertos y tutoriales ejecutados
 npm run package                                           # ejecutable autónomo, prueba de humo y tar.gz reproducible con .sha256 y THIRD-PARTY-NOTICES.md (build/release/)
 npm run docker:build && npm run docker:smoke              # imagen Docker (chameleon-cv:local) y su prueba de humo: volumen, usuario sin privilegios, Typst, endurecida, red compartida
-npm run release:notes -- 1.2.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
+npm run release:notes -- 1.3.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
 ```
 
 Cómo contribuir: [`CONTRIBUTING.md`](CONTRIBUTING.md). Pruebas de aceptación: [`docs/acceptance-testing.md`](docs/acceptance-testing.md). Integración continua (`.github/workflows/ci.yml`), release por tag (`release.yml`: empaqueta linux-x64, acepta el binario, publica `tar.gz`, `.sha256`, `SHA256SUMS.txt`, atestación y las notas de `CHANGELOG.md`) y portal (`pages.yml`): [`docs/packaging-and-release.md`](docs/packaging-and-release.md) y [`docs/docs-portal.md`](docs/docs-portal.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
