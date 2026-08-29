@@ -4,7 +4,8 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { DEFAULT_PDF_LIMITS, createWorkerRunner, extractPdfText, workerScriptPath, type ExtractionRunner, type PdfLimits } from '../../src/pdf';
+import { DiskAssets, MemoryAssets } from '../../src/shared/assets';
+import { DEFAULT_PDF_LIMITS, WORKER_ASSET_KEY, createWorkerRunner, extractPdfText, workerScriptPath, workerSource, type ExtractionRunner, type PdfLimits } from '../../src/pdf';
 import { makePdf } from '../helpers/pdf';
 
 const limits = (overrides: Partial<PdfLimits>): PdfLimits => ({ ...DEFAULT_PDF_LIMITS, ...overrides });
@@ -105,5 +106,15 @@ describe('extractPdfText (runners simulados y workers que fallan)', () => {
     expect(throwing).toEqual({ ok: false, code: 'failed', message: 'boom en el worker' });
     const exiting = await extractPdfText(new Uint8Array(1), DEFAULT_PDF_LIMITS, createWorkerRunner(join(temporary, 'exiting.js')));
     expect(exiting).toEqual({ ok: false, code: 'failed', message: 'el worker de extracción terminó con código 3' });
+  });
+});
+
+describe('worker por código embebido (T-6.2)', () => {
+  it('createWorkerRunner acepta el código del worker (eval) y workerSource elige ruta o código según el almacén', async () => {
+    const code = "const { parentPort, workerData } = require('node:worker_threads'); parentPort.postMessage({ ok: true, text: `hola ${workerData.bytes.byteLength}`, pages: 1 });";
+    expect(await extractPdfText(new Uint8Array([1, 2, 3]), DEFAULT_PDF_LIMITS, createWorkerRunner({ kind: 'code', code }))).toEqual({ ok: true, text: 'hola 3', pages: 1 });
+    expect(await workerSource(new DiskAssets())).toEqual({ kind: 'path', path: workerScriptPath() });
+    expect(await workerSource(new MemoryAssets({ [WORKER_ASSET_KEY]: code }))).toEqual({ kind: 'code', code });
+    expect(createWorkerRunner(workerScriptPath())).toBeTypeOf('function');
   });
 });

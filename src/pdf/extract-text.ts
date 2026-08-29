@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 
+import type { AssetStore } from '../shared/assets';
 import { describeError } from '../shared/errors';
 
 export interface PdfLimits {
@@ -52,10 +53,23 @@ export function workerScriptPath(directory: string = __dirname): string {
   return existsSync(compiled) ? compiled : join(directory, 'worker.mts');
 }
 
-/** Ejecuta un script de worker con los bytes y los límites; captura su salida para que no se cuele en la CLI. */
-export function createWorkerRunner(script: string): ExtractionRunner {
+/** De dónde sale el worker: un fichero (repositorio y `dist/`) o su código ya empaquetado (ejecutable autónomo, T-6.2). */
+export type WorkerSource = { readonly kind: 'path'; readonly path: string } | { readonly kind: 'code'; readonly code: string };
+
+/** Clave del asset con el worker empaquetado (un solo fichero CommonJS) en el ejecutable autónomo. */
+export const WORKER_ASSET_KEY = 'worker.js';
+
+/** En el repositorio el worker se carga por ruta; en cualquier otro almacén, por código embebido. */
+export async function workerSource(assets: Pick<AssetStore, 'kind' | 'text'>): Promise<WorkerSource> {
+  return assets.kind === 'disk' ? { kind: 'path', path: workerScriptPath() } : { kind: 'code', code: await assets.text(WORKER_ASSET_KEY) };
+}
+
+/** Ejecuta el worker (por ruta o por código con `eval`) con los bytes y los límites; captura su salida para que no se cuele en la CLI. */
+export function createWorkerRunner(source: string | WorkerSource): ExtractionRunner {
+  const spec: WorkerSource = typeof source === 'string' ? { kind: 'path', path: source } : source;
   return (bytes, maxPages, maxMemoryMb) => {
-    const worker = new Worker(script, {
+    const worker = new Worker(spec.kind === 'code' ? spec.code : spec.path, {
+      eval: spec.kind === 'code',
       workerData: { bytes, maxPages },
       resourceLimits: { maxOldGenerationSizeMb: maxMemoryMb },
       stdout: true,

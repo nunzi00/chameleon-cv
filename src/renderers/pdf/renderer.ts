@@ -9,7 +9,7 @@ import type { MasterProfile } from '../../core/schema';
 import { expandIsoDate } from '../../core/schema';
 import { DEFAULT_LOCALE } from '../markdown/renderer';
 import { buildStructuredView, type Block, type Run, type StructuredAchievement, type StructuredView } from '../structured';
-import { DEFAULT_FONTS, type FontFiles } from './fonts';
+import { DEFAULT_FONTS, type FontFiles, type FontSource } from './fonts';
 
 export interface PdfRenderOptions {
   readonly locale?: string | undefined;
@@ -241,9 +241,10 @@ export function renderPdfCv(profile: MasterProfile, options: PdfRenderOptions = 
         ModDate: created,
       },
     });
-    doc.registerFont('Regular', fonts.regular);
-    doc.registerFont('Bold', fonts.bold);
-    doc.registerFont('Italic', fonts.italic);
+    const face = (source: FontSource): string | Buffer => (typeof source === 'string' ? source : Buffer.from(source));
+    doc.registerFont('Regular', face(fonts.regular));
+    doc.registerFont('Bold', face(fonts.bold));
+    doc.registerFont('Italic', face(fonts.italic));
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => {
       chunks.push(chunk);
