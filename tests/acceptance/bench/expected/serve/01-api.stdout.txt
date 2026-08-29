@@ -2454,7 +2454,7 @@
 }
 
 ### GET /output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf → 200
-<pdf · sha256 canónico a47c8d681bec4880343788dd5604160d28da708366deac2bb18591ad2564daa7>
+<pdf · sha256 canónico 087a216befe31cd4f20727e4f0ade3c2325aea284bbd9f19a99e7f6ac394f9af>
 
 ### POST /analyze-offer → 200
 {

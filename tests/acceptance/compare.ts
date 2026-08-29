@@ -103,7 +103,20 @@ export function compareBytes(what: string, expected: Uint8Array, actual: Uint8Ar
   return { what, detail: `${expected.byteLength} bytes esperados, ${actual.byteLength} obtenidos` };
 }
 
-const STREAM = /stream\r?\n/g;
+/** Inicio de un flujo (`stream` tras el diccionario), nunca la cola de `endstream`. */
+const STREAM = /(?<!end)stream\r?\n/g;
+
+/** Descomprime un flujo FlateDecode probando sin recortar, o recortando la cola de línea (1 o 2 bytes); `undefined` si no se puede. */
+function inflateStream(data: Buffer): Buffer | undefined {
+  for (const cut of [0, 1, 2]) {
+    try {
+      return inflateSync(data.subarray(0, data.length - cut));
+    } catch {
+      // siguiente recorte
+    }
+  }
+  return undefined;
+}
 
 /**
  * Forma canónica de un PDF: cada flujo `FlateDecode` descomprimido (si se puede), sin `/Length` (cambia
@@ -124,14 +137,7 @@ export function canonicalPdf(bytes: Uint8Array): Buffer {
     }
     const head = source.subarray(cursor, start);
     const data = source.subarray(start, end);
-    let payload = data;
-    if (/\/FlateDecode/.test(head.toString('latin1'))) {
-      try {
-        payload = inflateSync(data.subarray(0, data.length - (data.at(-1) === 0x0a ? (data.at(-2) === 0x0d ? 2 : 1) : 0)));
-      } catch {
-        payload = data;
-      }
-    }
+    const payload = /\/FlateDecode/.test(head.toString('latin1')) ? (inflateStream(data) ?? data) : data;
     parts.push(Buffer.from(head.toString('latin1').replace(/\/Length \d+/g, '/Length').replace(/\/Filter ?\/FlateDecode/g, ''), 'latin1'), payload);
     cursor = end;
     STREAM.lastIndex = end;
