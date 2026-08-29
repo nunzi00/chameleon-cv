@@ -58,3 +58,6 @@ Primera versión estable. Chameleon CV genera CV dinámicos a partir de un únic
 - `npm run package`: ejecutable autónomo (Node SEA + esbuild) con prueba de humo y archivo `tar.gz` reproducible con su `.sha256`, que incluye la licencia, este registro y los avisos de licencias de terceros (`THIRD-PARTY-NOTICES.md`) generados a partir de lo que de verdad contiene el bundle.
 - Integración continua y flujo de release en GitHub Actions (linux-x64): verificación completa, empaquetado, aceptación del binario, `SHA256SUMS.txt`, atestación de procedencia SLSA y notas de la release tomadas de este fichero.
 - Licencia MIT.
+
+[Unreleased]: https://github.com/lucasnunzi/chameleon-cv/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/lucasnunzi/chameleon-cv/releases/tag/v1.0.0

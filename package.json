@@ -5,6 +5,14 @@
   "private": true,
   "license": "MIT",
   "author": "Lucas Nunzi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucasnunzi/chameleon-cv.git"
+  },
+  "homepage": "https://github.com/lucasnunzi/chameleon-cv#readme",
+  "bugs": {
+    "url": "https://github.com/lucasnunzi/chameleon-cv/issues"
+  },
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
