@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-7.4 · [API] Diseño de la API headless (Hito 7, pilar 3); base de T-7.5 (GUI) |
-| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA en su totalidad** por el Director de Ingeniería y Producto el 2026-08-29, con las ocho decisiones de §11. T-7.4a **aprobada** el 2026-08-29; T-7.4b en curso. T-7.4a (S1–S3) y T-7.4b (S4–S6) **entregadas y aprobadas** por el Director el 2026-08-29 (§12). |
+| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA en su totalidad** por el Director de Ingeniería y Producto el 2026-08-29, con las ocho decisiones de §11. T-7.4a (S1–S3) y T-7.4b (S4–S6) **entregadas y aprobadas** por el Director el 2026-08-29 (§12). |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | Plan estratégico del Hito 7 y observaciones registradas en el ROADMAP (modelo de amenazas de `cv serve`, identificadores en lugar de rutas, consentimiento C11 en la GUI, clarificación de C9); cánones C3, C9, C11, C14 y C15; `src/cli/` (comandos sobre `CliContext` inyectable y ayudantes compartidos); `docs/docker.md` (la imagen ya está preparada para un servicio de larga duración). |
 
