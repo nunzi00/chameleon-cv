@@ -9,7 +9,9 @@ import type { AddressInfo } from 'node:net';
 
 import type { AppContext } from '../app/context';
 import { describeError } from '../shared/errors';
+import { ConsentStore } from './consent';
 import { errorResponse, headerValue, readBody } from './http';
+import { JobQueue, isFinished } from './jobs';
 import { landingPage } from './page';
 import type { RouteResponse } from './router';
 import { API_PREFIX, bodyLimitFor, createRouter, type ServerState } from './routes';
@@ -24,6 +26,8 @@ export interface ServeOptions {
   readonly version: string;
   readonly apiOnly: boolean;
   readonly allowedHosts: readonly string[];
+  /** `--allow-remote`: los trabajos pueden usar proveedores remotos (cada uno con consentimiento de coste). */
+  readonly allowRemote: boolean;
   /** Solo para pruebas: un token fijo en lugar de uno aleatorio. */
   readonly token?: string | undefined;
 }
@@ -37,6 +41,9 @@ export interface ServerHandle {
   close(): Promise<void>;
 }
 
+/** Espera máxima a que un trabajo cancelado termine antes de cortar las conexiones. */
+export const CLOSE_GRACE_MS = 2000;
+
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
@@ -46,6 +53,22 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
 
 function send(response: ServerResponse, route: RouteResponse): void {
   const headers: Record<string, string> = { ...SECURITY_HEADERS, ...(route.headers ?? {}) };
+  if (route.stream !== undefined) {
+    headers['Content-Type'] = route.contentType;
+    headers['Connection'] = 'keep-alive';
+    response.writeHead(route.status, headers);
+    response.write(': chameleon-cv\n\n');
+    const stop = route.stream({
+      send: (event, data) => {
+        response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      },
+      end: () => {
+        response.end();
+      },
+    });
+    response.once('close', stop);
+    return;
+  }
   if (route.bytes !== undefined) {
     headers['Content-Type'] = route.contentType;
     headers['Content-Length'] = String(route.bytes.byteLength);
@@ -80,15 +103,25 @@ export async function startServer(options: ServeOptions): Promise<ServerHandle> 
   const closed = new Promise<void>((resolve) => {
     resolveClosed = resolve;
   });
-  const close = (): Promise<void> =>
-    new Promise((resolve) => {
+  const jobs = new JobQueue(options.context.now);
+  const consents = new ConsentStore(options.context.now);
+  const close = async (): Promise<void> => {
+    // Los trabajos en marcha se cancelan y se les da un momento para anunciar su estado final por SSE.
+    for (const job of jobs.list()) {
+      if (!isFinished(job.status)) {
+        jobs.cancel(job.id);
+      }
+    }
+    await Promise.race([jobs.idle(), new Promise((resolve) => setTimeout(resolve, CLOSE_GRACE_MS).unref())]);
+    await new Promise<void>((resolve) => {
       server.close(() => {
         resolveClosed();
         resolve();
       });
       server.closeAllConnections();
     });
-  const state: ServerState = { context: options.context, data: options.data, profile: options.profile, version: options.version, shutdown: () => setImmediate(() => void close()) };
+  };
+  const state: ServerState = { context: options.context, data: options.data, profile: options.profile, version: options.version, jobs, consents, allowRemote: options.allowRemote, shutdown: () => setImmediate(() => void close()) };
   let allowed: ReadonlySet<string> = new Set();
 
   const handle = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {

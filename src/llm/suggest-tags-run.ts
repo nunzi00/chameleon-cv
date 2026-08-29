@@ -44,6 +44,7 @@ function describeEvidence(accepted: readonly AcceptedTag[]): string {
 }
 
 export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Promise<TagSuggestionItem[]> {
+  const aborted = (): boolean => options.signal?.aborted === true;
   const vocabulary = buildVocabulary(options.profile);
   const items: TagSuggestionItem[] = [];
   const total = options.fragments.length;
@@ -51,7 +52,7 @@ export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Pro
     const id = fragment.input.id;
     const location = id === undefined ? 'texto' : locateLabel(options.profile, id);
     const label = `[${index + 1}/${total}] ${id ?? 'texto'}`;
-    if (options.signal?.aborted === true) {
+    if (aborted()) {
       options.progress?.(`${label}: cancelado`);
       break;
     }
@@ -73,6 +74,10 @@ export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Pro
     }
 
     const result = await runSuggestTags(options.provider, fragment, options.prompt, options.timeoutMs, options.signal);
+    if (!result.ok && aborted()) {
+      options.progress?.(`${label}: cancelado`);
+      break;
+    }
     if (!result.ok) {
       items.push({ ...base, accepted: [], rejected: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} });
       options.progress?.(`${label}: fallo (${result.code})`);

@@ -39,7 +39,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
 
   beforeAll(async () => {
     fs = new MemoryFileSystem(tree());
-    server = await startServer({ context: appContext(fs, { pdfExtractor }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: false, allowedHosts: ['mi-host:1'], token: TOKEN });
+    server = await startServer({ context: appContext(fs, { pdfExtractor }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: false, allowRemote: false, allowedHosts: ['mi-host:1'], token: TOKEN });
   });
   afterAll(async () => {
     await server.close();
@@ -210,7 +210,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
   });
 
   it('con fuentes inválidas, validar y compilar devuelven 422 con los problemas; sin output/, la lista está vacía', async () => {
-    const invalid = await startServer({ context: appContext(new MemoryFileSystem({ ...tree(), '/work/data/sources/experience/rota.md': '---\nstart: 2020-13\n---\n', '/work/data/sources/desconocido.txt': 'x' })), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowedHosts: [], token: TOKEN });
+    const invalid = await startServer({ context: appContext(new MemoryFileSystem({ ...tree(), '/work/data/sources/experience/rota.md': '---\nstart: 2020-13\n---\n', '/work/data/sources/desconocido.txt': 'x' })), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
     const call = (path: string, init: RequestInit = {}): Promise<Response> => fetch(`${invalid.url}api/v1${path}`, { ...init, headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
     try {
       const validate = await call('/validate', { method: 'POST', body: '{}' });
@@ -226,7 +226,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
 
   it('un fallo al escribir el CV o al leer output/ se responde como 503 con el motivo', async () => {
     const broken = new MemoryFileSystem({ ...tree(), '/work/output': 'no soy un directorio' });
-    const instance = await startServer({ context: appContext(broken), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowedHosts: [], token: TOKEN });
+    const instance = await startServer({ context: appContext(broken), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
     const call = (path: string, init: RequestInit = {}): Promise<Response> => fetch(`${instance.url}api/v1${path}`, { ...init, headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) } });
     try {
       expect((await call('/build', { method: 'POST', body: '{}' })).status).toBe(200);
@@ -243,7 +243,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
   });
 
   it('un fallo inesperado en un manejador se responde como 503 sin tumbar el servidor', async () => {
-    const broken = await startServer({ context: appContext(new MemoryFileSystem(tree()), { typstStatus: () => Promise.reject(new Error('boom')) }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowedHosts: [], token: TOKEN });
+    const broken = await startServer({ context: appContext(new MemoryFileSystem(tree()), { typstStatus: () => Promise.reject(new Error('boom')) }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
     try {
       const response = await fetch(`${broken.url}api/v1/status`, { headers: { Authorization: `Bearer ${TOKEN}` } });
       expect(response.status).toBe(503);
@@ -255,8 +255,8 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
   });
 
   it('POST /shutdown detiene el servidor y un puerto ocupado hace fallar el arranque', async () => {
-    const other = await startServer({ context: appContext(new MemoryFileSystem(tree())), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowedHosts: [], token: TOKEN });
-    await expect(startServer({ context: appContext(new MemoryFileSystem(tree())), host: '127.0.0.1', port: other.port, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowedHosts: [] })).rejects.toThrow(/EADDRINUSE/);
+    const other = await startServer({ context: appContext(new MemoryFileSystem(tree())), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    await expect(startServer({ context: appContext(new MemoryFileSystem(tree())), host: '127.0.0.1', port: other.port, data: 'data/sources', profile: 'data/dist/profile.json', version: '1', apiOnly: true, allowRemote: false, allowedHosts: [] })).rejects.toThrow(/EADDRINUSE/);
     const shutdown = await fetch(`${other.url}api/v1/shutdown`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` } });
     expect(shutdown.status).toBe(202);
     await other.closed;

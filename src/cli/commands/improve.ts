@@ -4,7 +4,7 @@
  * Nunca escribe en las fuentes ni en el artefacto (canon C1); antes de enviar dice qué sale y a dónde (C3);
  * `--dry-run` y `--show-payload` lo muestran sin enviar; `--show-prompt` imprime el prompt (C5).
  */
-import { describeProvider, executeImprove, improveEstimate, improvePayload, planImprove, selectCopilotProvider, writeReview } from '../../app/copilot';
+import { DEFAULT_MAX_ITEMS, describeProvider, executeImprove, improveEstimate, improvePayload, planImprove, selectCopilotProvider, writeReview } from '../../app/copilot';
 import { IMPROVE_LIMITS, IMPROVE_PROMPT_VERSION, loadPrompt } from '../../llm';
 import type { CliContext } from '../context';
 import { offerInput } from '../offer';
@@ -36,7 +36,7 @@ export interface ImproveOptions extends SelectionOptions {
   readonly yes: boolean;
 }
 
-export const IMPROVE_DEFAULTS = { proposals: IMPROVE_LIMITS.proposals, maxLength: IMPROVE_LIMITS.maxLength, maxItems: 20 } as const;
+export const IMPROVE_DEFAULTS = { proposals: IMPROVE_LIMITS.proposals, maxLength: IMPROVE_LIMITS.maxLength, maxItems: DEFAULT_MAX_ITEMS } as const;
 
 /** `--only a,b` → ids únicos y sin espacios; `undefined` si no se pasó. */
 export function parseOnly(only: string | undefined): string[] | undefined {

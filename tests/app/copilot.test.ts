@@ -77,6 +77,28 @@ describe('casos de uso del co-piloto con cancelación', () => {
     expect(typeof outcome.cancelled).toBe('boolean');
   });
 
+  it('suggest tags: una petición abortada por la cancelación no se anota como fallo', async () => {
+    const ctx = context();
+    const planned = await planSuggestTags(ctx, { profile: BASE.profile, data: BASE.data, build: true, untagged: false, maxTags: 3, maxItems: 20, redactCompanies: false });
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) {
+      return;
+    }
+    const controller = new AbortController();
+    const progress: string[] = [];
+    const interrupted: LlmProvider = {
+      ...cancellingProvider(controller, [], {}),
+      complete: () => {
+        controller.abort();
+        return Promise.resolve({ ok: false, code: 'cancelled', message: 'petición cancelada' });
+      },
+    };
+    const outcome = await executeSuggestTags(ctx, planned.plan, { provider: interrupted, cache: false, progress: (line) => progress.push(line), signal: controller.signal });
+    expect(outcome.items).toEqual([]);
+    expect(outcome.cancelled).toBe(true);
+    expect(progress).toEqual([expect.stringMatching(/^\[1\/\d+\] .*: cancelado$/)]);
+  });
+
   it('suggest tags: al cancelar, el lote se detiene y lo anota en el progreso', async () => {
     const ctx = context();
     const planned = await planSuggestTags(ctx, { profile: BASE.profile, data: BASE.data, build: true, untagged: false, maxTags: 3, maxItems: 20, redactCompanies: false });
@@ -88,7 +110,7 @@ describe('casos de uso del co-piloto con cancelación', () => {
     const controller = new AbortController();
     const calls: LlmRequest[] = [];
     const progress: string[] = [];
-    const outcome = await executeSuggestTags(ctx, planned.plan, { provider: cancellingProvider(controller, calls, { tags: [] }), cache: false, progress: (line) => progress.push(line), signal: controller.signal });
+    const outcome = await executeSuggestTags(ctx, planned.plan, { provider: cancellingProvider(controller, calls, { suggestions: [] }), cache: false, progress: (line) => progress.push(line), signal: controller.signal });
     expect(calls).toHaveLength(1);
     expect(outcome.cancelled).toBe(true);
     expect(outcome.items).toHaveLength(1);

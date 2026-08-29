@@ -34,7 +34,7 @@ describe('listReviews', () => {
 describe('readReview', () => {
   it('solo admite nombres revision-<…>.md, sin rutas', async () => {
     const result = await readReview(appContext(new MemoryFileSystem({})), 'output', '../revision-x.md');
-    expect(result).toMatchObject({ ok: false, error: { code: 'invalid-data', exitCode: 1 } });
+    expect(result).toMatchObject({ ok: false, error: { code: 'unsafe-path' } });
   });
 
   it('distingue la revisión inexistente del fallo de lectura', async () => {

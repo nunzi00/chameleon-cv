@@ -11,7 +11,7 @@ import { locateAchievementText, locateSummary, replaceRange, replaceSummary } fr
 import { describeError } from '../shared/errors';
 import type { AppContext } from './context';
 import { DEFAULT_DATA_DIR } from './defaults';
-import { dataError, environmentError, type AppError } from './errors';
+import { dataError, environmentError, unsafePathError, type AppError } from './errors';
 import { isSafeSourcePath } from './paths';
 import { isMissingFile } from '../artifact';
 import { contentHash } from './sources';
@@ -260,7 +260,7 @@ export type ReviewReadResult = { readonly ok: true; readonly file: ReviewFile } 
 /** Una revisión por su nombre (solo `revision-*.md`, sin directorios), con su texto, su huella y su estructura. */
 export async function readReview(context: AppContext, directory: string, name: string): Promise<ReviewReadResult> {
   if (!REVIEW_NAME.test(name)) {
-    return { ok: false, error: dataError(`Nombre de revisión no válido «${name}»: se espera revision-<…>.md`) };
+    return { ok: false, error: unsafePathError(`Nombre de revisión no válido «${name}»: se espera revision-<…>.md, sin directorios`) };
   }
   const path = resolve(context.cwd, directory, name);
   try {

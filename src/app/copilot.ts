@@ -63,6 +63,9 @@ import { pluralize } from './text';
 
 /* ---------- Común ---------- */
 
+/** Logros por ejecución si no se indica otro presupuesto (`--max-items`). */
+export const DEFAULT_MAX_ITEMS = 20;
+
 export interface CopilotBase {
   readonly profile: string;
   readonly data: string;
