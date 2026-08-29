@@ -19,9 +19,11 @@ export interface JsonHttpRequest {
   readonly body?: unknown;
   readonly headers?: Readonly<Record<string, string>> | undefined;
   readonly timeoutMs?: number | undefined;
+  /** Cancelación por el llamador (un trabajo de la API); se combina con el tiempo máximo. */
+  readonly signal?: AbortSignal | undefined;
 }
 
-export type JsonHttpErrorCode = 'refused' | 'unreachable' | 'timeout' | 'http' | 'too-large' | 'invalid-json';
+export type JsonHttpErrorCode = 'refused' | 'unreachable' | 'timeout' | 'cancelled' | 'http' | 'too-large' | 'invalid-json';
 
 export type JsonHttpResult =
   | { readonly ok: true; readonly status: number; readonly data: unknown }
@@ -64,7 +66,10 @@ export interface JsonHttpPolicy {
   readonly maxResponseBytes?: number | undefined;
 }
 
-function classify(error: unknown): { code: JsonHttpErrorCode; message: string } {
+function classify(error: unknown, signal: AbortSignal | undefined): { code: JsonHttpErrorCode; message: string } {
+  if (signal?.aborted === true) {
+    return { code: 'cancelled', message: 'petición cancelada' };
+  }
   const name = typeof error === 'object' && error !== null && 'name' in error ? String(error.name) : '';
   if (name === 'TimeoutError' || name === 'AbortError') {
     return { code: 'timeout', message: 'la petición superó el tiempo permitido' };
@@ -86,10 +91,10 @@ export function createJsonHttp(policy: JsonHttpPolicy, fetchImpl: typeof fetch =
         headers: { accept: 'application/json', ...(request.body === undefined ? {} : { 'content-type': 'application/json' }), ...(request.headers ?? {}) },
         body: request.body === undefined ? null : JSON.stringify(request.body),
         redirect: 'error',
-        signal: AbortSignal.timeout(request.timeoutMs ?? LLM_HTTP_LIMITS.timeoutMs),
+        signal: request.signal === undefined ? AbortSignal.timeout(request.timeoutMs ?? LLM_HTTP_LIMITS.timeoutMs) : AbortSignal.any([request.signal, AbortSignal.timeout(request.timeoutMs ?? LLM_HTTP_LIMITS.timeoutMs)]),
       });
     } catch (error) {
-      const failure = classify(error);
+      const failure = classify(error, request.signal);
       return { ok: false, code: failure.code, message: `${failure.message} (${request.method} ${request.url})` };
     }
     const declared = response.headers.get('content-length');
@@ -100,7 +105,7 @@ export function createJsonHttp(policy: JsonHttpPolicy, fetchImpl: typeof fetch =
     try {
       text = await response.text();
     } catch (error) {
-      const failure = classify(error);
+      const failure = classify(error, request.signal);
       return { ok: false, code: failure.code, message: `${failure.message} (leyendo la respuesta de ${request.url})`, status: response.status };
     }
     if (Buffer.byteLength(text, 'utf8') > maxBytes) {

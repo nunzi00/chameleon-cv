@@ -6,6 +6,7 @@
 export * from './analyze';
 export * from './assets';
 export * from './context';
+export * from './copilot';
 export * from './dataset';
 export * from './defaults';
 export * from './errors';
@@ -15,6 +16,8 @@ export * from './generate';
 export * from './limits';
 export * from './offer';
 export * from './paths';
+export * from './provenance';
+export * from './review';
 export * from './slug';
 export * from './sources';
 export * from './tailor';

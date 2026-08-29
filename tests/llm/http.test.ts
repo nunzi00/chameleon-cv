@@ -108,3 +108,19 @@ describe('createJsonHttp / loopbackOnlyHttp', () => {
     expect(await weird({ url: 'http://127.0.0.1:1/x', method: 'GET' })).toEqual({ ok: false, code: 'unreachable', message: 'boom (GET http://127.0.0.1:1/x)' });
   });
 });
+
+describe('createJsonHttp con señal de cancelación', () => {
+  it('distingue la cancelación del llamador («cancelled») del tiempo agotado', async () => {
+    const controller = new AbortController();
+    const http = createJsonHttp(
+      { allowUrl: () => true },
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+        }),
+    );
+    const pending = http({ url: 'http://127.0.0.1:1/x', method: 'GET', signal: controller.signal });
+    controller.abort();
+    expect(await pending).toMatchObject({ ok: false, code: 'cancelled', message: 'petición cancelada (GET http://127.0.0.1:1/x)' });
+  });
+});

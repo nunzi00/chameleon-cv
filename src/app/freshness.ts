@@ -14,7 +14,9 @@ export type Freshness =
 /** Avisos que un caso de uso acumula sin interrumpirse; cada cliente los formatea. */
 export type AppWarning =
   | { readonly kind: 'stale-artifact'; readonly newestSource: string }
-  | { readonly kind: 'freshness-unknown'; readonly reason: string };
+  | { readonly kind: 'freshness-unknown'; readonly reason: string }
+  /** El co-piloto procesa solo los `kept` primeros de `total` logros (presupuesto `--max-items`). */
+  | { readonly kind: 'items-truncated'; readonly total: number; readonly kept: number };
 
 export async function checkArtifactFreshness(fs: FileSystem, artifactPath: string, sourcesRoot: string): Promise<Freshness> {
   let artifactMtime: number;

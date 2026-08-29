@@ -154,13 +154,14 @@ export function suggestTagsMessages(fragment: SuggestTagsFragment, prompt: strin
 }
 
 /** Envía el fragmento al proveedor (con el diccionario como `enum` del esquema) e interpreta la respuesta. */
-export async function runSuggestTags(provider: LlmProvider, fragment: SuggestTagsFragment, prompt: string, timeoutMs?: number): Promise<SuggestTagsResult> {
+export async function runSuggestTags(provider: LlmProvider, fragment: SuggestTagsFragment, prompt: string, timeoutMs?: number, signal?: AbortSignal): Promise<SuggestTagsResult> {
   const completion = await provider.complete({
     messages: suggestTagsMessages(fragment, prompt),
     schema: suggestTagsJsonSchema(fragment.input.dictionary),
     schemaName: 'suggest-tags',
     maxTokens: SUGGEST_TAGS_LIMITS.maxTokens,
     timeoutMs,
+    signal,
   });
   return interpretSuggestTags(fragment, completion);
 }

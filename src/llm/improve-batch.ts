@@ -21,6 +21,8 @@ export interface ImproveBatchOptions {
   readonly timeoutMs?: number | undefined;
   readonly progress?: ((line: string) => void) | undefined;
   readonly now?: (() => Date) | undefined;
+  /** Cancelación: el lote se detiene antes del siguiente logro y la petición en curso se aborta. */
+  readonly signal?: AbortSignal | undefined;
 }
 
 /** Términos vigilados por el verificador: el perfil es el diccionario (tags, skills, alias, tecnologías) más el diccionario base. */
@@ -67,6 +69,10 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
   const total = options.ids.length;
   for (const [index, id] of options.ids.entries()) {
     const label = `[${index + 1}/${total}] ${id}`;
+    if (options.signal?.aborted === true) {
+      options.progress?.(`${label}: cancelado`);
+      break;
+    }
     const fragment = buildImproveFragment(options.profile, id, options.fragment);
     if (fragment === undefined) {
       items.push({ id, location: 'desconocido', original: '', proposals: [], error: `no existe el logro «${id}»`, fromCache: false, elapsedMs: 0, usage: {} });
@@ -89,7 +95,7 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
       }
     }
 
-    const result = await runImprove(options.provider, fragment, options.prompt, options.timeoutMs);
+    const result = await runImprove(options.provider, fragment, options.prompt, options.timeoutMs, options.signal);
     if (!result.ok) {
       items.push({ id, location, original, impact, proposals: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} });
       options.progress?.(`${label}: fallo (${result.code})`);

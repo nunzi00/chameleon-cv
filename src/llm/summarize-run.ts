@@ -23,6 +23,7 @@ export interface SummarizeRunOptions {
   readonly cache?: LlmCacheStore | undefined;
   readonly timeoutMs?: number | undefined;
   readonly now?: (() => Date) | undefined;
+  readonly signal?: AbortSignal | undefined;
 }
 
 function verifyAll(options: SummarizeRunOptions, proposals: ReadonlyArray<{ readonly text: string; readonly rationale: string }>): ReviewProposal[] {
@@ -53,7 +54,7 @@ export async function runSummarizeTask(options: SummarizeRunOptions): Promise<Re
     }
   }
 
-  const result = await runSummarize(provider, fragment, options.prompt, options.timeoutMs);
+  const result = await runSummarize(provider, fragment, options.prompt, options.timeoutMs, options.signal);
   if (!result.ok) {
     return { id: SUMMARY_ITEM_ID, location: options.location, original, proposals: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} };
   }

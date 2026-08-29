@@ -30,7 +30,3 @@ export async function runBuild(context: CliContext, options: BuildOptions): Prom
   return EXIT_OK;
 }
 
-/** `--build` de `generate-cv` y `analyze-offer`: recompila el artefacto antes de leerlo. */
-export function buildBeforeUse(context: CliContext, options: { readonly data: string; readonly profile: string }): Promise<number> {
-  return runBuild(context, { data: options.data, out: options.profile, check: false, verbose: false });
-}

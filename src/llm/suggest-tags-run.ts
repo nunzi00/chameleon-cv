@@ -34,6 +34,8 @@ export interface SuggestTagsBatchOptions {
   readonly timeoutMs?: number | undefined;
   readonly progress?: ((line: string) => void) | undefined;
   readonly now?: (() => Date) | undefined;
+  /** Cancelación: el lote se detiene antes del siguiente fragmento y la petición en curso se aborta. */
+  readonly signal?: AbortSignal | undefined;
 }
 
 function describeEvidence(accepted: readonly AcceptedTag[]): string {
@@ -49,6 +51,10 @@ export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Pro
     const id = fragment.input.id;
     const location = id === undefined ? 'texto' : locateLabel(options.profile, id);
     const label = `[${index + 1}/${total}] ${id ?? 'texto'}`;
+    if (options.signal?.aborted === true) {
+      options.progress?.(`${label}: cancelado`);
+      break;
+    }
     const base = { id, location, text: fragment.text, currentTags: fragment.currentTags };
     const verify = (suggestions: ReadonlyArray<{ tag: string; reason: string }>): Pick<TagSuggestionItem, 'accepted' | 'rejected'> =>
       verifyTagSuggestions(suggestions, { dictionary: fragment.dictionary.tags, text: fragment.text, contextText: fragment.contextText, currentTags: fragment.currentTags, vocabulary, maxTags: fragment.input.maxTags });
@@ -66,7 +72,7 @@ export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Pro
       }
     }
 
-    const result = await runSuggestTags(options.provider, fragment, options.prompt, options.timeoutMs);
+    const result = await runSuggestTags(options.provider, fragment, options.prompt, options.timeoutMs, options.signal);
     if (!result.ok) {
       items.push({ ...base, accepted: [], rejected: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} });
       options.progress?.(`${label}: fallo (${result.code})`);

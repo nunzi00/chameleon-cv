@@ -49,6 +49,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
         method: 'POST',
         headers,
         timeoutMs: request.timeoutMs,
+        signal: request.signal,
         body: {
           model,
           messages: request.messages,

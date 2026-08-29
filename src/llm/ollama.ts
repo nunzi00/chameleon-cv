@@ -51,6 +51,7 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
         url: `${baseUrl}/api/chat`,
         method: 'POST',
         timeoutMs: request.timeoutMs,
+        signal: request.signal,
         body: {
           model,
           messages: request.messages,

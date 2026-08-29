@@ -97,3 +97,25 @@ describe('runImproveBatch', () => {
     expect(locateLabel(withProject, 'ach-talk')).toBe('Logros transversales');
   });
 });
+
+describe('runImproveBatch con señal de cancelación', () => {
+  it('pasa la señal a cada petición y, al cancelar, no pide más logros y lo anota en el progreso', async () => {
+    const controller = new AbortController();
+    const calls: LlmRequest[] = [];
+    const progress: string[] = [];
+    const base = provider({ 'ach-acme-latency': { proposals: [{ text: 'Reduje la latencia p95 un 40 %', rationale: 'fiel' }] } }, calls);
+    const cancelling: LlmProvider = {
+      ...base,
+      complete: async (request) => {
+        const result = await base.complete(request);
+        controller.abort();
+        return result;
+      },
+    };
+    const items = await runImproveBatch({ profile, ids: ['ach-acme-latency', 'ach-talk'], provider: cancelling, prompt: 'P', fragment: {}, progress: (line) => progress.push(line), signal: controller.signal });
+    expect(items.map((item) => item.id)).toEqual(['ach-acme-latency']);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.signal).toBe(controller.signal);
+    expect(progress.at(-1)).toBe('[2/2] ach-talk: cancelado');
+  });
+});
