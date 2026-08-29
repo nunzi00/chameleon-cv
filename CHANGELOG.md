@@ -4,9 +4,14 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-30
+
+La interfaz web (T-7.5a): `cv serve --open` abre en el navegador las mismas tareas que la CLI, servidas desde el propio ejecutable y la imagen, sin nada externo. Hito 7 (T-7.5a) del [ROADMAP](ROADMAP.md).
+
 ### Añadido
 
-- Interfaz web (T-7.5a, en curso): `cv serve` sirve en `/` la aplicación de `gui/` (Svelte 5 + Vite) que viaja como assets, por lista cerrada y con CSP estricta; sesión por el fragmento de la URL guardada en la pestaña; pantallas **Estado** (artefacto, Typst, co-piloto, temas; validar, compilar y apagar), **Fuentes** (explorador, editor CodeMirror cargado bajo demanda, guardado con `If-Match` y diálogo de conflicto, validación tras guardar, creación de ficheros), **Generar** (especialidad, oferta por texto, PDF subido o fichero, formato y motor, tema, límites; análisis de adecuación a la oferta; PDF en el visor del navegador o Markdown con descarga; informe de decisiones; creación de temas) y **Salidas** (los ficheros de `output/` con vista previa y descarga). Contrato tipado de la API (`src/serve/contract.ts`) compartido con la GUI.
+- Interfaz web: `cv serve` sirve en `/` la aplicación de `gui/` (Svelte 5 + Vite) que viaja como assets dentro del ejecutable y de la imagen Docker, por lista cerrada y con CSP estricta; sesión por el fragmento de la URL guardada en la pestaña; pantallas **Estado** (artefacto, Typst, co-piloto, temas; validar, compilar y apagar), **Fuentes** (explorador, editor CodeMirror cargado bajo demanda, guardado con `If-Match` y diálogo de conflicto, validación tras guardar, creación de ficheros), **Generar** (especialidad, oferta por texto, PDF subido o fichero, formato y motor, tema, límites; análisis de adecuación a la oferta; PDF en el visor del navegador o Markdown con descarga; informe de decisiones; creación de temas) y **Salidas** (los ficheros de `output/` con vista previa y descarga). Contrato tipado de la API (`src/serve/contract.ts`) compartido con la GUI. Pruebas de extremo a extremo con Playwright contra `cv serve` real y contra el ejecutable empaquetado; guía «La interfaz web» con capturas generadas.
+- `cv serve --open` abre la interfaz; `cv serve --api-only` la desactiva. El escenario `serve` del arnés de aceptación y las pruebas de humo del ejecutable y de la imagen comprueban que la interfaz viaja dentro.
 
 ## [1.1.1] - 2026-08-29
 
