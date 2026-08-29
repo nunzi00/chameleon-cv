@@ -55,9 +55,17 @@
       {:else if route.page === 'fuentes'}
         <Fuentes {api} item={route.item} onsession={sessionLost} {navigate} />
       {:else if route.page === 'generar'}
-        <Pending label="Generar" when="T-7.5a (S2)" />
+        {#await import('./pages/Generar.svelte')}
+          <p class="cv-muted">Cargando…</p>
+        {:then generar}
+          <generar.default {api} onsession={sessionLost} {navigate} />
+        {/await}
       {:else if route.page === 'salidas'}
-        <Pending label="Salidas" when="T-7.5a (S2)" />
+        {#await import('./pages/Salidas.svelte')}
+          <p class="cv-muted">Cargando…</p>
+        {:then salidas}
+          <salidas.default {api} item={route.item} onsession={sessionLost} {navigate} />
+        {/await}
       {:else if route.page === 'copiloto'}
         <Pending label="Co-piloto" when="T-7.5b" />
       {:else}

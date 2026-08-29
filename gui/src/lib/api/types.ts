@@ -3,14 +3,25 @@
  * compilador de la GUI lo detecta. Vite no incluye código del servidor: las importaciones de tipos se borran.
  */
 export type {
+  AnalyzeRequest,
+  AnalyzeResponse,
   BuildResponse,
   DatasetIssue,
   ErrorResponse,
+  ExtractResponse,
+  GenerateReportPayload,
+  GenerateRequest,
+  GenerateResponse,
+  OutputEntry,
+  OutputListResponse,
   ProfileResponse,
   ShutdownResponse,
   SourceResponse,
   SourceWriteResponse,
   SourcesResponse,
   StatusResponse,
+  ThemeCreateRequest,
+  ThemeCreateResponse,
+  ThemesResponse,
   ValidateResponse,
 } from '../../../../src/serve/contract';

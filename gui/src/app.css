@@ -89,4 +89,14 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
 .cv-field { display: grid; gap: 0.25rem; margin-bottom: 0.75rem; }
 .cv-field input, .cv-field select { font: inherit; padding: 0.4rem 0.5rem; border: 1px solid var(--cv-border); border-radius: var(--cv-radius); background: var(--cv-surface); color: var(--cv-text); }
 .cv-gate { max-width: 32rem; margin: 4rem auto; }
+.cv-pdf iframe { width: 100%; min-height: 70vh; border: 1px solid var(--cv-border); border-radius: var(--cv-radius); background: #fff; }
+pre.cv-text { white-space: pre-wrap; word-break: break-word; background: var(--cv-bg); padding: 0.75rem; border-radius: var(--cv-radius); max-height: 70vh; overflow: auto; }
+details.cv-report { margin-top: var(--cv-space); }
+details.cv-report summary { cursor: pointer; font-weight: 600; }
+.cv-report pre { white-space: pre-wrap; }
+.cv-form { display: grid; gap: 0.5rem 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); align-items: end; }
+.cv-form .cv-field { margin-bottom: 0; }
+.cv-form textarea { font: inherit; padding: 0.4rem 0.5rem; border: 1px solid var(--cv-border); border-radius: var(--cv-radius); background: var(--cv-surface); color: var(--cv-text); min-height: 8rem; resize: vertical; }
+.cv-field.wide { grid-column: 1 / -1; }
+.cv-check { display: flex; gap: 0.4rem; align-items: center; }
 .cv-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

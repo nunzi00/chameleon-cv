@@ -12,7 +12,8 @@ interface Recorded {
 function fakeFetch(responder: (call: Recorded) => Response | Promise<Response>): { fetch: typeof fetch; calls: Recorded[] } {
   const calls: Recorded[] = [];
   const fetchImpl = (async (input: RequestInfo | URL, init?: globalThis.RequestInit) => {
-    const call = { url: String(input), method: init?.method ?? 'GET', headers: { ...((init?.headers as Record<string, string> | undefined) ?? {}) }, body: (init?.body as string | null | undefined) ?? null };
+    const body = init?.body instanceof Blob ? await init.body.text() : null;
+    const call = { url: String(input), method: init?.method ?? 'GET', headers: { ...((init?.headers as Record<string, string> | undefined) ?? {}) }, body };
     calls.push(call);
     return responder(call);
   }) as typeof fetch;
@@ -50,6 +51,33 @@ describe('cliente de la API', () => {
       'POST /api/v1/shutdown',
     ]);
     expect(calls[3]?.body).toBe('{}');
+  });
+
+  it('generar, analizar, extraer un PDF, temas y salidas: cuerpos, tipos de contenido y respuestas binarias', async () => {
+    const { fetch: f, calls } = fakeFetch((call) => {
+      if (call.url.endsWith('/output/cv.pdf')) {
+        return new Response(new Uint8Array([37, 80, 68, 70]), { status: 200, headers: { 'Content-Type': 'application/pdf' } });
+      }
+      if (call.url.endsWith('/output/sin-tipo')) {
+        return new Response(null, { status: 200 });
+      }
+      return json(200, { ok: true });
+    });
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.generate({ format: 'md', specialty: 'backend' });
+    await api.analyze({ offer: { text: 'Kubernetes' } });
+    await api.extractOffer(new Blob(['%PDF-1.7'], { type: 'application/pdf' }));
+    await api.themes();
+    await api.createTheme({ name: 'mio', from: 'classic' });
+    await api.outputs();
+    const pdf = await api.output('cv.pdf');
+    expect(pdf).toMatchObject({ name: 'cv.pdf', contentType: 'application/pdf' });
+    expect(await pdf.blob.text()).toBe('%PDF');
+    expect((await api.output('sin-tipo')).contentType).toBe('application/octet-stream');
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
+    expect(calls[0]?.body).toBe('{"format":"md","specialty":"backend"}');
+    expect(calls[2]).toMatchObject({ headers: { 'Content-Type': 'application/pdf' }, body: '%PDF-1.7' });
+    expect(calls[6]?.headers['Accept']).toBe('*/*');
   });
 
   it('sin token no envía Authorization y admite otra base', async () => {
