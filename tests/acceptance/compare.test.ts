@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { compareBytes, comparePdf, compareText, diffOperations, lineDiff } from './compare';
-import { normalize, stepPrefix, summarize } from './runner';
+import { normalize, producedName, stepPrefix, storedName, summarize } from './runner';
 
 const BENCH = join(__dirname, 'bench', 'workspace');
 
@@ -57,5 +57,16 @@ describe('comparadores del arnés de aceptación (T-5.5.2)', () => {
       { id: 'b', status: 'skipped', steps: 0, failures: [], message: 'sin Typst', elapsedMs: 0 },
     ])).toEqual({ line: '2 escenarios · 5 pasos · 0 con diferencias · 1 omitidos · 1.5 s', exitCode: 0 });
     expect(summarize([{ id: 'c', status: 'failed', steps: 3, failures: [{ prefix: '02-x', mismatches: [{ what: 'stdout', detail: 'd' }] }], elapsedMs: 500 }])).toEqual({ line: '1 escenarios · 3 pasos · 1 con diferencias · 0 omitidos · 0.5 s → FALLO en c', exitCode: 1 });
+  });
+});
+
+describe('nombres almacenados de los artefactos', () => {
+  it('un .gitignore producido se guarda como gitignore.expected y se recupera', () => {
+    expect(storedName('.gitignore')).toBe('gitignore.expected');
+    expect(storedName('data/sources/.gitignore')).toBe('data/sources/gitignore.expected');
+    expect(storedName('data/sources/profile.md')).toBe('data/sources/profile.md');
+    expect(producedName('gitignore.expected')).toBe('.gitignore');
+    expect(producedName('a/gitignore.expected')).toBe('a/.gitignore');
+    expect(producedName('a/b.md')).toBe('a/b.md');
   });
 });

@@ -1,12 +1,12 @@
 # Dependencias
 node_modules/
 
-# Artefactos de compilación
-dist/
+# Artefactos de compilación (solo en la raíz: los artefactos esperados de tests/acceptance sí se versionan)
+/dist/
 *.tsbuildinfo
 
-# CVs generados: nunca se versionan
-output/
+# CVs generados: nunca se versionan (solo en la raíz)
+/output/
 
 # Tests y cobertura
 coverage/
@@ -32,5 +32,5 @@ Thumbs.db
 *.swp
 *~
 
-# Artefacto canónico generado por `build-profile` (datos personales en claro)
-data/dist/
+# Artefacto canónico generado por `build-profile` (datos personales en claro; solo en la raíz)
+/data/dist/

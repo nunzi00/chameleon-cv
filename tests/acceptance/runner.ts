@@ -52,6 +52,15 @@ export function stepPrefix(index: number, step: Step): string {
   return `${String(index + 1).padStart(2, '0')}-${step.id}`;
 }
 
+/** Un `.gitignore` producido por `cv init` no puede guardarse con su nombre: anidado en `expected/`, ignoraría a sus vecinos. */
+export function storedName(path: string): string {
+  return path.replace(/(^|\/)\.gitignore$/, '$1gitignore.expected');
+}
+
+export function producedName(stored: string): string {
+  return stored.replace(/(^|\/)gitignore\.expected$/, '$1.gitignore');
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await stat(path);
@@ -99,14 +108,15 @@ async function compareTree(what: string, expectedRoot: string, actualRoot: strin
   const expectedFiles = await listFiles(expectedRoot);
   const actualFiles = (await exists(actualRoot)) ? await listFiles(actualRoot) : [];
   const mismatches: Mismatch[] = [];
-  for (const file of expectedFiles.filter((candidate) => !actualFiles.includes(candidate))) {
+  const expectedProduced = expectedFiles.map(producedName);
+  for (const file of expectedProduced.filter((candidate) => !actualFiles.includes(candidate))) {
     mismatches.push({ what: `${what}/${file}`, detail: 'falta en lo producido' });
   }
-  for (const file of actualFiles.filter((candidate) => !expectedFiles.includes(candidate))) {
+  for (const file of actualFiles.filter((candidate) => !expectedProduced.includes(candidate))) {
     mismatches.push({ what: `${what}/${file}`, detail: 'fichero inesperado' });
   }
-  for (const file of expectedFiles.filter((candidate) => actualFiles.includes(candidate))) {
-    const mismatch = await compareFile(`${what}/${file}`, file.endsWith('.pdf') ? 'pdf' : 'text', join(expectedRoot, file), join(actualRoot, file));
+  for (const file of expectedProduced.filter((candidate) => actualFiles.includes(candidate))) {
+    const mismatch = await compareFile(`${what}/${file}`, file.endsWith('.pdf') ? 'pdf' : 'text', join(expectedRoot, storedName(file)), join(actualRoot, file));
     if (mismatch !== undefined) {
       mismatches.push(mismatch);
     }
@@ -163,9 +173,17 @@ async function runStep(context: Context, index: number, step: Step, options: Run
         mismatches.push({ what: output.path, detail: 'no se produjo el fichero' });
         continue;
       }
-      const destination = join(context.target, 'files', output.path);
+      const destination = join(context.target, 'files', storedName(output.path));
       await mkdir(dirname(destination), { recursive: true });
       await cp(source, destination, { recursive: true });
+      if (output.kind === 'tree') {
+        for (const file of await listFiles(destination)) {
+          if (storedName(file) !== file) {
+            await cp(join(destination, file), join(destination, storedName(file)));
+            await rm(join(destination, file));
+          }
+        }
+      }
     }
     return { prefix, mismatches };
   }
@@ -186,7 +204,7 @@ async function runStep(context: Context, index: number, step: Step, options: Run
     }
   }
   for (const output of step.outputs ?? []) {
-    const expectedPath = join(context.target, 'files', output.path);
+    const expectedPath = join(context.target, 'files', storedName(output.path));
     const actualPath = join(context.workspace, output.path);
     if (output.kind === 'tree') {
       mismatches.push(...(await compareTree(output.path, expectedPath, actualPath)));
@@ -302,6 +320,19 @@ export async function checkBenchConsistency(): Promise<ScenarioResult> {
   }
 }
 
+/** Ningún artefacto esperado puede quedar fuera del control de versiones (un `.gitignore` demasiado amplio lo ocultaría). */
+export function checkVersioned(): ScenarioResult {
+  const started = Date.now();
+  const git = spawnSync('git', ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', EXPECTED_DIRECTORY], { cwd: REPO_ROOT, encoding: 'utf8' });
+  if (git.status !== 0) {
+    return { id: 'expected-versioned', status: 'skipped', steps: 0, failures: [], message: 'sin git: no se comprueba que los artefactos esperados estén versionados', elapsedMs: Date.now() - started };
+  }
+  const ignored = git.stdout.split('\n').filter((line) => line !== '');
+  return ignored.length === 0
+    ? { id: 'expected-versioned', status: 'ok', steps: 1, failures: [], elapsedMs: Date.now() - started }
+    : { id: 'expected-versioned', status: 'failed', steps: 1, failures: [{ prefix: '.gitignore', mismatches: ignored.map((path) => ({ what: path, detail: 'artefacto esperado ignorado por git: no se versionaría' })) }], elapsedMs: Date.now() - started };
+}
+
 function report(result: ScenarioResult, update: boolean): void {
   const seconds = `${(result.elapsedMs / 1000).toFixed(1)} s`;
   if (result.status === 'skipped') {
@@ -333,6 +364,11 @@ export async function runAll(options: RunnerOptions): Promise<ScenarioResult[]> 
     const consistency = await checkBenchConsistency();
     report(consistency, false);
     results.push(consistency);
+  }
+  if (options.only === undefined || options.only.includes('expected-versioned')) {
+    const versioned = checkVersioned();
+    report(versioned, false);
+    results.push(versioned);
   }
   for (const scenario of SCENARIOS) {
     if (options.only !== undefined && !options.only.includes(scenario.id)) {
