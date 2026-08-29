@@ -1,0 +1,35 @@
+# Análisis semanal de la imagen publicada (T-7.3, docs/ghcr-publication.md §3.5, decisión 5): Trivy sobre
+# ghcr.io/<repositorio>:latest, informativo (nunca falla por hallazgos) y con el informe en Code scanning.
+name: Análisis de la imagen publicada
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # lunes, 06:17 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  trivy:
+    name: Trivy sobre la imagen publicada (CRITICAL y HIGH; informativo)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Análisis de ghcr.io/${{ github.repository }}:latest
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:latest
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Informe SARIF a Code scanning
+        if: hashFiles('trivy.sarif') != ''
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-latest
