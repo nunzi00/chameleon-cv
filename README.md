@@ -93,7 +93,7 @@ Códigos de salida: `0` correcto · `1` datos inválidos (fuentes, artefacto o e
 | [Co-piloto de IA](https://nunzi00.github.io/chameleon-cv/guide/copilot) | Modelo local, `improve`, `summarize`, `suggest tags`, `improve apply`, proveedores remotos con consentimiento. |
 | [Seguridad y privacidad](https://nunzi00.github.io/chameleon-cv/guide/security) | Qué sale y qué no, permisos, entrada contenida, cadena de suministro. |
 | [Tutoriales](https://nunzi00.github.io/chameleon-cv/tutorials/) | Tu perfil desde cero · Un CV para tres ofertas · Tu propio tema · El co-piloto con Ollama. Se ejecutan en la integración continua. |
-| [Desarrolladores](https://nunzi00.github.io/chameleon-cv/developers/architecture) | Arquitectura y cánones C1–C14, [contribuir](CONTRIBUTING.md), pruebas, extender, empaquetado y release, [notas de diseño](docs/). |
+| [Desarrolladores](https://nunzi00.github.io/chameleon-cv/developers/architecture) | Arquitectura y cánones C1–C15, [contribuir](CONTRIBUTING.md), pruebas, extender, empaquetado y release, [notas de diseño](docs/). |
 
 ## Seguridad y privacidad
 

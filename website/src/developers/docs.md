@@ -3,7 +3,7 @@ title: Documentación (Docs-as-Code)
 ---
 # Documentación como código
 
-El portal vive en `website/` (VitePress, con su propio `package.json` aislado del producto) y se publica en GitHub Pages en cada push a `main`. Es un estándar del proyecto: **la documentación se genera desde el código cuando puede y se ejecuta cuando describe un flujo**. Especificación: [Portal de documentación](/design/docs-portal).
+El portal vive en `website/` (VitePress, con su propio `package.json` aislado del producto) y se publica en GitHub Pages en cada push a `main`. Es un canon del proyecto (**C15, «La documentación es código verificable»**): la documentación se genera desde el código cuando puede y se ejecuta cuando describe un flujo. Especificación: [Portal de documentación](/design/docs-portal).
 
 ## Órdenes
 

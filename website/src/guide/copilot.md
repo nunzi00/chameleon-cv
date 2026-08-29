@@ -3,7 +3,7 @@ title: Co-piloto de IA
 ---
 # Co-piloto de IA
 
-El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C14) está en la nota [Co-piloto de IA: diseño y principios](/design/llm-integration). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada.
+El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C15) está en la nota [Co-piloto de IA: diseño y principios](/design/llm-integration). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada.
 
 ```bash
 cv llm status                                   # proveedor y modelo locales que se usarían y si responden (nunca envía datos)
