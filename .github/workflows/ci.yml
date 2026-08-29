@@ -1,0 +1,50 @@
+# Integración continua (T-6.3): en cada push a main y en cada pull request, exactamente lo que el
+# trabajo «verify» del release exige: typecheck, lint, cobertura al 100 %, suite con Typst real y el
+# arnés de aceptación determinista completo (con Typst obligatorio). Sin secretos, permisos mínimos,
+# acciones fijadas por SHA (el comentario indica la versión) — docs/packaging-and-release.md §6.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TYPST_VERSION: '0.15.1'
+
+jobs:
+  verify:
+    name: Verificar (typecheck, lint, cobertura 100 %, aceptación determinista)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - name: Caché del binario de Typst (se descarga, verificado por SHA-256, solo si falta)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/chameleon-cv/typst
+          key: typst-${{ env.TYPST_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Typst ${{ env.TYPST_VERSION }} (cv typst install, única operación de red del producto)
+        run: |
+          node dist/index.js typst install
+          echo "CHAMELEON_TYPST=$HOME/.cache/chameleon-cv/typst/$TYPST_VERSION/typst" >> "$GITHUB_ENV"
+      - name: Suite unitaria con cobertura (incluye las pruebas con el binario real de Typst)
+        run: npm run coverage
+      - name: Arnés de aceptación determinista (Typst obligatorio)
+        run: npm run test:acceptance:deterministic -- --require-typst
