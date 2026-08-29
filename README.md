@@ -20,7 +20,7 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 
 ## Requisitos
 
-- **Ejecutable autónomo**: Linux x86-64 con glibc ≥ 2.28; no necesita Node. El motor Typst es opcional (`cv typst install`).
+- **Ejecutable autónomo**: Linux x86-64 con glibc ≥ 2.28, `libstdc++` y `libatomic` (presentes en cualquier distribución de escritorio; en una imagen mínima de contenedor hay que instalarlas); no necesita Node. El motor Typst es opcional (`cv typst install`).
 - **Desde el repositorio**: Node.js **≥ 22.12** (el proyecto usa `require(esm)` nativo) y npm; para empaquetar el ejecutable, Node ≥ 26.
 
 ## Instalación

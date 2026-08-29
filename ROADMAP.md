@@ -153,6 +153,7 @@ Del producto núcleo a una plataforma abierta: **documentación** (la piedra ang
 **Pilar 2 — Containerización y despliegue simplificado (Docker)**
 
 -   [ ] **T-7.2: [OPS] Ecosistema Docker**: `Dockerfile` multi-etapa (dependencias → compilación del binario → imagen final mínima con el ejecutable y sus assets) y `docker-compose.yml` con dos servicios: `chameleon-cv` (volumen local `./my-profile` para editar los datos desde la máquina anfitriona) y `ollama` (imagen oficial, preconfigurada con un modelo recomendado); documentación de `docker compose up` y de `docker compose exec chameleon-cv cv …`.
+    -   **PROPUESTA v1 en `docs/docker.md` (2026-08-29), pendiente de aprobación**, con un spike medido con Docker 29.7 y Compose 5.5: imagen multi-etapa sin Node dentro (Debian por defecto con UID/GID, distroless opcional), Compose por capas (`compose.yml` sin red; `compose.ai.yml` con Ollama y `network_mode: service:ollama`, validado: loopback intacto; `compose.gpu.yml`), `run --rm` como patrón, `qwen2.5:7b-instruct`, endurecimiento por defecto, trabajo `docker` en CI y tutorial 5 (C15). Hallazgos: el ejecutable exige `libatomic` y `libstdc++` (ausentes en imágenes mínimas), `xz` en la construcción, permisos 0700 de `typst install`, ejecutable de 160 MB con el Node oficial. Siete decisiones para el Director.
 -   [ ] **T-7.3: [RELEASE] Publicación de la imagen Docker** en GitHub Container Registry desde el workflow de release, con la misma etiqueta que el binario (`ghcr.io/<propietario>/chameleon-cv:1.0.0`).
 
 **Pilar 3 — Interfaz gráfica web (GUI)**
