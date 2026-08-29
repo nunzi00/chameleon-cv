@@ -6,16 +6,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [1.1.1] - 2026-08-29
 
-La imagen Docker, publicada: la primera versión con imagen oficial en GitHub Container Registry (T-7.3 del [ROADMAP](ROADMAP.md)).
-
-### Añadido
-
-- Imagen Docker publicada en GitHub Container Registry (`ghcr.io/nunzi00/chameleon-cv`) desde el flujo de release, con etiquetas `X.Y.Z`, `X.Y`, `X` y `latest` (sin alias en prereleases), variante `-distroless`, `linux/amd64` y `linux/arm64` construidas en runners nativos, SBOM y procedencia de BuildKit en el registro y atestación de procedencia de GitHub sobre cada índice (`gh attestation verify oci://…`); la imagen solo se publica tras pasar la prueba de humo en cada arquitectura. `workflow_dispatch` para ensayar sin publicar o (re)publicar la imagen de una release existente. Análisis semanal e informativo de la imagen publicada con Trivy (Code scanning).
-- `compose.yml` descarga por defecto la versión exacta publicada (`CHAMELEON_CV_IMAGE` la cambia); una prueba de la suite exige que coincida con `package.json`. Prueba de humo con `--user` (variante distroless) y trabajo `docker` de la CI en `amd64` y `arm64` con las dos variantes.
-
-## [1.1.0] - 2026-08-29
-
-El núcleo como producto: la API local (`cv serve`) completa —incluidos los trabajos del co-piloto—, el portal de documentación y el ecosistema Docker. Hito 7 (T-7.1, T-7.2, T-7.4) del [ROADMAP](ROADMAP.md).
+El núcleo como producto y la imagen Docker publicada: la API local (`cv serve`) completa —incluidos los trabajos del co-piloto—, el portal de documentación, el ecosistema Docker y la primera imagen oficial en GitHub Container Registry. Hito 7 (T-7.1 a T-7.4) del [ROADMAP](ROADMAP.md). La versión 1.1.0 no llegó a publicarse: sus cambios se distribuyen aquí.
 
 ### Añadido
 
@@ -26,6 +17,8 @@ El núcleo como producto: la API local (`cv serve`) completa —incluidos los tr
 - Referencia de la API generada desde el propio servidor (`/reference/api`), guía «La API local (cv serve)» y tutorial 6 «La API desde la terminal», ejecutable en la integración continua.
 - `compose.serve.yml` y `compose.serve-ai.yml`: `cv serve` desde Docker con el puerto publicado solo en el loopback del anfitrión.
 - Ecosistema Docker: `Dockerfile` multi-etapa (runtime sin Node; variante distroless), `compose.yml` sin red y endurecido, `compose.ai.yml` con Ollama en loopback compartido (`network_mode: service:ollama`) y `compose.gpu.yml`; prueba de humo de la imagen (`npm run docker:smoke`), trabajo `docker` en la integración continua, guía «Chameleon CV en Docker» y tutorial 5.
+- Imagen Docker publicada en GitHub Container Registry (`ghcr.io/nunzi00/chameleon-cv`) desde el flujo de release, con etiquetas `X.Y.Z`, `X.Y`, `X` y `latest` (sin alias en prereleases), variante `-distroless`, `linux/amd64` y `linux/arm64` construidas en runners nativos, SBOM y procedencia de BuildKit en el registro y atestación de procedencia de GitHub sobre cada índice (`gh attestation verify oci://…`); la imagen solo se publica tras pasar la prueba de humo en cada arquitectura. `workflow_dispatch` para ensayar sin publicar o (re)publicar la imagen de una release existente. Análisis semanal e informativo de la imagen publicada con Trivy (Code scanning).
+- `compose.yml` descarga por defecto la versión exacta publicada (`CHAMELEON_CV_IMAGE` la cambia); una prueba de la suite exige que coincida con `package.json`. Prueba de humo con `--user` (variante distroless) y trabajo `docker` de la CI en `amd64` y `arm64` con las dos variantes.
 
 ### Cambiado
 
