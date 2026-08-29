@@ -56,10 +56,12 @@ jobs:
             exit 1
           fi
       - run: npm ci
+      - run: npm ci --prefix gui
       - name: CHANGELOG.md debe tener la sección de la versión, con fecha y contenido (notas de la release)
         run: npm run --silent release:notes -- "$(node -p "require('./package.json').version")" > /dev/null
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run gui:build
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/chameleon-cv/typst
@@ -95,6 +97,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix gui
       - run: npm run build
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -106,8 +109,18 @@ jobs:
           echo "CHAMELEON_TYPST=$HOME/.cache/chameleon-cv/typst/$TYPST_VERSION/typst" >> "$GITHUB_ENV"
       - name: npm run package (compilación limpia, bundles, manifiesto, node --build-sea, prueba de humo, tar.gz + sha256)
         run: npm run package
-      - name: Arnés de aceptación determinista contra el ejecutable (77 pasos, byte a byte)
+      - name: Arnés de aceptación determinista contra el ejecutable (byte a byte, interfaz web incluida)
         run: npm run test:acceptance:deterministic -- --binary build/sea/cv --require-typst
+      - name: Chromium de Playwright (caché por versión)
+        id: playwright
+        run: echo "version=$(node -p "require('./gui/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-${{ runner.os }}
+      - run: npx --prefix gui playwright install --with-deps chromium
+      - name: E2E de la interfaz web con Playwright contra el ejecutable empaquetado
+        run: CV_BINARY=build/sea/cv npm run gui:e2e
       - name: Notas de la release desde CHANGELOG.md (viajan con el artefacto)
         run: npm run --silent release:notes -- "$(node -p "require('./package.json').version")" > build/release/RELEASE-NOTES.md
       - name: Archivar el artefacto de lanzamiento
