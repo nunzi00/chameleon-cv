@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { EXIT_FAILURE, EXIT_OK, runCli, type CliContext } from '../../src/cli';
 import { MemoryLlmCache, type LlmStatus } from '../../src/llm';
 import { defaultSourceParsers } from '../../src/parsers';
@@ -28,6 +29,7 @@ function harness(status: LlmStatus): { context: CliContext; stdout: () => string
     llmStatus: () => Promise.resolve(status),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
   };
   return { context, stdout: () => out.join('') };
 }

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { NodeWritableFileSystem, serializeProfile } from '../../src/artifact';
 import {
   EXIT_DATA_ERROR,
@@ -62,6 +63,7 @@ function harness(tree: Record<string, string | MemoryEntry> = datasetTree(), ove
     llmStatus: (options) => llmStatus(options),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };

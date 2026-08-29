@@ -13,7 +13,7 @@ import { containsTerm, normalizeLine } from '../../core/keywords';
 import { expandIsoDate, type MasterProfile } from '../../core/schema';
 import { buildStructuredView, type Block, type Run } from '../../renderers/structured';
 import type { LlmCompletion, LlmErrorCode, LlmProvider, LlmUsage } from '../provider';
-import { loadPrompt } from './improve';
+import { loadPrompt, type PromptSource } from './improve';
 
 export const SUMMARIZE_PROMPT_VERSION = 'summarize.v1';
 export const SUMMARIZE_LIMITS = { paragraphs: 2, maxLength: 900, proposals: 2, maxTokens: 1200 } as const;
@@ -154,8 +154,8 @@ export function buildSummarizeFragment(profile: MasterProfile, options: Summariz
   return { input, redaction, corpus, keyFacts };
 }
 
-export function loadSummarizePrompt(directory?: string): Promise<string> {
-  return loadPrompt(SUMMARIZE_PROMPT_VERSION, directory);
+export function loadSummarizePrompt(source?: PromptSource): Promise<string> {
+  return loadPrompt(SUMMARIZE_PROMPT_VERSION, source);
 }
 
 export interface SummarizeProposal {

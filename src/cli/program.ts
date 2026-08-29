@@ -7,7 +7,7 @@ import { Command, CommanderError } from 'commander';
 import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-offer';
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
-import { TEMPLATE_DATASET_DIR, runInit, type InitOptions } from './commands/init';
+import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, type ApplyOptions } from './commands/apply';
 import { runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
@@ -22,14 +22,14 @@ import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit, parseProposals } from './limits';
 import { EXIT_FAILURE, EXIT_OK } from './output';
-import { packageVersion } from './version';
+import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
 
-export function createProgram(context: CliContext, onExit: (code: number) => void): Command {
+export function createProgram(context: CliContext, onExit: (code: number) => void, version: string): Command {
   const program = new Command().enablePositionalOptions()
     .name('cv')
     .description('Chameleon CV: genera CVs dinámicos y personalizados a partir de tus fuentes Markdown y CSV. Todo se procesa en local.')
-    .version(packageVersion(), '-V, --version', 'muestra la versión')
+    .version(version, '-V, --version', 'muestra la versión')
     .helpOption('-h, --help', 'muestra esta ayuda')
     .exitOverride()
     .configureOutput({ writeOut: context.stdout, writeErr: context.stderr });
@@ -38,7 +38,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .command('init')
     .description('crea un espacio de trabajo: data/sources con un dataset de ejemplo y un .gitignore; nunca sobrescribe nada')
     .argument('[dir]', 'directorio del espacio de trabajo', '.')
-    .option('--template <dir>', 'dataset de ejemplo alternativo', TEMPLATE_DATASET_DIR)
+    .option('--template <dir>', 'dataset de ejemplo alternativo (por defecto, el distribuido)')
     .action(async (directory: string, options: InitOptions) => {
       onExit(await runInit(context, directory, options));
     });
@@ -262,9 +262,15 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
 /** Ejecuta `cv` con los argumentos del usuario (sin `node` ni el nombre del binario). */
 export async function runCli(argv: readonly string[], context: CliContext): Promise<number> {
   let exitCode = EXIT_OK;
-  const program = createProgram(context, (code) => {
-    exitCode = code;
-  });
+  // La versión sale de los assets (package.json del repositorio o del binario), no de una ruta fija (T-6.2).
+  const version = readVersion(await context.assets.text('package.json'));
+  const program = createProgram(
+    context,
+    (code) => {
+      exitCode = code;
+    },
+    version,
+  );
   try {
     await program.parseAsync([...argv], { from: 'user' });
   } catch (error) {

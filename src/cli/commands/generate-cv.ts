@@ -13,7 +13,8 @@ import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchRepo
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
 import { renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../../renderers';
 import { describeError } from '../../shared/errors';
-import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys, themeRoots } from '../../themes';
+import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys } from '../../themes';
+import { projectThemeRoots } from '../assets';
 import type { CliContext } from '../context';
 import { DEFAULT_OUTPUT_DIR } from '../defaults';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
@@ -96,7 +97,7 @@ async function renderWithTypst(context: CliContext, profile: MasterProfile, opti
     return EXIT_DATA_ERROR;
   }
   const overrides = project.config?.theme;
-  const loaded = await loadTheme(options.theme ?? overrides?.name ?? DEFAULT_THEME, themeRoots(context.cwd, context.datasetFileSystem));
+  const loaded = await loadTheme(options.theme ?? overrides?.name ?? DEFAULT_THEME, await projectThemeRoots(context));
   if (!loaded.ok) {
     context.stderr(`${loaded.message}\n`);
     return EXIT_DATA_ERROR;
@@ -112,6 +113,7 @@ async function renderWithTypst(context: CliContext, profile: MasterProfile, opti
     explicitPath: options.typstPath === undefined ? undefined : resolve(context.cwd, options.typstPath),
     allowAnyVersion: options.typstAnyVersion,
     theme,
+    fontsDirectory: await context.assets.directory('templates/fonts'),
   });
   if (result.ok) {
     return result.pdf;
@@ -203,8 +205,10 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     return writeCv(context, outputPath, () => context.artifactFileSystem.writeBinaryFile(outputPath, pdf, OUTPUT_MODE));
   }
 
-  let template: string | undefined;
-  if (options.template !== undefined) {
+  let template: string;
+  if (options.template === undefined) {
+    template = await context.assets.text('templates/cv.md.hbs');
+  } else {
     const templatePath = resolve(context.cwd, options.template);
     try {
       template = await context.datasetFileSystem.readTextFile(templatePath);

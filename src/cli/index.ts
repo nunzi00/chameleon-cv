@@ -1,6 +1,7 @@
 /**
  * CLI `cv` (T-1.4, T-1.8, T-2.4, T-2.7, T-2.8, T-3.2, T-3.3, T-4.2, T-4.3, T-4.4, T-4.5, T-4.6, T-4.7, T-5.3).
  */
+export * from './assets';
 export * from './commands/analyze-offer';
 export * from './commands/apply';
 export * from './commands/build';

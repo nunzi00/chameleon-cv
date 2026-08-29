@@ -97,7 +97,7 @@ function resolveTargets(context: CliContext, profile: MasterProfile, options: Su
 
 export async function runSuggestTagsCommand(context: CliContext, options: SuggestTagsOptions): Promise<number> {
   if (options.showPrompt) {
-    context.stdout(`${await loadSuggestTagsPrompt()}\n`);
+    context.stdout(`${await loadSuggestTagsPrompt(context.assets)}\n`);
     return EXIT_OK;
   }
   let textTarget: TagTarget | undefined;
@@ -172,7 +172,7 @@ export async function runSuggestTagsCommand(context: CliContext, options: Sugges
     return EXIT_OK;
   }
 
-  const prompt = await loadSuggestTagsPrompt();
+  const prompt = await loadSuggestTagsPrompt(context.assets);
   if (provider.kind === 'local') {
     const health = await provider.health();
     if (!health.ok) {

@@ -2,6 +2,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { serializeProfile } from '../../src/artifact';
 import { PassThrough } from 'node:stream';
 
@@ -82,6 +83,7 @@ async function harness(confirm: ((question: string) => Promise<boolean>) | undef
       return Promise.resolve(selection.provider === 'openai' ? { ok: true as const, provider: remoteProvider(calls) } : { ok: false as const, message: `sin proveedor «${selection.provider ?? ''}» en las pruebas` });
     },
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
     now: () => new Date('2026-08-28T20:00:00.000Z'),
     ...(confirm === undefined ? {} : { confirm }),
   };

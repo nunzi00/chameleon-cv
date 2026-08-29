@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { serializeProfile } from '../../src/artifact';
 import { EXIT_OK, runCli, type CliContext } from '../../src/cli';
 import { MemoryLlmCache, type LlmProvider, type LlmRequest } from '../../src/llm';
@@ -66,6 +67,7 @@ async function workspace(): Promise<{ context: CliContext; fs: MemoryFileSystem 
     llmStatus: () => Promise.reject(new Error('no usado')),
     llmProvider: () => Promise.resolve({ ok: true as const, provider: provider() }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
     now: () => new Date('2026-08-28T20:00:00.000Z'),
   };
   return { context, fs };

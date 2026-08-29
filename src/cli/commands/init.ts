@@ -24,7 +24,8 @@ const GITIGNORE_MODE = 0o644;
 export const GITIGNORE_ENTRIES = [`${dirname(DEFAULT_ARTIFACT_PATH)}/`, `${DEFAULT_OUTPUT_DIR}/`] as const;
 
 export interface InitOptions {
-  readonly template: string;
+  /** Dataset de ejemplo alternativo; por defecto el distribuido (por la capa de assets). */
+  readonly template?: string | undefined;
 }
 
 /** Ficheros regulares bajo `root` (recursivo, ordenados, rutas relativas con `/`); ignora ocultos y enlaces. */
@@ -83,7 +84,7 @@ const GITIGNORE_MESSAGES: Readonly<Record<GitignoreOutcome, string>> = {
 
 export async function runInit(context: CliContext, directory: string, options: InitOptions): Promise<number> {
   const root = resolve(context.cwd, directory);
-  const templateRoot = resolve(context.cwd, options.template);
+  const templateRoot = options.template === undefined ? await context.assets.directory('templates/dataset') : resolve(context.cwd, options.template);
   let files: string[];
   try {
     files = await listTemplateFiles(context.datasetFileSystem, templateRoot);

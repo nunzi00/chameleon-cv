@@ -8,7 +8,8 @@
 import { join, resolve } from 'node:path';
 
 import { describeError } from '../../shared/errors';
-import { DEFAULT_THEME, THEMES_DIRECTORY_NAME, THEME_CONFIG_FILE, THEME_FONTS_DIRECTORY, THEME_NAME_PATTERN, THEME_TEMPLATE_FILE, inventoryThemes, kindOf, loadProjectConfig, loadTheme, locateTheme, themeRoots, type ThemeRoot } from '../../themes';
+import { DEFAULT_THEME, THEMES_DIRECTORY_NAME, THEME_CONFIG_FILE, THEME_FONTS_DIRECTORY, THEME_NAME_PATTERN, THEME_TEMPLATE_FILE, inventoryThemes, kindOf, loadProjectConfig, loadTheme, locateTheme, type ThemeRoot } from '../../themes';
+import { projectThemeRoots } from '../assets';
 import type { CliContext } from '../context';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, pluralize } from '../output';
 
@@ -25,7 +26,7 @@ function compactError(message: string): string {
 }
 
 export async function runThemeList(context: CliContext): Promise<number> {
-  const roots = themeRoots(context.cwd, context.datasetFileSystem);
+  const roots = await projectThemeRoots(context);
   const project = await loadProjectConfig(context.cwd, context.datasetFileSystem);
   if (!project.ok) {
     context.stderr(`Aviso: ${project.message}\n`);
@@ -48,7 +49,7 @@ export async function runThemePath(context: CliContext, name: string): Promise<n
     context.stderr(`${invalidName(name)}\n`);
     return EXIT_DATA_ERROR;
   }
-  const roots = themeRoots(context.cwd, context.datasetFileSystem);
+  const roots = await projectThemeRoots(context);
   const loaded = await loadTheme(name, roots);
   if (loaded.ok) {
     context.stdout(`${loaded.theme.directory}\n`);
@@ -88,7 +89,7 @@ export async function runThemeCreate(context: CliContext, name: string, options:
     context.stderr(`${invalidName(name)}\n`);
     return EXIT_DATA_ERROR;
   }
-  const roots = themeRoots(context.cwd, context.datasetFileSystem);
+  const roots = await projectThemeRoots(context);
   const source = await loadTheme(options.from, roots);
   if (!source.ok) {
     context.stderr(`No se puede partir del tema «${options.from}»: ${source.message}\n`);

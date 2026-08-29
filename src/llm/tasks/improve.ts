@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { createRedaction, type Redaction } from '../../core/llm/redact';
 import type { Achievement, MasterProfile } from '../../core/schema';
+import type { AssetStore } from '../../shared/assets';
 import type { LlmCompletion, LlmErrorCode, LlmProvider, LlmUsage } from '../provider';
 
 export const PROMPTS_DIRECTORY = resolve(__dirname, '..', '..', '..', 'prompts');
@@ -118,8 +119,12 @@ export function buildImproveFragment(profile: MasterProfile, id: string, options
   return { input, redaction };
 }
 
-export async function loadPrompt(version: string = IMPROVE_PROMPT_VERSION, directory: string = PROMPTS_DIRECTORY): Promise<string> {
-  return (await readFile(resolve(directory, `${version}.md`), 'utf8')).trim();
+/** De dónde salen los prompts: un directorio (por defecto `prompts/` del repositorio) o la capa de assets (T-6.2). */
+export type PromptSource = string | Pick<AssetStore, 'text'>;
+
+export async function loadPrompt(version: string = IMPROVE_PROMPT_VERSION, source: PromptSource = PROMPTS_DIRECTORY): Promise<string> {
+  const text = typeof source === 'string' ? await readFile(resolve(source, `${version}.md`), 'utf8') : await source.text(`prompts/${version}.md`);
+  return text.trim();
 }
 
 export interface ImproveProposal {

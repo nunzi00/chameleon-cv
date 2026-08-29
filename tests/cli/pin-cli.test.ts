@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { EXIT_DATA_ERROR, EXIT_OK, runCli, type CliContext } from '../../src/cli';
 import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
@@ -47,6 +48,7 @@ function harness(tree: Record<string, string | MemoryEntry> = DATASET): Harness 
     llmStatus: (options) => llmStatus(options),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
 }
