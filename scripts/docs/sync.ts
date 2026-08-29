@@ -21,6 +21,7 @@ const PAGES: Readonly<Record<string, string>> = {
   'CHANGELOG.md': '/changelog',
   'CONTRIBUTING.md': '/developers/contributing',
   'ROADMAP.md': '/developers/roadmap',
+  'REGISTRO_DE_DECISIONES.md': '/developers/decisions',
   'LICENSE': '/license',
 };
 
@@ -123,6 +124,8 @@ function main(): void {
   write(join(SRC, 'changelog.md'), rewriteLinks(changelog, ROOT, (message) => warn(`CHANGELOG.md: ${message}`)));
   const roadmap = readFileSync(join(ROOT, 'ROADMAP.md'), 'utf8');
   write(join(SRC, 'developers', 'roadmap.md'), rewriteLinks(roadmap, ROOT, (message) => warn(`ROADMAP.md: ${message}`)));
+  const decisions = readFileSync(join(ROOT, 'REGISTRO_DE_DECISIONES.md'), 'utf8');
+  write(join(SRC, 'developers', 'decisions.md'), rewriteLinks(decisions, ROOT, (message) => warn(`REGISTRO_DE_DECISIONES.md: ${message}`)));
   const contributing = readFileSync(join(ROOT, 'CONTRIBUTING.md'), 'utf8');
   write(join(SRC, 'developers', 'contributing.md'), rewriteLinks(contributing, ROOT, (message) => warn(`CONTRIBUTING.md: ${message}`)));
   const license = readFileSync(join(ROOT, 'LICENSE'), 'utf8').replace(/^MIT License\n\n/, '');
@@ -137,7 +140,7 @@ function main(): void {
       }
     }
   }
-  process.stdout.write(`Sincronizados: ${notes.length} notas de diseño, CHANGELOG, ROADMAP, CONTRIBUTING y LICENSE${warnings.length === 0 ? '' : `\n  avisos:\n  - ${warnings.join('\n  - ')}`}\n`);
+  process.stdout.write(`Sincronizados: ${notes.length} notas de diseño, CHANGELOG, ROADMAP, REGISTRO_DE_DECISIONES, CONTRIBUTING y LICENSE${warnings.length === 0 ? '' : `\n  avisos:\n  - ${warnings.join('\n  - ')}`}\n`);
   if (warnings.length > 0) {
     process.exit(1);
   }
