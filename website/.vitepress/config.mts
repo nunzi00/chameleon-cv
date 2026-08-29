@@ -83,6 +83,7 @@ export default defineConfig({
             { text: 'Empaquetado y release', link: '/developers/packaging' },
             { text: 'Documentación (Docs-as-Code)', link: '/developers/docs' },
             { text: 'Plan de trabajo (ROADMAP)', link: '/developers/roadmap' },
+            { text: 'Registro de decisiones', link: '/developers/decisions' },
             { text: 'Notas de diseño', link: '/design/' },
           ],
         },
