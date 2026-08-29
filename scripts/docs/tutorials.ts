@@ -7,6 +7,7 @@
  * CHAMELEON_DOCS_LLM=1 y los `needs-docker` solo con CHAMELEON_DOCS_DOCKER=1 y un demonio de Docker: en otro
  * caso se OMITEN de forma visible, nunca en silencio. La cabecera admite además `files:` (ficheros del
  * repositorio que se copian al espacio de trabajo, p. ej. compose.yml) y `cleanup:` (órdenes finales).
+ * CHAMELEON_CV_IMAGE, si está definida, llega a los bloques (Compose la usa como imagen).
  *
  *   npm run docs:tutorials [-- --binary build/sea/cv] [--keep] [--only <texto-del-fichero>]
  */
@@ -119,6 +120,8 @@ function run(tutorial: Tutorial, binary: string | undefined, keep: boolean): Out
     LANG: 'C.UTF-8',
     ...(typst === undefined ? {} : { CHAMELEON_TYPST: typst }),
     ...(process.env['DOCKER_HOST'] === undefined ? {} : { DOCKER_HOST: process.env['DOCKER_HOST'] }),
+    // La imagen que usan los ficheros de Compose del tutorial 5: en la CI, la recién construida; sin la variable, la publicada.
+    ...(process.env['CHAMELEON_CV_IMAGE'] === undefined ? {} : { CHAMELEON_CV_IMAGE: process.env['CHAMELEON_CV_IMAGE'] }),
     ...(llm
       ? Object.fromEntries(['CHAMELEON_LLM_PROVIDER', 'CHAMELEON_LLM_BASE_URL', 'CHAMELEON_LLM_MODEL'].filter((name) => process.env[name] !== undefined).map((name) => [name, process.env[name]]))
       : { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' }),
