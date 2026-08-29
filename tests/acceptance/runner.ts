@@ -35,6 +35,8 @@ export interface RunnerOptions {
   readonly requireTypst?: boolean | undefined;
   /** Conservar la copia temporal (se imprime su ruta). */
   readonly keep?: boolean | undefined;
+  /** Ejecutable autónomo a probar en lugar de `node dist/index.js` (T-6.2 S5): mismos escenarios, mismos artefactos esperados. */
+  readonly binary?: string | undefined;
 }
 
 export type Replacement = readonly [from: string, to: string];
@@ -144,11 +146,14 @@ interface Context {
   readonly env: Readonly<Record<string, string>>;
   readonly replacements: readonly Replacement[];
   readonly target: string;
+  /** Cómo se invoca la CLI: `node dist/index.js` o el ejecutable autónomo. */
+  readonly command: readonly [file: string, ...prefix: string[]];
 }
 
 async function runStep(context: Context, index: number, step: Step, options: RunnerOptions): Promise<StepResult> {
   const prefix = stepPrefix(index, step);
-  const result = spawnSync(process.execPath, [CLI_PATH, ...step.args], {
+  const [file, ...leading] = context.command;
+  const result = spawnSync(file, [...leading, ...step.args], {
     cwd: context.workspace,
     env: { ...context.env, ...step.env },
     input: step.stdin ?? '',
@@ -247,13 +252,21 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
       LANG: 'C.UTF-8',
       ...(scenario.requires === 'typst' && typst !== undefined ? { CHAMELEON_TYPST: typst } : {}),
     };
-    const replacements: Replacement[] = [[workspace, '<WS>'], [root, '<TMP>'], [REPO_ROOT, '<REPO>'], ...(typst === undefined ? [] : [[typst, '<TYPST>'] as Replacement])];
+    // Los temas distribuidos viven en el repositorio (dist) o en la caché materializada (ejecutable): mismo marcador.
+    const replacements: Replacement[] = [
+      [join(REPO_ROOT, 'themes'), '<BUILTIN_THEMES>'],
+      [join(home, '.cache', 'chameleon-cv', 'assets', await packageVersion(), 'themes'), '<BUILTIN_THEMES>'],
+      [workspace, '<WS>'],
+      [root, '<TMP>'],
+      [REPO_ROOT, '<REPO>'],
+      ...(typst === undefined ? [] : [[typst, '<TYPST>'] as Replacement]),
+    ];
     const target = join(EXPECTED_DIRECTORY, scenario.id);
     if (options.update) {
       await rm(target, { recursive: true, force: true });
       await mkdir(target, { recursive: true });
     }
-    const context: Context = { workspace, env, replacements, target };
+    const context: Context = { workspace, env, replacements, target, command: options.binary === undefined ? [process.execPath, CLI_PATH] : [resolve(options.binary)] };
     const failures: StepResult[] = [];
     let executed = 0;
     for (const [index, step] of scenario.steps.entries()) {
@@ -275,6 +288,11 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
       await rm(root, { recursive: true, force: true });
     }
   }
+}
+
+/** Versión del paquete (la caché de assets del ejecutable va por versión). */
+export async function packageVersion(): Promise<string> {
+  return (JSON.parse(await readFile(join(REPO_ROOT, 'package.json'), 'utf8')) as { version: string }).version;
 }
 
 export async function typstBinary(): Promise<string | undefined> {
@@ -353,12 +371,16 @@ function report(result: ScenarioResult, update: boolean): void {
 }
 
 export async function runAll(options: RunnerOptions): Promise<ScenarioResult[]> {
-  const distProblem = await checkDist();
-  if (distProblem !== undefined) {
-    throw new Error(distProblem);
+  if (options.binary === undefined) {
+    const distProblem = await checkDist();
+    if (distProblem !== undefined) {
+      throw new Error(distProblem);
+    }
+  } else if (!(await exists(resolve(options.binary)))) {
+    throw new Error(`No existe el ejecutable ${resolve(options.binary)} (genera uno con «npm run package»)`);
   }
   const typst = await typstBinary();
-  console.log(`Arnés de aceptación determinista · ${options.update ? 'REGENERANDO artefactos esperados' : 'comparando con los artefactos esperados'} · Typst: ${typst ?? 'no disponible'}`);
+  console.log(`Arnés de aceptación determinista · ${options.update ? 'REGENERANDO artefactos esperados' : 'comparando con los artefactos esperados'} · ejecutable: ${options.binary === undefined ? 'node dist/index.js' : resolve(options.binary)} · Typst: ${typst ?? 'no disponible'}`);
   const results: ScenarioResult[] = [];
   if (options.only === undefined || options.only.includes('bench-generators')) {
     const consistency = await checkBenchConsistency();
@@ -393,13 +415,25 @@ export function summarize(results: readonly ScenarioResult[]): { readonly line: 
   };
 }
 
+/** Argumentos sin opciones ni el valor de --binary. */
+export function positional(args: readonly string[]): string[] {
+  const skip = new Set<number>();
+  args.forEach((arg, index) => {
+    if (arg === '--binary') {
+      skip.add(index + 1);
+    }
+  });
+  return args.filter((arg, index) => !arg.startsWith('--') && !skip.has(index));
+}
+
 if (require.main === module) {
   const args = process.argv.slice(2);
   const options: RunnerOptions = {
     update: args.includes('--update'),
     requireTypst: args.includes('--require-typst'),
     keep: args.includes('--keep'),
-    only: args.some((arg) => !arg.startsWith('--')) ? args.filter((arg) => !arg.startsWith('--')) : undefined,
+    binary: args[args.indexOf('--binary') + 1] !== undefined && args.includes('--binary') ? args[args.indexOf('--binary') + 1] : undefined,
+    only: positional(args).length === 0 ? undefined : positional(args),
   };
   runAll(options)
     .then((results) => {

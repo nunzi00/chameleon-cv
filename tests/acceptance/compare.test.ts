@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { compareBytes, comparePdf, compareText, diffOperations, lineDiff } from './compare';
-import { normalize, producedName, stepPrefix, storedName, summarize } from './runner';
+import { normalize, positional, producedName, stepPrefix, storedName, summarize } from './runner';
 
 const BENCH = join(__dirname, 'bench', 'workspace');
 
@@ -68,5 +68,12 @@ describe('nombres almacenados de los artefactos', () => {
     expect(producedName('gitignore.expected')).toBe('.gitignore');
     expect(producedName('a/gitignore.expected')).toBe('a/.gitignore');
     expect(producedName('a/b.md')).toBe('a/b.md');
+  });
+});
+
+describe('opciones del ejecutor', () => {
+  it('positional descarta las opciones y el valor de --binary', () => {
+    expect(positional(['core', '--update', '--binary', 'build/sea/cv', 'typst', '--keep'])).toEqual(['core', 'typst']);
+    expect(positional(['--binary', 'x'])).toEqual([]);
   });
 });
