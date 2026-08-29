@@ -40,7 +40,7 @@ jobs:
           fi
       - run: npm ci
       - name: CHANGELOG.md debe tener la sección de la versión, con fecha y contenido (notas de la release)
-        run: npm run release:notes -- "$(node -p "require('./package.json').version")" > /dev/null
+        run: npm run --silent release:notes -- "$(node -p "require('./package.json').version")" > /dev/null
       - run: npm run typecheck
       - run: npm run build
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -90,7 +90,7 @@ jobs:
       - name: Arnés de aceptación determinista contra el ejecutable (77 pasos, byte a byte)
         run: npm run test:acceptance:deterministic -- --binary build/sea/cv --require-typst
       - name: Notas de la release desde CHANGELOG.md (viajan con el artefacto)
-        run: npm run release:notes -- "$(node -p "require('./package.json').version")" > build/release/RELEASE-NOTES.md
+        run: npm run --silent release:notes -- "$(node -p "require('./package.json').version")" > build/release/RELEASE-NOTES.md
       - name: Archivar el artefacto de lanzamiento
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
