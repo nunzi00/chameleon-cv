@@ -8,6 +8,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 - Portal de documentación (`website/`, VitePress) publicado en GitHub Pages: guía de usuario, referencia de comandos generada desde la ayuda de la CLI, tutoriales ejecutables verificados en la integración continua, sección para desarrolladores (arquitectura y cánones C1–C15, contribuir, pruebas, extender, empaquetado) y notas de diseño sincronizadas desde `docs/`. `CONTRIBUTING.md`. README reducido a puerta de entrada.
 - Cánones C14, «El núcleo es el producto», y C15, «La documentación es código verificable».
+- `cv serve`: servidor local de la API (`/api/v1`) sobre el espacio de trabajo —solo `127.0.0.1`, token de sesión, `Host`/`Origin` comprobados, sin CORS— con estado, fuentes (huellas e `If-Match`), validar, compilar, perfil, generar, salida, análisis de ofertas, extracción de PDF y temas; la CLI y el servidor comparten la capa de casos de uso `src/app/`.
 - Ecosistema Docker: `Dockerfile` multi-etapa (runtime sin Node; variante distroless), `compose.yml` sin red y endurecido, `compose.ai.yml` con Ollama en loopback compartido (`network_mode: service:ollama`) y `compose.gpu.yml`; prueba de humo de la imagen (`npm run docker:smoke`), trabajo `docker` en la integración continua, guía «Chameleon CV en Docker» y tutorial 5.
 
 ## [1.0.0] - 2026-08-29
