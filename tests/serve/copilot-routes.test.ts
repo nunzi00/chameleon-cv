@@ -120,7 +120,7 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     expect(final?.data.status).toBe('done');
     const result = final?.data.result as { review: { name: string; path: string; sha256: string }; stats: { items: number; proposals: number }; cancelled: boolean };
     expect(result.review.name).toBe('revision-improve-2026-08-29.md');
-    expect(result.review.path).toBe('/work/output/revision-improve-2026-08-29.md');
+    expect(result.review.path).toBe('output/revision-improve-2026-08-29.md');
     expect(result.stats.items).toBe(body.sending.items);
     expect(result.cancelled).toBe(false);
     // Las líneas de progreso llegan en directo si el SSE conecta a tiempo y, en todo caso, en el estado final.

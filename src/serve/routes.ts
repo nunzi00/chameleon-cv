@@ -411,7 +411,8 @@ async function reviewResult(context: AppContext, outcome: ReviewOutcome, report:
   if (failure !== undefined) {
     throw new JobFailure(failure);
   }
-  return { review: { name: basename(outcome.outputPath), path: outcome.outputPath, sha256: contentHash(outcome.text) }, stats: outcome.stats, cancelled: false };
+  const name = basename(outcome.outputPath);
+  return { review: { name, path: `${OUTPUT_DIR}/${name}`, sha256: contentHash(outcome.text) }, stats: outcome.stats, cancelled: false };
 }
 
 function offerOf(state: ServerState, offer: z.infer<typeof OfferSchema> | undefined): { readonly ok: true; readonly offer: OfferInput | undefined } | { readonly ok: false; readonly error: AppError } {
