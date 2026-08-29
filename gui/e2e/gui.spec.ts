@@ -95,6 +95,26 @@ test('Co-piloto lanza un improve contra el doble del proveedor, lo sigue por SSE
   expect(outputs.some((name) => name.startsWith('revision-improve-'))).toBe(true);
 });
 
+test('Revisiones abre la revisión del co-piloto, guarda una marca, muestra el plan y aplica a las fuentes con copia .bak', async ({ page }) => {
+  await openWithToken(page, state, '#/revisiones');
+  await page.getByRole('button', { name: /revision-improve-/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'Antes' }).first()).toBeVisible();
+  const checkbox = page.getByRole('checkbox').first();
+  await checkbox.check();
+  await expect(page.getByText('marcas sin guardar')).toBeVisible();
+  await page.getByRole('button', { name: 'Guardar marcas' }).click();
+  await expect(page.getByText(/Marcas guardadas \(1 propuesta marcada\)/)).toBeVisible();
+  await page.getByRole('button', { name: 'Plan de aplicación' }).click();
+  await expect(page.getByRole('heading', { name: 'Plan de aplicación' })).toBeVisible();
+  await page.getByRole('button', { name: 'Escribir en las fuentes' }).click();
+  await page.getByRole('button', { name: 'Escribir', exact: true }).click();
+  await expect(page.getByText(/1 cambio aplicado en 1 fichero/)).toBeVisible();
+  const sources = join(state.workspace, 'data', 'sources');
+  const changed = readdirSync(join(sources, 'experience')).some((name) => name.endsWith('.md') && readFileSync(join(sources, 'experience', name), 'utf8').includes('Logré: '));
+  expect(changed).toBe(true);
+  expect(readdirSync(join(sources, 'experience')).some((name) => name.endsWith('.bak'))).toBe(true);
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
   await page.getByRole('button', { name: 'Apagar el servidor' }).click();

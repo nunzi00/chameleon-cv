@@ -29,7 +29,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     themes: vi.fn(),
     createTheme: vi.fn(),
     outputs: vi.fn(),
-    output: vi.fn(),
+    output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
     jobs: vi.fn(),
     job: vi.fn(),
     startJob: vi.fn(),

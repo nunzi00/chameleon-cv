@@ -6,6 +6,8 @@
 import type {
   AnalyzeRequest,
   AnalyzeResponse,
+  ApplyRequest,
+  ApplyResponse,
   BuildResponse,
   ErrorResponse,
   ExtractResponse,
@@ -17,6 +19,10 @@ import type {
   JobsResponse,
   OutputListResponse,
   ProfileResponse,
+  ReviewDeleteResponse,
+  ReviewResponse,
+  ReviewWriteResponse,
+  ReviewsResponse,
   ShutdownResponse,
   SourceResponse,
   SourceWriteResponse,
@@ -96,6 +102,13 @@ export interface ApiClient {
   cancelJob(id: string): Promise<JobResponse>;
   /** Los eventos del trabajo (status, line) hasta que termina; `signal` deja de escuchar (no cancela el trabajo). */
   jobEvents(id: string, signal?: AbortSignal): AsyncIterable<SseEvent>;
+  reviews(): Promise<ReviewsResponse>;
+  review(name: string): Promise<ReviewResponse>;
+  /** Guarda la revisión editada (marcas) con la huella leída en If-Match. */
+  writeReview(name: string, content: string, ifMatch: string): Promise<ReviewWriteResponse>;
+  deleteReview(name: string): Promise<ReviewDeleteResponse>;
+  /** Sin `dryRun: false` solo devuelve el plan; con él escribe en las fuentes (C9). */
+  applyReview(name: string, body: ApplyRequest): Promise<ApplyResponse>;
   shutdown(): Promise<ShutdownResponse>;
 }
 
@@ -209,6 +222,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         const response = await raw('GET', `/jobs/${encodeId(id)}/events`, { accept: 'text/event-stream', signal });
         yield* sseEvents(bodyChunks(response));
       })(),
+    reviews: () => request('GET', '/reviews'),
+    review: (name) => request('GET', `/reviews/${encodeId(name)}`),
+    writeReview: (name, content, ifMatch) => requestWithHeaders('PUT', `/reviews/${encodeId(name)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
+    deleteReview: (name) => request('DELETE', `/reviews/${encodeId(name)}`),
+    applyReview: (name, body) => request('POST', `/reviews/${encodeId(name)}/apply`, { body }),
     shutdown: () => request('POST', '/shutdown', { body: {} }),
   };
 }

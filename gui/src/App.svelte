@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
 
   import Nav from './components/Nav.svelte';
-  import Pending from './components/Pending.svelte';
   import SessionGate from './components/SessionGate.svelte';
   import { createApiClient } from './lib/api/client';
   import { formatRoute, parseRoute, type Route } from './lib/router';
@@ -73,7 +72,11 @@
           <copiloto.default {api} onsession={sessionLost} {navigate} />
         {/await}
       {:else}
-        <Pending label="Revisiones" when="T-7.5b" />
+        {#await import('./pages/Revisiones.svelte')}
+          <p class="cv-muted">Cargando…</p>
+        {:then revisiones}
+          <revisiones.default {api} item={route.item} onsession={sessionLost} {navigate} />
+        {/await}
       {/if}
     </main>
   </div>

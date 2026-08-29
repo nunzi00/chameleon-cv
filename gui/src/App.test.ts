@@ -34,12 +34,10 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: 'Estado' }).getAttribute('aria-current')).toBe('page');
   });
 
-  it('con un token guardado inválido, el 401 devuelve a la puerta de sesión; las rutas pendientes lo dicen', async () => {
+  it('con un token guardado inválido, el 401 devuelve a la puerta de sesión', async () => {
     sessionStorage.setItem(TOKEN_KEY, 'token-que-no-vale-1234');
-    location.hash = '#/revisiones';
-    render(App, { props: { fetchImpl } });
-    await waitFor(() => expect(screen.getByText(/llega con T-7.5b/)).toBeTruthy());
     location.hash = '#/estado';
+    render(App, { props: { fetchImpl } });
     await waitFor(() => expect(screen.getByLabelText('Token de sesión')).toBeTruthy());
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
   });

@@ -99,6 +99,21 @@ describe('cliente de la API', () => {
     expect(calls[5]?.headers['Accept']).toBe('text/event-stream');
   });
 
+  it('revisiones: listar, leer, guardar con If-Match, aplicar (plan y escritura) y borrar', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.reviews();
+    await api.review('revision-improve-2026-08-30.md');
+    await api.writeReview('revision-improve-2026-08-30.md', '# x', 'abc');
+    await api.applyReview('revision-improve-2026-08-30.md', {});
+    await api.applyReview('revision-improve-2026-08-30.md', { dryRun: false, deleteReview: true });
+    await api.deleteReview('revision-improve-2026-08-30.md');
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/reviews', 'GET /api/v1/reviews/revision-improve-2026-08-30.md', 'PUT /api/v1/reviews/revision-improve-2026-08-30.md', 'POST /api/v1/reviews/revision-improve-2026-08-30.md/apply', 'POST /api/v1/reviews/revision-improve-2026-08-30.md/apply', 'DELETE /api/v1/reviews/revision-improve-2026-08-30.md']);
+    expect(calls[2]).toMatchObject({ headers: { 'If-Match': '"abc"' }, body: '{"content":"# x"}' });
+    expect(calls[3]?.body).toBe('{}');
+    expect(calls[4]?.body).toBe('{"dryRun":false,"deleteReview":true}');
+  });
+
   it('sin token no envía Authorization y admite otra base', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, {}));
     await createApiClient({ fetch: f, token: () => undefined, base: 'http://127.0.0.1:4310/api/v1' }).status();
