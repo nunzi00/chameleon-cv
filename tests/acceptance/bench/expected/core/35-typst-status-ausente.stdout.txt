@@ -1,0 +1,7 @@
+Typst requerido: 0.15.1
+Ningún binario ejecutable: ejecuta «cv typst install», o indica --typst-path o CHAMELEON_TYPST
+Candidatos, por prioridad:
+  --typst-path: no indicado
+  CHAMELEON_TYPST: no definida
+  caché de usuario: <TMP>/home/.cache/chameleon-cv/typst/0.15.1/typst (no existe o no es ejecutable)
+  PATH: no encontrado

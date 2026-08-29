@@ -1,0 +1,1087 @@
+{
+  "offer": {
+    "source": "nexo-senior-backend",
+    "terms": [
+      {
+        "term": "php",
+        "tags": [
+          "php",
+          "backend"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- 5+ años de experiencia con PHP y Symfony en producción."
+        ]
+      },
+      {
+        "term": "symfony",
+        "tags": [
+          "symfony",
+          "php",
+          "backend"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- 5+ años de experiencia con PHP y Symfony en producción."
+        ]
+      },
+      {
+        "term": "kafka",
+        "tags": [
+          "kafka",
+          "backend",
+          "data"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- Experiencia con Kafka o sistemas de mensajería a gran escala."
+        ]
+      },
+      {
+        "term": "postgresql",
+        "tags": [
+          "postgresql",
+          "sql",
+          "backend"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- Experiencia con PostgreSQL y optimización de consultas."
+        ]
+      },
+      {
+        "term": "kubernetes",
+        "tags": [
+          "kubernetes",
+          "platform",
+          "docker"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- Despliegues en Kubernetes con canary o blue-green."
+        ]
+      },
+      {
+        "term": "performance",
+        "tags": [
+          "performance"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- Mentalidad de performance y observabilidad (SLO, p99)."
+        ]
+      },
+      {
+        "term": "observabilidad",
+        "tags": [
+          "observability",
+          "sre"
+        ],
+        "occurrences": 1,
+        "emphasis": "required",
+        "weight": 1,
+        "contexts": [
+          "- Mentalidad de performance y observabilidad (SLO, p99)."
+        ]
+      },
+      {
+        "term": "backend",
+        "tags": [
+          "backend"
+        ],
+        "occurrences": 1,
+        "emphasis": "unknown",
+        "weight": 0.75,
+        "contexts": [
+          "Senior Backend Engineer · Pagos (remoto)"
+        ]
+      },
+      {
+        "term": "tech lead",
+        "tags": [
+          "liderazgo",
+          "gestion",
+          "mentoria"
+        ],
+        "occurrences": 1,
+        "emphasis": "desirable",
+        "weight": 0.5,
+        "contexts": [
+          "- Experiencia liderando equipos (tech lead) y mentoría."
+        ]
+      },
+      {
+        "term": "mentoria",
+        "tags": [
+          "mentoria"
+        ],
+        "occurrences": 1,
+        "emphasis": "desirable",
+        "weight": 0.5,
+        "contexts": [
+          "- Experiencia liderando equipos (tech lead) y mentoría."
+        ]
+      },
+      {
+        "term": "terraform",
+        "tags": [
+          "terraform",
+          "aws",
+          "ci-cd"
+        ],
+        "occurrences": 1,
+        "emphasis": "desirable",
+        "weight": 0.5,
+        "contexts": [
+          "- Terraform y AWS."
+        ]
+      },
+      {
+        "term": "aws",
+        "tags": [
+          "aws",
+          "cloud",
+          "platform"
+        ],
+        "occurrences": 1,
+        "emphasis": "desirable",
+        "weight": 0.5,
+        "contexts": [
+          "- Terraform y AWS."
+        ]
+      },
+      {
+        "term": "testing",
+        "tags": [
+          "testing"
+        ],
+        "occurrences": 1,
+        "emphasis": "desirable",
+        "weight": 0.5,
+        "contexts": [
+          "- Contract testing y pruebas de contrato entre servicios."
+        ]
+      }
+    ],
+    "tagWeights": {
+      "php": 1,
+      "backend": 1,
+      "symfony": 1,
+      "kafka": 1,
+      "data": 1,
+      "postgresql": 1,
+      "sql": 1,
+      "kubernetes": 1,
+      "platform": 1,
+      "docker": 1,
+      "performance": 1,
+      "observability": 1,
+      "sre": 1,
+      "liderazgo": 0.5,
+      "gestion": 0.5,
+      "mentoria": 0.5,
+      "terraform": 0.5,
+      "aws": 0.5,
+      "ci-cd": 0.5,
+      "cloud": 0.5,
+      "testing": 0.5
+    },
+    "experienceYears": 5,
+    "gaps": [
+      "rendimiento",
+      "go",
+      "rust"
+    ]
+  },
+  "summary": {
+    "recognized": 13,
+    "demonstrated": 12,
+    "ratio": 0.9230769230769231,
+    "requiredTotal": 7,
+    "requiredDemonstrated": 7
+  },
+  "coverage": {
+    "php": [
+      "exp-delta-consultores",
+      "exp-delta-consultores-1",
+      "exp-delta-consultores-2",
+      "exp-freelance",
+      "exp-freelance-1",
+      "exp-freelance-2",
+      "exp-nexo-pagos",
+      "proj-kafka-guardian",
+      "proj-kafka-guardian-2",
+      "skill-1",
+      "skill-2",
+      "skill-6",
+      "skill-7",
+      "cert-4"
+    ],
+    "symfony": [
+      "exp-delta-consultores",
+      "exp-delta-consultores-1",
+      "exp-delta-consultores-2",
+      "exp-freelance",
+      "exp-freelance-1",
+      "exp-freelance-2",
+      "exp-nexo-pagos",
+      "exp-nexo-pagos-4",
+      "proj-kafka-guardian",
+      "proj-kafka-guardian-2",
+      "skill-1",
+      "skill-2",
+      "skill-6",
+      "skill-7",
+      "cert-4"
+    ],
+    "kafka": [
+      "exp-lumen-analytics",
+      "exp-lumen-analytics-1",
+      "exp-nexo-pagos",
+      "exp-nexo-pasarela",
+      "proj-kafka-guardian",
+      "proj-kafka-guardian-1",
+      "skill-1",
+      "skill-2",
+      "skill-6",
+      "skill-7",
+      "ach-1"
+    ],
+    "postgresql": [
+      "exp-lumen-analytics",
+      "exp-nexo-pagos",
+      "exp-nexo-pasarela",
+      "exp-nexo-pagos-2",
+      "skill-1",
+      "skill-2",
+      "skill-6",
+      "skill-7"
+    ],
+    "kubernetes": [
+      "exp-nexo-pagos",
+      "exp-nexo-pagos-3",
+      "exp-orbita-cloud",
+      "exp-orbita-cloud-1",
+      "skill-3",
+      "cert-1",
+      "ach-3"
+    ],
+    "performance": [
+      "exp-delta-consultores-4",
+      "exp-nexo-pagos-2"
+    ],
+    "observabilidad": [
+      "exp-orbita-cloud",
+      "proj-kafka-guardian",
+      "proj-kafka-guardian-1",
+      "ach-1"
+    ],
+    "backend": [
+      "skill-1",
+      "skill-2",
+      "skill-6",
+      "skill-7"
+    ],
+    "tech lead": [
+      "exp-nexo-pagos-3"
+    ],
+    "mentoria": [],
+    "terraform": [
+      "exp-nexo-pagos-3",
+      "exp-orbita-cloud",
+      "exp-orbita-cloud-1"
+    ],
+    "aws": [
+      "exp-orbita-cloud",
+      "exp-orbita-cloud-1",
+      "skill-3",
+      "cert-1"
+    ],
+    "testing": [
+      "exp-nexo-pagos-4",
+      "proj-kafka-guardian-2"
+    ]
+  },
+  "decisions": [
+    {
+      "section": "experience",
+      "id": "exp-delta-consultores",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php",
+        "symfony",
+        "api"
+      ],
+      "score": 7,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-delta-consultores-1",
+      "parentId": "exp-delta-consultores",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php",
+        "symfony",
+        "api"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-delta-consultores-2",
+      "parentId": "exp-delta-consultores",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "symfony",
+        "php"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-delta-consultores-3",
+      "parentId": "exp-delta-consultores",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-delta-consultores-4",
+      "parentId": "exp-delta-consultores",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "performance"
+      ],
+      "score": 1,
+      "matchedTerms": [
+        "performance"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-freelance",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php"
+      ],
+      "score": 3,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-freelance-1",
+      "parentId": "exp-freelance",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php"
+      ],
+      "score": 1,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-freelance-2",
+      "parentId": "exp-freelance",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php"
+      ],
+      "score": 1,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-freelance-3",
+      "parentId": "exp-freelance",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-lumen-analytics",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kafka"
+      ],
+      "score": 3,
+      "matchedTerms": [
+        "kafka",
+        "postgresql"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-lumen-analytics-1",
+      "parentId": "exp-lumen-analytics",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kafka"
+      ],
+      "score": 1,
+      "matchedTerms": [
+        "kafka"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-lumen-analytics-2",
+      "parentId": "exp-lumen-analytics",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-lumen-analytics-3",
+      "parentId": "exp-lumen-analytics",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-lumen-analytics-4",
+      "parentId": "exp-lumen-analytics",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pagos",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php",
+        "symfony",
+        "kubernetes",
+        "kafka",
+        "postgresql",
+        "api"
+      ],
+      "score": 12.5,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "kafka",
+        "postgresql",
+        "kubernetes"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pasarela",
+      "parentId": "exp-nexo-pagos",
+      "included": true,
+      "reason": "pinned",
+      "matchedTags": [
+        "kafka",
+        "postgresql"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "kafka",
+        "postgresql"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pagos-2",
+      "parentId": "exp-nexo-pagos",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "performance",
+        "api",
+        "postgresql"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "postgresql",
+        "performance"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pagos-3",
+      "parentId": "exp-nexo-pagos",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kubernetes"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "kubernetes",
+        "tech lead",
+        "terraform"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pagos-4",
+      "parentId": "exp-nexo-pagos",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "symfony",
+        "api"
+      ],
+      "score": 1.5,
+      "matchedTerms": [
+        "symfony",
+        "testing"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pagos-5",
+      "parentId": "exp-nexo-pagos",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-nexo-pagos-6",
+      "parentId": "exp-nexo-pagos",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-orbita-cloud",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kubernetes"
+      ],
+      "score": 7,
+      "matchedTerms": [
+        "kubernetes",
+        "observabilidad",
+        "terraform",
+        "aws"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-orbita-cloud-1",
+      "parentId": "exp-orbita-cloud",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kubernetes"
+      ],
+      "score": 2.5,
+      "matchedTerms": [
+        "kubernetes",
+        "terraform",
+        "aws"
+      ]
+    },
+    {
+      "section": "experience",
+      "id": "exp-orbita-cloud-2",
+      "parentId": "exp-orbita-cloud",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-orbita-cloud-3",
+      "parentId": "exp-orbita-cloud",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-orbita-cloud-4",
+      "parentId": "exp-orbita-cloud",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "experience",
+      "id": "exp-orbita-cloud-5",
+      "parentId": "exp-orbita-cloud",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "projects",
+      "id": "proj-kafka-guardian",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kafka",
+        "php"
+      ],
+      "score": 6.5,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "kafka",
+        "observabilidad"
+      ]
+    },
+    {
+      "section": "projects",
+      "id": "proj-kafka-guardian-1",
+      "parentId": "proj-kafka-guardian",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kafka"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "kafka",
+        "observabilidad"
+      ]
+    },
+    {
+      "section": "projects",
+      "id": "proj-kafka-guardian-2",
+      "parentId": "proj-kafka-guardian",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php"
+      ],
+      "score": 1.5,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "testing"
+      ]
+    },
+    {
+      "section": "projects",
+      "id": "proj-kafka-guardian-3",
+      "parentId": "proj-kafka-guardian",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "projects",
+      "id": "proj-pipeline-demo",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "projects",
+      "id": "proj-terraform-modules",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "education",
+      "id": "edu-grado-informatica",
+      "included": true,
+      "reason": "universal",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "education",
+      "id": "edu-master-datos",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-1",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "php",
+        "backend"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "kafka",
+        "postgresql",
+        "backend"
+      ]
+    },
+    {
+      "section": "skills",
+      "id": "skill-2",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "symfony",
+        "php",
+        "backend"
+      ],
+      "score": 3,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "kafka",
+        "postgresql",
+        "backend"
+      ]
+    },
+    {
+      "section": "skills",
+      "id": "skill-3",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kubernetes"
+      ],
+      "score": 3,
+      "matchedTerms": [
+        "kubernetes",
+        "aws"
+      ]
+    },
+    {
+      "section": "skills",
+      "id": "skill-4",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-5",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-6",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kafka",
+        "backend"
+      ],
+      "score": 3,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "kafka",
+        "postgresql",
+        "backend"
+      ]
+    },
+    {
+      "section": "skills",
+      "id": "skill-7",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "postgresql",
+        "backend"
+      ],
+      "score": 3,
+      "matchedTerms": [
+        "php",
+        "symfony",
+        "kafka",
+        "postgresql",
+        "backend"
+      ]
+    },
+    {
+      "section": "skills",
+      "id": "skill-8",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-9",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-10",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-11",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-12",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-13",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-14",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-15",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "skills",
+      "id": "skill-16",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "certifications",
+      "id": "cert-1",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kubernetes"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "kubernetes",
+        "aws"
+      ]
+    },
+    {
+      "section": "certifications",
+      "id": "cert-2",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "certifications",
+      "id": "cert-3",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "certifications",
+      "id": "cert-4",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "symfony",
+        "php"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "php",
+        "symfony"
+      ]
+    },
+    {
+      "section": "achievements",
+      "id": "ach-1",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kafka"
+      ],
+      "score": 2,
+      "matchedTerms": [
+        "kafka",
+        "observabilidad"
+      ]
+    },
+    {
+      "section": "achievements",
+      "id": "ach-2",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    },
+    {
+      "section": "achievements",
+      "id": "ach-3",
+      "included": true,
+      "reason": "matched",
+      "matchedTags": [
+        "kubernetes"
+      ],
+      "score": 1,
+      "matchedTerms": [
+        "kubernetes"
+      ]
+    },
+    {
+      "section": "achievements",
+      "id": "ach-4",
+      "included": false,
+      "reason": "no-match",
+      "matchedTags": [],
+      "score": 0,
+      "matchedTerms": []
+    }
+  ],
+  "ranking": [
+    {
+      "id": "exp-nexo-pagos",
+      "section": "experience",
+      "score": 12.5,
+      "label": "Nexo Pagos — Staff Backend Engineer"
+    },
+    {
+      "id": "exp-delta-consultores",
+      "section": "experience",
+      "score": 7,
+      "label": "Delta Consultores — Backend Developer"
+    },
+    {
+      "id": "exp-orbita-cloud",
+      "section": "experience",
+      "score": 7,
+      "label": "Órbita Cloud — Platform Engineer"
+    },
+    {
+      "id": "proj-kafka-guardian",
+      "section": "projects",
+      "score": 6.5,
+      "label": "Kafka Guardian"
+    },
+    {
+      "id": "exp-freelance",
+      "section": "experience",
+      "score": 3,
+      "label": "Freelance — Desarrolladora web"
+    }
+  ]
+}

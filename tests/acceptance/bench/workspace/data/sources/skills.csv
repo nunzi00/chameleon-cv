@@ -1,0 +1,17 @@
+name,category,level,years,aliases,tags
+PHP,language,expert,11,php8,php|backend
+Symfony,framework,expert,8,,symfony|php|backend
+Kubernetes,platform,expert,6,k8s|kube,kubernetes|platform|docker
+Terraform,tool,advanced,5,,terraform|aws|ci-cd
+AWS,cloud,advanced,5,amazon web services,aws|cloud|platform
+Kafka,platform,expert,6,apache kafka,kafka|backend|data
+PostgreSQL,database,advanced,7,postgres|psql,postgresql|sql|backend
+MySQL,database,advanced,6,,mysql|sql
+Python,language,advanced,5,,python|data
+Spark,framework,intermediate,2,apache spark,spark|data
+Airflow,tool,intermediate,2,apache airflow,airflow|data
+Docker,tool,expert,8,,docker|platform
+Observabilidad,domain,advanced,6,prometheus|grafana|opentelemetry,observability|sre
+GitLab CI,tool,advanced,4,gitlab,ci-cd|gitlab
+Liderazgo técnico,soft,advanced,,tech lead|team lead|staff engineer,liderazgo|gestion|mentoria
+Scrum,methodology,advanced,,agile|kanban,agile|gestion

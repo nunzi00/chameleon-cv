@@ -1,0 +1,26 @@
+Oferta acme-engineering-manager-en · 10 requisitos reconocidos
+Adecuación: 8 de 10 requisitos demostrados (80 %) · imprescindibles: 5 de 7
+
+Demostrados
+  php            required      1.00  ← exp-nexo-pagos
+  kafka          required      1.00  ← exp-lumen-analytics, exp-nexo-pagos, exp-nexo-pasarela
+  postgresql     required      1.00  ← exp-lumen-analytics, exp-nexo-pagos, exp-nexo-pasarela
+  kubernetes     required      1.00  ← exp-nexo-pagos, exp-nexo-pagos-3, exp-orbita-cloud, ach-4
+  agile          required      1.00  ← exp-nexo-pagos-5, exp-nexo-pagos-6, exp-orbita-cloud-5, skill-15, skill-16
+  platform       unknown ×2    0.94  ← ach-4
+  terraform      desirable     0.50  ← exp-nexo-pagos-3, exp-orbita-cloud
+  aws            desirable     0.50  ← exp-orbita-cloud, ach-4
+
+No demostrados
+  hiring         required ×2   1.25   (si lo tienes, etiquétalo o añade un alias en skills.csv)
+  backend        required      1.00   (si lo tienes, etiquétalo o añade un alias en skills.csv)
+
+Carencias (la oferta lo pide y el perfil no lo tiene etiquetado)
+  engineering manager · mentoring
+
+Mejores evidencias
+  1. exp-nexo-pagos · Nexo Pagos — Staff Backend Engineer (9.50)
+  2. exp-orbita-cloud · Órbita Cloud — Platform Engineer (4.50)
+  3. exp-lumen-analytics · Lumen Analytics — Data Engineer (2.00)
+  4. skill-16 · Scrum (2.00)
+  5. skill-15 · Liderazgo técnico (1.00)

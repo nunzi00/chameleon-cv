@@ -1,0 +1,122 @@
+Especialidad «backend» (vocabulario: backend, php, symfony, kubernetes, kafka, postgresql, api, performance): 29 de 59 ítems incluidos
++ experience exp-delta-consultores: matched (php, symfony, api)
+    + exp-delta-consultores-1: matched (php, symfony, api)
+    + exp-delta-consultores-2: matched (symfony, php)
+    - exp-delta-consultores-3: no-match
+    + exp-delta-consultores-4: matched (performance)
++ experience exp-freelance: matched (php)
+    + exp-freelance-1: matched (php)
+    + exp-freelance-2: matched (php)
+    - exp-freelance-3: no-match
++ experience exp-lumen-analytics: matched (kafka)
+    + exp-lumen-analytics-1: matched (kafka)
+    - exp-lumen-analytics-2: no-match
+    - exp-lumen-analytics-3: no-match
+    - exp-lumen-analytics-4: no-match
++ experience exp-nexo-pagos: matched (php, symfony, kubernetes, kafka, postgresql, api)
+    + exp-nexo-pasarela: pinned (kafka, postgresql)
+    + exp-nexo-pagos-2: matched (performance, api, postgresql)
+    + exp-nexo-pagos-3: matched (kubernetes)
+    + exp-nexo-pagos-4: matched (symfony, api)
+    - exp-nexo-pagos-5: no-match
+    - exp-nexo-pagos-6: no-match
++ experience exp-orbita-cloud: matched (kubernetes)
+    + exp-orbita-cloud-1: matched (kubernetes)
+    - exp-orbita-cloud-2: no-match
+    - exp-orbita-cloud-3: no-match
+    - exp-orbita-cloud-4: no-match
+    - exp-orbita-cloud-5: no-match
++ projects proj-kafka-guardian: matched (kafka, php)
+    + proj-kafka-guardian-1: matched (kafka)
+    + proj-kafka-guardian-2: matched (php)
+    - proj-kafka-guardian-3: no-match
+- projects proj-pipeline-demo: no-match
+- projects proj-terraform-modules: no-match
++ education edu-grado-informatica: universal
+- education edu-master-datos: no-match
++ skills skill-1: matched (php, backend)
++ skills skill-2: matched (symfony, php, backend)
++ skills skill-3: matched (kubernetes)
+- skills skill-4: no-match
+- skills skill-5: no-match
++ skills skill-6: matched (kafka, backend)
++ skills skill-7: matched (postgresql, backend)
+- skills skill-8: no-match
+- skills skill-9: no-match
+- skills skill-10: no-match
+- skills skill-11: no-match
+- skills skill-12: no-match
+- skills skill-13: no-match
+- skills skill-14: no-match
+- skills skill-15: no-match
+- skills skill-16: no-match
++ certifications cert-1: matched (kubernetes)
+- certifications cert-2: no-match
+- certifications cert-3: no-match
++ certifications cert-4: matched (symfony, php)
++ achievements ach-1: matched (kafka)
+- achievements ach-2: no-match
++ achievements ach-3: matched (kubernetes)
+- achievements ach-4: no-match
+Oferta: 13 requisitos reconocidos, 5 años exigidos · carencias: rendimiento, go, rust
+  php (required, 1.00) · symfony (required, 1.00) · kafka (required, 1.00) · postgresql (required, 1.00) · kubernetes (required, 1.00) · performance (required, 1.00) · observabilidad (required, 1.00) · backend (unknown, 0.75) · tech lead (desirable, 0.50) · mentoria (desirable, 0.50) · terraform (desirable, 0.50) · aws (desirable, 0.50) · testing (desirable, 0.50)
++ experience exp-delta-consultores: matched (php, symfony, api) · 7.00 [php, symfony]
+    + exp-delta-consultores-1: matched (php, symfony, api) · 2.00 [php, symfony]
+    + exp-delta-consultores-2: matched (symfony, php) · 2.00 [php, symfony]
+    - exp-delta-consultores-3: no-match
+    + exp-delta-consultores-4: matched (performance) · 1.00 [performance]
++ experience exp-freelance: matched (php) · 3.00 [php, symfony]
+    + exp-freelance-1: matched (php) · 1.00 [php, symfony]
+    + exp-freelance-2: matched (php) · 1.00 [php, symfony]
+    - exp-freelance-3: no-match
++ experience exp-lumen-analytics: matched (kafka) · 3.00 [kafka, postgresql]
+    + exp-lumen-analytics-1: matched (kafka) · 1.00 [kafka]
+    - exp-lumen-analytics-2: no-match
+    - exp-lumen-analytics-3: no-match
+    - exp-lumen-analytics-4: no-match
++ experience exp-nexo-pagos: matched (php, symfony, kubernetes, kafka, postgresql, api) · 12.50 [php, symfony, kafka, postgresql, kubernetes]
+    + exp-nexo-pasarela: pinned (kafka, postgresql) · 2.00 [kafka, postgresql]
+    + exp-nexo-pagos-2: matched (performance, api, postgresql) · 2.00 [postgresql, performance]
+    + exp-nexo-pagos-3: matched (kubernetes) · 2.00 [kubernetes, tech lead, terraform]
+    + exp-nexo-pagos-4: matched (symfony, api) · 1.50 [symfony, testing]
+    - exp-nexo-pagos-5: no-match
+    - exp-nexo-pagos-6: no-match
++ experience exp-orbita-cloud: matched (kubernetes) · 7.00 [kubernetes, observabilidad, terraform, aws]
+    + exp-orbita-cloud-1: matched (kubernetes) · 2.50 [kubernetes, terraform, aws]
+    - exp-orbita-cloud-2: no-match
+    - exp-orbita-cloud-3: no-match
+    - exp-orbita-cloud-4: no-match
+    - exp-orbita-cloud-5: no-match
++ projects proj-kafka-guardian: matched (kafka, php) · 6.50 [php, symfony, kafka, observabilidad]
+    + proj-kafka-guardian-1: matched (kafka) · 2.00 [kafka, observabilidad]
+    + proj-kafka-guardian-2: matched (php) · 1.50 [php, symfony, testing]
+    - proj-kafka-guardian-3: no-match
+- projects proj-pipeline-demo: no-match
+- projects proj-terraform-modules: no-match
++ education edu-grado-informatica: universal · 0.00
+- education edu-master-datos: no-match
++ skills skill-1: matched (php, backend) · 2.00 [php, symfony, kafka, postgresql, backend]
++ skills skill-2: matched (symfony, php, backend) · 3.00 [php, symfony, kafka, postgresql, backend]
++ skills skill-3: matched (kubernetes) · 3.00 [kubernetes, aws]
+- skills skill-4: no-match
+- skills skill-5: no-match
++ skills skill-6: matched (kafka, backend) · 3.00 [php, symfony, kafka, postgresql, backend]
++ skills skill-7: matched (postgresql, backend) · 3.00 [php, symfony, kafka, postgresql, backend]
+- skills skill-8: no-match
+- skills skill-9: no-match
+- skills skill-10: no-match
+- skills skill-11: no-match
+- skills skill-12: no-match
+- skills skill-13: no-match
+- skills skill-14: no-match
+- skills skill-15: no-match
+- skills skill-16: no-match
++ certifications cert-1: matched (kubernetes) · 2.00 [kubernetes, aws]
+- certifications cert-2: no-match
+- certifications cert-3: no-match
++ certifications cert-4: matched (symfony, php) · 2.00 [php, symfony]
++ achievements ach-1: matched (kafka) · 2.00 [kafka, observabilidad]
+- achievements ach-2: no-match
++ achievements ach-3: matched (kubernetes) · 1.00 [kubernetes]
+- achievements ach-4: no-match
+No demostrado: mentoria

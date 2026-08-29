@@ -1,0 +1,2 @@
+Saldrán 14 logros seudonimizados (209 palabras; sin nombre ni datos de contacto) hacia ollama (http://127.0.0.1:11434, local; modelo qwen2.5:7b-instruct)
+Ejecución en seco: no se ha enviado nada

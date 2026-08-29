@@ -1,0 +1,6 @@
+Espacio de trabajo creado en <WS>: 11 ficheros de ejemplo en data/sources (perfil sintético; sustitúyelo por tus datos)
+.gitignore creado (data/dist/ y output/ contienen datos personales)
+Siguientes pasos:
+  1. Edita data/sources/ (formato: docs/formato-dataset.md y docs/formato-csv.md)
+  2. cv build                    # valida y compila data/dist/profile.json
+  3. cv generate-cv -s backend   # o --format pdf, o -f oferta.txt para adaptarlo a una oferta

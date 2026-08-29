@@ -1,0 +1,270 @@
+[
+  {
+    "id": "exp-delta-consultores-1",
+    "text": "Desarrollé la API REST de tarificación de seguros usada por 12 aseguradoras.",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Backend Developer",
+      "company": "Delta Consultores",
+      "technologies": [
+        "PHP 7",
+        "Symfony 4",
+        "MySQL",
+        "Redis",
+        "Docker"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-delta-consultores-2",
+    "text": "Migré un monolito heredado a Symfony 4 en fases, manteniendo el servicio durante la transición.",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Backend Developer",
+      "company": "Delta Consultores",
+      "technologies": [
+        "PHP 7",
+        "Symfony 4",
+        "MySQL",
+        "Redis",
+        "Docker"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-delta-consultores-4",
+    "text": "Optimicé consultas MySQL críticas, bajando el tiempo de respuesta del back-office un **35 %**.",
+    "impact": "-35 % tiempo de respuesta",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Backend Developer",
+      "company": "Delta Consultores",
+      "technologies": [
+        "PHP 7",
+        "Symfony 4",
+        "MySQL",
+        "Redis",
+        "Docker"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-freelance-1",
+    "text": "Entregué 14 proyectos web a medida con PHP y JavaScript para pymes.",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Desarrolladora web",
+      "company": "Freelance",
+      "technologies": [
+        "PHP",
+        "JavaScript",
+        "MySQL"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-freelance-2",
+    "text": "Diseñé un sistema de reservas en línea que gestionó 20 000 reservas al año.",
+    "impact": "20 000 reservas/año",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Desarrolladora web",
+      "company": "Freelance",
+      "technologies": [
+        "PHP",
+        "JavaScript",
+        "MySQL"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-lumen-analytics-1",
+    "text": "Construí con Spark la canalización diaria de 2 TB de eventos de navegación.",
+    "impact": "2 TB/día",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Data Engineer",
+      "company": "Lumen Analytics",
+      "technologies": [
+        "Python",
+        "Spark",
+        "Airflow",
+        "PostgreSQL",
+        "Kafka"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-nexo-pasarela",
+    "text": "Diseñé la arquitectura de la nueva pasarela de pagos sobre Kafka y PostgreSQL, procesando **9 M de transacciones al mes** sin pérdida de eventos.",
+    "impact": "0 incidentes de pérdida de datos en 18 meses",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Staff Backend Engineer",
+      "company": "Nexo Pagos",
+      "technologies": [
+        "PHP 8.3",
+        "Symfony 7",
+        "Kafka",
+        "PostgreSQL 16",
+        "Kubernetes",
+        "Terraform"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-nexo-pagos-2",
+    "text": "Reduje la latencia `p99` de la API de autorización de 480 ms a 210 ms rediseñando la capa de caché y los índices.",
+    "impact": "-56 % p99",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Staff Backend Engineer",
+      "company": "Nexo Pagos",
+      "technologies": [
+        "PHP 8.3",
+        "Symfony 7",
+        "Kafka",
+        "PostgreSQL 16",
+        "Kubernetes",
+        "Terraform"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-nexo-pagos-3",
+    "text": "Lideré la migración de 14 servicios PHP a Kubernetes con despliegues canary y sin ventana de parada.",
+    "impact": "despliegues diarios frente a quincenales",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Staff Backend Engineer",
+      "company": "Nexo Pagos",
+      "technologies": [
+        "PHP 8.3",
+        "Symfony 7",
+        "Kafka",
+        "PostgreSQL 16",
+        "Kubernetes",
+        "Terraform"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "exp-orbita-cloud-1",
+    "text": "Construí la plataforma Kubernetes multi-tenant que hoy sirve a 25 equipos y 300 servicios.",
+    "impact": "300 servicios en producción",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Platform Engineer",
+      "company": "Órbita Cloud",
+      "technologies": [
+        "Kubernetes",
+        "Terraform",
+        "AWS",
+        "Prometheus",
+        "Grafana",
+        "GitLab CI"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "proj-kafka-guardian-1",
+    "text": "Publiqué [Kafka Guardian]([URL-1]), adoptada por 30 organizaciones, con métricas Prometheus listas para usar.",
+    "impact": "30 organizaciones",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Autora y mantenedora",
+      "company": "Kafka Guardian",
+      "technologies": [
+        "PHP 8.3",
+        "Kafka",
+        "Prometheus"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "proj-kafka-guardian-2",
+    "text": "Mantengo una suite de 400 pruebas y una política de compatibilidad semántica.",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "role": "Autora y mantenedora",
+      "company": "Kafka Guardian",
+      "technologies": [
+        "PHP 8.3",
+        "Kafka",
+        "Prometheus"
+      ],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "ach-1",
+    "text": "Ponente en dos ediciones de la conferencia PHP Valencia con charlas sobre Kafka y observabilidad.",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "technologies": [],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  },
+  {
+    "id": "ach-3",
+    "text": "Organizadora del grupo local de Kubernetes, con encuentros mensuales desde 2021.",
+    "locale": "es-ES",
+    "maxLength": 220,
+    "proposals": 2,
+    "context": {
+      "technologies": [],
+      "specialty": "Senior Backend Engineer",
+      "offerTerms": []
+    }
+  }
+]

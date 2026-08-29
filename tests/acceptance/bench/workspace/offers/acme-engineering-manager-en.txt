@@ -1,0 +1,14 @@
+Engineering Manager, Payments Platform
+
+ACME is hiring an Engineering Manager to lead a team of eight engineers building our payments platform.
+
+Requirements
+- 3+ years managing software engineers, including hiring and career development.
+- Hands-on background in backend systems (PHP, Kafka, PostgreSQL or similar).
+- Experience with Kubernetes-based platforms and on-call processes.
+- Agile delivery with measurable outcomes.
+
+Nice to have
+- Mentoring programmes and community involvement.
+- Experience with Terraform and AWS.
+- Spanish and English at professional level.

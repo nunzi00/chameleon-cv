@@ -1,0 +1,1 @@
+Especialidad desconocida: «nope» (disponibles: backend, data, engineering-manager, platform)

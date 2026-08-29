@@ -1,0 +1,7 @@
+Typst requerido: 0.15.1
+Se usaría: <TYPST> (CHAMELEON_TYPST) · typst 0.15.1
+Candidatos, por prioridad:
+  --typst-path: no indicado
+  CHAMELEON_TYPST: <TYPST> (typst 0.15.1)
+  caché de usuario: <TMP>/home/.cache/chameleon-cv/typst/0.15.1/typst (no existe o no es ejecutable)
+  PATH: no encontrado

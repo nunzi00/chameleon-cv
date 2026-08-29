@@ -1,0 +1,2 @@
+Saldrá 1 fragmento seudonimizado (9 palabras; sin nombre ni datos de contacto; diccionario cerrado de 7 etiquetas de 1 especialidad) hacia ollama (http://127.0.0.1:11434, local; modelo qwen2.5:7b-instruct)
+Ejecución en seco: no se ha enviado nada

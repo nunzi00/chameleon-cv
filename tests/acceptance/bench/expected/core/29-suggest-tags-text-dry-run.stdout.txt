@@ -1,0 +1,35 @@
+[
+  {
+    "text": "Migré la plataforma a Kubernetes sin ventana de parada",
+    "currentTags": [],
+    "locale": "es-ES",
+    "maxTags": 5,
+    "context": {
+      "technologies": []
+    },
+    "specialties": [
+      {
+        "id": "platform",
+        "title": "Platform Engineer",
+        "tags": [
+          "kubernetes",
+          "terraform",
+          "aws",
+          "observability",
+          "ci-cd",
+          "sre",
+          "docker"
+        ]
+      }
+    ],
+    "dictionary": [
+      "kubernetes",
+      "terraform",
+      "aws",
+      "observability",
+      "ci-cd",
+      "sre",
+      "docker"
+    ]
+  }
+]

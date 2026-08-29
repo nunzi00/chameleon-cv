@@ -1,0 +1,2 @@
+Tema «mio» creado en <WS>/themes/mio a partir de «classic»: theme.toml, template.typ
+Edita theme.toml (colores, fuentes, tamaños, espaciados, página) o template.typ (maquetación) y genera con: cv generate-cv --format pdf --engine typst --theme mio

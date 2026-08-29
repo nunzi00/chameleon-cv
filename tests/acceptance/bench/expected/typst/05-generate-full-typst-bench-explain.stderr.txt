@@ -1,0 +1,2 @@
+Sin especialidad: se genera el CV completo, sin selección
+Tema: bench (del proyecto); cv.toml anula colors.accent, sizes.body
