@@ -17,6 +17,7 @@ import { runThemeCreate, runThemeList, runThemePath, type ThemeCreateOptions } f
 import { DEFAULT_THEME } from '../themes';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
+import { parsePort, runServe, type ServeCommandOptions } from './commands/serve';
 import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
@@ -236,6 +237,21 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--from <theme>', 'tema del que partir', DEFAULT_THEME)
     .action(async (name: string, options: ThemeCreateOptions) => {
       onExit(await runThemeCreate(context, name, options));
+    });
+
+  program
+    .command('serve')
+    .description('arranca el servidor local de la API (T-7.4) sobre el espacio de trabajo: solo 127.0.0.1, token de sesión, sin CORS; Ctrl-C para parar')
+    .option('--port <n>', 'puerto (0 = efímero)', parsePort, 4310)
+    .option('--host <host>', 'dirección de escucha; 0.0.0.0 solo dentro de un contenedor cuyo puerto publique Docker en el loopback del anfitrión', '127.0.0.1')
+    .option('--workspace <dir>', 'espacio de trabajo (por defecto, el directorio actual)')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
+    .option('--api-only', 'sin la página de inicio: solo /api/v1', false)
+    .option('--open', 'abre el navegador con la URL y el token', false)
+    .option('--allowed-hosts <hosts>', 'valores de Host admitidos además de 127.0.0.1 y localhost (separados por comas)')
+    .action(async (options: ServeCommandOptions) => {
+      onExit(await runServe(context, options));
     });
 
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');

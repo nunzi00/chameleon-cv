@@ -22,6 +22,8 @@ export interface Step {
   readonly env?: Readonly<Record<string, string>> | undefined;
   readonly exitCode: number;
   readonly outputs?: readonly StepOutput[] | undefined;
+  /** `api`: en lugar del binario, el cliente de la API (`api-client.ts`) arranca `cv serve` y recorre su secuencia fija. */
+  readonly client?: 'api' | undefined;
 }
 
 export interface Scenario {
@@ -153,6 +155,26 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'revision-inexistente', args: ['improve', 'apply', 'reviews/nope.md'], exitCode: 1 },
       { id: 'theme-nombre-invalido', args: ['theme', 'path', '../x'], exitCode: 1 },
       { id: 'motor-desconocido', args: ['generate-cv', '--format', 'pdf', '--engine', 'latex'], exitCode: 2 },
+    ],
+  },
+  {
+    id: 'serve',
+    description: 'la API local (cv serve): seguridad (401, 403, 404, 405), fuentes con If-Match, validar, compilar, perfil, generar (Markdown y PDF con oferta), salida, análisis, temas y errores de esquema; respuestas byte a byte',
+    workspace: 'bench',
+    steps: [
+      {
+        id: 'api',
+        client: 'api',
+        args: [],
+        env: NO_LLM,
+        exitCode: 0,
+        outputs: [
+          { path: 'data/sources/projects/api-proyecto.md', kind: 'text' },
+          { path: 'themes/api-tema', kind: 'tree' },
+          { path: 'output/cv-lucia-ferrer-montalban-backend.md', kind: 'text' },
+          { path: 'output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf', kind: 'pdf' },
+        ],
+      },
     ],
   },
 ];

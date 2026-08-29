@@ -12,6 +12,8 @@
  *   … -- --keep              # conserva la copia temporal de cada escenario para inspeccionarla
  */
 import { spawnSync } from 'node:child_process';
+
+import { runApiClient } from './api-client';
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -153,13 +155,16 @@ interface Context {
 async function runStep(context: Context, index: number, step: Step, options: RunnerOptions): Promise<StepResult> {
   const prefix = stepPrefix(index, step);
   const [file, ...leading] = context.command;
-  const result = spawnSync(file, [...leading, ...step.args], {
-    cwd: context.workspace,
-    env: { ...context.env, ...step.env },
-    input: step.stdin ?? '',
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const result =
+    step.client === 'api'
+      ? await runApiClient(context.command, context.workspace, { ...context.env, ...step.env })
+      : spawnSync(file, [...leading, ...step.args], {
+          cwd: context.workspace,
+          env: { ...context.env, ...step.env },
+          input: step.stdin ?? '',
+          encoding: 'utf8',
+          maxBuffer: 64 * 1024 * 1024,
+        });
   const status = result.status ?? -1;
   const stdout = normalize(result.stdout, context.replacements);
   const stderr = normalize(result.stderr, context.replacements);
