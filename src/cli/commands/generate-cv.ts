@@ -11,7 +11,7 @@ import { buildVocabulary, extractJobRequirements } from '../../core/keywords';
 import type { MasterProfile } from '../../core/schema';
 import { NO_SCORES, applyLimits, scoresFromReport, tailorToOffer, type MatchReport, type ScoreLookup } from '../../core/scoring';
 import { selectForSpecialty, type SelectionReport } from '../../core/selection';
-import { renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../../renderers';
+import { loadFonts, renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../../renderers';
 import { describeError } from '../../shared/errors';
 import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys } from '../../themes';
 import { projectThemeRoots } from '../assets';
@@ -85,8 +85,8 @@ export function typstExitCode(code: TypstRenderErrorCode): number {
 }
 
 /** PDF con el motor elegido; un número es un código de salida ya explicado en stderr. */
-function renderPdf(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {
-  return options.engine === 'typst' ? renderWithTypst(context, profile, options) : renderPdfCv(profile, { locale: options.locale });
+async function renderPdf(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {
+  return options.engine === 'typst' ? renderWithTypst(context, profile, options) : renderPdfCv(profile, { locale: options.locale, fonts: await loadFonts(context.assets) });
 }
 
 async function renderWithTypst(context: CliContext, profile: MasterProfile, options: GenerateCvOptions): Promise<Buffer | number> {

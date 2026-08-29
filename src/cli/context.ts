@@ -5,7 +5,7 @@
 import { NodeWritableFileSystem, type WritableFileSystem } from '../artifact';
 import type { MasterProfile } from '../core/schema';
 import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParser } from '../parsers';
-import { extractPdfText, type PdfExtractionResult } from '../pdf';
+import { DEFAULT_PDF_LIMITS, createWorkerRunner, extractPdfText, workerSource, type PdfExtractionResult } from '../pdf';
 import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
 import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
 import { createNodeLlmCache, llmStatus, selectProvider, type LlmCacheStore, type LlmStatus, type LlmStatusOptions, type ProviderSelection, type ProviderSelectionResult } from '../llm';
@@ -56,6 +56,7 @@ export interface NodeContextOptions {
 
 export function createNodeContext(options: NodeContextOptions = {}): CliContext {
   const interactive = options.interactive ?? process.stdin.isTTY === true;
+  const assets = defaultAssets();
   return {
     cwd: process.cwd(),
     stdout: (text) => {
@@ -68,7 +69,7 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
     datasetFileSystem: new NodeFileSystem(),
     artifactFileSystem: new NodeWritableFileSystem(),
     parsers: defaultSourceParsers(),
-    pdfExtractor: (bytes) => extractPdfText(bytes),
+    pdfExtractor: async (bytes) => extractPdfText(bytes, DEFAULT_PDF_LIMITS, createWorkerRunner(await workerSource(assets))),
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
@@ -76,7 +77,7 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
     llmProvider: (selection) => selectProvider(selection),
     ...(interactive ? { confirm: askInTerminal } : {}),
     llmCache: createNodeLlmCache(),
-    assets: defaultAssets(),
+    assets,
   };
 }
 
