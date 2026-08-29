@@ -47,3 +47,47 @@ jobs:
         run: npm run coverage
       - name: Arnés de aceptación determinista (Typst obligatorio)
         run: npm run test:acceptance:deterministic -- --require-typst
+
+  docker:
+    name: Imagen Docker (construcción con prueba de humo del empaquetado, humo de la imagen, Compose y tutorial 5)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: UID y GID del runner (los ficheros del volumen deben ser suyos) y versión
+        run: |
+          echo "HOST_UID=$(id -u)" >> "$GITHUB_ENV"
+          echo "HOST_GID=$(id -g)" >> "$GITHUB_ENV"
+          echo "CV_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Construcción de la imagen (la etapa build ejecuta npm run package; caché de capas en Actions)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          target: runtime
+          load: true
+          tags: chameleon-cv:local
+          build-args: |
+            UID=${{ env.HOST_UID }}
+            GID=${{ env.HOST_GID }}
+            VERSION=${{ env.CV_VERSION }}
+            REVISION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Prueba de humo de la imagen (volumen, usuario sin privilegios, Typst, stdin, endurecida, red compartida)
+        run: bash scripts/docker-smoke.sh chameleon-cv:local
+      - name: Ficheros de Compose válidos (base, IA y GPU)
+        run: |
+          docker compose -f compose.yml config -q
+          docker compose -f compose.yml -f compose.ai.yml config -q
+          docker compose -f compose.yml -f compose.ai.yml -f compose.gpu.yml config -q
+      - name: Tutorial 5 («Todo en un contenedor») ejecutado contra la imagen (canon C15)
+        run: CHAMELEON_DOCS_DOCKER=1 npm run docs:tutorials -- --only docker
