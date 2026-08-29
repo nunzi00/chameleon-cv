@@ -1,8 +1,9 @@
 /**
- * Empaquetado del ejecutable autónomo (T-6.2 S4, `docs/packaging-and-release.md` §5): compilación
+ * Empaquetado del ejecutable autónomo (T-6.2 S4 y T-6.6, `docs/packaging-and-release.md` §5): compilación
  * limpia, bundles de la CLI y del worker (esbuild), manifiesto de assets con SHA-256, `sea-config`,
- * `node --build-sea` sobre el Node oficial del proceso, prueba de humo del binario producido y
- * archivo reproducible. Plataforma = la de esta máquina (referencia: linux-x64).
+ * `node --build-sea` sobre el Node oficial del proceso, prueba de humo del binario producido, avisos de
+ * licencias de terceros (lo que de verdad contiene el bundle, más Node.js y las fuentes) y archivo
+ * reproducible con la licencia, el registro de cambios y esos avisos. Plataforma = la de esta máquina (referencia: linux-x64).
  *
  *   npm run package            # build/release/chameleon-cv-<versión>-<os>-<arch>.tar.gz (+ SHA-256)
  *   npm run package -- --no-smoke   # sin prueba de humo (solo para depurar el empaquetado)
@@ -14,6 +15,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import { build, type Plugin } from 'esbuild';
+
+import { NodeFileSystem } from '../src/parsers';
+import { collectPackageNotices, findNodeLicense, nodeLicenseCandidates, packageRootsFromInputs, renderNotices } from '../src/release/notices';
 
 const ROOT = resolve(__dirname, '..');
 const BUILD = join(ROOT, 'build', 'sea');
@@ -79,11 +83,12 @@ async function main(): Promise<void> {
   if (major < 26) {
     fail(`Se requiere Node ≥ 26 para «node --build-sea» (este proceso: ${process.version}); Node 24 exigiría --experimental-sea-config + postject`);
   }
-  const version = (JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { version: string }).version;
+  const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { version: string; license: string };
+  const version = manifest.version;
   const smoke = !process.argv.includes('--no-smoke');
   log(`Empaquetado de Chameleon CV ${version} para ${PLATFORM} con Node ${process.version} (${process.execPath})`);
 
-  step('1/6 Compilación limpia (tsc)');
+  step('1/7 Compilación limpia (tsc)');
   rmSync(join(ROOT, 'dist'), { recursive: true, force: true });
   const tsc = run(process.execPath, [join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc'), '-p', 'tsconfig.json']);
   if (tsc.status !== 0) {
@@ -92,13 +97,13 @@ async function main(): Promise<void> {
   rmSync(BUILD, { recursive: true, force: true });
   mkdirSync(BUILD, { recursive: true });
 
-  step('2/6 Bundles (esbuild): CLI y worker de PDF');
-  const common = { bundle: true, platform: 'node' as const, format: 'cjs' as const, target: 'node26', external: ['@napi-rs/canvas', 'canvas'], logLevel: 'warning' as const, legalComments: 'none' as const, plugins: [pdfkitStandardFonts] };
-  await build({ ...common, entryPoints: [join(ROOT, 'dist', 'index.js')], outfile: join(BUILD, 'cv.cjs') });
-  await build({ ...common, entryPoints: [join(ROOT, 'src', 'pdf', 'worker.mts')], outfile: join(BUILD, 'worker.js') });
+  step('2/7 Bundles (esbuild): CLI y worker de PDF');
+  const common = { bundle: true, platform: 'node' as const, format: 'cjs' as const, target: 'node26', external: ['@napi-rs/canvas', 'canvas'], logLevel: 'warning' as const, legalComments: 'none' as const, plugins: [pdfkitStandardFonts], absWorkingDir: ROOT, metafile: true as const };
+  const cli = await build({ ...common, entryPoints: [join(ROOT, 'dist', 'index.js')], outfile: join(BUILD, 'cv.cjs') });
+  const worker = await build({ ...common, entryPoints: [join(ROOT, 'src', 'pdf', 'worker.mts')], outfile: join(BUILD, 'worker.js') });
   log(`  cv.cjs ${megabytes(statSync(join(BUILD, 'cv.cjs')).size)} · worker.js ${megabytes(statSync(join(BUILD, 'worker.js')).size)}`);
 
-  step('3/6 Manifiesto de assets (SHA-256) y sea-config');
+  step('3/7 Manifiesto de assets (SHA-256) y sea-config');
   const assets: Record<string, string> = {};
   const files: Record<string, { sha256: string; bytes: number }> = {};
   const add = (key: string, path: string): void => {
@@ -123,7 +128,7 @@ async function main(): Promise<void> {
   const config = { main: 'cv.cjs', output: EXECUTABLE, disableExperimentalSEAWarning: true, useCodeCache: true, assets };
   writeFileSync(join(BUILD, 'sea-config.json'), `${JSON.stringify(config, null, 2)}\n`);
 
-  step('4/6 Ejecutable (node --build-sea)');
+  step('4/7 Ejecutable (node --build-sea)');
   const sea = run(process.execPath, ['--build-sea=sea-config.json'], { cwd: BUILD });
   if (sea.status !== 0) {
     fail(`node --build-sea falló:\n${sea.stdout}${sea.stderr}`);
@@ -139,7 +144,7 @@ async function main(): Promise<void> {
   log(`  ${executable} ${megabytes(statSync(executable).size)}`);
 
   if (smoke) {
-    step('5/6 Prueba de humo del binario (espacio temporal, entorno mínimo)');
+    step('5/7 Prueba de humo del binario (espacio temporal, entorno mínimo)');
     const temporary = mkdtempSync(join(tmpdir(), 'cv-package-smoke-'));
     try {
       const workspace = join(temporary, 'ws');
@@ -185,10 +190,25 @@ async function main(): Promise<void> {
       rmSync(temporary, { recursive: true, force: true });
     }
   } else {
-    step('5/6 Prueba de humo omitida (--no-smoke)');
+    step('5/7 Prueba de humo omitida (--no-smoke)');
   }
 
-  step('6/6 Archivo reproducible');
+  step('6/7 Avisos de licencias de terceros (THIRD-PARTY-NOTICES.md)');
+  const fs = new NodeFileSystem();
+  const packages = await collectPackageNotices(ROOT, packageRootsFromInputs([...Object.keys(cli.metafile.inputs), ...Object.keys(worker.metafile.inputs)]), fs);
+  const node = await findNodeLicense(nodeLicenseCandidates(process.execPath, process.env), fs);
+  if (node === undefined) {
+    fail(`No se encuentra el texto de la licencia de Node.js ${process.version} (buscado junto a ${process.execPath} y en las rutas de las distribuciones Linux): indícalo con CHAMELEON_NODE_LICENSE=<ruta> o empaqueta con una distribución oficial de Node`);
+  }
+  const undeclared = packages.filter((item) => item.text === undefined && item.license === 'no declarada');
+  if (undeclared.length > 0) {
+    fail(`Paquetes sin licencia declarada ni texto de licencia: ${undeclared.map((item) => `${item.name}@${item.version}`).join(', ')}`);
+  }
+  const notices = renderNotices({ product: { name: 'Chameleon CV', version, license: manifest.license }, node: { version: process.version, text: node.text }, packages, fonts: [{ name: 'Source Sans 3', license: 'SIL Open Font License 1.1', file: 'LICENSE-SourceSans3.md' }] });
+  writeFileSync(join(BUILD, 'THIRD-PARTY-NOTICES.md'), notices);
+  log(`  ${packages.length} paquetes npm (${packages.filter((item) => item.text === undefined).length} sin texto en el paquete) · Node.js ${process.version} (${node.path})`);
+
+  step('7/7 Archivo reproducible');
   mkdirSync(RELEASE, { recursive: true });
   const name = `chameleon-cv-${version}-${PLATFORM}`;
   const stage = join(RELEASE, 'stage', name);
@@ -198,6 +218,9 @@ async function main(): Promise<void> {
   chmodSync(join(stage, EXECUTABLE), 0o755);
   cpSync(join(ROOT, 'README.md'), join(stage, 'README.md'));
   cpSync(join(ROOT, 'templates', 'fonts', 'LICENSE-SourceSans3.md'), join(stage, 'LICENSE-SourceSans3.md'));
+  cpSync(join(ROOT, 'LICENSE'), join(stage, 'LICENSE'));
+  cpSync(join(ROOT, 'CHANGELOG.md'), join(stage, 'CHANGELOG.md'));
+  cpSync(join(BUILD, 'THIRD-PARTY-NOTICES.md'), join(stage, 'THIRD-PARTY-NOTICES.md'));
   const archive = join(RELEASE, `${name}.tar.gz`);
   rmSync(archive, { force: true });
   // GNU tar con orden y fechas fijas + gzip sin nombre ni fecha: el mismo contenido produce el mismo archivo.
