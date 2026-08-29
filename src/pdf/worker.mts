@@ -13,6 +13,10 @@
  */
 import { parentPort, workerData } from 'node:worker_threads';
 
+// Antes que pdf.js: sin @napi-rs/canvas, pdf.js exige un DOMMatrix al cargarse (ejecutable autónomo).
+import './polyfills.mts';
+// El manejador del worker de pdf.js, cargado de forma estática: pdf.js lo encuentra en globalThis y no intenta importar pdf.worker.mjs por ruta (no existiría en el ejecutable autónomo).
+import 'pdfjs-dist/legacy/build/pdf.worker.mjs';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 interface WorkerInput {
