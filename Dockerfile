@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# Imagen de Chameleon CV (T-7.2, docs/docker.md §3). Etapa «build»: el Node 26 oficial ejecuta npm ci y
+# Imagen de Chameleon CV (T-7.2, docs/docker.md §3; multi-arquitectura en T-7.3, docs/ghcr-publication.md §3.6).
+# Etapa «build»: el Node 26 oficial de la arquitectura de destino (linux/amd64 o linux/arm64) ejecuta npm ci y
 # npm run package (compilación limpia, bundles, ejecutable SEA, prueba de humo, avisos de licencias de
 # terceros) e instala Typst con «cv typst install». Etapa «runtime»: solo el ejecutable, sus avisos y Typst;
 # sin Node, npm, código fuente ni node_modules. Bases fijadas por digest (etiqueta anotada al lado; Dependabot
@@ -17,8 +18,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY . .
 RUN npm run package \
- && mkdir -p /opt/chameleon-cv \
- && tar -xzf build/release/chameleon-cv-*-linux-x64.tar.gz -C /opt/chameleon-cv --strip-components=1
+ && mkdir -p /opt/chameleon-cv /opt/lib \
+ && tar -xzf build/release/chameleon-cv-*-linux-*.tar.gz -C /opt/chameleon-cv --strip-components=1 \
+ && cp "/usr/lib/$(uname -m)-linux-gnu/libatomic.so.1" /opt/lib/libatomic.so.1
 # Única operación de red del producto, ejecutada aquí para que el runtime no la necesite nunca
 RUN XDG_CACHE_HOME=/opt/cache /opt/chameleon-cv/cv typst install
 
@@ -54,7 +56,8 @@ CMD ["--help"]
 FROM gcr.io/distroless/cc-debian12:nonroot@sha256:9dac0a79194e45a7da0158a9c6da57b217585af0786db3845d1f0ec1a0dd182f AS runtime-distroless
 ARG VERSION
 ARG REVISION
-COPY --from=build /usr/lib/x86_64-linux-gnu/libatomic.so.1 /usr/lib/x86_64-linux-gnu/libatomic.so.1
+# libatomic de la arquitectura de destino, en /usr/lib (directorio de búsqueda por defecto del cargador dinámico)
+COPY --from=build /opt/lib/libatomic.so.1 /usr/lib/libatomic.so.1
 COPY --from=build --chmod=755 /opt/chameleon-cv/cv /opt/chameleon-cv/cv
 COPY --from=build --chmod=644 /opt/chameleon-cv/README.md /opt/chameleon-cv/CHANGELOG.md /opt/chameleon-cv/LICENSE /opt/chameleon-cv/LICENSE-SourceSans3.md /opt/chameleon-cv/THIRD-PARTY-NOTICES.md /opt/chameleon-cv/
 COPY --from=build --chmod=755 /opt/cache/chameleon-cv/typst/0.15.1/typst /opt/typst/typst

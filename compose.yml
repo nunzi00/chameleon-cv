@@ -1,10 +1,11 @@
 # Chameleon CV en Docker (T-7.2, docs/docker.md §4). Perfil base: sin IA y sin red.
+#   docker compose pull                                  # la imagen publicada en GHCR (o «docker compose build» para construirla en local con tu UID/GID)
 #   docker compose run --rm chameleon-cv <orden>        # init, build, generate-cv -s backend, analyze-offer oferta.txt…
 # Superposiciones: compose.ai.yml (modelo local con Ollama) y compose.gpu.yml (GPU NVIDIA para Ollama).
 # Datos personales solo en ./my-profile (montado en /work) y en el volumen cv-cache; nada dentro de la imagen.
 services:
   chameleon-cv:
-    image: chameleon-cv:local              # T-7.3 publicará ghcr.io/nunzi00/chameleon-cv:<versión>
+    image: ${CHAMELEON_CV_IMAGE:-ghcr.io/nunzi00/chameleon-cv:1.1.0}   # la versión exacta publicada (docker compose pull); una prueba exige que coincida con package.json
     build:
       context: .
       target: runtime
