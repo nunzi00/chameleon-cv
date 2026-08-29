@@ -1,5 +1,5 @@
 # Integración continua (T-6.3): en cada push a main y en cada pull request, exactamente lo que el
-# trabajo «verify» del release exige: typecheck, lint, cobertura al 100 %, suite con Typst real y el
+# trabajo «verify» del release exige: typecheck, cobertura al 100 %, suite con Typst real y el
 # arnés de aceptación determinista completo (con Typst obligatorio). Sin secretos, permisos mínimos,
 # acciones fijadas por SHA (el comentario indica la versión) — docs/packaging-and-release.md §6.
 name: CI
@@ -20,7 +20,7 @@ env:
 
 jobs:
   verify:
-    name: Verificar (typecheck, lint, cobertura 100 %, aceptación determinista)
+    name: Verificar (typecheck, cobertura 100 %, aceptación determinista)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:

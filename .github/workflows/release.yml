@@ -19,7 +19,7 @@ env:
 
 jobs:
   verify:
-    name: Verificar (typecheck, lint, cobertura 100 %, aceptación; tag = versión)
+    name: Verificar (typecheck, cobertura 100 %, aceptación; tag = versión)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
