@@ -13,6 +13,18 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 
 ## Instalación
 
+**Ejecutable autónomo** (sin Node instalado): un único fichero por plataforma que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Hasta la primera *release* pública se genera desde el repositorio (Node ≥ 26):
+
+```bash
+npm install && npm run package                  # build/release/chameleon-cv-<versión>-<os>-<arch>.tar.gz (+ .sha256)
+tar -xzf build/release/chameleon-cv-*-linux-x64.tar.gz && cd chameleon-cv-*-linux-x64
+./cv --version                                  # el binario funciona en cualquier directorio; `cv typst install` sigue siendo opcional
+```
+
+Los assets que necesitan ser ficheros reales (temas y fuentes para Typst, dataset de `cv init`) se materializan en la caché de usuario (`~/.cache/chameleon-cv/assets/<versión>/`), con su SHA-256 comprobado en cada uso.
+
+**Desde el repositorio** (desarrollo):
+
 ```bash
 npm install
 npm run build        # compila a dist/

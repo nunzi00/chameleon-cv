@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-6.2 · [RELEASE] Capa unificada de assets, *bundle* y `npm run package` (Hito 6) |
-| **Estado** | PLAN (2026-08-29), pendiente de aprobación del Director de Ingeniería. |
+| **Estado** | Plan aprobado el 2026-08-29 e **implementado** ese mismo día (S1–S6); resultado en §6. |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | `docs/packaging-and-release.md` (T-6.1 aprobada: Node SEA + esbuild, Typst fuera del binario, lanzamiento incremental sobre una plataforma de referencia), *spike* SEA con Node 26, `docs/acceptance-testing.md` (arneses que servirán de criterio de aceptación). |
 
@@ -95,3 +95,7 @@ Estimación: S1–S3 son el grueso (código de producto con cobertura al 100 %);
 2. **Worker de PDF por `eval`** del código embebido (recomendado; respaldo por ruta materializada si hiciera falta).
 3. **Plataforma de referencia**: linux-x64 en esta máquina para S4–S5; el resto de plataformas y GitHub Actions, en T-6.3.
 4. **`cv --version`** conserva su salida actual (solo la versión), para no tocar artefactos esperados; la plataforma y la versión de Node se mostrarán en `cv typst status`/`llm status` o en una futura `cv --version --verbose` si lo considera útil.
+
+## 6. Resultado (2026-08-29)
+
+Implementado tal como se propuso, con dos ajustes que el spike no había destapado: pdf.js exige `DOMMatrix` al cargarse (sin `@napi-rs/canvas` en el binario) —resuelto con un `DOMMatrix` afín 2D mínimo (`src/pdf/dom-matrix.mts`) instalado antes que pdf.js y con la importación estática de `pdf.worker.mjs`— y pdfkit carga las fuentes estándar (Courier para el código en línea) con un `require` indirecto —resuelto con un plugin de esbuild en `scripts/package.ts`—. El criterio de aceptación se cumple: el arnés determinista produce **77/77 pasos idénticos** con `node dist/index.js` y con el ejecutable (`npm run test:acceptance:deterministic -- --binary build/sea/cv`), y el arnés de IA pasa 16/16 contra el ejecutable. Detalle y medidas en `docs/packaging-and-release.md` §11.
