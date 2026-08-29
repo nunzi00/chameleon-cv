@@ -1,0 +1,200 @@
+[
+  {
+    "id": "exp-nexo-pasarela",
+    "text": "Diseñé la arquitectura de la nueva pasarela de pagos sobre Kafka y PostgreSQL, procesando **9 M de transacciones al mes** sin pérdida de eventos.",
+    "currentTags": [
+      "kafka",
+      "postgresql",
+      "arquitectura",
+      "pin"
+    ],
+    "locale": "es-ES",
+    "maxTags": 5,
+    "context": {
+      "role": "Staff Backend Engineer",
+      "company": "Nexo Pagos",
+      "technologies": [
+        "PHP 8.3",
+        "Symfony 7",
+        "Kafka",
+        "PostgreSQL 16",
+        "Kubernetes",
+        "Terraform"
+      ]
+    },
+    "specialties": [
+      {
+        "id": "backend",
+        "title": "Senior Backend Engineer",
+        "tags": [
+          "php",
+          "symfony",
+          "kubernetes",
+          "kafka",
+          "postgresql",
+          "api",
+          "performance"
+        ]
+      },
+      {
+        "id": "data",
+        "title": "Data Engineer",
+        "tags": [
+          "python",
+          "spark",
+          "airflow",
+          "sql",
+          "kafka",
+          "postgresql"
+        ]
+      },
+      {
+        "id": "engineering-manager",
+        "title": "Engineering Manager",
+        "tags": [
+          "liderazgo",
+          "gestion",
+          "agile",
+          "mentoria",
+          "hiring"
+        ]
+      },
+      {
+        "id": "platform",
+        "title": "Platform Engineer",
+        "tags": [
+          "kubernetes",
+          "terraform",
+          "aws",
+          "observability",
+          "ci-cd",
+          "sre",
+          "docker"
+        ]
+      }
+    ],
+    "dictionary": [
+      "php",
+      "symfony",
+      "kubernetes",
+      "kafka",
+      "postgresql",
+      "api",
+      "performance",
+      "python",
+      "spark",
+      "airflow",
+      "sql",
+      "liderazgo",
+      "gestion",
+      "agile",
+      "mentoria",
+      "hiring",
+      "terraform",
+      "aws",
+      "observability",
+      "ci-cd",
+      "sre",
+      "docker"
+    ]
+  },
+  {
+    "id": "exp-orbita-cloud-1",
+    "text": "Construí la plataforma Kubernetes multi-tenant que hoy sirve a 25 equipos y 300 servicios.",
+    "currentTags": [
+      "kubernetes",
+      "aws",
+      "platform",
+      "arquitectura"
+    ],
+    "locale": "es-ES",
+    "maxTags": 5,
+    "context": {
+      "role": "Platform Engineer",
+      "company": "Órbita Cloud",
+      "technologies": [
+        "Kubernetes",
+        "Terraform",
+        "AWS",
+        "Prometheus",
+        "Grafana",
+        "GitLab CI"
+      ]
+    },
+    "specialties": [
+      {
+        "id": "backend",
+        "title": "Senior Backend Engineer",
+        "tags": [
+          "php",
+          "symfony",
+          "kubernetes",
+          "kafka",
+          "postgresql",
+          "api",
+          "performance"
+        ]
+      },
+      {
+        "id": "data",
+        "title": "Data Engineer",
+        "tags": [
+          "python",
+          "spark",
+          "airflow",
+          "sql",
+          "kafka",
+          "postgresql"
+        ]
+      },
+      {
+        "id": "engineering-manager",
+        "title": "Engineering Manager",
+        "tags": [
+          "liderazgo",
+          "gestion",
+          "agile",
+          "mentoria",
+          "hiring"
+        ]
+      },
+      {
+        "id": "platform",
+        "title": "Platform Engineer",
+        "tags": [
+          "kubernetes",
+          "terraform",
+          "aws",
+          "observability",
+          "ci-cd",
+          "sre",
+          "docker"
+        ]
+      }
+    ],
+    "dictionary": [
+      "php",
+      "symfony",
+      "kubernetes",
+      "kafka",
+      "postgresql",
+      "api",
+      "performance",
+      "python",
+      "spark",
+      "airflow",
+      "sql",
+      "liderazgo",
+      "gestion",
+      "agile",
+      "mentoria",
+      "hiring",
+      "terraform",
+      "aws",
+      "observability",
+      "ci-cd",
+      "sre",
+      "docker"
+    ]
+  }
+]

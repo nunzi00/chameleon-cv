@@ -1,0 +1,15 @@
+Platform Engineer
+
+Se requiere una persona para construir y operar la plataforma interna de un scale-up con 30 equipos de producto.
+
+Requisitos:
+- 4+ años operando Kubernetes en producción (EKS o similar).
+- Terraform e infraestructura como código en AWS.
+- Observabilidad: Prometheus, Grafana, trazas distribuidas.
+- CI/CD con GitLab o GitHub Actions.
+- Definición de SLO y participación en guardias.
+
+Se valorará:
+- Experiencia multi-tenant y FinOps.
+- Certificación CKA.
+- Python para herramientas internas.

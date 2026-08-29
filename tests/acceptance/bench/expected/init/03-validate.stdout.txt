@@ -1,0 +1,1 @@
+Dataset válido: 10 ficheros en <WS>/data/sources (2 especialidades, 2 experiencias, 1 proyecto, 1 formación, 5 skills, 2 certificaciones, 2 logros transversales, 2 idiomas)

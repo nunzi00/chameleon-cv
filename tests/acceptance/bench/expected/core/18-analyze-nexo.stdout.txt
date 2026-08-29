@@ -1,0 +1,29 @@
+Oferta nexo-senior-backend · 13 requisitos reconocidos · 5 años de experiencia exigidos
+Adecuación: 12 de 13 requisitos demostrados (92 %) · imprescindibles: 7 de 7
+
+Demostrados
+  php            required      1.00  ← exp-delta-consultores, exp-delta-consultores-1, exp-delta-consultores-2, exp-freelance, exp-freelance-1, exp-freelance-2, exp-nexo-pagos, proj-kafka-guardian, proj-kafka-guardian-2, skill-1, skill-2, skill-6, skill-7, cert-4
+  symfony        required      1.00  ← exp-delta-consultores, exp-delta-consultores-1, exp-delta-consultores-2, exp-freelance, exp-freelance-1, exp-freelance-2, exp-nexo-pagos, exp-nexo-pagos-4, proj-kafka-guardian, proj-kafka-guardian-2, skill-1, skill-2, skill-6, skill-7, cert-4
+  kafka          required      1.00  ← exp-lumen-analytics, exp-lumen-analytics-1, exp-nexo-pagos, exp-nexo-pasarela, proj-kafka-guardian, proj-kafka-guardian-1, skill-1, skill-2, skill-6, skill-7, ach-1
+  postgresql     required      1.00  ← exp-lumen-analytics, exp-nexo-pagos, exp-nexo-pasarela, exp-nexo-pagos-2, skill-1, skill-2, skill-6, skill-7
+  kubernetes     required      1.00  ← exp-nexo-pagos, exp-nexo-pagos-3, exp-orbita-cloud, exp-orbita-cloud-1, skill-3, cert-1, ach-3
+  performance    required      1.00  ← exp-delta-consultores-4, exp-nexo-pagos-2
+  observabilidad required      1.00  ← exp-orbita-cloud, proj-kafka-guardian, proj-kafka-guardian-1, ach-1
+  backend        unknown       0.75  ← skill-1, skill-2, skill-6, skill-7
+  tech lead      desirable     0.50  ← exp-nexo-pagos-3
+  terraform      desirable     0.50  ← exp-nexo-pagos-3, exp-orbita-cloud, exp-orbita-cloud-1
+  aws            desirable     0.50  ← exp-orbita-cloud, exp-orbita-cloud-1, skill-3, cert-1
+  testing        desirable     0.50  ← exp-nexo-pagos-4, proj-kafka-guardian-2
+
+No demostrados
+  mentoria       desirable     0.50   (si lo tienes, etiquétalo o añade un alias en skills.csv)
+
+Carencias (la oferta lo pide y el perfil no lo tiene etiquetado)
+  rendimiento · go · rust
+
+Mejores evidencias
+  1. exp-nexo-pagos · Nexo Pagos — Staff Backend Engineer (12.50)
+  2. exp-delta-consultores · Delta Consultores — Backend Developer (7.00)
+  3. exp-orbita-cloud · Órbita Cloud — Platform Engineer (7.00)
+  4. proj-kafka-guardian · Kafka Guardian (6.50)
+  5. exp-freelance · Freelance — Desarrolladora web (3.00)

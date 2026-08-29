@@ -1,0 +1,138 @@
+Oferta orbita-platform-engineer · 9 requisitos reconocidos
+Adecuación: 8 de 9 requisitos demostrados (89 %) · imprescindibles: 7 de 7
+
+Demostrados
+  kubernetes     required      1.00  ← exp-delta-consultores-3, exp-nexo-pagos, exp-nexo-pagos-3, exp-orbita-cloud, exp-orbita-cloud-1, skill-3, skill-5, skill-12, cert-1, ach-3, ach-4
+  terraform      required      1.00  ← exp-delta-consultores-3, exp-nexo-pagos-3, exp-orbita-cloud, exp-orbita-cloud-1, exp-orbita-cloud-2, exp-orbita-cloud-4, proj-terraform-modules, proj-terraform-modules-1, proj-terraform-modules-2, skill-4, skill-5, skill-14, cert-2, cert-3
+  aws            required      1.00  ← exp-orbita-cloud, exp-orbita-cloud-1, exp-orbita-cloud-2, proj-terraform-modules, proj-terraform-modules-1, proj-terraform-modules-2, skill-3, skill-4, skill-5, skill-12, cert-1, cert-2, cert-3, ach-4
+  observabilidad required      1.00  ← exp-nexo-pagos-6, exp-orbita-cloud, exp-orbita-cloud-3, proj-kafka-guardian, proj-kafka-guardian-1, proj-kafka-guardian-3, skill-13, ach-1
+  prometheus     required      1.00  ← exp-nexo-pagos-6, exp-orbita-cloud, exp-orbita-cloud-3, proj-kafka-guardian, proj-kafka-guardian-1, proj-kafka-guardian-3, skill-13, ach-1
+  grafana        required      1.00  ← exp-nexo-pagos-6, exp-orbita-cloud, exp-orbita-cloud-3, proj-kafka-guardian, proj-kafka-guardian-1, proj-kafka-guardian-3, skill-13, ach-1
+  gitlab         required      1.00  ← exp-delta-consultores-3, exp-nexo-pagos-3, exp-orbita-cloud, exp-orbita-cloud-2, exp-orbita-cloud-4, proj-terraform-modules, proj-terraform-modules-2, skill-4, skill-14
+  platform       unknown       0.75  ← exp-orbita-cloud-1, skill-3, skill-5, skill-12, cert-1, ach-4
+
+No demostrados
+  python         desirable     0.50   (si lo tienes, etiquétalo o añade un alias en skills.csv)
+
+Carencias (la oferta lo pide y el perfil no lo tiene etiquetado)
+  producto · eks · ci/cd · github
+
+Mejores evidencias
+  1. exp-orbita-cloud · Órbita Cloud — Platform Engineer (16.00)
+  2. proj-terraform-modules · Módulos Terraform para AWS (7.00)
+  3. exp-nexo-pagos · Nexo Pagos — Staff Backend Engineer (5.00)
+  4. proj-kafka-guardian · Kafka Guardian (3.00)
+  5. skill-3 · Kubernetes (3.00)
+
+Especialidad «platform» (vocabulario: platform, kubernetes, terraform, aws, observability, ci-cd, sre, docker): 30 de 54 ítems incluidos
++ experience exp-delta-consultores: via-achievements
+    - exp-delta-consultores-1: no-match
+    - exp-delta-consultores-2: no-match
+    + exp-delta-consultores-3: matched (docker, ci-cd)
+    - exp-delta-consultores-4: no-match
+- experience exp-freelance: no-match
+- experience exp-lumen-analytics: no-match
++ experience exp-nexo-pagos: matched (kubernetes)
+    + exp-nexo-pasarela: pinned
+    - exp-nexo-pagos-2: no-match
+    + exp-nexo-pagos-3: matched (kubernetes, ci-cd)
+    - exp-nexo-pagos-4: no-match
+    - exp-nexo-pagos-5: no-match
+    + exp-nexo-pagos-6: matched (sre, observability)
++ experience exp-orbita-cloud: matched (kubernetes, terraform, aws, observability, ci-cd, sre)
+    + exp-orbita-cloud-1: matched (kubernetes, aws, platform)
+    + exp-orbita-cloud-2: matched (terraform, aws, ci-cd)
+    + exp-orbita-cloud-3: matched (observability, sre)
+    + exp-orbita-cloud-4: matched (ci-cd)
+    - exp-orbita-cloud-5: no-match
++ projects proj-kafka-guardian: matched (observability)
+    + proj-kafka-guardian-1: matched (observability)
+    - proj-kafka-guardian-2: no-match
+    + proj-kafka-guardian-3: matched (observability)
+- projects proj-pipeline-demo: no-match
++ projects proj-terraform-modules: matched (terraform, aws, ci-cd)
+    + proj-terraform-modules-1: matched (terraform, aws)
+    + proj-terraform-modules-2: matched (aws, ci-cd)
++ education edu-grado-informatica: universal
+- education edu-master-datos: no-match
+- skills skill-1: no-match
+- skills skill-2: no-match
++ skills skill-3: matched (kubernetes, platform, docker)
++ skills skill-4: matched (terraform, aws, ci-cd)
++ skills skill-5: matched (aws, platform)
+- skills skill-6: no-match
+- skills skill-7: no-match
+- skills skill-8: no-match
+- skills skill-9: no-match
+- skills skill-10: no-match
+- skills skill-11: no-match
++ skills skill-12: matched (docker, platform)
++ skills skill-13: matched (observability, sre)
++ skills skill-14: matched (ci-cd)
+- skills skill-15: no-match
+- skills skill-16: no-match
++ certifications cert-1: matched (kubernetes, platform)
++ certifications cert-2: matched (terraform, aws)
++ certifications cert-3: matched (aws)
+- certifications cert-4: no-match
++ achievements ach-1: matched (observability)
+- achievements ach-2: no-match
++ achievements ach-3: matched (kubernetes)
++ achievements ach-4: matched (platform)
+Oferta: 9 requisitos reconocidos · carencias: producto, eks, ci/cd, github
+  kubernetes (required, 1.00) · terraform (required, 1.00) · aws (required, 1.00) · observabilidad (required, 1.00) · prometheus (required, 1.00) · grafana (required, 1.00) · gitlab (required, 1.00) · platform (unknown, 0.75) · python (desirable, 0.50)
++ experience exp-delta-consultores: via-achievements · 2.00
+    - exp-delta-consultores-1: no-match
+    - exp-delta-consultores-2: no-match
+    + exp-delta-consultores-3: matched (docker, ci-cd) · 2.00 [kubernetes, terraform, gitlab]
+    - exp-delta-consultores-4: no-match
+- experience exp-freelance: no-match
+- experience exp-lumen-analytics: no-match
++ experience exp-nexo-pagos: matched (kubernetes) · 5.00 [kubernetes]
+    + exp-nexo-pasarela: pinned · 0.00
+    - exp-nexo-pagos-2: no-match
+    + exp-nexo-pagos-3: matched (kubernetes, ci-cd) · 2.00 [kubernetes, terraform, gitlab]
+    - exp-nexo-pagos-4: no-match
+    - exp-nexo-pagos-5: no-match
+    + exp-nexo-pagos-6: matched (sre, observability) · 2.00 [observabilidad, prometheus, grafana]
++ experience exp-orbita-cloud: matched (kubernetes, terraform, aws, observability, ci-cd, sre) · 16.00 [kubernetes, terraform, aws, observabilidad, prometheus, grafana, gitlab]
+    + exp-orbita-cloud-1: matched (kubernetes, aws, platform) · 3.00 [kubernetes, terraform, aws, platform]
+    + exp-orbita-cloud-2: matched (terraform, aws, ci-cd) · 3.00 [terraform, aws, gitlab]
+    + exp-orbita-cloud-3: matched (observability, sre) · 2.00 [observabilidad, prometheus, grafana]
+    + exp-orbita-cloud-4: matched (ci-cd) · 2.00 [terraform, gitlab]
+    - exp-orbita-cloud-5: no-match
++ projects proj-kafka-guardian: matched (observability) · 3.00 [observabilidad, prometheus, grafana]
+    + proj-kafka-guardian-1: matched (observability) · 1.00 [observabilidad, prometheus, grafana]
+    - proj-kafka-guardian-2: no-match
+    + proj-kafka-guardian-3: matched (observability) · 1.00 [observabilidad, prometheus, grafana]
+- projects proj-pipeline-demo: no-match
++ projects proj-terraform-modules: matched (terraform, aws, ci-cd) · 7.00 [terraform, aws, gitlab]
+    + proj-terraform-modules-1: matched (terraform, aws) · 2.00 [terraform, aws]
+    + proj-terraform-modules-2: matched (aws, ci-cd) · 2.00 [terraform, aws, gitlab]
++ education edu-grado-informatica: universal · 0.00
+- education edu-master-datos: no-match
+- skills skill-1: no-match
+- skills skill-2: no-match
++ skills skill-3: matched (kubernetes, platform, docker) · 3.00 [kubernetes, aws, platform]
++ skills skill-4: matched (terraform, aws, ci-cd) · 3.00 [terraform, aws, gitlab]
++ skills skill-5: matched (aws, platform) · 3.00 [kubernetes, terraform, aws, platform]
+- skills skill-6: no-match
+- skills skill-7: no-match
+- skills skill-8: no-match
+- skills skill-9: no-match
+- skills skill-10: no-match
+- skills skill-11: no-match
++ skills skill-12: matched (docker, platform) · 2.00 [kubernetes, aws, platform]
++ skills skill-13: matched (observability, sre) · 2.00 [observabilidad, prometheus, grafana]
++ skills skill-14: matched (ci-cd) · 2.00 [terraform, gitlab]
+- skills skill-15: no-match
+- skills skill-16: no-match
++ certifications cert-1: matched (kubernetes, platform) · 2.00 [kubernetes, aws, platform]
++ certifications cert-2: matched (terraform, aws) · 2.00 [terraform, aws]
++ certifications cert-3: matched (aws) · 2.00 [terraform, aws]
+- certifications cert-4: no-match
++ achievements ach-1: matched (observability) · 1.00 [observabilidad, prometheus, grafana]
+- achievements ach-2: no-match
++ achievements ach-3: matched (kubernetes) · 1.00 [kubernetes]
++ achievements ach-4: matched (platform) · 1.00 [kubernetes, aws, platform]
+No demostrado: python

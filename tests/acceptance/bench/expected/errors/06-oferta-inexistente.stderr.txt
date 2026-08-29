@@ -1,0 +1,1 @@
+No se pudo leer la oferta «<WS>/offers/nope.txt»: ENOENT: no such file or directory, stat '<WS>/offers/nope.txt'

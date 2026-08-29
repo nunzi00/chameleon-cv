@@ -1,0 +1,12 @@
+No se ha escrito nada: 11 destinos ya existen en <WS>/data/sources
+  data/sources/achievements.md
+  data/sources/certifications.csv
+  data/sources/education/universidad.md
+  data/sources/experience/acme.md
+  data/sources/experience/startup.md
+  data/sources/profile.md
+  data/sources/projects/chameleon.md
+  data/sources/README.md
+  data/sources/skills.csv
+  data/sources/specialties/backend.md
+  data/sources/specialties/engineering-manager.md

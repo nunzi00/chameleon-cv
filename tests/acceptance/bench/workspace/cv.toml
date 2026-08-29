@@ -1,0 +1,9 @@
+# Configuración del proyecto del banco de pruebas: tema por defecto y anulaciones sobre su theme.toml.
+[theme]
+name = "bench"
+
+[theme.colors]
+accent = "#8a1c1c"
+
+[theme.sizes]
+body = 10.2

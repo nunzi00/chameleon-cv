@@ -1,0 +1,1 @@
+error: option '--engine <engine>' argument 'latex' is invalid. motores admitidos: pdfkit, typst

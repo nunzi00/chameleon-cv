@@ -1,0 +1,20 @@
+Oferta lumen-data-engineer · 6 requisitos reconocidos
+Adecuación: 6 de 6 requisitos demostrados (100 %) · imprescindibles: 5 de 5
+
+Demostrados
+  python         required      1.00  ← exp-lumen-analytics, exp-lumen-analytics-1, exp-lumen-analytics-2, proj-pipeline-demo, proj-pipeline-demo-1, edu-master-datos, skill-6, skill-9, skill-10, skill-11
+  sql            required      1.00  ← exp-lumen-analytics, exp-lumen-analytics-2, exp-lumen-analytics-3, edu-master-datos, skill-7, skill-8
+  spark          required      1.00  ← exp-lumen-analytics, exp-lumen-analytics-1, proj-pipeline-demo, proj-pipeline-demo-1, edu-master-datos, skill-6, skill-9, skill-10, skill-11
+  airflow        required      1.00  ← exp-lumen-analytics, exp-lumen-analytics-2, proj-pipeline-demo, proj-pipeline-demo-1, skill-6, skill-9, skill-10, skill-11
+  kafka          required      1.00  ← exp-lumen-analytics, exp-lumen-analytics-1, exp-nexo-pagos, exp-nexo-pasarela, proj-kafka-guardian, proj-kafka-guardian-1, skill-1, skill-2, skill-6, skill-7, skill-9, skill-10, skill-11, ach-1
+  data           unknown       0.75  ← skill-6, skill-9, skill-10, skill-11
+
+Carencias (la oferta lo pide y el perfil no lo tiene etiquetado)
+  dbt · snowflake
+
+Mejores evidencias
+  1. exp-lumen-analytics · Lumen Analytics — Data Engineer (12.00)
+  2. proj-pipeline-demo · Pipeline Demo (6.00)
+  3. edu-master-datos · Máster en Ciencia de Datos (3.00)
+  4. skill-6 · Kafka (3.00)
+  5. exp-nexo-pagos · Nexo Pagos — Staff Backend Engineer (2.00)

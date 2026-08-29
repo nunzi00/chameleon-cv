@@ -1,0 +1,56 @@
+Especialidad «platform» (vocabulario: platform, kubernetes, terraform, aws, observability, ci-cd, sre, docker): 30 de 54 ítems incluidos
++ experience exp-delta-consultores: via-achievements
+    - exp-delta-consultores-1: no-match
+    - exp-delta-consultores-2: no-match
+    + exp-delta-consultores-3: matched (docker, ci-cd)
+    - exp-delta-consultores-4: no-match
+- experience exp-freelance: no-match
+- experience exp-lumen-analytics: no-match
++ experience exp-nexo-pagos: matched (kubernetes)
+    + exp-nexo-pasarela: pinned
+    - exp-nexo-pagos-2: no-match
+    + exp-nexo-pagos-3: matched (kubernetes, ci-cd)
+    - exp-nexo-pagos-4: no-match
+    - exp-nexo-pagos-5: no-match
+    + exp-nexo-pagos-6: matched (sre, observability)
++ experience exp-orbita-cloud: matched (kubernetes, terraform, aws, observability, ci-cd, sre)
+    + exp-orbita-cloud-1: matched (kubernetes, aws, platform)
+    + exp-orbita-cloud-2: matched (terraform, aws, ci-cd)
+    + exp-orbita-cloud-3: matched (observability, sre)
+    + exp-orbita-cloud-4: matched (ci-cd)
+    - exp-orbita-cloud-5: no-match
++ projects proj-kafka-guardian: matched (observability)
+    + proj-kafka-guardian-1: matched (observability)
+    - proj-kafka-guardian-2: no-match
+    + proj-kafka-guardian-3: matched (observability)
+- projects proj-pipeline-demo: no-match
++ projects proj-terraform-modules: matched (terraform, aws, ci-cd)
+    + proj-terraform-modules-1: matched (terraform, aws)
+    + proj-terraform-modules-2: matched (aws, ci-cd)
++ education edu-grado-informatica: universal
+- education edu-master-datos: no-match
+- skills skill-1: no-match
+- skills skill-2: no-match
++ skills skill-3: matched (kubernetes, platform, docker)
++ skills skill-4: matched (terraform, aws, ci-cd)
++ skills skill-5: matched (aws, platform)
+- skills skill-6: no-match
+- skills skill-7: no-match
+- skills skill-8: no-match
+- skills skill-9: no-match
+- skills skill-10: no-match
+- skills skill-11: no-match
++ skills skill-12: matched (docker, platform)
++ skills skill-13: matched (observability, sre)
++ skills skill-14: matched (ci-cd)
+- skills skill-15: no-match
+- skills skill-16: no-match
++ certifications cert-1: matched (kubernetes, platform)
++ certifications cert-2: matched (terraform, aws)
++ certifications cert-3: matched (aws)
+- certifications cert-4: no-match
++ achievements ach-1: matched (observability)
+- achievements ach-2: no-match
++ achievements ach-3: matched (kubernetes)
++ achievements ach-4: matched (platform)
+Tema: mio (del proyecto); cv.toml anula colors.accent, sizes.body

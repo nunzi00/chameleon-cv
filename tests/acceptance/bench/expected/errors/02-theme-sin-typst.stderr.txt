@@ -1,0 +1,1 @@
+«--theme» solo aplica a «--engine typst» (con --format pdf)

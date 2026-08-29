@@ -1,0 +1,16 @@
+Senior Backend Engineer · Pagos (remoto)
+
+Buscamos una persona con experiencia construyendo APIs de pago de alto rendimiento y sistemas distribuidos resilientes.
+
+Requisitos:
+- 5+ años de experiencia con PHP y Symfony en producción.
+- Experiencia con Kafka o sistemas de mensajería a gran escala.
+- Experiencia con PostgreSQL y optimización de consultas.
+- Despliegues en Kubernetes con canary o blue-green.
+- Mentalidad de performance y observabilidad (SLO, p99).
+
+Deseable:
+- Experiencia liderando equipos (tech lead) y mentoría.
+- Terraform y AWS.
+- Go o Rust para servicios auxiliares.
+- Contract testing y pruebas de contrato entre servicios.

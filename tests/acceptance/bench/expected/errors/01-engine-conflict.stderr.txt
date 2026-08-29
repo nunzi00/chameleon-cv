@@ -1,0 +1,1 @@
+«--stdout» solo admite «--format md»: el PDF es binario y se escribe siempre en un fichero (--output)

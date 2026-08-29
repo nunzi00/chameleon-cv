@@ -1,0 +1,3 @@
+bench    del proyecto  Tema del banco de pruebas: classic con paleta verde y márgenes anchos · por defecto
+classic  distribuido   Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado
+default  distribuido   Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha

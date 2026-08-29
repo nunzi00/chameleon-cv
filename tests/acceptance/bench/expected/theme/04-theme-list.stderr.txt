@@ -1,0 +1,1 @@
+4 temas en <WS>/themes y <REPO>/themes; elige uno con --theme <nombre> o con [theme] name en cv.toml

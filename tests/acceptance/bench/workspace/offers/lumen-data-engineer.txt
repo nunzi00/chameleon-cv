@@ -1,0 +1,13 @@
+Data Engineer
+
+Necesitamos reforzar el equipo de datos de una plataforma de comercio electrónico con 5 TB de eventos diarios.
+
+Requisitos:
+- Python y SQL avanzados.
+- Spark y Airflow en producción.
+- Kafka para ingesta en tiempo real.
+- Contratos de datos y pruebas de calidad.
+
+Valorable:
+- dbt y Snowflake.
+- Experiencia formando a analistas.

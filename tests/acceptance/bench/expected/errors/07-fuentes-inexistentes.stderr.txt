@@ -1,0 +1,2 @@
+.: No se encuentra el directorio del dataset: <WS>/nope
+1 problema en <WS>/nope

@@ -1,0 +1,1 @@
+Nombre de tema inválido «../x»: minúsculas, dígitos y guiones (p. ej. «mio»)

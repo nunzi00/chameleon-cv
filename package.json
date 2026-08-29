@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "cv": "ts-node src/index.ts",
-    "llm:spike": "ts-node -T scripts/llm-spike.ts"
+    "llm:spike": "ts-node -T scripts/llm-spike.ts",
+    "acceptance:bench": "ts-node -T -P tests/tsconfig.json tests/acceptance/bench/generate.ts",
+    "acceptance:update": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts --update"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
