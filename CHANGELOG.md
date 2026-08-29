@@ -7,6 +7,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 ### Añadido
 
 - Interfaz web (T-7.5b, en curso): pantalla **Co-piloto** —mejorar logros, resumen profesional y sugerir etiquetas como trabajos con progreso en directo, cancelación y consentimiento de coste para proveedores remotos— y el doble local del proveedor para las pruebas de extremo a extremo.
+- Interfaz web (T-7.5b, en curso): pantalla **Revisiones** —cada ítem con su «antes» y sus propuestas (las rechazadas por la verificación C2, tachadas), marcas `[ ]`↔`[x]` que se guardan con `If-Match` sin tocar el resto del fichero, plan de aplicación y escritura en las fuentes con confirmación y copias `.bak`, y borrado— (`#/revisiones/<nombre>`, enlazada desde el resultado de un trabajo).
 
 ### Corregido
 
