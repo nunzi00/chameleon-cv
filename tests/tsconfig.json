@@ -7,5 +7,5 @@
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["../src/**/*", "../vitest.config.mts", "./**/*.ts"]
+  "include": ["../src/**/*", "../scripts/**/*.ts", "../vitest.config.mts", "./**/*.ts"]
 }

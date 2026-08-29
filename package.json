@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "Chameleon CV: generador de CVs dinámicos y personalizados a partir de datos fuente (Markdown, CSV). CLI 100% local, sin telemetría.",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Lucas Nunzi",
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
@@ -20,7 +21,8 @@
     "test:acceptance:deterministic": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts",
     "test:acceptance:ai": "ts-node -T -P tests/tsconfig.json tests/acceptance/ai-runner.ts",
     "acceptance:update": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts --update",
-    "package": "ts-node -T scripts/package.ts"
+    "package": "ts-node -T scripts/package.ts",
+    "release:notes": "ts-node -T scripts/release-notes.ts"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
