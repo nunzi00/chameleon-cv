@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-7.2 · [OPS] Ecosistema Docker (Hito 7, pilar 2); alcance de T-7.3 (publicación en GHCR) esbozado en §8 |
-| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA** por el Director de Ingeniería y Producto el 2026-08-29 con sus siete decisiones; **implementada** el 2026-08-29 (§12). |
+| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA** por el Director de Ingeniería y Producto el 2026-08-29 con sus siete decisiones; **implementada** el 2026-08-29 (§12) y **entrega aprobada** por el Director ese mismo día. |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | Plan estratégico del Hito 7 y observaciones registradas en el ROADMAP (loopback en Compose, modelo validado, imagen sin Node, UID del volumen, imágenes por digest); `docs/packaging-and-release.md` (ejecutable SEA, `npm run package`); `docs/llm-integration.md` (C3 local por defecto, C11); *spike* con Docker 29.7 y Compose 5.5 ejecutado en esta máquina el 2026-08-29 (§2). |
 
