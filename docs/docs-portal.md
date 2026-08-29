@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-7.1 · [DOCS] Portal de documentación (Hito 7, pilar 1) |
-| **Estado** | PROPUESTA v1 (2026-08-29), pendiente de aprobación por el Director de Ingeniería y Producto. |
+| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA sin reservas** por el Director de Ingeniería y Producto el 2026-08-29, con las siete decisiones de §10 (VitePress; `website/` aislado; README puerta corta; castellano raíz y T-7.1b para el inglés; Docs-as-Code elevado a estándar de toda la documentación; repositorio `lucasnunzi/chameleon-cv`; canon C14). Implementación en curso (§11). |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | Plan estratégico del Hito 7 (Director, 2026-08-29); `README.md` y `docs/*.md` de la 1.0.0; `docs/acceptance-testing.md` (cánones C12 y C13); `docs/packaging-and-release.md` §6 (acciones fijadas por SHA, permisos mínimos). Medición de las plataformas candidatas ejecutada en esta máquina el 2026-08-29 (§2). |
 

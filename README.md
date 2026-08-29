@@ -1,5 +1,7 @@
 # Chameleon CV
 
+[![CI](https://github.com/lucasnunzi/chameleon-cv/actions/workflows/ci.yml/badge.svg)](https://github.com/lucasnunzi/chameleon-cv/actions/workflows/ci.yml)
+
 Generador de CVs dinámicos y personalizados a partir de tus propias fuentes (Markdown y CSV). Mantienes **un solo conjunto de datos** —experiencias, proyectos, logros, habilidades— y generas un CV distinto para cada especialidad con un comando. Todo se procesa en local: sin red, sin telemetría.
 
 ```
@@ -21,13 +23,13 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 
 ## Instalación
 
-**Ejecutable autónomo** (recomendado): un único fichero que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Descarga de la página de *Releases* del repositorio el archivo `chameleon-cv-<versión>-linux-x64.tar.gz` y su `.sha256`, verifica y extrae:
+**Ejecutable autónomo** (recomendado): un único fichero que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Descarga de [la página de *Releases*](https://github.com/lucasnunzi/chameleon-cv/releases) el archivo `chameleon-cv-<versión>-linux-x64.tar.gz` y su `.sha256`, verifica y extrae:
 
 ```bash
 sha256sum -c chameleon-cv-<versión>-linux-x64.tar.gz.sha256      # «OK»: el archivo es exactamente el publicado
 tar -xzf chameleon-cv-<versión>-linux-x64.tar.gz && cd chameleon-cv-<versión>-linux-x64
 ./cv --version                                  # funciona desde cualquier directorio: copia `cv` a tu PATH si quieres
-gh attestation verify chameleon-cv-<versión>-linux-x64.tar.gz --owner <propietario-del-repositorio>   # opcional: procedencia SLSA firmada
+gh attestation verify chameleon-cv-<versión>-linux-x64.tar.gz --owner lucasnunzi   # opcional: procedencia SLSA firmada
 ```
 
 El archivo incluye `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` (licencias de Node.js y de los paquetes embebidos) y `LICENSE-SourceSans3.md`. Los assets que necesitan ser ficheros reales (temas y fuentes para Typst, dataset de `cv init`) se materializan en la caché de usuario (`~/.cache/chameleon-cv/assets/<versión>/`), con su SHA-256 comprobado en cada uso. El mismo archivo se construye en local con `npm install && npm run package` (Node ≥ 26; queda en `build/release/`).
@@ -255,7 +257,7 @@ body = "Source Sans 3"
 
 ## Co-piloto de IA
 
-El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C13) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada (véase [Proveedores remotos](#proveedores-remotos-opcional)).
+El co-piloto **sugiere** y nunca decide ni escribe en tus fuentes: la doctrina completa (cánones C1–C14) está en [`docs/llm-integration.md`](docs/llm-integration.md). Es **local por defecto** y solo habla con un servidor de modelos en tu propia máquina (loopback); los proveedores remotos (`openai`, `anthropic`) exigen `--provider` explícito en cada orden, muestran el coste estimado y piden confirmación antes de enviar nada (véase [Proveedores remotos](#proveedores-remotos-opcional)).
 
 ```bash
 cv llm status                                   # proveedor y modelo locales que se usarían y si responden (nunca envía datos)
