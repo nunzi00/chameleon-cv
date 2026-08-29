@@ -4,6 +4,11 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- Portal de documentación (`website/`, VitePress) publicado en GitHub Pages: guía de usuario, referencia de comandos generada desde la ayuda de la CLI, tutoriales ejecutables verificados en la integración continua, sección para desarrolladores (arquitectura y cánones C1–C14, contribuir, pruebas, extender, empaquetado) y notas de diseño sincronizadas desde `docs/`. `CONTRIBUTING.md`. README reducido a puerta de entrada.
+- Canon C14, «El núcleo es el producto».
+
 ## [1.0.0] - 2026-08-29
 
 Primera versión estable. Chameleon CV genera CV dinámicos a partir de un único conjunto de fuentes (Markdown y CSV): una versión por especialidad o adaptada a una oferta de empleo, en Markdown o PDF, con un co-piloto de IA que sugiere y nunca decide. Todo se procesa en local y sin telemetría. Se distribuye como ejecutable autónomo para linux-x64 (plataforma de referencia) y desde el repositorio. Resume el trabajo de los Hitos 1 a 6 del [ROADMAP](ROADMAP.md), del 2026-08-28 al 2026-08-29.
@@ -59,5 +64,5 @@ Primera versión estable. Chameleon CV genera CV dinámicos a partir de un únic
 - Integración continua y flujo de release en GitHub Actions (linux-x64): verificación completa, empaquetado, aceptación del binario, `SHA256SUMS.txt`, atestación de procedencia SLSA y notas de la release tomadas de este fichero.
 - Licencia MIT.
 
-[Unreleased]: https://github.com/lucasnunzi/chameleon-cv/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/lucasnunzi/chameleon-cv/releases/tag/v1.0.0
+[Unreleased]: https://github.com/nunzi00/chameleon-cv/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/nunzi00/chameleon-cv/releases/tag/v1.0.0

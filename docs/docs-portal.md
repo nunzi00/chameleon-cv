@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-7.1 · [DOCS] Portal de documentación (Hito 7, pilar 1) |
-| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA sin reservas** por el Director de Ingeniería y Producto el 2026-08-29, con las siete decisiones de §10 (VitePress; `website/` aislado; README puerta corta; castellano raíz y T-7.1b para el inglés; Docs-as-Code elevado a estándar de toda la documentación; repositorio `lucasnunzi/chameleon-cv`; canon C14). Implementación en curso (§11). |
+| **Estado** | PROPUESTA v1 (2026-08-29) **APROBADA sin reservas** por el Director de Ingeniería y Producto el 2026-08-29, con las siete decisiones de §10 (VitePress; `website/` aislado; README puerta corta; castellano raíz y T-7.1b para el inglés; Docs-as-Code elevado a estándar de toda la documentación; repositorio `nunzi00/chameleon-cv`; canon C14). Implementación en curso (§11). |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | Plan estratégico del Hito 7 (Director, 2026-08-29); `README.md` y `docs/*.md` de la 1.0.0; `docs/acceptance-testing.md` (cánones C12 y C13); `docs/packaging-and-release.md` §6 (acciones fijadas por SHA, permisos mínimos). Medición de las plataformas candidatas ejecutada en esta máquina el 2026-08-29 (§2). |
 
@@ -166,7 +166,7 @@ Sin `markdownlint` ni comprobadores de prosa por ahora: menos dependencias; el b
 3. **README**: puerta corta con migración del detalle al portal (recomendado) frente a README íntegro más portal.
 4. **Idioma**: solo castellano en T-7.1, inglés en T-7.1b (recomendado).
 5. **Docs-as-Code activo**: referencia generada desde `--help` y tutoriales ejecutados en CI (recomendado) frente a páginas redactadas y mantenidas a mano.
-6. **Nombre del repositorio en GitHub** (ruta base de Pages, `repository` en `package.json`, enlaces del CHANGELOG): ¿`lucasnunzi/chameleon-cv`, como en el ejemplo de T-7.3?
+6. **Nombre del repositorio en GitHub** (ruta base de Pages, `repository` en `package.json`, enlaces del CHANGELOG): ¿`nunzi00/chameleon-cv`, como en el ejemplo de T-7.3?
 7. **Canon C14**: el plan cita «Canon C12: The Core is the Product», pero C12 es «Validar el proceso, no el resultado»; se propone canonizar «El núcleo es el producto» (la GUI y cualquier cliente consumen la lógica central, nunca la reimplementan) como **C14**.
 
 ## 11. Estado de la implementación
