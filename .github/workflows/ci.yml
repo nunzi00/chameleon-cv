@@ -125,3 +125,28 @@ jobs:
           docker compose -f compose.yml -f compose.ai.yml -f compose.serve-ai.yml config -q
       - name: Tutorial 5 («Todo en un contenedor») ejecutado contra la imagen recién construida (canon C15)
         run: CHAMELEON_DOCS_DOCKER=1 npm run docs:tutorials -- --only docker
+
+  gui:
+    name: Interfaz web (svelte-check, pruebas con cobertura 100 % de la lógica, construcción)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            gui/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix gui
+      - run: npm run gui:check
+      - run: npm run gui:build
+      - name: Presupuesto del paquete inicial (≤ 30 KB gzip; el editor va en un chunk aparte)
+        run: |
+          size=$(gzip -9 -c gui/dist/assets/index-*.js | wc -c)
+          echo "index: $size bytes gzip"
+          [ "$size" -le 30720 ] || { echo "::error::el paquete inicial pesa $size bytes gzip (máximo 30720)"; exit 1; }
