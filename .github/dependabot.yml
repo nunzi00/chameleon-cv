@@ -10,6 +10,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7 (nativo) no expone la API de JavaScript que ts-node y ts-jest necesitan: fijado en 5.x hasta que la cadena lo admita.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
   - package-ecosystem: docker
     directory: /
     schedule:
