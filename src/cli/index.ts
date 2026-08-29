@@ -15,6 +15,7 @@ export * from './commands/summarize';
 export * from './commands/theme';
 export * from './commands/llm';
 export * from './commands/remote';
+export * from './commands/serve';
 export * from './commands/typst';
 export * from './commands/validate';
 export * from './context';
