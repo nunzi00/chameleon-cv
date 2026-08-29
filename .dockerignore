@@ -1,0 +1,13 @@
+# Contexto de construcción de la imagen: solo lo que npm run package necesita (código, pruebas para la prueba
+# de humo, assets). Nada de dependencias instaladas, artefactos, datos del usuario ni el portal.
+.git
+node_modules
+website
+build
+dist
+output
+data/dist
+my-profile
+coverage
+.env
+*.log

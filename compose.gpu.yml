@@ -1,0 +1,11 @@
+# Superposición opcional: reserva la GPU NVIDIA para Ollama (requiere el NVIDIA Container Toolkit).
+#   docker compose -f compose.yml -f compose.ai.yml -f compose.gpu.yml run --rm chameleon-cv improve -s backend
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

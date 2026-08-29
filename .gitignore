@@ -35,3 +35,6 @@ Thumbs.db
 
 # Artefacto canónico generado por `build-profile` (datos personales en claro; solo en la raíz)
 /data/dist/
+
+# Espacio de trabajo de Docker Compose (tus datos personales; docs/docker.md)
+/my-profile/
