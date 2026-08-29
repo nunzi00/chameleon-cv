@@ -241,7 +241,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
 
   program
     .command('serve')
-    .description('arranca el servidor local de la API (T-7.4) sobre el espacio de trabajo: solo 127.0.0.1, token de sesión, sin CORS; Ctrl-C para parar')
+    .description('arranca el servidor local: la interfaz web en / y la API en /api/v1 sobre el espacio de trabajo; solo 127.0.0.1, token de sesión, sin CORS; Ctrl-C para parar')
     .option('--port <n>', 'puerto (0 = efímero)', parsePort, 4310)
     .option('--host <host>', 'dirección de escucha; 0.0.0.0 solo dentro de un contenedor cuyo puerto publique Docker en el loopback del anfitrión', '127.0.0.1')
     .option('--workspace <dir>', 'espacio de trabajo (por defecto, el directorio actual)')

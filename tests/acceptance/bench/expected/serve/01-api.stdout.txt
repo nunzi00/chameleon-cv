@@ -40,7 +40,7 @@
   "typst": {
     "usable": false
   },
-  "version": "1.1.1",
+  "version": "1.2.0",
   "workspace": "<WS>"
 }
 
@@ -4116,6 +4116,43 @@
   "error": {
     "code": "forbidden-origin",
     "message": "Origin no permitido: solo el propio origen puede escribir"
+  }
+}
+
+### GET / (sin token) → 200
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Chameleon CV</title>
+    <script type="module" crossorigin src="/assets/index-<HASH>.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-<HASH>.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
+[csp: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; frame-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none' · cache: no-store]
+
+### GET /assets/index-<HASH>.js (sin token) → 200
+<text/javascript; charset=utf-8 · public, max-age=31536000, immutable>
+
+### GET /index.html (sin token) → 404
+{
+  "error": {
+    "code": "not-found",
+    "message": "No existe la ruta"
+  }
+}
+
+### GET /assets/nope.js (sin token) → 404
+{
+  "error": {
+    "code": "not-found",
+    "message": "No existe la ruta"
   }
 }
 

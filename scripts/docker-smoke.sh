@@ -17,8 +17,9 @@ WORK="$(mktemp -d)"
 chmod 1777 "$WORK"   # el usuario de la imagen publicada (1000) puede no ser el del anfitrión: el espacio debe admitir a cualquiera
 VOLUME="cv-smoke-$$"
 STANDIN="cv-smoke-ollama-$$"
+SERVE="cv-smoke-serve-$$"
 cleanup() {
-  docker rm -f "$STANDIN" >/dev/null 2>&1 || true
+  docker rm -f "$STANDIN" "$SERVE" >/dev/null 2>&1 || true
   docker volume rm "$VOLUME" >/dev/null 2>&1 || true
   rm -rf "$WORK" 2>/dev/null || docker run --rm -v "$WORK:/w" --entrypoint sh "$IMAGE" -c 'rm -rf /w/* /w/.[!.]*' >/dev/null 2>&1 || true
 }
@@ -55,4 +56,12 @@ docker run -d --name "$STANDIN" -v "$WORK/stand-in:/srv:ro" "$BUSYBOX" httpd -f 
 sleep 1
 docker run --rm ${USER_ARGS[@]+"${USER_ARGS[@]}"} --network "container:$STANDIN" -v "$WORK:/work" "$IMAGE" llm status | grep -q 'alcanzable' \
   && pass "espacio de red compartido: el doble de Ollama en 127.0.0.1:11434 es alcanzable (network_mode: service:ollama)"
+# La interfaz web viaja en la imagen: cv serve la sirve en / (el puerto publicado y el del contenedor coinciden: Host solo admite el puerto propio).
+if command -v node >/dev/null 2>&1; then port="$(node -e 'const s=require("net").createServer().listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"; else port=4310; fi
+docker run -d --name "$SERVE" ${USER_ARGS[@]+"${USER_ARGS[@]}"} -p "127.0.0.1:$port:$port" -v "$WORK:/work" "$IMAGE" serve --host 0.0.0.0 --port "$port" >/dev/null
+for i in $(seq 1 100); do docker logs "$SERVE" 2>&1 | grep -q '^Interfaz:' && break; sleep 0.1; done
+token="$(docker logs "$SERVE" 2>&1 | sed -n 's/^Interfaz: .*#token=//p')"
+[ "$(curl -s -o "$WORK/index.html" -w '%{http_code}' "http://127.0.0.1:$port/")" = "200" ] && grep -q '<script type="module"' "$WORK/index.html" && pass "cv serve sirve la interfaz web en / (viaja en la imagen)" || fail "cv serve no sirve la interfaz web"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $token" "http://127.0.0.1:$port/api/v1/status")" = "200" ] && pass "la API responde con el token de sesión" || fail "la API no responde con el token"
+docker rm -f "$SERVE" >/dev/null
 echo "Humo de la imagen: todo en verde"

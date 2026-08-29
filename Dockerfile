@@ -15,7 +15,8 @@ FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6da
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY gui/package.json gui/package-lock.json ./gui/
+RUN npm ci --ignore-scripts --no-audit --no-fund && npm ci --prefix gui --ignore-scripts --no-audit --no-fund
 COPY . .
 RUN npm run package \
  && mkdir -p /opt/chameleon-cv /opt/lib \
