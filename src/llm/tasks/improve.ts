@@ -170,7 +170,7 @@ export function interpretImprove(fragment: ImproveFragment, completion: LlmCompl
 }
 
 /** Envía el fragmento al proveedor e interpreta la respuesta. */
-export async function runImprove(provider: LlmProvider, fragment: ImproveFragment, prompt: string, timeoutMs?: number): Promise<ImproveResult> {
+export async function runImprove(provider: LlmProvider, fragment: ImproveFragment, prompt: string, timeoutMs?: number, signal?: AbortSignal): Promise<ImproveResult> {
   const completion = await provider.complete({
     messages: [
       { role: 'system', content: prompt },
@@ -180,6 +180,7 @@ export async function runImprove(provider: LlmProvider, fragment: ImproveFragmen
     schemaName: 'improve',
     maxTokens: IMPROVE_LIMITS.maxTokens,
     timeoutMs,
+    signal,
   });
   return interpretImprove(fragment, completion);
 }

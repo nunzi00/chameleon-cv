@@ -189,7 +189,7 @@ export function interpretSummarize(fragment: SummarizeFragment, completion: LlmC
   };
 }
 
-export async function runSummarize(provider: LlmProvider, fragment: SummarizeFragment, prompt: string, timeoutMs?: number): Promise<SummarizeResult> {
+export async function runSummarize(provider: LlmProvider, fragment: SummarizeFragment, prompt: string, timeoutMs?: number, signal?: AbortSignal): Promise<SummarizeResult> {
   const completion = await provider.complete({
     messages: [
       { role: 'system', content: prompt },
@@ -199,6 +199,7 @@ export async function runSummarize(provider: LlmProvider, fragment: SummarizeFra
     schemaName: 'summarize',
     maxTokens: SUMMARIZE_LIMITS.maxTokens,
     timeoutMs,
+    signal,
   });
   return interpretSummarize(fragment, completion);
 }

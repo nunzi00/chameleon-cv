@@ -19,6 +19,8 @@ export interface LlmRequest {
   readonly temperature?: number | undefined;
   readonly seed?: number | undefined;
   readonly timeoutMs?: number | undefined;
+  /** Cancelación por el llamador (un trabajo de la API). */
+  readonly signal?: AbortSignal | undefined;
 }
 
 export interface LlmUsage {
@@ -26,7 +28,7 @@ export interface LlmUsage {
   readonly completionTokens?: number | undefined;
 }
 
-export type LlmErrorCode = 'refused' | 'unreachable' | 'timeout' | 'http' | 'invalid-response' | 'invalid-json' | 'failed';
+export type LlmErrorCode = 'refused' | 'unreachable' | 'timeout' | 'cancelled' | 'http' | 'invalid-response' | 'invalid-json' | 'failed';
 
 export type LlmCompletion =
   | { readonly ok: true; readonly json: unknown; readonly raw: string; readonly model: string; readonly usage: LlmUsage; readonly elapsedMs: number }

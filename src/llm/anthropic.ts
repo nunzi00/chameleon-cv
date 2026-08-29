@@ -47,6 +47,7 @@ export function createAnthropicProvider(options: AnthropicOptions): LlmProvider 
         method: 'POST',
         headers,
         timeoutMs: request.timeoutMs,
+        signal: request.signal,
         body: {
           model,
           max_tokens: request.maxTokens,
