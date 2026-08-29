@@ -12,7 +12,6 @@ import type { AppContext } from '../app/context';
 import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
 import { buildProfile, loadProfile, loadSources } from '../app/dataset';
 import { environmentError, notFoundError, unsafePathError, type AppError } from '../app/errors';
-import { CV_ENGINES, CV_FORMATS } from '../app/format';
 import { generateCv, writeCvFile } from '../app/generate';
 import type { OfferInput } from '../app/offer';
 import { isSafeSourcePath } from '../app/paths';
@@ -25,6 +24,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemesResponse, type ValidateResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -45,79 +45,6 @@ export interface ServerState {
 
 export const API_PREFIX = '/api/v1';
 const OUTPUT_DIR = 'output';
-const OUTPUT_NAME = /^[\w.-]+$/;
-
-const OfferSchema = z.union([z.object({ text: z.string().min(1) }), z.object({ workspaceFile: z.string().min(1) })]);
-const LimitsSchema = {
-  topN: z.number().int().min(0).optional(),
-  maxSkills: z.number().int().min(0).optional(),
-  maxProjects: z.number().int().min(0).optional(),
-  maxCertifications: z.number().int().min(0).optional(),
-  compact: z.boolean().optional(),
-};
-const GenerateSchema = z.object({
-  specialty: z.string().min(1).optional(),
-  offer: OfferSchema.optional(),
-  format: z.enum(CV_FORMATS).optional(),
-  engine: z.enum(CV_ENGINES).optional(),
-  theme: z.string().min(1).optional(),
-  locale: z.string().min(1).optional(),
-  template: z.object({ workspaceFile: z.string().min(1) }).optional(),
-  /** Nombre del fichero en `output/` (sin directorios); por defecto el de la CLI. */
-  output: z.string().regex(OUTPUT_NAME).optional(),
-  build: z.boolean().optional(),
-  ...LimitsSchema,
-});
-const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1).optional(), build: z.boolean().optional() });
-const SourceWriteSchema = z.object({ content: z.string() });
-const ThemeCreateSchema = z.object({ name: z.string().min(1), from: z.string().min(1).optional() });
-const EmptySchema = z.object({});
-const ProviderSchema = {
-  /** Proveedor configurado (`cv llm status`); un remoto exige --allow-remote y consentimiento. */
-  provider: z.string().min(1).optional(),
-  model: z.string().min(1).optional(),
-  /** Confirmación del coste de un remoto: el estimateId del 409 anterior. */
-  consent: z.object({ estimateId: z.string().min(1) }).optional(),
-  /** Leer y guardar la caché local de respuestas (por defecto sí). */
-  cache: z.boolean().optional(),
-  build: z.boolean().optional(),
-  redactCompanies: z.boolean().optional(),
-  locale: z.string().min(1).optional(),
-};
-const SelectionSchema = { specialty: z.string().min(1).optional(), offer: OfferSchema.optional(), ...LimitsSchema };
-const ImproveJobSchema = z.object({
-  ...SelectionSchema,
-  ...ProviderSchema,
-  only: z.array(z.string().min(1)).min(1).optional(),
-  proposals: z.number().int().min(1).max(3).optional(),
-  maxLength: z.number().int().min(40).max(1000).optional(),
-  maxItems: z.number().int().min(1).max(500).optional(),
-  /** Nombre del fichero de revisión en `output/` (sin directorios). */
-  output: z.string().regex(OUTPUT_NAME).optional(),
-});
-const SummarizeJobSchema = z.object({
-  ...SelectionSchema,
-  ...ProviderSchema,
-  paragraphs: z.number().int().min(1).max(3).optional(),
-  proposals: z.number().int().min(1).max(3).optional(),
-  maxLength: z.number().int().min(100).max(5000).optional(),
-  output: z.string().regex(OUTPUT_NAME).optional(),
-});
-const SuggestTagsJobSchema = z.object({
-  ...ProviderSchema,
-  /** Texto suelto; sin él se etiquetan logros del perfil. */
-  text: z.string().min(1).optional(),
-  specialty: z.string().min(1).optional(),
-  only: z.array(z.string().min(1)).min(1).optional(),
-  untagged: z.boolean().optional(),
-  maxTags: z.number().int().min(1).max(SUGGEST_TAGS_LIMITS.maxTagsCeiling).optional(),
-  maxItems: z.number().int().min(1).max(500).optional(),
-});
-const ApplySchema = z.object({
-  /** Por defecto solo se muestra el plan; `false` escribe en las fuentes (C9). */
-  dryRun: z.boolean().optional(),
-  deleteReview: z.boolean().optional(),
-});
 
 type WorkspaceFileResult = { readonly ok: true; readonly path: string } | { readonly ok: false; readonly error: AppError };
 
@@ -135,7 +62,7 @@ function offerInputOf(context: AppContext, offer: z.infer<typeof OfferSchema>): 
 }
 
 /** El estado sin objetos no serializables (las raíces de temas llevan un sistema de ficheros). */
-function statusPayload(status: WorkspaceStatus, version: string): Record<string, unknown> {
+function statusPayload(status: WorkspaceStatus, version: string): StatusResponse {
   return {
     version,
     workspace: status.cwd,
@@ -169,7 +96,7 @@ export function createRouter(): Router<ServerState> {
     writes: false,
     handler: async (_request, state) => {
       const result = await listSources(state.context, resolve(state.context.cwd, state.data));
-      return result.ok ? json(200, { root: result.root, entries: result.entries }) : appErrorResponse(result.error, { issues: result.issues });
+      return result.ok ? json(200, { root: result.root, entries: result.entries } satisfies SourcesResponse) : appErrorResponse(result.error, { issues: result.issues });
     },
   });
 
@@ -180,7 +107,7 @@ export function createRouter(): Router<ServerState> {
     writes: false,
     handler: async (request, state) => {
       const result = await readSource(state.context, resolve(state.context.cwd, state.data), String(request.params['path']));
-      return result.ok ? json(200, result.file, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+      return result.ok ? json(200, result.file satisfies SourceResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
     },
   });
 
@@ -200,7 +127,7 @@ export function createRouter(): Router<ServerState> {
         return parsed.response;
       }
       const result = await writeSource(state.context, resolve(state.context.cwd, state.data), { path: String(request.params['path']), content: parsed.value.content, expectedSha256: ifMatch.trim().replace(/^"|"$/g, '') });
-      return result.ok ? json(200, { path: result.file.path, sha256: result.file.sha256 }, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+      return result.ok ? json(200, { path: result.file.path, sha256: result.file.sha256 } satisfies SourceWriteResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
     },
   });
 
@@ -212,7 +139,7 @@ export function createRouter(): Router<ServerState> {
     body: EmptySchema,
     handler: async (_request, state) => {
       const result = await loadSources(state.context, { data: state.data });
-      return result.ok ? json(200, { root: result.dataset.root, files: result.dataset.files, summary: profileSummary(result.dataset.profile) }) : appErrorResponse(result.error, { issues: result.issues });
+      return result.ok ? json(200, { root: result.dataset.root, files: result.dataset.files, summary: profileSummary(result.dataset.profile) } satisfies ValidateResponse) : appErrorResponse(result.error, { issues: result.issues });
     },
   });
 
@@ -224,7 +151,7 @@ export function createRouter(): Router<ServerState> {
     body: EmptySchema,
     handler: async (_request, state) => {
       const result = await buildProfile(state.context, { data: state.data, out: state.profile, check: false });
-      return result.ok ? json(200, { artifactPath: result.artifactPath, files: result.dataset.files, summary: profileSummary(result.dataset.profile) }) : appErrorResponse(result.error, { issues: result.issues });
+      return result.ok ? json(200, { artifactPath: result.artifactPath, files: result.dataset.files, summary: profileSummary(result.dataset.profile) } satisfies BuildResponse) : appErrorResponse(result.error, { issues: result.issues });
     },
   });
 
@@ -235,7 +162,7 @@ export function createRouter(): Router<ServerState> {
     writes: false,
     handler: async (_request, state) => {
       const result = await loadProfile(state.context, { profile: state.profile });
-      return result.ok ? json(200, result.profile) : appErrorResponse(result.error);
+      return result.ok ? json(200, result.profile satisfies ProfileResponse) : appErrorResponse(result.error);
     },
   });
 
@@ -296,7 +223,7 @@ export function createRouter(): Router<ServerState> {
         return appErrorResponse(failure, { warnings: result.warnings });
       }
       const name = result.cv.outputPath.slice(resolve(state.context.cwd, OUTPUT_DIR).length + 1);
-      return json(200, { output: { name, kind: result.cv.kind, path: `${OUTPUT_DIR}/${name}`, ...(result.cv.kind === 'md' ? { markdown: result.cv.markdown } : { bytes: result.cv.pdf.byteLength }) }, report, warnings: result.warnings });
+      return json(200, { output: { name, kind: result.cv.kind, path: `${OUTPUT_DIR}/${name}`, ...(result.cv.kind === 'md' ? { markdown: result.cv.markdown } : { bytes: result.cv.pdf.byteLength }) }, report, warnings: result.warnings } satisfies GenerateResponse);
     },
   });
 
@@ -310,9 +237,9 @@ export function createRouter(): Router<ServerState> {
       try {
         const entries = await state.context.datasetFileSystem.readDirectory(directory);
         const files = await Promise.all(entries.filter((entry) => entry.kind === 'file').map(async (entry) => ({ name: entry.name, bytes: (await state.context.datasetFileSystem.stat(resolve(directory, entry.name))).size })));
-        return json(200, { files: files.sort((a, b) => a.name.localeCompare(b.name, 'en')) });
+        return json(200, { files: files.sort((a, b) => a.name.localeCompare(b.name, 'en')) } satisfies OutputListResponse);
       } catch (error) {
-        return isMissingFile(error) ? json(200, { files: [] }) : appErrorResponse(environmentError(`No se pudo leer ${directory}: ${describeError(error)}`));
+        return isMissingFile(error) ? json(200, { files: [] } satisfies OutputListResponse) : appErrorResponse(environmentError(`No se pudo leer ${directory}: ${describeError(error)}`));
       }
     },
   });
@@ -352,7 +279,7 @@ export function createRouter(): Router<ServerState> {
         return appErrorResponse(input);
       }
       const result = await analyzeOffer(state.context, { profile: state.profile, data: state.data, specialty: parsed.value.specialty, offer: input, build: parsed.value.build ?? false });
-      return result.ok ? json(200, { ...analysisPayload(result.analysis), selection: result.analysis.scored.selection.report, warnings: result.warnings }) : appErrorResponse(result.error, { warnings: result.warnings });
+      return result.ok ? json(200, { ...analysisPayload(result.analysis), selection: result.analysis.scored.selection.report, warnings: result.warnings } satisfies AnalyzeResponse) : appErrorResponse(result.error, { warnings: result.warnings });
     },
   });
 
@@ -367,7 +294,7 @@ export function createRouter(): Router<ServerState> {
         return errorResponse('bad-request', 'El cuerpo debe ser application/pdf');
       }
       const extracted = await state.context.pdfExtractor(request.body);
-      return extracted.ok ? json(200, { text: extracted.text }) : appErrorResponse(extracted.code === 'timeout' || extracted.code === 'failed' ? environmentError(extracted.message) : { code: 'invalid-data', message: extracted.message, exitCode: 1 });
+      return extracted.ok ? json(200, { text: extracted.text } satisfies ExtractResponse) : appErrorResponse(extracted.code === 'timeout' || extracted.code === 'failed' ? environmentError(extracted.message) : { code: 'invalid-data', message: extracted.message, exitCode: 1 });
     },
   });
 
@@ -378,7 +305,7 @@ export function createRouter(): Router<ServerState> {
     writes: false,
     handler: async (_request, state) => {
       const inventory = await themeInventory(state.context);
-      return json(200, { defaultName: inventory.defaultName, configWarning: inventory.configWarning, roots: inventory.roots.map((root) => root.directory), entries: inventory.entries });
+      return json(200, { defaultName: inventory.defaultName, configWarning: inventory.configWarning, roots: inventory.roots.map((root) => root.directory), entries: inventory.entries } satisfies ThemesResponse);
     },
   });
 
@@ -394,7 +321,7 @@ export function createRouter(): Router<ServerState> {
         return parsed.response;
       }
       const result = await createTheme(state.context, parsed.value.name, parsed.value.from ?? 'default');
-      return result.ok ? json(201, result.created) : appErrorResponse(result.error);
+      return result.ok ? json(201, result.created satisfies ThemeCreateResponse) : appErrorResponse(result.error);
     },
   });
 
@@ -408,7 +335,7 @@ export function createRouter(): Router<ServerState> {
     body: EmptySchema,
     handler: async (_request, state) => {
       state.shutdown();
-      return json(202, { ok: true });
+      return json(202, { ok: true } satisfies ShutdownResponse);
     },
   });
 
@@ -469,7 +396,7 @@ async function launchJob<P>(state: ServerState, body: CopilotBody, launch: Launc
     return appErrorResponse(environmentError(message), { sending });
   }
   const job = state.jobs.create(launch.kind, (report) => launch.run(planned.plan, { provider, cache: body.cache ?? true, progress: report.line, signal: report.signal }, report));
-  return json(202, { job, sending, warnings: planned.warnings }, { Location: `${API_PREFIX}/jobs/${job.id}` });
+  return json(202, { job, sending, warnings: planned.warnings } satisfies JobCreatedResponse, { Location: `${API_PREFIX}/jobs/${job.id}` });
 }
 
 /** Resultado de improve/summarize: la revisión escrita (o nada si se canceló). */
@@ -505,7 +432,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
     path: `${API_PREFIX}/jobs`,
     summary: 'Trabajos del co-piloto de esta sesión (en cola, en marcha y terminados), con su progreso y resultado.',
     writes: false,
-    handler: async (_request, state) => json(200, { jobs: state.jobs.list() }),
+    handler: async (_request, state) => json(200, { jobs: state.jobs.list() } satisfies JobsResponse),
   });
 
   router.add({
@@ -646,7 +573,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
     writes: false,
     handler: async (request, state) => {
       const job = state.jobs.get(String(request.params['id']));
-      return job === undefined ? appErrorResponse(notFoundError(`No existe el trabajo «${String(request.params['id'])}»`)) : json(200, { job });
+      return job === undefined ? appErrorResponse(notFoundError(`No existe el trabajo «${String(request.params['id'])}»`)) : json(200, { job } satisfies JobResponse);
     },
   });
 
@@ -657,7 +584,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
     writes: false,
     handler: async (request, state) => {
       const job = state.jobs.cancel(String(request.params['id']));
-      return job === undefined ? appErrorResponse(notFoundError(`No existe el trabajo «${String(request.params['id'])}»`)) : json(200, { job });
+      return job === undefined ? appErrorResponse(notFoundError(`No existe el trabajo «${String(request.params['id'])}»`)) : json(200, { job } satisfies JobResponse);
     },
   });
 
@@ -690,7 +617,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
     path: `${API_PREFIX}/reviews`,
     summary: 'Revisiones del co-piloto en output/ (revision-*.md): tarea, ítems, propuestas marcadas y huella.',
     writes: false,
-    handler: async (_request, state) => json(200, { reviews: await listReviews(state.context, OUTPUT_DIR) }),
+    handler: async (_request, state) => json(200, { reviews: await listReviews(state.context, OUTPUT_DIR) } satisfies ReviewsResponse),
   });
 
   router.add({
@@ -700,7 +627,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
     writes: false,
     handler: async (request, state) => {
       const result = await readReview(state.context, OUTPUT_DIR, String(request.params['name']));
-      return result.ok ? json(200, { review: result.file }, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+      return result.ok ? json(200, { review: result.file } satisfies ReviewResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
     },
   });
 
@@ -725,7 +652,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
         return parsed.response;
       }
       const result = await writeSource(state.context, resolve(state.context.cwd, OUTPUT_DIR), { path: name, content: parsed.value.content, expectedSha256: ifMatch.trim().replace(/^"|"$/g, '') });
-      return result.ok ? json(200, { name, sha256: result.file.sha256 }, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+      return result.ok ? json(200, { name, sha256: result.file.sha256 } satisfies ReviewWriteResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
     },
   });
 
@@ -747,7 +674,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
       } catch (error) {
         return appErrorResponse(isMissingFile(error) ? notFoundError(`No existe la revisión «${name}»`) : environmentError(`No se pudo eliminar la revisión «${name}»: ${describeError(error)}`));
       }
-      return json(200, { deleted: name });
+      return json(200, { deleted: name } satisfies ReviewDeleteResponse);
     },
   });
 
@@ -768,7 +695,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
         return parsed.response;
       }
       const result = await applyReview(state.context, { review: `${OUTPUT_DIR}/${name}`, data: state.data, dryRun: parsed.value.dryRun ?? true, deleteReview: parsed.value.deleteReview ?? false });
-      return result.ok ? json(200, result.outcome) : appErrorResponse(result.error, { written: result.written });
+      return result.ok ? json(200, result.outcome satisfies ApplyResponse) : appErrorResponse(result.error, { written: result.written });
     },
   });
 }

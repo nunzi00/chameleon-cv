@@ -3,7 +3,8 @@ import { request as httpRequest } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { PdfExtractionResult } from '../../src/pdf';
-import { startServer, urlHost, type ServerHandle } from '../../src/serve';
+import { GUI_CSP, GUI_PREFIX, startServer, urlHost, type ServerHandle } from '../../src/serve';
+import { MemoryAssets } from '../../src/shared/assets';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -45,11 +46,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     await server.close();
   });
 
-  it('sirve la página mínima en / y nada más fuera de /api/v1', async () => {
-    const page = await fetch(server.url);
-    expect(page.status).toBe(200);
-    expect(page.headers.get('content-type')).toBe('text/html; charset=utf-8');
-    expect(await page.text()).toContain('Chameleon CV 9.9.9');
+  it('fuera de /api/v1 no hay más rutas que la interfaz (GET)', async () => {
     expect((await fetch(`${server.url}otra`)).status).toBe(404);
     expect((await fetch(server.url, { method: 'POST' })).status).toBe(404);
   });
@@ -268,5 +265,71 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(urlHost('::')).toBe('127.0.0.1');
     expect(urlHost('::1')).toBe('[::1]');
     expect(urlHost('localhost')).toBe('localhost');
+  });
+});
+
+describe('cv serve: la interfaz web desde el almacén de assets (lista cerrada, CSP, caché)', () => {
+  const assets = new MemoryAssets({
+    [`${GUI_PREFIX}/index.html`]: '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>GUI</title><script type="module" src="/assets/index-abc123.js"></script></head><body></body></html>',
+    [`${GUI_PREFIX}/assets/index-abc123.js`]: 'console.log("gui")',
+    [`${GUI_PREFIX}/assets/index-abc123.css`]: 'body{margin:0}',
+    [`${GUI_PREFIX}/favicon.svg`]: '<svg xmlns="http://www.w3.org/2000/svg"/>',
+    'package.json': '{"version":"9.9.9"}',
+  });
+  let server: ServerHandle;
+  let apiOnly: ServerHandle;
+  beforeAll(async () => {
+    const fs = new MemoryFileSystem(tree());
+    server = await startServer({ context: appContext(fs, { assets }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: false, allowRemote: false, allowedHosts: [], token: TOKEN });
+    apiOnly = await startServer({ context: appContext(fs, { assets }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+  });
+  afterAll(async () => {
+    await server.close();
+    await apiOnly.close();
+  });
+
+  it('sirve index.html en / con la CSP estricta, sin caché y sin token', async () => {
+    const page = await fetch(server.url);
+    expect(page.status).toBe(200);
+    expect(page.headers.get('content-type')).toBe('text/html; charset=utf-8');
+    expect(page.headers.get('content-security-policy')).toBe(GUI_CSP);
+    expect(page.headers.get('cache-control')).toBe('no-store');
+    expect(page.headers.get('x-frame-options')).toBe('DENY');
+    expect(await page.text()).toContain('index-abc123.js');
+  });
+
+  it('sirve los ficheros con hash como inmutables y el resto por su ruta exacta; nada fuera de la lista', async () => {
+    const script = await fetch(`${server.url}assets/index-abc123.js`);
+    expect(script.status).toBe(200);
+    expect(script.headers.get('content-type')).toBe('text/javascript; charset=utf-8');
+    expect(script.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+    expect(script.headers.get('content-security-policy')).not.toBe(GUI_CSP);
+    expect(await script.text()).toBe('console.log("gui")');
+    expect((await fetch(`${server.url}assets/index-abc123.css`)).headers.get('content-type')).toBe('text/css; charset=utf-8');
+    expect((await fetch(`${server.url}favicon.svg`)).status).toBe(200);
+    expect((await fetch(`${server.url}index.html`)).status).toBe(404);
+    expect((await fetch(`${server.url}assets/otro.js`)).status).toBe(404);
+    expect((await fetch(`${server.url}assets/..%2F..%2Fpackage.json`)).status).toBe(404);
+    expect((await fetch(server.url, { method: 'POST' })).status).toBe(404);
+    const head = await fetch(server.url, { method: 'HEAD' });
+    expect(head.status).toBe(200);
+  });
+
+  it('sin gui/dist en el almacén sirve la página mínima en / (desarrollo sin construir la GUI)', async () => {
+    const noGui = await startServer({ context: appContext(new MemoryFileSystem(tree()), { assets: new MemoryAssets({ 'package.json': '{"version":"9.9.9"}' }) }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: false, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const page = await fetch(noGui.url);
+      expect(page.status).toBe(200);
+      expect(page.headers.get('content-type')).toBe('text/html; charset=utf-8');
+      expect(await page.text()).toContain('Chameleon CV 9.9.9');
+      expect((await fetch(`${noGui.url}assets/index-abc123.js`)).status).toBe(404);
+    } finally {
+      await noGui.close();
+    }
+  });
+
+  it('con --api-only no sirve la interfaz', async () => {
+    expect((await fetch(apiOnly.url)).status).toBe(404);
+    expect((await fetch(`${apiOnly.url}assets/index-abc123.js`)).status).toBe(404);
   });
 });

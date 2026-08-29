@@ -1,8 +1,8 @@
 /**
  * `cv serve` (T-7.4a, docs/api-headless.md §4 y §6): servidor HTTP local sobre `node:http`, ligado a un
  * espacio de trabajo, con token de sesión, `Host` y `Origin` comprobados, sin CORS, cuerpos acotados y
- * los errores de la capa de casos de uso traducidos a estados HTTP. Sirve una página mínima en `/` (la
- * GUI llega en T-7.5) y el contrato en `/api/v1`.
+ * los errores de la capa de casos de uso traducidos a estados HTTP. Sirve la interfaz web (`gui/dist`, por lista
+ * cerrada; T-7.5) en `/` —o una página mínima si no viene en la compilación— y el contrato en `/api/v1`.
  */
 import { once } from 'node:events';
 import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -13,10 +13,11 @@ import { describeError } from '../shared/errors';
 import { ConsentStore } from './consent';
 import { errorResponse, headerValue, readBody } from './http';
 import { JobQueue, isFinished } from './jobs';
-import { landingPage } from './page';
+import { fallbackPage } from './page';
 import type { RouteResponse } from './router';
 import { API_PREFIX, bodyLimitFor, createRouter, type ServerState } from './routes';
 import { allowedHosts, generateToken, isAllowedHost, isAllowedOrigin, isAuthorized } from './security';
+import { GUI_CSP, loadStaticSite } from './static';
 
 export interface ServeOptions {
   readonly context: AppContext;
@@ -48,6 +49,7 @@ export const CLOSE_GRACE_MS = 2000;
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer',
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
 };
@@ -106,6 +108,7 @@ function html(status: number, content: string): RouteResponse {
 export async function startServer(options: ServeOptions): Promise<ServerHandle> {
   const token = options.token ?? generateToken();
   const router = createRouter();
+  const site = await loadStaticSite(options.context.assets);
   let server: Server;
   let resolveClosed!: () => void;
   const closed = new Promise<void>((resolve) => {
@@ -136,6 +139,22 @@ export async function startServer(options: ServeOptions): Promise<ServerHandle> 
   const state: ServerState = { context: options.context, data: options.data, profile: options.profile, version: options.version, jobs, consents, allowRemote: options.allowRemote, shutdown: () => setImmediate(() => void close()) };
   let allowed: ReadonlySet<string> = new Set();
 
+  /** La interfaz web: solo GET/HEAD, solo la lista cerrada de `gui/dist`; sin ella, la página mínima en `/`. */
+  const staticResponse = async (pathname: string, method: string): Promise<RouteResponse> => {
+    if (options.apiOnly || (method !== 'GET' && method !== 'HEAD')) {
+      return errorResponse('not-found', 'No existe la ruta');
+    }
+    const file = site.lookup(pathname);
+    if (file === undefined) {
+      return pathname === '/' && !site.available ? html(200, fallbackPage(options.version, options.context.cwd)) : errorResponse('not-found', 'No existe la ruta');
+    }
+    const headers: Record<string, string> = { 'Cache-Control': file.cacheControl };
+    if (file.html) {
+      headers['Content-Security-Policy'] = GUI_CSP;
+    }
+    return { status: 200, bytes: Buffer.from(await options.context.assets.bytes(file.key)), contentType: file.contentType, headers };
+  };
+
   const handle = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     const method = String(request.method);
     const pathname = new URL(String(request.url), 'http://localhost').pathname;
@@ -144,7 +163,7 @@ export async function startServer(options: ServeOptions): Promise<ServerHandle> 
       return;
     }
     if (!pathname.startsWith(`${API_PREFIX}/`)) {
-      send(response, options.apiOnly || pathname !== '/' || method !== 'GET' ? errorResponse('not-found', 'No existe la ruta') : html(200, landingPage(options.version, options.context.cwd)), streams);
+      send(response, await staticResponse(pathname, method), streams);
       return;
     }
     if (method !== 'GET' && method !== 'HEAD' && !isAllowedOrigin(request.headers.origin, allowed)) {

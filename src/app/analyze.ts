@@ -62,8 +62,16 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
   return { ok: true, analysis: { offerName: read.offer.name, requirements, scored, summary: summarizeMatch(scored.report, scored.profile) }, warnings };
 }
 
-/** La salida de `cv analyze-offer --json`, campo a campo en este orden. */
-export function analysisPayload(analysis: OfferAnalysis): Record<string, unknown> {
+/** La salida de `cv analyze-offer --json`, campo a campo en este orden (también la de POST /analyze-offer). */
+export interface AnalysisPayload {
+  readonly offer: { readonly source: string } & OfferAnalysis['requirements'];
+  readonly summary: Pick<OfferAnalysis['summary'], 'recognized' | 'demonstrated' | 'ratio' | 'requiredTotal' | 'requiredDemonstrated'>;
+  readonly coverage: OfferAnalysis['scored']['report']['coverage'];
+  readonly decisions: OfferAnalysis['scored']['report']['decisions'];
+  readonly ranking: OfferAnalysis['summary']['topEvidence'];
+}
+
+export function analysisPayload(analysis: OfferAnalysis): AnalysisPayload {
   const { summary, scored, requirements } = analysis;
   return {
     offer: { source: analysis.offerName, ...requirements },
