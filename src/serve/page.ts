@@ -1,5 +1,5 @@
-/** La página mínima de `cv serve` mientras no existe la GUI (T-7.5): estado y cómo usar la API. Sin recursos externos. */
-export function landingPage(version: string, workspace: string): string {
+/** Página mínima de `cv serve` cuando la interfaz web no viene en la compilación (desarrollo sin `npm run gui:build`). */
+export function fallbackPage(version: string, workspace: string): string {
   const escape = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<!doctype html>
 <html lang="es">
@@ -16,7 +16,7 @@ h1 { color: #1f4e79; }
 <body>
 <h1>Chameleon CV ${escape(version)}</h1>
 <p>Servidor local en marcha sobre <code>${escape(workspace)}</code>. La API vive en <code>/api/v1/</code> y exige la cabecera <code>Authorization: Bearer &lt;token&gt;</code>; el token está en el fragmento de la URL que imprimió <code>cv serve</code> (nunca viaja en las peticiones ni queda en registros).</p>
-<p>La interfaz gráfica llega con T-7.5; hasta entonces, la documentación de la API está en el portal del proyecto (sección «Desarrolladores»).</p>
+<p>La interfaz web no viene en esta compilación: en el repositorio, constrúyela con <code>npm run gui:build</code> y vuelve a cargar esta página.</p>
 </body>
 </html>
 `;
