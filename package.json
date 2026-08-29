@@ -17,6 +17,7 @@
     "cv": "ts-node src/index.ts",
     "llm:spike": "ts-node -T scripts/llm-spike.ts",
     "acceptance:bench": "ts-node -T -P tests/tsconfig.json tests/acceptance/bench/generate.ts",
+    "test:acceptance:deterministic": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts",
     "acceptance:update": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts --update"
   },
   "devDependencies": {
