@@ -67,7 +67,11 @@
           <salidas.default {api} item={route.item} onsession={sessionLost} {navigate} />
         {/await}
       {:else if route.page === 'copiloto'}
-        <Pending label="Co-piloto" when="T-7.5b" />
+        {#await import('./pages/Copiloto.svelte')}
+          <p class="cv-muted">Cargando…</p>
+        {:then copiloto}
+          <copiloto.default {api} onsession={sessionLost} {navigate} />
+        {/await}
       {:else}
         <Pending label="Revisiones" when="T-7.5b" />
       {/if}

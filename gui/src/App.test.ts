@@ -36,7 +36,7 @@ describe('App', () => {
 
   it('con un token guardado inválido, el 401 devuelve a la puerta de sesión; las rutas pendientes lo dicen', async () => {
     sessionStorage.setItem(TOKEN_KEY, 'token-que-no-vale-1234');
-    location.hash = '#/copiloto';
+    location.hash = '#/revisiones';
     render(App, { props: { fetchImpl } });
     await waitFor(() => expect(screen.getByText(/llega con T-7.5b/)).toBeTruthy());
     location.hash = '#/estado';

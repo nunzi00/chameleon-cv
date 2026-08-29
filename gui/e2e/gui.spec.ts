@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -77,6 +77,22 @@ test('Salidas lista lo generado y muestra el Markdown', async ({ page }) => {
   await page.getByRole('button', { name: /Markdown .*\.md/ }).click();
   await expect(page.locator('pre.cv-text')).toContainText('#');
   await expect(page.getByRole('link', { name: 'Descargar' })).toBeVisible();
+});
+
+test('Co-piloto lanza un improve contra el doble del proveedor, lo sigue por SSE y deja la revisión escrita', async ({ page }) => {
+  await openWithToken(page, state, '#/copiloto');
+  await expect(page.getByText('proveedor local listo')).toBeVisible();
+  await page.getByLabel(/Logros por ejecución/).fill('2');
+  await page.getByLabel(/Propuestas por logro/).fill('1');
+  await page.getByLabel('Usar la caché de respuestas').uncheck();
+  await page.getByRole('button', { name: 'Lanzar' }).click();
+  await expect(page.getByText(/hacia openai-compatible/)).toBeVisible();
+  await expect(page.getByText('terminado')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('pre.cv-progress')).toContainText('[1/2]');
+  await expect(page.getByText(/Revisión escrita en output\/revision-improve-/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Abrir la revisión' })).toBeVisible();
+  const outputs = readdirSync(join(state.workspace, 'output'));
+  expect(outputs.some((name) => name.startsWith('revision-improve-'))).toBe(true);
 });
 
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {

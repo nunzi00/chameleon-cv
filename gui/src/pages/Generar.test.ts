@@ -38,7 +38,7 @@ const ANALYSIS = {
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     status: vi.fn(async () => STATUS),
-    validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), shutdown: vi.fn(), outputs: vi.fn(),
+    validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), shutdown: vi.fn(), outputs: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(),
     themes: vi.fn(async () => ({ defaultName: 'default', configWarning: undefined, roots: [], entries: [{ name: 'default' }, { name: 'classic' }] as never })),
     generate: vi.fn(async () => MD),
     analyze: vi.fn(async () => ANALYSIS),

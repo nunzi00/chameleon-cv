@@ -11,6 +11,10 @@ import type {
   ExtractResponse,
   GenerateRequest,
   GenerateResponse,
+  ImproveJobRequest,
+  JobCreatedResponse,
+  JobResponse,
+  JobsResponse,
   OutputListResponse,
   ProfileResponse,
   ShutdownResponse,
@@ -18,11 +22,14 @@ import type {
   SourceWriteResponse,
   SourcesResponse,
   StatusResponse,
+  SuggestTagsJobRequest,
+  SummarizeJobRequest,
   ThemeCreateRequest,
   ThemeCreateResponse,
   ThemesResponse,
   ValidateResponse,
 } from './types';
+import { bodyChunks, sseEvents, type SseEvent } from './sse';
 
 /** El cuerpo de un error: el del contrato o, sin envoltura, uno sintético (`http`). */
 export interface ErrorBody {
@@ -82,8 +89,22 @@ export interface ApiClient {
   outputs(): Promise<OutputListResponse>;
   /** Un fichero de output/ tal cual (PDF o Markdown), con su tipo. */
   output(name: string): Promise<OutputFile>;
+  jobs(): Promise<JobsResponse>;
+  job(id: string): Promise<JobResponse>;
+  /** 202 con el trabajo encolado; 403 remote-disabled y 409 consent-required llegan como ApiError con sus detalles. */
+  startJob(request: JobRequest): Promise<JobCreatedResponse>;
+  cancelJob(id: string): Promise<JobResponse>;
+  /** Los eventos del trabajo (status, line) hasta que termina; `signal` deja de escuchar (no cancela el trabajo). */
+  jobEvents(id: string, signal?: AbortSignal): AsyncIterable<SseEvent>;
   shutdown(): Promise<ShutdownResponse>;
 }
+
+export type JobKind = 'improve' | 'summarize' | 'suggest-tags';
+
+export type JobRequest =
+  | { readonly kind: 'improve'; readonly body: ImproveJobRequest }
+  | { readonly kind: 'summarize'; readonly body: SummarizeJobRequest }
+  | { readonly kind: 'suggest-tags'; readonly body: SuggestTagsJobRequest };
 
 export interface OutputFile {
   readonly name: string;
@@ -103,6 +124,7 @@ interface RawInit {
   readonly contentType?: string | undefined;
   readonly accept?: string | undefined;
   readonly headers?: Readonly<Record<string, string>> | undefined;
+  readonly signal?: AbortSignal | undefined;
 }
 
 function parseJson(text: string): unknown {
@@ -141,7 +163,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     }
     let response: Response;
     try {
-      response = await options.fetch(`${base}${path}`, { method, headers, body: init.body ?? null });
+      response = await options.fetch(`${base}${path}`, { method, headers, body: init.body ?? null, ...(init.signal === undefined ? {} : { signal: init.signal }) });
     } catch (error) {
       throw new NetworkError(error);
     }
@@ -178,6 +200,15 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       const response = await raw('GET', `/output/${encodeId(name)}`, { accept: '*/*' });
       return { name, contentType: response.headers.get('content-type') ?? 'application/octet-stream', blob: await response.blob() };
     },
+    jobs: () => request('GET', '/jobs'),
+    job: (id) => request('GET', `/jobs/${encodeId(id)}`),
+    startJob: (job) => request('POST', `/jobs/${job.kind}`, { body: job.body }),
+    cancelJob: (id) => request('DELETE', `/jobs/${encodeId(id)}`),
+    jobEvents: (id, signal) =>
+      (async function* events(): AsyncGenerator<SseEvent, void, undefined> {
+        const response = await raw('GET', `/jobs/${encodeId(id)}/events`, { accept: 'text/event-stream', signal });
+        yield* sseEvents(bodyChunks(response));
+      })(),
     shutdown: () => request('POST', '/shutdown', { body: {} }),
   };
 }

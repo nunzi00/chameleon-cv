@@ -45,7 +45,8 @@ export type FormResult<T> = { readonly ok: true; readonly body: T } | { readonly
 
 const OUTPUT_NAME = /^[\w.-]+$/;
 
-function limit(label: string, value: string): { readonly ok: true; readonly value: number | undefined } | { readonly ok: false; readonly message: string } {
+/** Un entero opcional del formulario (vacío = sin valor). */
+export function integerField(label: string, value: string): { readonly ok: true; readonly value: number | undefined } | { readonly ok: false; readonly message: string } {
   const clean = value.trim();
   if (clean === '') {
     return { ok: true, value: undefined };
@@ -54,7 +55,8 @@ function limit(label: string, value: string): { readonly ok: true; readonly valu
   return /^\d+$/.test(clean) && Number.isSafeInteger(parsed) ? { ok: true, value: parsed } : { ok: false, message: `${label} debe ser un entero mayor o igual que 0` };
 }
 
-function offerOf(form: GenerateForm): FormResult<GenerateRequest['offer']> {
+/** La oferta del formulario (modo, texto o fichero) como la espera la API; `undefined` sin oferta. */
+export function offerOf(form: Pick<GenerateForm, 'offerMode' | 'offerText' | 'offerFile'>): FormResult<GenerateRequest['offer']> {
   if (form.offerMode === 'none') {
     return { ok: true, body: undefined };
   }
@@ -79,7 +81,7 @@ export function buildGenerateRequest(form: GenerateForm): FormResult<GenerateReq
   ] as const;
   const parsed: number[] = [];
   for (const [label, value] of limits) {
-    const result = limit(label, value);
+    const result = integerField(label, value);
     if (!result.ok) {
       return result;
     }

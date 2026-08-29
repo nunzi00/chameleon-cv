@@ -80,6 +80,25 @@ describe('cliente de la API', () => {
     expect(calls[6]?.headers['Accept']).toBe('*/*');
   });
 
+  it('trabajos: encolar, listar, consultar, cancelar y seguir los eventos por SSE con Accept y señal', async () => {
+    const { fetch: f, calls } = fakeFetch((call) => (call.url.endsWith('/events') ? new Response('event: status\ndata: {"id":"j1","status":"done","lines":[]}\n\n', { status: 200, headers: { 'Content-Type': 'text/event-stream' } }) : json(202, { job: { id: 'j1' } })));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.startJob({ kind: 'improve', body: { specialty: 'backend' } });
+    await api.startJob({ kind: 'suggest-tags', body: { text: 'x' } });
+    await api.jobs();
+    await api.job('j1');
+    await api.cancelJob('j1');
+    const controller = new AbortController();
+    const events = [];
+    for await (const event of api.jobEvents('j1', controller.signal)) {
+      events.push(event.event);
+    }
+    expect(events).toEqual(['status']);
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/jobs/improve', 'POST /api/v1/jobs/suggest-tags', 'GET /api/v1/jobs', 'GET /api/v1/jobs/j1', 'DELETE /api/v1/jobs/j1', 'GET /api/v1/jobs/j1/events']);
+    expect(calls[0]?.body).toBe('{"specialty":"backend"}');
+    expect(calls[5]?.headers['Accept']).toBe('text/event-stream');
+  });
+
   it('sin token no envía Authorization y admite otra base', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, {}));
     await createApiClient({ fetch: f, token: () => undefined, base: 'http://127.0.0.1:4310/api/v1' }).status();
