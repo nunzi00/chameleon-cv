@@ -3,6 +3,8 @@
 .git
 node_modules
 website
+gui/node_modules
+gui/dist
 build
 dist
 output

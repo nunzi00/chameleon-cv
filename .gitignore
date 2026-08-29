@@ -12,6 +12,9 @@ node_modules/
 # Tests y cobertura
 coverage/
 
+# La interfaz web construida (viaja en el ejecutable; se genera con npm run gui:build)
+/gui/dist/
+
 # Logs
 logs/
 *.log

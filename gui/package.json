@@ -1,0 +1,31 @@
+{
+  "name": "chameleon-cv-gui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "La interfaz web de Chameleon CV: un cliente de la API local, servido por cv serve desde el propio ejecutable (docs/gui-mvp.md).",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "check": "svelte-check --tsconfig ./tsconfig.json && vitest run --coverage",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "6.11.0",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/lang-yaml": "6.1.3",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/state": "6.7.1",
+    "@codemirror/view": "6.43.9",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "@testing-library/svelte": "5.4.2",
+    "@vitest/coverage-v8": "4.1.11",
+    "jsdom": "30.0.1",
+    "svelte": "5.57.0",
+    "svelte-check": "4.7.6",
+    "typescript": "5.9.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

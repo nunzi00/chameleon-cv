@@ -36,6 +36,9 @@
     "docs:dev": "npm run docs:generate && npm --prefix website run dev",
     "docs:build": "npm run docs:generate && npm --prefix website run build",
     "docs:check": "npm run docs:build && npm run docs:tutorials",
+    "gui:build": "npm --prefix gui run build",
+    "gui:check": "npm --prefix gui run check",
+    "gui:dev": "npm --prefix gui run watch",
     "docker:build": "docker build --target runtime --build-arg \"UID=$(id -u)\" --build-arg \"GID=$(id -g)\" --build-arg \"VERSION=$(node -p \"require('./package.json').version\")\" --build-arg \"REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)\" -t chameleon-cv:local .",
     "docker:smoke": "bash scripts/docker-smoke.sh chameleon-cv:local"
   },
