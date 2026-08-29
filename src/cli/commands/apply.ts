@@ -11,6 +11,7 @@ import { resolve } from 'node:path';
 import { fingerprint, parseReview, type ParsedReviewItem, type ReviewSource, type ReviewTask } from '../../llm';
 import { locateAchievementText, locateSummary, replaceRange, replaceSummary } from '../../parsers';
 import { describeError } from '../../shared/errors';
+import { isSafeSourcePath } from '../../app/paths';
 import type { CliContext } from '../context';
 import { DEFAULT_DATA_DIR } from '../defaults';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, pluralize } from '../output';
@@ -40,10 +41,7 @@ interface PlannedFile {
 
 type EditPlan = { readonly ok: true; readonly edit: PlannedEdit } | { readonly ok: false; readonly message: string };
 
-/** Ruta relativa y contenida: una revisión manipulada no puede apuntar fuera del directorio de fuentes. */
-export function isSafeSourcePath(file: string): boolean {
-  return !file.startsWith('/') && !file.includes('\\') && file.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..');
-}
+export { isSafeSourcePath } from '../../app/paths';
 
 /** `x.bak`; si ya existe, `x.bak.1`, `x.bak.2`…: una copia anterior nunca se sobrescribe. */
 export async function backupPath(context: CliContext, path: string): Promise<string> {

@@ -1,5 +1,8 @@
-import type { MasterProfile } from '../core/schema';
-import type { DatasetError } from '../parsers';
+import { errorLines, type AppError } from '../app/errors';
+import type { AppWarning } from '../app/freshness';
+import type { CliContext } from './context';
+
+export { formatDatasetError, pluralize, profileSummary } from '../app/text';
 
 /** Códigos de salida de `cv`. */
 export const EXIT_OK = 0;
@@ -8,25 +11,23 @@ export const EXIT_DATA_ERROR = 1;
 /** Uso incorrecto o fallo inesperado del entorno (permisos, disco…). */
 export const EXIT_FAILURE = 2;
 
-/** `ruta/fichero.md:línea: mensaje` (sin línea cuando no se conoce). */
-export function formatDatasetError(error: DatasetError): string {
-  return error.line === undefined ? `${error.file}: ${error.message}` : `${error.file}:${error.line}: ${error.message}`;
+/** Imprime un error de la capa de casos de uso en stderr, línea a línea, y devuelve su código de salida. */
+export function reportError(context: Pick<CliContext, 'stderr'>, error: AppError): number {
+  for (const line of errorLines(error)) {
+    context.stderr(`${line}\n`);
+  }
+  return error.exitCode;
 }
 
-export function pluralize(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
+/** El texto de un aviso, tal como lo imprime la CLI. */
+export function formatWarning(warning: AppWarning): string {
+  return warning.kind === 'stale-artifact'
+    ? `Aviso: ${warning.newestSource} es más reciente que el artefacto; ejecuta «cv build» para regenerarlo\n`
+    : `Aviso: no se pudo comprobar si el artefacto está al día (${warning.reason})\n`;
 }
 
-/** Resumen de una línea del contenido de un perfil. */
-export function profileSummary(profile: MasterProfile): string {
-  return [
-    pluralize(profile.specialties.length, 'especialidad', 'especialidades'),
-    pluralize(profile.experience.length, 'experiencia', 'experiencias'),
-    pluralize(profile.projects.length, 'proyecto', 'proyectos'),
-    pluralize(profile.education.length, 'formación', 'formaciones'),
-    pluralize(profile.skills.length, 'skill', 'skills'),
-    pluralize(profile.certifications.length, 'certificación', 'certificaciones'),
-    pluralize(profile.achievements.length, 'logro transversal', 'logros transversales'),
-    pluralize(profile.languages.length, 'idioma', 'idiomas'),
-  ].join(', ');
+export function reportWarnings(context: Pick<CliContext, 'stderr'>, warnings: readonly AppWarning[]): void {
+  for (const warning of warnings) {
+    context.stderr(formatWarning(warning));
+  }
 }

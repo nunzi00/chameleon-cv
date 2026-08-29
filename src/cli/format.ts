@@ -1,14 +1,10 @@
-/** Formatos de salida de `cv generate-cv` (`docs/pdf-integration.md` §3.4): `md` por defecto, `pdf` opcional. */
+/** Parsers de commander para `--format` y `--engine`; los tipos y las listas viven en la capa de casos de uso. */
 import { InvalidArgumentError } from 'commander';
 
-export const CV_FORMATS = ['md', 'pdf'] as const;
-export type CvFormat = (typeof CV_FORMATS)[number];
+import { CV_ENGINES, CV_FORMATS, isCvEngine, isCvFormat, type CvEngine, type CvFormat } from '../app/format';
 
-export function isCvFormat(value: string): value is CvFormat {
-  return (CV_FORMATS as readonly string[]).includes(value);
-}
+export { CV_ENGINES, CV_FORMATS, isCvEngine, isCvFormat, type CvEngine, type CvFormat } from '../app/format';
 
-/** Parser de commander para `--format`. */
 export function parseFormat(value: string): CvFormat {
   const normalized = value.trim().toLowerCase();
   if (!isCvFormat(normalized)) {
@@ -17,15 +13,6 @@ export function parseFormat(value: string): CvFormat {
   return normalized;
 }
 
-/** Motores de `--format pdf` (T-3.2, `docs/typst-integration.md` §6.2): `pdfkit` por defecto, `typst` opcional. */
-export const CV_ENGINES = ['pdfkit', 'typst'] as const;
-export type CvEngine = (typeof CV_ENGINES)[number];
-
-export function isCvEngine(value: string): value is CvEngine {
-  return (CV_ENGINES as readonly string[]).includes(value);
-}
-
-/** Parser de commander para `--engine`. */
 export function parseEngine(value: string): CvEngine {
   const normalized = value.trim().toLowerCase();
   if (!isCvEngine(normalized)) {

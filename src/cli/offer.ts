@@ -1,28 +1,16 @@
 /**
- * Lectura de la oferta de empleo (`docs/trimming-cli.md` §4.1, `docs/pdf-integration.md` §2.2):
- * un fichero de texto, un PDF (texto extraído en un worker contenido) o la entrada estándar
- * (`-`, solo texto), con límites de tamaño; vacía es error de datos.
+ * La oferta en la CLI: `-` es la entrada estándar (solo texto) y cualquier otra cosa, un fichero de texto
+ * o PDF relativo al directorio de trabajo. La lectura, los límites y los mensajes viven en la capa de
+ * casos de uso (`src/app/offer.ts`).
  */
-import { basename, extname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
-import { normalizeInput } from '../core/keywords';
-import { DEFAULT_PDF_LIMITS, type PdfErrorCode } from '../pdf';
-import { describeError } from '../shared/errors';
+import { DEFAULT_OFFER_NAME, offerNameOf, readOffer, type OfferInput, type OfferText } from '../app/offer';
 import type { CliContext } from './context';
-import { EXIT_DATA_ERROR, EXIT_FAILURE } from './output';
-import { slugify } from './slug';
 
-export const OFFER_MAX_BYTES = 1024 * 1024;
+export { DEFAULT_OFFER_NAME, OFFER_MAX_BYTES, isPdfSource, offerNameOf, pdfExitCode, readOffer, type OfferInput, type OfferText } from '../app/offer';
+
 export const STDIN_SOURCE = '-';
-const STDIN_NAME = 'oferta';
-const PDF_EXTENSION = /\.pdf$/i;
-
-export interface OfferText {
-  /** Texto normalizado (sin BOM, finales de línea `\n`). */
-  readonly text: string;
-  /** Nombre corto para la salida y los informes (`acme-backend`, o `oferta` si viene de stdin). */
-  readonly name: string;
-}
 
 export type OfferResult =
   | { readonly ok: true; readonly offer: OfferText }
@@ -37,61 +25,17 @@ export async function readStream(stream: AsyncIterable<Buffer | string>): Promis
   return Buffer.concat(chunks).toString('utf8');
 }
 
-/** Nombre corto de una oferta a partir de su ruta. */
+/** Nombre corto de una oferta a partir de su argumento en la CLI. */
 export function offerName(source: string): string {
-  return source === STDIN_SOURCE ? STDIN_NAME : slugify(basename(source, extname(source))) || STDIN_NAME;
+  return source === STDIN_SOURCE ? DEFAULT_OFFER_NAME : offerNameOf(source);
 }
 
-export function isPdfSource(source: string): boolean {
-  return PDF_EXTENSION.test(source);
-}
-
-/** Un PDF inválido o excesivo es un problema de datos; un fallo o un tiempo agotado, del entorno. */
-export function pdfExitCode(code: PdfErrorCode): number {
-  return code === 'timeout' || code === 'failed' ? EXIT_FAILURE : EXIT_DATA_ERROR;
-}
-
-async function readPdfOffer(context: CliContext, path: string, size: number): Promise<OfferResult | string> {
-  if (size > DEFAULT_PDF_LIMITS.maxBytes) {
-    return { ok: false, message: `La oferta «${path}» supera el máximo de 10 MiB`, exitCode: EXIT_FAILURE };
-  }
-  const extracted = await context.pdfExtractor(await context.datasetFileSystem.readBinaryFile(path));
-  if (!extracted.ok) {
-    return { ok: false, message: `No se pudo extraer el texto de «${path}»: ${extracted.message}`, exitCode: pdfExitCode(extracted.code) };
-  }
-  return extracted.text;
+/** La entrada que la capa de casos de uso leerá, a partir del argumento de la CLI. */
+export function offerInput(context: Pick<CliContext, 'cwd' | 'stdin'>, source: string): OfferInput {
+  return source === STDIN_SOURCE ? { kind: 'stdin', read: () => context.stdin(), name: DEFAULT_OFFER_NAME } : { kind: 'file', path: resolve(context.cwd, source) };
 }
 
 export async function readOfferText(context: CliContext, source: string): Promise<OfferResult> {
-  let raw: string;
-  if (source === STDIN_SOURCE) {
-    raw = await context.stdin();
-  } else {
-    const path = resolve(context.cwd, source);
-    try {
-      const info = await context.datasetFileSystem.stat(path);
-      if (info.kind !== 'file') {
-        return { ok: false, message: `La oferta «${path}» no es un fichero`, exitCode: EXIT_FAILURE };
-      }
-      if (isPdfSource(source)) {
-        const pdf = await readPdfOffer(context, path, info.size);
-        if (typeof pdf !== 'string') {
-          return pdf;
-        }
-        raw = pdf;
-      } else {
-        if (info.size > OFFER_MAX_BYTES) {
-          return { ok: false, message: `La oferta «${path}» supera el máximo de 1 MiB`, exitCode: EXIT_FAILURE };
-        }
-        raw = await context.datasetFileSystem.readTextFile(path);
-      }
-    } catch (error) {
-      return { ok: false, message: `No se pudo leer la oferta «${path}»: ${describeError(error)}`, exitCode: EXIT_FAILURE };
-    }
-  }
-  const text = normalizeInput(raw);
-  if (text.trim() === '') {
-    return { ok: false, message: 'La oferta está vacía', exitCode: EXIT_DATA_ERROR };
-  }
-  return { ok: true, offer: { text, name: offerName(source) } };
+  const result = await readOffer(context, offerInput(context, source));
+  return result.ok ? result : { ok: false, message: result.error.message, exitCode: result.error.exitCode };
 }
