@@ -11,7 +11,7 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
-import { cacheDirectory } from '../renderers/typst/engine';
+import { cacheDirectory } from '../shared/cache';
 import type { LlmUsage } from './provider';
 
 export interface LlmCacheEntry {
