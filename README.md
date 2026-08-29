@@ -291,6 +291,10 @@ npm run typecheck    # TypeScript estricto (src y tests)
 npm test             # suite (Vitest)
 npm run coverage     # cobertura: umbral 100 % en src/core, src/parsers, src/renderers, src/artifact, src/cli y src/shared
 npm run dev          # ts-node con recarga
+npm run build && npm run test:acceptance:deterministic   # aceptación: el binario compilado sobre el banco de pruebas, coincidencia perfecta con lo esperado
+npm run test:acceptance:ai                                # aceptación de IA con un modelo local (Ollama por defecto): valida el proceso, no el texto
 ```
 
-Documentación de diseño: [`docs/arquitectura.md`](docs/arquitectura.md) (ecosistema de datos y capa de inteligencia), [`docs/formato-dataset.md`](docs/formato-dataset.md), [`docs/formato-csv.md`](docs/formato-csv.md), [`docs/selector-engine.md`](docs/selector-engine.md), [`docs/scoring.md`](docs/scoring.md), [`docs/trimming-cli.md`](docs/trimming-cli.md), [`docs/pdf-integration.md`](docs/pdf-integration.md), [`docs/typst-integration.md`](docs/typst-integration.md) y [`docs/plantillas-typst.md`](docs/plantillas-typst.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
+Las pruebas de aceptación —qué prueban, cómo se ejecutan, cómo se regeneran deliberadamente los artefactos esperados y qué requiere la de IA— están en [`docs/acceptance-testing.md`](docs/acceptance-testing.md).
+
+Documentación de diseño: [`docs/arquitectura.md`](docs/arquitectura.md) (ecosistema de datos y capa de inteligencia), [`docs/formato-dataset.md`](docs/formato-dataset.md), [`docs/formato-csv.md`](docs/formato-csv.md), [`docs/selector-engine.md`](docs/selector-engine.md), [`docs/scoring.md`](docs/scoring.md), [`docs/trimming-cli.md`](docs/trimming-cli.md), [`docs/pdf-integration.md`](docs/pdf-integration.md), [`docs/typst-integration.md`](docs/typst-integration.md), [`docs/plantillas-typst.md`](docs/plantillas-typst.md), [`docs/llm-integration.md`](docs/llm-integration.md), [`docs/acceptance-testing.md`](docs/acceptance-testing.md) y [`docs/packaging-and-release.md`](docs/packaging-and-release.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
