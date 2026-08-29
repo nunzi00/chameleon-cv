@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { compareBytes, comparePdf, compareText, diffOperations, lineDiff } from './compare';
+import { canonicalPdf, compareBytes, comparePdf, compareText, diffOperations, lineDiff } from './compare';
 import { normalize, positional, producedName, stepPrefix, storedName, summarize } from './runner';
 
 const BENCH = join(__dirname, 'bench', 'workspace');
@@ -75,5 +75,41 @@ describe('opciones del ejecutor', () => {
   it('positional descarta las opciones y el valor de --binary', () => {
     expect(positional(['core', '--update', '--binary', 'build/sea/cv', 'typst', '--keep'])).toEqual(['core', 'typst']);
     expect(positional(['--binary', 'x'])).toEqual([]);
+  });
+});
+
+describe('canonicalPdf: el mismo contenido comprimido por dos zlib distintas es el mismo PDF', () => {
+  const build = (content: string, level: number): Buffer => {
+    const { deflateSync } = require('node:zlib') as typeof import('node:zlib');
+    const data = deflateSync(Buffer.from(content), { level });
+    const head = Buffer.from(`%PDF-1.3\n1 0 obj\n<< /Length ${data.length} /Filter /FlateDecode >>\nstream\n`, 'latin1');
+    const tail = Buffer.from('\nendstream\nendobj\nxref\n0 2\n0000000000 65535 f \n0000000009 00000 n \ntrailer\n<< /Size 2 >>\nstartxref\n123\n%%EOF\n', 'latin1');
+    return Buffer.concat([head, data, tail]);
+  };
+  const content = 'BT /F1 12 Tf 72 720 Td (Hola, mundo) Tj ET '.repeat(40);
+
+  it('iguala dos PDF cuyos flujos difieren solo en la compresión, y distingue un contenido distinto', async () => {
+    const fast = build(content, 1);
+    const best = build(content, 9);
+    expect(fast.equals(best)).toBe(false);
+    expect(canonicalPdf(fast).equals(canonicalPdf(best))).toBe(true);
+    const canonical = canonicalPdf(fast).toString('latin1');
+    expect(canonical).toContain('<< /Length  >>');
+    expect(canonical).not.toContain('0000000009 00000 n');
+    expect(canonical).toContain('trailer\n<< /Size 2 >>\nstartxref\n%%EOF');
+    expect(await comparePdf('pdf', fast, best)).toBeUndefined();
+    const other = build(content.replace('Hola', 'Adiós'), 9);
+    expect(canonicalPdf(fast).equals(canonicalPdf(other))).toBe(false);
+    const mismatch = await comparePdf('pdf', fast, other);
+    expect(mismatch?.detail).toContain('bytes esperados');
+  });
+
+  it('deja intactos los flujos que no son FlateDecode o que no se pueden descomprimir', () => {
+    const raw = Buffer.from('%PDF-1.3\n1 0 obj\n<< /Length 4 >>\nstream\nabcd\nendstream\nendobj\n', 'latin1');
+    expect(canonicalPdf(raw).toString('latin1')).toContain('abcd');
+    const broken = Buffer.from('%PDF-1.3\n1 0 obj\n<< /Length 4 /Filter /FlateDecode >>\nstream\nabcd\nendstream\nendobj\n', 'latin1');
+    expect(canonicalPdf(broken).toString('latin1')).toContain('abcd');
+    const truncated = Buffer.from('%PDF-1.3\nstream\nsin fin', 'latin1');
+    expect(canonicalPdf(truncated).toString('latin1')).toBe('%PDF-1.3\nstream\nsin fin');
   });
 });

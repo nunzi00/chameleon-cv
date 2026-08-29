@@ -52,7 +52,15 @@ jobs:
           node dist/index.js typst install
           echo "CHAMELEON_TYPST=$HOME/.cache/chameleon-cv/typst/$TYPST_VERSION/typst" >> "$GITHUB_ENV"
       - run: npm run coverage
-      - run: npm run test:acceptance:deterministic -- --require-typst
+      - name: Arnés de aceptación determinista (Typst obligatorio)
+        run: |
+          set -o pipefail
+          npm run test:acceptance:deterministic -- --require-typst 2>&1 | tee arnes.log
+      - name: Diagnóstico del arnés (anotaciones y resumen del trabajo; solo si falló)
+        if: failure()
+        run: |
+          { echo '## Arnés de aceptación determinista'; echo '```'; tail -c 60000 arnes.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -E '✗|esperados|^ {4,}[-+] ' arnes.log | head -10 | while IFS= read -r line; do printf '::error title=Arnés de aceptación::%s\n' "$line"; done
 
   package-linux-x64:
     name: Empaquetar linux-x64 y aceptar el binario
