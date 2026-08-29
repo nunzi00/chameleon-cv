@@ -30,7 +30,12 @@
     "test:acceptance:ai": "ts-node -T -P tests/tsconfig.json tests/acceptance/ai-runner.ts",
     "acceptance:update": "ts-node -T -P tests/tsconfig.json tests/acceptance/runner.ts --update",
     "package": "ts-node -T scripts/package.ts",
-    "release:notes": "ts-node -T scripts/release-notes.ts"
+    "release:notes": "ts-node -T scripts/release-notes.ts",
+    "docs:generate": "ts-node -T -P tests/tsconfig.json scripts/docs/reference.ts && ts-node -T -P tests/tsconfig.json scripts/docs/sync.ts",
+    "docs:tutorials": "ts-node -T -P tests/tsconfig.json scripts/docs/tutorials.ts",
+    "docs:dev": "npm run docs:generate && npm --prefix website run dev",
+    "docs:build": "npm run docs:generate && npm --prefix website run build",
+    "docs:check": "npm run docs:build && npm run docs:tutorials"
   },
   "devDependencies": {
     "@types/mdast": "^4.0.4",
