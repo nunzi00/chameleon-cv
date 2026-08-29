@@ -5,7 +5,6 @@ export * from './assets';
 export * from './commands/analyze-offer';
 export * from './commands/apply';
 export * from './commands/build';
-export * from './commands/dataset';
 export * from './commands/generate-cv';
 export * from './commands/improve';
 export * from './commands/init';

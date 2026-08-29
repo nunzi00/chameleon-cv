@@ -1,52 +1,27 @@
 /**
- * Contexto de la CLI: todo lo que toca el exterior (salida, sistema de ficheros, directorio
- * de trabajo, extracción de PDF) se inyecta para que los comandos sean funciones testeables al 100 %.
+ * Contexto de la CLI: el `AppContext` de los casos de uso (T-7.4a) más la terminal —salida, entrada
+ * estándar y confirmación interactiva—, todo inyectado para que los comandos sean funciones testeables
+ * al 100 %.
  */
-import { NodeWritableFileSystem, type WritableFileSystem } from '../artifact';
-import type { MasterProfile } from '../core/schema';
-import { NodeFileSystem, defaultSourceParsers, type FileSystem, type SourceParser } from '../parsers';
-import { DEFAULT_PDF_LIMITS, createWorkerRunner, extractPdfText, workerSource, type PdfExtractionResult } from '../pdf';
-import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
-import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
-import { createNodeLlmCache, llmStatus, selectProvider, type LlmCacheStore, type LlmStatus, type LlmStatusOptions, type ProviderSelection, type ProviderSelectionResult } from '../llm';
-import { defaultAssets, type AssetStore } from '../shared/assets';
+import { NodeWritableFileSystem } from '../artifact';
+import type { AppContext } from '../app/context';
+import { NodeFileSystem, defaultSourceParsers } from '../parsers';
+import { DEFAULT_PDF_LIMITS, createWorkerRunner, extractPdfText, workerSource } from '../pdf';
+import { renderTypstCv } from '../renderers/typst';
+import { installTypst, typstStatus } from '../typst';
+import { createNodeLlmCache, llmStatus, selectProvider } from '../llm';
+import { defaultAssets } from '../shared/assets';
 import { readStdin } from './stdin';
 
-export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
-export type TypstInstaller = (options: InstallOptions, report: Reporter) => Promise<InstallResult>;
-export type TypstStatusReporter = (options: StatusOptions) => Promise<TypstStatus>;
-export type LlmStatusReporter = (options: LlmStatusOptions) => Promise<LlmStatus>;
-export type LlmProviderResult = ProviderSelectionResult;
+export type { LlmProviderResult, LlmStatusReporter, TypstInstaller, TypstRenderer, TypstStatusReporter } from '../app/context';
 
-export interface CliContext {
-  readonly cwd: string;
+export interface CliContext extends AppContext {
   readonly stdout: (text: string) => void;
   readonly stderr: (text: string) => void;
   /** Lee toda la entrada estándar (para la oferta con «-»). */
   readonly stdin: () => Promise<string>;
-  readonly datasetFileSystem: FileSystem;
-  readonly artifactFileSystem: WritableFileSystem;
-  readonly parsers: readonly SourceParser[];
-  /** Extrae el texto de una oferta en PDF (contenido en un worker). */
-  readonly pdfExtractor: (bytes: Uint8Array) => Promise<PdfExtractionResult>;
-  /** Renderiza con Typst (proceso hijo contenido); inyectable para probar la CLI sin binario. */
-  readonly typstRenderer: TypstRenderer;
-  /** `cv typst install`: la única operación de red; inyectable para probar la CLI sin red. */
-  readonly typstInstall: TypstInstaller;
-  /** `cv typst status`. */
-  readonly typstStatus: TypstStatusReporter;
-  /** `cv llm status` (T-4.2): nunca envía datos; solo comprueba el proveedor local. */
-  readonly llmStatus: LlmStatusReporter;
-  /** Proveedor de modelos (T-4.3/T-4.5): local por defecto, remoto solo con `--provider` explícito; inyectable. */
-  readonly llmProvider: (selection: ProviderSelection) => Promise<LlmProviderResult>;
   /** Confirmación interactiva (terminal): ausente cuando no hay TTY. */
   readonly confirm?: ((question: string) => Promise<boolean>) | undefined;
-  /** Caché local de respuestas del co-piloto. */
-  readonly llmCache: LlmCacheStore;
-  /** Reloj (por defecto, el del sistema): fechas de los ficheros de revisión. */
-  readonly now?: (() => Date) | undefined;
-  /** Assets distribuidos (temas, fuentes, plantilla, dataset de ejemplo, prompts, package.json): repositorio o binario (T-6.2). */
-  readonly assets: AssetStore;
 }
 
 export interface NodeContextOptions {

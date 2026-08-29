@@ -1,19 +1,20 @@
 /**
  * `cv validate`: comprueba las fuentes sin escribir nada.
  */
+import { loadSources } from '../../app/dataset';
 import type { CliContext } from '../context';
-import { EXIT_DATA_ERROR, EXIT_OK, pluralize, profileSummary } from '../output';
-import { loadDatasetOrReport } from './dataset';
+import { EXIT_OK, pluralize, profileSummary, reportError } from '../output';
 
 export interface ValidateOptions {
   readonly data: string;
 }
 
 export async function runValidate(context: CliContext, options: ValidateOptions): Promise<number> {
-  const loaded = await loadDatasetOrReport(context, options.data);
-  if (loaded === undefined) {
-    return EXIT_DATA_ERROR;
+  const result = await loadSources(context, options);
+  if (!result.ok) {
+    return reportError(context, result.error);
   }
-  context.stdout(`Dataset válido: ${pluralize(loaded.files.length, 'fichero', 'ficheros')} en ${loaded.root} (${profileSummary(loaded.profile)})\n`);
+  const { dataset } = result;
+  context.stdout(`Dataset válido: ${pluralize(dataset.files.length, 'fichero', 'ficheros')} en ${dataset.root} (${profileSummary(dataset.profile)})\n`);
   return EXIT_OK;
 }
