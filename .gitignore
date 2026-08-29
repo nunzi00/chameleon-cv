@@ -14,6 +14,9 @@ coverage/
 
 # La interfaz web construida (viaja en el ejecutable; se genera con npm run gui:build)
 /gui/dist/
+/gui/e2e/.state.json
+/gui/test-results/
+/gui/playwright-report/
 
 # Logs
 logs/
