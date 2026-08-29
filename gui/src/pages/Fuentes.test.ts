@@ -18,6 +18,13 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     sources: vi.fn(async () => ({ root: '/work/data/sources', entries: ENTRIES })),
     source: vi.fn(async (path: string) => ({ path, content: `# ${path}\n`, sha256: 'sha-1' })),
     writeSource: vi.fn(async (path: string) => ({ path, sha256: 'sha-2' })),
+    generate: vi.fn(),
+    analyze: vi.fn(),
+    extractOffer: vi.fn(),
+    themes: vi.fn(),
+    createTheme: vi.fn(),
+    outputs: vi.fn(),
+    output: vi.fn(),
     shutdown: vi.fn(),
     ...overrides,
   };

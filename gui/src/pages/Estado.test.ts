@@ -23,6 +23,13 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     sources: vi.fn(),
     source: vi.fn(),
     writeSource: vi.fn(),
+    generate: vi.fn(),
+    analyze: vi.fn(),
+    extractOffer: vi.fn(),
+    themes: vi.fn(),
+    createTheme: vi.fn(),
+    outputs: vi.fn(),
+    output: vi.fn(),
     shutdown: vi.fn(async () => ({ ok: true as const })),
     ...overrides,
   };
