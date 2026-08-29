@@ -58,7 +58,7 @@ function fakeHandle(): { handle: ServerHandle; closeCalls: () => number } {
   };
 }
 
-const OPTIONS = { port: 4310, host: '127.0.0.1', data: 'data/sources', profile: 'data/dist/profile.json', apiOnly: false, open: false } as const;
+const OPTIONS = { port: 4310, host: '127.0.0.1', data: 'data/sources', profile: 'data/dist/profile.json', apiOnly: false, open: false, allowRemote: false } as const;
 
 describe('cv serve', () => {
   it('arranca sobre el espacio de trabajo, imprime la URL con el token y termina con Ctrl-C', async () => {
@@ -92,6 +92,23 @@ describe('cv serve', () => {
     expect(await runServe(context, { ...OPTIONS, apiOnly: true, workspace: 'otro' }, deps)).toBe(EXIT_OK);
     expect(stderr()).toContain('espacio de trabajo /work/otro\n');
     expect(stderr()).toContain('Token: http://127.0.0.1:4310/#token=tok\n');
+  });
+
+  it('con --allow-remote lo anuncia y se lo pasa al servidor', async () => {
+    const { context, stderr } = harness();
+    const { handle } = fakeHandle();
+    let started: Parameters<ServeDeps['start']>[0] | undefined;
+    const deps: ServeDeps = {
+      start: (options) => {
+        started = options;
+        return Promise.resolve(handle);
+      },
+      openBrowser: () => undefined,
+      onInterrupt: (handler) => setTimeout(handler, 1),
+    };
+    expect(await runServe(context, { ...OPTIONS, allowRemote: true }, deps)).toBe(EXIT_OK);
+    expect(started?.allowRemote).toBe(true);
+    expect(stderr()).toContain('Proveedores remotos permitidos (--allow-remote): cada trabajo exigirá confirmar el coste estimado\n');
   });
 
   it('rechaza un espacio de trabajo inexistente o que no es un directorio, y un arranque fallido', async () => {

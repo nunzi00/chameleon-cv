@@ -7,9 +7,16 @@ import type { ZodType } from 'zod';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
+/** Un flujo de eventos (SSE): el manejador emite hasta que termina o el cliente se va; devuelve cómo pararlo. */
+export interface StreamSink {
+  readonly send: (event: string, data: unknown) => void;
+  readonly end: () => void;
+}
+
 export type RouteResponse =
-  | { readonly status: number; readonly json: unknown; readonly bytes?: undefined; readonly headers?: Readonly<Record<string, string>> | undefined }
-  | { readonly status: number; readonly bytes: Buffer; readonly contentType: string; readonly headers?: Readonly<Record<string, string>> | undefined };
+  | { readonly status: number; readonly json: unknown; readonly bytes?: undefined; readonly stream?: undefined; readonly headers?: Readonly<Record<string, string>> | undefined }
+  | { readonly status: number; readonly bytes: Buffer; readonly stream?: undefined; readonly contentType: string; readonly headers?: Readonly<Record<string, string>> | undefined }
+  | { readonly status: number; readonly bytes?: undefined; readonly stream: (sink: StreamSink) => () => void; readonly contentType: string; readonly headers?: Readonly<Record<string, string>> | undefined };
 
 export interface RouteRequest {
   readonly params: Readonly<Record<string, string>>;

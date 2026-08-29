@@ -64,12 +64,13 @@ function verifyAll(fragment: ImproveFragment, proposals: ReadonlyArray<{ readonl
 }
 
 export async function runImproveBatch(options: ImproveBatchOptions): Promise<ReviewItem[]> {
+  const aborted = (): boolean => options.signal?.aborted === true;
   const vocabulary = verificationVocabulary(options.profile);
   const items: ReviewItem[] = [];
   const total = options.ids.length;
   for (const [index, id] of options.ids.entries()) {
     const label = `[${index + 1}/${total}] ${id}`;
-    if (options.signal?.aborted === true) {
+    if (aborted()) {
       options.progress?.(`${label}: cancelado`);
       break;
     }
@@ -96,6 +97,10 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
     }
 
     const result = await runImprove(options.provider, fragment, options.prompt, options.timeoutMs, options.signal);
+    if (!result.ok && aborted()) {
+      options.progress?.(`${label}: cancelado`);
+      break;
+    }
     if (!result.ok) {
       items.push({ id, location, original, impact, proposals: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} });
       options.progress?.(`${label}: fallo (${result.code})`);

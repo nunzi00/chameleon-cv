@@ -250,6 +250,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--api-only', 'sin la página de inicio: solo /api/v1', false)
     .option('--open', 'abre el navegador con la URL y el token', false)
     .option('--allowed-hosts <hosts>', 'valores de Host admitidos además de 127.0.0.1 y localhost (separados por comas)')
+    .option('--allow-remote', 'permite proveedores remotos en los trabajos del co-piloto (cada uno exige confirmar el coste estimado)', false)
     .action(async (options: ServeCommandOptions) => {
       onExit(await runServe(context, options));
     });

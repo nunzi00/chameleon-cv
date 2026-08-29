@@ -7,7 +7,7 @@
  */
 import { InvalidArgumentError } from 'commander';
 
-import { describeProvider, executeSuggestTags, planSuggestTags, selectCopilotProvider, suggestTagsEstimate, suggestTagsPayload } from '../../app/copilot';
+import { DEFAULT_MAX_ITEMS, describeProvider, executeSuggestTags, planSuggestTags, selectCopilotProvider, suggestTagsEstimate, suggestTagsPayload } from '../../app/copilot';
 import { SUGGEST_TAGS_LIMITS, formatTagLine, loadSuggestTagsPrompt } from '../../llm';
 import type { CliContext } from '../context';
 import { EXIT_FAILURE, EXIT_OK, pluralize, reportError, reportWarnings } from '../output';
@@ -38,7 +38,7 @@ export interface SuggestTagsOptions {
   readonly yes: boolean;
 }
 
-export const SUGGEST_TAGS_DEFAULTS = { maxTags: SUGGEST_TAGS_LIMITS.maxTags, maxItems: 20 } as const;
+export const SUGGEST_TAGS_DEFAULTS = { maxTags: SUGGEST_TAGS_LIMITS.maxTags, maxItems: DEFAULT_MAX_ITEMS } as const;
 
 export function parseMaxTags(value: string): number {
   const parsed = Number(value);

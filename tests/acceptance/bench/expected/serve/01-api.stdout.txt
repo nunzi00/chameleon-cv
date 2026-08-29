@@ -3964,6 +3964,115 @@
   "shadowed": false
 }
 
+### GET /jobs → 200
+{
+  "jobs": []
+}
+
+### POST /jobs/improve → 503
+{
+  "error": {
+    "code": "environment",
+    "message": "Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version); comprueba el proveedor con «cv llm status»",
+    "sending": {
+      "destination": "ollama (http://127.0.0.1:9, local; modelo qwen2.5:7b-instruct)",
+      "ids": [
+        "exp-delta-consultores-1",
+        "exp-delta-consultores-2",
+        "exp-delta-consultores-3",
+        "exp-delta-consultores-4",
+        "exp-freelance-1",
+        "exp-freelance-2",
+        "exp-freelance-3",
+        "exp-lumen-analytics-1",
+        "exp-lumen-analytics-2",
+        "exp-lumen-analytics-3",
+        "exp-lumen-analytics-4",
+        "exp-nexo-pasarela",
+        "exp-nexo-pagos-2",
+        "exp-nexo-pagos-3",
+        "exp-nexo-pagos-4",
+        "exp-nexo-pagos-5",
+        "exp-nexo-pagos-6",
+        "exp-orbita-cloud-1",
+        "exp-orbita-cloud-2",
+        "exp-orbita-cloud-3"
+      ],
+      "items": 20,
+      "redactCompanies": false,
+      "words": 295
+    }
+  }
+}
+
+### POST /jobs/suggest-tags → 503
+{
+  "error": {
+    "code": "environment",
+    "message": "Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version); comprueba el proveedor con «cv llm status»",
+    "sending": {
+      "destination": "ollama (http://127.0.0.1:9, local; modelo qwen2.5:7b-instruct)",
+      "items": 1,
+      "redactCompanies": false,
+      "scope": "diccionario cerrado de 22 etiquetas de 4 especialidades",
+      "words": 7
+    }
+  }
+}
+
+### GET /jobs/nope → 404
+{
+  "error": {
+    "code": "not-found",
+    "message": "No existe el trabajo «nope»"
+  }
+}
+
+### DELETE /jobs/nope → 404
+{
+  "error": {
+    "code": "not-found",
+    "message": "No existe el trabajo «nope»"
+  }
+}
+
+### GET /reviews → 200
+{
+  "reviews": []
+}
+
+### GET /reviews/revision-nada.md → 404
+{
+  "error": {
+    "code": "not-found",
+    "message": "No existe la revisión «revision-nada.md»"
+  }
+}
+
+### GET /reviews/otro.md → 400
+{
+  "error": {
+    "code": "unsafe-path",
+    "message": "Nombre de revisión no válido «otro.md»: se espera revision-<…>.md, sin directorios"
+  }
+}
+
+### PUT /reviews/revision-x.md → 428
+{
+  "error": {
+    "code": "precondition-required",
+    "message": "Falta la cabecera If-Match: la huella actual de la revisión, o «*» para crearla"
+  }
+}
+
+### POST /reviews/otro.md/apply → 400
+{
+  "error": {
+    "code": "unsafe-path",
+    "message": "Nombre de revisión no válido «otro.md»: se espera revision-<…>.md, sin directorios"
+  }
+}
+
 ### POST /generate → 400
 {
   "error": {

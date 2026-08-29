@@ -3,26 +3,31 @@
  * nunca acepta rutas del sistema de ficheros del cliente: solo identificadores relativos y saneados
  * dentro del espacio de trabajo. Los metadatos del registro alimentan la referencia generada.
  */
-import { extname, resolve } from 'node:path';
+import { basename, extname, resolve } from 'node:path';
 
 import { z } from 'zod';
 
 import { analysisPayload, analyzeOffer } from '../app/analyze';
 import type { AppContext } from '../app/context';
+import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
 import { buildProfile, loadProfile, loadSources } from '../app/dataset';
 import { environmentError, notFoundError, unsafePathError, type AppError } from '../app/errors';
 import { CV_ENGINES, CV_FORMATS } from '../app/format';
 import { generateCv, writeCvFile } from '../app/generate';
 import type { OfferInput } from '../app/offer';
 import { isSafeSourcePath } from '../app/paths';
-import { listSources, readSource, writeSource } from '../app/sources';
+import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
+import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { profileSummary } from '../app/text';
 import { createTheme, themeInventory } from '../app/themes';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
+import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
+import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
+import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
 import { Router, type RouteRequest, type RouteResponse } from './router';
 
 export interface ServerState {
@@ -30,6 +35,10 @@ export interface ServerState {
   readonly data: string;
   readonly profile: string;
   readonly version: string;
+  readonly jobs: JobQueue;
+  readonly consents: ConsentStore;
+  /** `--allow-remote`. */
+  readonly allowRemote: boolean;
   /** Detiene el servidor tras responder. */
   readonly shutdown: () => void;
 }
@@ -63,6 +72,52 @@ const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1
 const SourceWriteSchema = z.object({ content: z.string() });
 const ThemeCreateSchema = z.object({ name: z.string().min(1), from: z.string().min(1).optional() });
 const EmptySchema = z.object({});
+const ProviderSchema = {
+  /** Proveedor configurado (`cv llm status`); un remoto exige --allow-remote y consentimiento. */
+  provider: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
+  /** Confirmación del coste de un remoto: el estimateId del 409 anterior. */
+  consent: z.object({ estimateId: z.string().min(1) }).optional(),
+  /** Leer y guardar la caché local de respuestas (por defecto sí). */
+  cache: z.boolean().optional(),
+  build: z.boolean().optional(),
+  redactCompanies: z.boolean().optional(),
+  locale: z.string().min(1).optional(),
+};
+const SelectionSchema = { specialty: z.string().min(1).optional(), offer: OfferSchema.optional(), ...LimitsSchema };
+const ImproveJobSchema = z.object({
+  ...SelectionSchema,
+  ...ProviderSchema,
+  only: z.array(z.string().min(1)).min(1).optional(),
+  proposals: z.number().int().min(1).max(3).optional(),
+  maxLength: z.number().int().min(40).max(1000).optional(),
+  maxItems: z.number().int().min(1).max(500).optional(),
+  /** Nombre del fichero de revisión en `output/` (sin directorios). */
+  output: z.string().regex(OUTPUT_NAME).optional(),
+});
+const SummarizeJobSchema = z.object({
+  ...SelectionSchema,
+  ...ProviderSchema,
+  paragraphs: z.number().int().min(1).max(3).optional(),
+  proposals: z.number().int().min(1).max(3).optional(),
+  maxLength: z.number().int().min(100).max(5000).optional(),
+  output: z.string().regex(OUTPUT_NAME).optional(),
+});
+const SuggestTagsJobSchema = z.object({
+  ...ProviderSchema,
+  /** Texto suelto; sin él se etiquetan logros del perfil. */
+  text: z.string().min(1).optional(),
+  specialty: z.string().min(1).optional(),
+  only: z.array(z.string().min(1)).min(1).optional(),
+  untagged: z.boolean().optional(),
+  maxTags: z.number().int().min(1).max(SUGGEST_TAGS_LIMITS.maxTagsCeiling).optional(),
+  maxItems: z.number().int().min(1).max(500).optional(),
+});
+const ApplySchema = z.object({
+  /** Por defecto solo se muestra el plan; `false` escribe en las fuentes (C9). */
+  dryRun: z.boolean().optional(),
+  deleteReview: z.boolean().optional(),
+});
 
 type WorkspaceFileResult = { readonly ok: true; readonly path: string } | { readonly ok: false; readonly error: AppError };
 
@@ -343,6 +398,8 @@ export function createRouter(): Router<ServerState> {
     },
   });
 
+  addCopilotRoutes(router);
+
   router.add({
     method: 'POST',
     path: `${API_PREFIX}/shutdown`,
@@ -364,3 +421,354 @@ export function bodyLimitFor(accepts: string | undefined): number {
 }
 
 export type { RouteRequest };
+
+/* ---------- Co-piloto: trabajos y revisiones ---------- */
+
+type CopilotBody = z.infer<typeof ImproveJobSchema> | z.infer<typeof SummarizeJobSchema> | z.infer<typeof SuggestTagsJobSchema>;
+
+interface Launch<P> {
+  readonly kind: JobKind;
+  readonly planned: PlanOutcome<P>;
+  /** Qué saldría hacia el modelo (C3), para la respuesta. */
+  readonly sending: (plan: P) => Record<string, unknown>;
+  readonly estimate: (plan: P) => Promise<CostEstimate>;
+  readonly run: (plan: P, options: ExecuteOptions, report: JobReport) => Promise<unknown>;
+}
+
+/** Planificado → proveedor → (remoto: permiso y consentimiento) → salud → trabajo encolado (202). */
+async function launchJob<P>(state: ServerState, body: CopilotBody, launch: Launch<P>): Promise<RouteResponse> {
+  const { planned } = launch;
+  if (!planned.ok) {
+    return appErrorResponse(planned.error, { warnings: planned.warnings });
+  }
+  const selected = await selectCopilotProvider(state.context, { provider: body.provider, model: body.model });
+  if (!selected.ok) {
+    return appErrorResponse(selected.error, { warnings: planned.warnings });
+  }
+  const { provider } = selected;
+  const sending = { destination: describeProvider(provider), redactCompanies: body.redactCompanies ?? false, ...launch.sending(planned.plan) };
+  if (provider.kind === 'remote') {
+    if (!state.allowRemote) {
+      return errorResponse('remote-disabled', 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo', { sending });
+    }
+    if (body.consent === undefined || !state.consents.redeem(body.consent.estimateId, launch.kind)) {
+      const estimate = await launch.estimate(planned.plan);
+      const estimateId = state.consents.issue(launch.kind);
+      return errorResponse('consent-required', 'Proveedor remoto: revisa el coste estimado y repite la petición con consent.estimateId para confirmar', {
+        estimateId,
+        estimate,
+        warning: formatCostWarning(`${provider.id} (${provider.baseUrl}; modelo ${provider.model})`, estimate),
+        sending,
+        warnings: planned.warnings,
+      });
+    }
+  }
+  const health = await checkLocalProvider(provider);
+  if (!health.ok) {
+    const message = health.reason === 'unreachable' ? `${health.message}; comprueba el proveedor con «cv llm status»` : `El modelo «${provider.model}» no está disponible en ${provider.baseUrl} (${health.models.length === 0 ? 'no sirve ningún modelo' : `sirve: ${health.models.join(', ')}`}); comprueba «cv llm status»`;
+    return appErrorResponse(environmentError(message), { sending });
+  }
+  const job = state.jobs.create(launch.kind, (report) => launch.run(planned.plan, { provider, cache: body.cache ?? true, progress: report.line, signal: report.signal }, report));
+  return json(202, { job, sending, warnings: planned.warnings }, { Location: `${API_PREFIX}/jobs/${job.id}` });
+}
+
+/** Resultado de improve/summarize: la revisión escrita (o nada si se canceló). */
+async function reviewResult(context: AppContext, outcome: ReviewOutcome, report: JobReport): Promise<unknown> {
+  for (const note of outcome.notes) {
+    report.line(note);
+  }
+  if (outcome.cancelled) {
+    return { cancelled: true, processed: outcome.items.length };
+  }
+  const failure = await writeReview(context, outcome.outputPath, outcome.text);
+  if (failure !== undefined) {
+    throw new JobFailure(failure);
+  }
+  return { review: { name: basename(outcome.outputPath), path: outcome.outputPath, sha256: contentHash(outcome.text) }, stats: outcome.stats, cancelled: false };
+}
+
+function offerOf(state: ServerState, offer: z.infer<typeof OfferSchema> | undefined): { readonly ok: true; readonly offer: OfferInput | undefined } | { readonly ok: false; readonly error: AppError } {
+  if (offer === undefined) {
+    return { ok: true, offer: undefined };
+  }
+  const input = offerInputOf(state.context, offer);
+  return 'kind' in input ? { ok: true, offer: input } : { ok: false, error: input };
+}
+
+function reviewName(name: string): AppError | undefined {
+  return REVIEW_NAME.test(name) ? undefined : unsafePathError(`Nombre de revisión no válido «${name}»: se espera revision-<…>.md, sin directorios`);
+}
+
+function addCopilotRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/jobs`,
+    summary: 'Trabajos del co-piloto de esta sesión (en cola, en marcha y terminados), con su progreso y resultado.',
+    writes: false,
+    handler: async (_request, state) => json(200, { jobs: state.jobs.list() }),
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/jobs/improve`,
+    summary: 'Encola cv improve: propuestas verificadas (C2) para los logros de la selección; escribe output/revision-improve-….md. Un remoto exige --allow-remote y consentimiento (409).',
+    writes: true,
+    body: ImproveJobSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, ImproveJobSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const body = parsed.value;
+      const offer = offerOf(state, body.offer);
+      if (!offer.ok) {
+        return appErrorResponse(offer.error);
+      }
+      const planned = await planImprove(state.context, {
+        profile: state.profile,
+        data: state.data,
+        build: body.build ?? false,
+        specialty: body.specialty,
+        offer: offer.offer,
+        topN: body.topN,
+        maxSkills: body.maxSkills,
+        maxProjects: body.maxProjects,
+        maxCertifications: body.maxCertifications,
+        compact: body.compact ?? false,
+        only: body.only,
+        proposals: body.proposals ?? IMPROVE_LIMITS.proposals,
+        maxLength: body.maxLength ?? IMPROVE_LIMITS.maxLength,
+        maxItems: body.maxItems ?? DEFAULT_MAX_ITEMS,
+        redactCompanies: body.redactCompanies ?? false,
+        locale: body.locale,
+        output: body.output === undefined ? undefined : `${OUTPUT_DIR}/${body.output}`,
+      });
+      return launchJob(state, body, {
+        kind: 'improve',
+        planned,
+        sending: (plan) => ({ items: plan.fragments.length, words: plan.words, ids: plan.ids }),
+        estimate: (plan) => improveEstimate(state.context, plan),
+        run: async (plan, options, report) => reviewResult(state.context, await executeImprove(state.context, plan, options), report),
+      });
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/jobs/summarize`,
+    summary: 'Encola cv summarize: resumen profesional del perfil filtrado; escribe output/revision-summarize-….md.',
+    writes: true,
+    body: SummarizeJobSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, SummarizeJobSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const body = parsed.value;
+      const offer = offerOf(state, body.offer);
+      if (!offer.ok) {
+        return appErrorResponse(offer.error);
+      }
+      const planned = await planSummarize(state.context, {
+        profile: state.profile,
+        data: state.data,
+        build: body.build ?? false,
+        specialty: body.specialty,
+        offer: offer.offer,
+        topN: body.topN,
+        maxSkills: body.maxSkills,
+        maxProjects: body.maxProjects,
+        maxCertifications: body.maxCertifications,
+        compact: body.compact ?? false,
+        paragraphs: body.paragraphs ?? SUMMARIZE_LIMITS.paragraphs,
+        proposals: body.proposals ?? SUMMARIZE_LIMITS.proposals,
+        maxLength: body.maxLength ?? SUMMARIZE_LIMITS.maxLength,
+        redactCompanies: body.redactCompanies ?? false,
+        locale: body.locale,
+        output: body.output === undefined ? undefined : `${OUTPUT_DIR}/${body.output}`,
+      });
+      return launchJob(state, body, {
+        kind: 'summarize',
+        planned,
+        sending: (plan) => ({ experience: plan.fragment.input.experience.length, projects: plan.fragment.input.projects.length, skills: plan.fragment.input.skills.length, words: plan.words }),
+        estimate: (plan) => summarizeEstimate(state.context, plan),
+        run: async (plan, options, report) => reviewResult(state.context, await executeSummarize(state.context, plan, options), report),
+      });
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/jobs/suggest-tags`,
+    summary: 'Encola cv suggest tags: etiquetas del diccionario cerrado para un texto o para los logros del perfil; el resultado va en el trabajo (no escribe nada).',
+    writes: false,
+    body: SuggestTagsJobSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, SuggestTagsJobSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const body = parsed.value;
+      const planned = await planSuggestTags(state.context, {
+        profile: state.profile,
+        data: state.data,
+        build: body.build ?? false,
+        text: body.text,
+        specialty: body.specialty,
+        only: body.only,
+        untagged: body.untagged ?? false,
+        maxTags: body.maxTags ?? SUGGEST_TAGS_LIMITS.maxTags,
+        maxItems: body.maxItems ?? DEFAULT_MAX_ITEMS,
+        redactCompanies: body.redactCompanies ?? false,
+        locale: body.locale,
+      });
+      return launchJob(state, body, {
+        kind: 'suggest-tags',
+        planned,
+        sending: (plan) => ({ items: plan.fragments.length, words: plan.words, scope: plan.scope }),
+        estimate: (plan) => suggestTagsEstimate(state.context, plan),
+        run: async (plan, options) => {
+          const outcome = await executeSuggestTags(state.context, plan, options);
+          return {
+            items: outcome.items.map((item) => ({ id: item.id, location: item.location, line: formatTagLine(item), accepted: item.accepted, rejected: item.rejected, error: item.error, fromCache: item.fromCache, elapsedMs: item.elapsedMs })),
+            stats: outcome.stats,
+            cancelled: outcome.cancelled,
+          };
+        },
+      });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/jobs/{id}`,
+    summary: 'Estado de un trabajo: progreso (líneas), resultado o error.',
+    writes: false,
+    handler: async (request, state) => {
+      const job = state.jobs.get(String(request.params['id']));
+      return job === undefined ? appErrorResponse(notFoundError(`No existe el trabajo «${String(request.params['id'])}»`)) : json(200, { job });
+    },
+  });
+
+  router.add({
+    method: 'DELETE',
+    path: `${API_PREFIX}/jobs/{id}`,
+    summary: 'Cancela un trabajo: en cola termina ya; en marcha aborta la petición en curso y el lote para (sin efecto si ya terminó).',
+    writes: false,
+    handler: async (request, state) => {
+      const job = state.jobs.cancel(String(request.params['id']));
+      return job === undefined ? appErrorResponse(notFoundError(`No existe el trabajo «${String(request.params['id'])}»`)) : json(200, { job });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/jobs/{id}/events`,
+    summary: 'Eventos del trabajo (text/event-stream): «status» con el estado completo al conectar y en cada cambio, «line» por cada línea de progreso; se cierra al terminar.',
+    writes: false,
+    handler: async (request, state) => {
+      const id = String(request.params['id']);
+      if (state.jobs.get(id) === undefined) {
+        return appErrorResponse(notFoundError(`No existe el trabajo «${id}»`));
+      }
+      return {
+        status: 200,
+        contentType: 'text/event-stream; charset=utf-8',
+        stream: (sink) =>
+          state.jobs.subscribe(id, (event) => {
+            sink.send(event.event, event.data);
+            if (event.event === 'status' && isFinished(event.data.status)) {
+              sink.end();
+            }
+          }),
+      };
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/reviews`,
+    summary: 'Revisiones del co-piloto en output/ (revision-*.md): tarea, ítems, propuestas marcadas y huella.',
+    writes: false,
+    handler: async (_request, state) => json(200, { reviews: await listReviews(state.context, OUTPUT_DIR) }),
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/reviews/{name}`,
+    summary: 'Una revisión: texto Markdown, huella (ETag) y estructura interpretada (ítems y propuestas).',
+    writes: false,
+    handler: async (request, state) => {
+      const result = await readReview(state.context, OUTPUT_DIR, String(request.params['name']));
+      return result.ok ? json(200, { review: result.file }, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/reviews/{name}`,
+    summary: 'Guarda la revisión editada (marcas [x], textos). Exige If-Match con la huella actual, o «*» para crear.',
+    writes: true,
+    body: SourceWriteSchema,
+    handler: async (request, state) => {
+      const name = String(request.params['name']);
+      const invalid = reviewName(name);
+      if (invalid !== undefined) {
+        return appErrorResponse(invalid);
+      }
+      const ifMatch = request.headers['if-match'];
+      if (ifMatch === undefined) {
+        return errorResponse('precondition-required', 'Falta la cabecera If-Match: la huella actual de la revisión, o «*» para crearla');
+      }
+      const parsed = parseJsonBody(request.body, SourceWriteSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await writeSource(state.context, resolve(state.context.cwd, OUTPUT_DIR), { path: name, content: parsed.value.content, expectedSha256: ifMatch.trim().replace(/^"|"$/g, '') });
+      return result.ok ? json(200, { name, sha256: result.file.sha256 }, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'DELETE',
+    path: `${API_PREFIX}/reviews/{name}`,
+    summary: 'Elimina una revisión de output/.',
+    writes: true,
+    handler: async (request, state) => {
+      const name = String(request.params['name']);
+      const invalid = reviewName(name);
+      if (invalid !== undefined) {
+        return appErrorResponse(invalid);
+      }
+      const path = resolve(state.context.cwd, OUTPUT_DIR, name);
+      try {
+        await state.context.datasetFileSystem.stat(path);
+        await state.context.artifactFileSystem.remove(path);
+      } catch (error) {
+        return appErrorResponse(isMissingFile(error) ? notFoundError(`No existe la revisión «${name}»`) : environmentError(`No se pudo eliminar la revisión «${name}»: ${describeError(error)}`));
+      }
+      return json(200, { deleted: name });
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/reviews/{name}/apply`,
+    summary: 'Aplica a las fuentes las propuestas marcadas [x] (cv improve apply): por defecto solo el plan (dryRun); con dryRun:false escribe con copia .bak y huella comprobada (C9).',
+    writes: true,
+    body: ApplySchema,
+    handler: async (request, state) => {
+      const name = String(request.params['name']);
+      const invalid = reviewName(name);
+      if (invalid !== undefined) {
+        return appErrorResponse(invalid);
+      }
+      const parsed = parseJsonBody(request.body, ApplySchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await applyReview(state.context, { review: `${OUTPUT_DIR}/${name}`, data: state.data, dryRun: parsed.value.dryRun ?? true, deleteReview: parsed.value.deleteReview ?? false });
+      return result.ok ? json(200, result.outcome) : appErrorResponse(result.error, { written: result.written });
+    },
+  });
+}

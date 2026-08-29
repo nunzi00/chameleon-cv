@@ -13,7 +13,7 @@ import type { RouteResponse } from './router';
 
 export const JSON_BODY_LIMIT = 1024 * 1024;
 
-export type ServerErrorCode = AppErrorCode | 'unauthorized' | 'forbidden-host' | 'forbidden-origin' | 'bad-request' | 'method-not-allowed' | 'payload-too-large' | 'precondition-required';
+export type ServerErrorCode = AppErrorCode | 'unauthorized' | 'forbidden-host' | 'forbidden-origin' | 'bad-request' | 'method-not-allowed' | 'payload-too-large' | 'precondition-required' | 'remote-disabled' | 'consent-required';
 
 const STATUS: Readonly<Record<ServerErrorCode, number>> = {
   usage: 400,
@@ -22,9 +22,11 @@ const STATUS: Readonly<Record<ServerErrorCode, number>> = {
   unauthorized: 401,
   'forbidden-host': 403,
   'forbidden-origin': 403,
+  'remote-disabled': 403,
   'not-found': 404,
   'method-not-allowed': 405,
   conflict: 409,
+  'consent-required': 409,
   'payload-too-large': 413,
   'invalid-data': 422,
   'precondition-required': 428,

@@ -23,6 +23,8 @@ export interface ServeCommandOptions {
   readonly apiOnly: boolean;
   readonly open: boolean;
   readonly allowedHosts?: string | undefined;
+  /** `--allow-remote`: los trabajos del co-piloto pueden usar proveedores remotos (con consentimiento de coste). */
+  readonly allowRemote: boolean;
 }
 
 export interface ServeDeps {
@@ -86,6 +88,7 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
       version,
       apiOnly: options.apiOnly,
       allowedHosts: options.allowedHosts === undefined ? [] : options.allowedHosts.split(','),
+      allowRemote: options.allowRemote,
     });
   } catch (error) {
     context.stderr(`No se pudo arrancar el servidor en ${options.host}:${options.port}: ${describeError(error)}\n`);
@@ -93,6 +96,9 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
   }
   context.stderr(`Chameleon CV ${version} · espacio de trabajo ${workspace}\n`);
   context.stderr(`API: ${handle.url}api/v1/ (Authorization: Bearer <token>)\n`);
+  if (options.allowRemote) {
+    context.stderr('Proveedores remotos permitidos (--allow-remote): cada trabajo exigirá confirmar el coste estimado\n');
+  }
   context.stderr(`${options.apiOnly ? 'Token' : 'Interfaz'}: ${handle.url}#token=${handle.token}\n`);
   context.stderr('Ctrl-C para parar (o POST /api/v1/shutdown)\n');
   if (options.open) {
