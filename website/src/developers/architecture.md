@@ -64,5 +64,6 @@ Toda la CLI recibe un `CliContext` (`src/cli/context.ts`): sistemas de ficheros,
 | C12 | Validar el proceso, no el resultado | Con sistemas no deterministas se valida la estructura y la coherencia, no el texto exacto. |
 | C13 | La prueba debe probarse a sí misma | Los arneses comprueban sus propias precondiciones y artefactos; la documentación se ejecuta. |
 | C14 | El núcleo es el producto | El núcleo es su propia API; toda interfaz es un cliente. |
+| C15 | La documentación es código verificable | Guías y tutoriales se generan y se ejecutan contra el producto real (`npm run docs:check`). |
 
 Texto completo y contexto de cada canon: [Co-piloto de IA: diseño y principios](/design/llm-integration) §3. Historia y decisiones: [Arquitectura](/design/arquitectura) y el resto de [notas de diseño](/design/).

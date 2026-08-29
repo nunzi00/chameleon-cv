@@ -5,7 +5,7 @@ Gracias por tu interés. Este documento explica cómo montar el entorno, qué ex
 ## Antes de empezar
 
 - `ROADMAP.md` es la única fuente de verdad sobre qué se está construyendo y por qué. Las notas de `docs/` recogen cada decisión de diseño y su estado.
-- Los **cánones** del proyecto (C1–C14, en `docs/llm-integration.md` §3) no son decorativos: la IA sugiere y el usuario decide; sin invención; local por defecto; el proceso se valida, no el resultado; la prueba se prueba a sí misma; el núcleo es el producto. Un cambio que los contradiga no se acepta, por bueno que sea.
+- Los **cánones** del proyecto (C1–C15, en `docs/llm-integration.md` §3) no son decorativos: la IA sugiere y el usuario decide; sin invención; local por defecto; el proceso se valida, no el resultado; la prueba se prueba a sí misma; el núcleo es el producto. Un cambio que los contradiga no se acepta, por bueno que sea.
 - Abre un *issue* antes de una funcionalidad grande: así acordamos el diseño antes del código.
 
 ## Entorno
