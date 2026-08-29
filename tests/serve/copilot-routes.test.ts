@@ -123,7 +123,8 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     expect(result.review.path).toBe('/work/output/revision-improve-2026-08-29.md');
     expect(result.stats.items).toBe(body.sending.items);
     expect(result.cancelled).toBe(false);
-    expect(stream.filter((event) => event.event === 'line').length).toBeGreaterThanOrEqual(body.sending.items);
+    // Las líneas de progreso llegan en directo si el SSE conecta a tiempo y, en todo caso, en el estado final.
+    expect(final?.data.lines?.length ?? 0).toBeGreaterThanOrEqual(body.sending.items);
     reviewName = result.review.name;
     const listed = (await (await api('/jobs')).json()) as { jobs: Array<{ id: string; status: string }> };
     expect(listed.jobs.map((job) => job.id)).toContain(body.job.id);
@@ -231,9 +232,11 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
   it('al cerrar el servidor, un trabajo en marcha se cancela y el cierre no se queda esperando', async () => {
     const created = (await (await post('/jobs/improve', { provider: 'lento', cache: false })).json()) as { job: { id: string; status: string } };
     expect(created.job.status).toBe('running');
-    const pending = events(created.job.id);
+    // Con las cabeceras recibidas la suscripción ya existe: el cierre debe entregar el estado final antes de cortar.
+    const response = await api(`/jobs/${created.job.id}/events`);
+    expect(response.status).toBe(200);
     await server.close();
-    expect((await pending).at(-1)?.data.status).toBe('cancelled');
+    expect(parseSse(await response.text()).at(-1)?.data.status).toBe('cancelled');
     server = await startServer({ context: appContext(fs, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
   });
 
