@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-6.1 · [RELEASE] Diseño de empaquetado y release (Hito 6) |
-| **Estado** | PROPUESTA v1 aprobada por el Director de Ingeniería el 2026-08-29; T-6.2, T-6.3 y T-6.6 implementadas (§11); T-6.4 y T-6.5 pospuestas tras la v1.0.0 por decisión del Director (2026-08-29). |
+| **Estado** | PROPUESTA v1 aprobada por el Director de Ingeniería el 2026-08-29; T-6.2, T-6.3 y T-6.6 implementadas (§11); T-6.4 y T-6.5 pospuestas tras la v1.0.0 por decisión del Director (2026-08-29). Desde T-7.5a (2026-08-30) `npm run package` tiene ocho pasos: el 3/8 construye la interfaz web (`gui/dist`) que viaja como assets, y la prueba de humo del binario arranca `cv serve` (`docs/gui-mvp.md` §11). |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | `docs/typst-integration.md` §3 (contenedor y consentimiento de red), `docs/llm-integration.md` §5 (cadena de suministro), `src/typst/` (instalación verificada de un binario externo), *spike* de empaquetado ejecutado en esta máquina el 2026-08-29 (§4). |
 

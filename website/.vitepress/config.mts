@@ -53,6 +53,7 @@ export default defineConfig({
             { text: 'Adaptar el CV a una oferta', link: '/guide/offers' },
             { text: 'Typst y temas', link: '/guide/typst-themes' },
             { text: 'Co-piloto de IA', link: '/guide/copilot' },
+            { text: 'La interfaz web', link: '/guide/web' },
             { text: 'La API local (cv serve)', link: '/guide/api' },
             { text: 'Seguridad y privacidad', link: '/guide/security' },
             { text: 'Solución de problemas', link: '/guide/troubleshooting' },
