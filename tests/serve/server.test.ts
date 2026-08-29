@@ -160,7 +160,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(pdfBody.output.bytes).toBeGreaterThan(1000);
 
     const list = (await (await api('/output')).json()) as { files: Array<{ name: string; bytes: number }> };
-    expect(list.files.map((file) => file.name)).toEqual(['cv-ada-ejemplo-backend-oferta.md', 'cv.pdf', 'propio.md']);
+    expect(list.files.map((file) => file.name)).toEqual(['cv-ada-ejemplo-backend-oferta.md', 'cv.pdf', 'fichero.md', 'propio.md']);
     const served = await api('/output/cv.pdf');
     expect(served.status).toBe(200);
     expect(served.headers.get('content-type')).toBe('application/pdf');
