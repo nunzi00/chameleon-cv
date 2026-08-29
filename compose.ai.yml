@@ -1,0 +1,40 @@
+# Superposición de IA (docs/docker.md §4): Ollama con el modelo validado, alcanzable por cv solo por loopback.
+#   docker compose -f compose.yml -f compose.ai.yml run --rm chameleon-cv llm status
+# (o COMPOSE_FILE=compose.yml:compose.ai.yml en .env). Primera vez: ≈ 3,2 GB de imagen + 4,7 GB de modelo.
+# cv comparte el espacio de red de ollama (network_mode: service:ollama): http://127.0.0.1:11434 sigue siendo
+# loopback y la guarda «solo local» del producto (canon C3) no se toca. Ollama no publica ningún puerto.
+services:
+  ollama:
+    image: ollama/ollama:0.33.2@sha256:020e4134285e2ef4d8fd801234176de3b4faadc992a3eb06c8e66a2f9d4c4ba2
+    environment:
+      OLLAMA_HOST: "127.0.0.1:11434"       # solo loopback dentro del espacio de red compartido
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    init: true
+  ollama-pull:                             # descarga el modelo una vez (persiste en ollama-models) y termina
+    image: ollama/ollama:0.33.2@sha256:020e4134285e2ef4d8fd801234176de3b4faadc992a3eb06c8e66a2f9d4c4ba2
+    network_mode: "service:ollama"
+    environment:
+      OLLAMA_HOST: "127.0.0.1:11434"
+    entrypoint: ["ollama", "pull", "${CHAMELEON_LLM_MODEL:-qwen2.5:7b-instruct}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+  chameleon-cv:
+    network_mode: "service:ollama"
+    environment:
+      CHAMELEON_LLM_MODEL: "${CHAMELEON_LLM_MODEL:-qwen2.5:7b-instruct}"   # el único modelo validado por el arnés de IA
+    depends_on:
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+volumes:
+  ollama-models:
