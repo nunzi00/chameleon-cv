@@ -4,6 +4,14 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- Interfaz web (T-7.5b, en curso): pantalla **Co-piloto** —mejorar logros, resumen profesional y sugerir etiquetas como trabajos con progreso en directo, cancelación y consentimiento de coste para proveedores remotos— y el doble local del proveedor para las pruebas de extremo a extremo.
+
+### Corregido
+
+- El resultado de un trabajo de `improve`/`summarize` en la API devolvía la ruta absoluta de la revisión; ahora es `output/<nombre>`, como el resto del contrato.
+
 ## [1.2.0] - 2026-08-30
 
 La interfaz web (T-7.5a): `cv serve --open` abre en el navegador las mismas tareas que la CLI, servidas desde el propio ejecutable y la imagen, sin nada externo. Hito 7 (T-7.5a) del [ROADMAP](ROADMAP.md).
