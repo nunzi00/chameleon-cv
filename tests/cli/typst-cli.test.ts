@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
+import { FONTS_DIRECTORY } from '../../src/renderers/pdf';
 import { serializeProfile } from '../../src/artifact';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, formatConflict, runCli, typstExitCode, type CliContext, type TypstRenderer } from '../../src/cli';
 import { defaultSourceParsers } from '../../src/parsers';
@@ -53,6 +55,7 @@ function harness(result: TypstRenderResult, tree: Record<string, string | Memory
     llmStatus: (options) => llmStatus(options),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
   };
   return { context, fs, calls, stdout: () => out.join(''), stderr: () => err.join('') };
 }
@@ -67,13 +70,13 @@ describe('cv generate-cv --format pdf --engine typst (T-3.2)', () => {
     expect(h.stdout()).toBe('CV escrito en /work/output/cv-ada-ejemplo-backend.pdf\n');
     expect(h.stderr()).toBe('');
     expect(h.fs.file('/work/output/cv-ada-ejemplo-backend.pdf')).toMatchObject({ mode: 0o600, bytes: PDF });
-    expect(h.calls).toEqual([{ locale: undefined, template: undefined, explicitPath: undefined, allowAnyVersion: false, theme: expect.objectContaining({ name: 'default', builtin: true }) }]);
+    expect(h.calls).toEqual([{ locale: undefined, template: undefined, explicitPath: undefined, allowAnyVersion: false, theme: expect.objectContaining({ name: 'default', builtin: true }), fontsDirectory: FONTS_DIRECTORY }]);
 
     const custom = harness(OK, { '/work/plantillas/mia.typ': '#let cv(d) = d.fullName' });
     expect(
       await runCli(['generate-cv', '--format', 'pdf', '--engine', 'TYPST', '-t', 'plantillas/mia.typ', '--typst-path', 'bin/typst', '--typst-any-version', '-l', 'en', '-o', 'salida/cv.pdf'], custom.context),
     ).toBe(EXIT_OK);
-    expect(custom.calls).toEqual([{ locale: 'en', template: '/work/plantillas/mia.typ', explicitPath: '/work/bin/typst', allowAnyVersion: true, theme: expect.objectContaining({ name: 'default' }) }]);
+    expect(custom.calls).toEqual([{ locale: 'en', template: '/work/plantillas/mia.typ', explicitPath: '/work/bin/typst', allowAnyVersion: true, theme: expect.objectContaining({ name: 'default' }), fontsDirectory: FONTS_DIRECTORY }]);
     expect(custom.fs.file('/work/salida/cv.pdf')?.mode).toBe(0o600);
   });
 

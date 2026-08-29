@@ -11,7 +11,7 @@ import { createRedaction, type Redaction } from '../../core/llm/redact';
 import type { ClosedDictionary, TagSuggestion } from '../../core/llm/tags';
 import type { MasterProfile } from '../../core/schema';
 import type { LlmCompletion, LlmErrorCode, LlmProvider, LlmUsage } from '../provider';
-import { loadPrompt, locateAchievement } from './improve';
+import { loadPrompt, locateAchievement, type PromptSource } from './improve';
 
 export const SUGGEST_TAGS_PROMPT_VERSION = 'suggest-tags.v1';
 export const SUGGEST_TAGS_LIMITS = { maxTags: 5, maxTagsCeiling: 10, maxText: 600, maxTokens: 400 } as const;
@@ -106,8 +106,8 @@ export function buildSuggestTagsFragment(profile: MasterProfile, target: TagTarg
   return { input, redaction, text, contextText: contextParts.join(' · '), currentTags, dictionary };
 }
 
-export function loadSuggestTagsPrompt(): Promise<string> {
-  return loadPrompt(SUGGEST_TAGS_PROMPT_VERSION);
+export function loadSuggestTagsPrompt(source?: PromptSource): Promise<string> {
+  return loadPrompt(SUGGEST_TAGS_PROMPT_VERSION, source);
 }
 
 export type SuggestTagsErrorCode = LlmErrorCode | 'invalid-output';

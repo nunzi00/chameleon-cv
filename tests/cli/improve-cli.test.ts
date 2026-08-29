@@ -2,6 +2,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { serializeProfile } from '../../src/artifact';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, achievementIds, defaultReviewPath, runCli, type CliContext, type LlmProviderResult } from '../../src/cli';
 import { MemoryLlmCache, type LlmHealth, type LlmProvider, type LlmRequest } from '../../src/llm';
@@ -86,6 +87,7 @@ async function harness(provider: LlmProviderResult | undefined, extra: Record<st
     llmStatus: () => Promise.reject(new Error('no usado')),
     llmProvider: () => Promise.resolve(provider ?? { ok: true as const, provider: fakeProvider(calls) }),
     llmCache: cache,
+    assets: defaultAssets(),
     now: () => NOW,
   };
   return { context, fs, calls, cache, stdout: () => out.join(''), stderr: () => err.join('') };

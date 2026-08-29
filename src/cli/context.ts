@@ -9,6 +9,7 @@ import { extractPdfText, type PdfExtractionResult } from '../pdf';
 import { renderTypstCv, type TypstRenderOptions, type TypstRenderResult } from '../renderers/typst';
 import { installTypst, typstStatus, type InstallOptions, type InstallResult, type Reporter, type StatusOptions, type TypstStatus } from '../typst';
 import { createNodeLlmCache, llmStatus, selectProvider, type LlmCacheStore, type LlmStatus, type LlmStatusOptions, type ProviderSelection, type ProviderSelectionResult } from '../llm';
+import { defaultAssets, type AssetStore } from '../shared/assets';
 import { readStdin } from './stdin';
 
 export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
@@ -44,6 +45,8 @@ export interface CliContext {
   readonly llmCache: LlmCacheStore;
   /** Reloj (por defecto, el del sistema): fechas de los ficheros de revisión. */
   readonly now?: (() => Date) | undefined;
+  /** Assets distribuidos (temas, fuentes, plantilla, dataset de ejemplo, prompts, package.json): repositorio o binario (T-6.2). */
+  readonly assets: AssetStore;
 }
 
 export interface NodeContextOptions {
@@ -73,6 +76,7 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
     llmProvider: (selection) => selectProvider(selection),
     ...(interactive ? { confirm: askInTerminal } : {}),
     llmCache: createNodeLlmCache(),
+    assets: defaultAssets(),
   };
 }
 

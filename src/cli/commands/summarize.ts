@@ -60,7 +60,7 @@ export function defaultSummaryReviewPath(date: Date, specialty: string | undefin
 
 export async function runSummarizeCommand(context: CliContext, options: SummarizeOptions): Promise<number> {
   if (options.showPrompt) {
-    context.stdout(`${await loadSummarizePrompt()}\n`);
+    context.stdout(`${await loadSummarizePrompt(context.assets)}\n`);
     return EXIT_OK;
   }
 
@@ -121,7 +121,7 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
     return EXIT_OK;
   }
 
-  const prompt = await loadSummarizePrompt();
+  const prompt = await loadSummarizePrompt(context.assets);
   if (provider.kind === 'local') {
     const health = await provider.health();
     if (!health.ok) {

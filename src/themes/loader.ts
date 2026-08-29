@@ -39,8 +39,8 @@ export interface LoadedTheme {
 
 export type ThemeLoadResult = { readonly ok: true; readonly theme: LoadedTheme } | { readonly ok: false; readonly message: string };
 
-export function builtinThemeRoot(fileSystem: FileSystem = new NodeFileSystem()): ThemeRoot {
-  return { directory: BUILTIN_THEMES_DIRECTORY, fileSystem, builtin: true };
+export function builtinThemeRoot(fileSystem: FileSystem = new NodeFileSystem(), directory: string = BUILTIN_THEMES_DIRECTORY): ThemeRoot {
+  return { directory, fileSystem, builtin: true };
 }
 
 /** Orden de búsqueda: `themes/` del proyecto (con el sistema de ficheros inyectado) y después los distribuidos. */

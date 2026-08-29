@@ -69,7 +69,7 @@ export function parseOnly(only: string | undefined): string[] | undefined {
 
 export async function runImproveCommand(context: CliContext, options: ImproveOptions): Promise<number> {
   if (options.showPrompt) {
-    context.stdout(`${await loadPrompt()}\n`);
+    context.stdout(`${await loadPrompt(IMPROVE_PROMPT_VERSION, context.assets)}\n`);
     return EXIT_OK;
   }
 
@@ -135,7 +135,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
     return EXIT_OK;
   }
 
-  const prompt = await loadPrompt();
+  const prompt = await loadPrompt(IMPROVE_PROMPT_VERSION, context.assets);
   if (provider.kind === 'local') {
     const health = await provider.health();
     if (!health.ok) {

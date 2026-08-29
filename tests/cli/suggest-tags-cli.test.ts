@@ -2,6 +2,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { serializeProfile } from '../../src/artifact';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, REMOTE_CANCELLED, parseMaxTags, runCli, type CliContext, type LlmProviderResult } from '../../src/cli';
 import { MemoryLlmCache, type LlmHealth, type LlmProvider, type LlmRequest } from '../../src/llm';
@@ -98,6 +99,7 @@ async function harness(options: HarnessOptions = {}): Promise<Harness> {
     llmStatus: () => Promise.reject(new Error('no usado')),
     llmProvider: () => Promise.resolve(options.provider ?? { ok: true as const, provider: fakeProvider(calls) }),
     llmCache: cache,
+    assets: defaultAssets(),
     now: () => NOW,
     ...(options.confirm === undefined ? {} : { confirm: options.confirm }),
   };

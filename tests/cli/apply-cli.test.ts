@@ -3,6 +3,7 @@ import { join, relative } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { serializeProfile } from '../../src/artifact';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, backupPath, buildSourceIndex, isSafeSourcePath, runCli, summarySource, type CliContext } from '../../src/cli';
 import { MemoryLlmCache, fingerprint, formatReview, type LlmProvider, type LlmRequest, type ReviewHeader, type ReviewItem } from '../../src/llm';
@@ -96,6 +97,7 @@ async function harness(task: 'improve' | 'summarize' = 'improve', extra: Record<
     llmStatus: () => Promise.reject(new Error('no usado')),
     llmProvider: () => Promise.resolve({ ok: true as const, provider: fakeProvider(task) }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
     now: () => NOW,
   };
   return {

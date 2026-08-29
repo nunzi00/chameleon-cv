@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, THEME_FILE_MODE, runCli, type CliContext } from '../../src/cli';
 import { MemoryLlmCache } from '../../src/llm';
 import { defaultSourceParsers } from '../../src/parsers';
@@ -42,6 +43,7 @@ function harness(tree: Record<string, string | MemoryEntry> = {}): Harness {
     llmStatus: () => Promise.reject(new Error('no usado')),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
 }

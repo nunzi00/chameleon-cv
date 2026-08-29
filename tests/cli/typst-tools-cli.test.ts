@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { EXIT_FAILURE, EXIT_OK, runCli, type CliContext, type TypstInstaller, type TypstStatusReporter } from '../../src/cli';
 import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
@@ -46,6 +47,7 @@ function harness(install: InstallResult, status: TypstStatus): Harness {
     llmStatus: (options) => llmStatus(options),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
   };
   return { context, installs, stdout: () => out.join(''), stderr: () => err.join('') };
 }

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { defaultAssets } from '../../src/shared/assets';
 import { NodeWritableFileSystem, type WritableFileSystem } from '../../src/artifact';
 import { EXIT_FAILURE, EXIT_OK, GITIGNORE_ENTRIES, SOURCE_MODE, TEMPLATE_DATASET_DIR, listTemplateFiles, runCli, type CliContext } from '../../src/cli';
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../src/parsers';
@@ -55,6 +56,7 @@ function harness(tree: Record<string, string | MemoryEntry> = TEMPLATE, override
     llmStatus: (options) => llmStatus(options),
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
+    assets: defaultAssets(),
     ...overrides,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
@@ -181,6 +183,7 @@ describe('cv init', () => {
       llmStatus: (options) => llmStatus(options),
       llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
       llmCache: new MemoryLlmCache(),
+      assets: defaultAssets(),
     };
     try {
       expect(TEMPLATE_DATASET_DIR.endsWith(join('templates', 'dataset'))).toBe(true);
