@@ -12,7 +12,7 @@ cv serve --open      # arranca el servidor y abre el navegador con la URL y el t
 ```
 
 ```text
-Chameleon CV 1.2.0 · espacio de trabajo /home/ada/mi-cv
+Chameleon CV 1.3.0 · espacio de trabajo /home/ada/mi-cv
 API: http://127.0.0.1:4310/api/v1/ (Authorization: Bearer <token>)
 Interfaz: http://127.0.0.1:4310/#token=4f6c…e2
 Ctrl-C para parar (o POST /api/v1/shutdown)
@@ -49,13 +49,21 @@ Las mismas opciones que `cv generate-cv`: especialidad, oferta (pegada como text
 
 Los ficheros de `output/` —CV en PDF y Markdown, revisiones del co-piloto— con su tamaño; cada uno se ve (texto o visor de PDF) y se descarga.
 
-## Co-piloto y Revisiones
+## Co-piloto
 
-Llegan en la versión 1.3.0 (trabajos con progreso en directo, consentimiento de coste para proveedores remotos, revisiones con comparación antes/después y aplicación). Mientras tanto, `cv improve`, `cv summarize`, `cv suggest tags` y `cv improve apply` hacen lo mismo desde la terminal (ver [Co-piloto de IA](/guide/copilot)).
+![Pantalla Co-piloto: el formulario de mejorar logros, el panel «qué sale y a dónde» y un trabajo terminado con su progreso y el enlace a la revisión](/gui/copiloto.png)
+
+Las tres tareas de `cv improve`, `cv summarize` y `cv suggest tags` como **trabajos**: eliges la tarea y sus límites (logros por ejecución, propuestas por logro, longitud máxima, una oferta opcional por texto o fichero), pulsas **Lanzar** y sigues el progreso en directo —las mismas líneas `[n/m]` que la terminal— con un botón para cancelar. Antes de lanzar, el panel «qué sale y a dónde» dice qué se envía al proveedor (los textos de los logros o del perfil, y la oferta si la hay; nunca tus ficheros enteros) y a cuál. Con un proveedor remoto (`cv serve --allow-remote`), el servidor responde primero con una **estimación** de lo que se enviaría y la interfaz pide tu confirmación; solo entonces se lanza. El resultado de mejorar y resumir es una **revisión** en `output/`, enlazada desde el trabajo; el de sugerir etiquetas, una lista que copias y aplicas tú en la fuente. Ningún trabajo escribe en tus fuentes.
+
+## Revisiones
+
+![Pantalla Revisiones: un ítem con su original a la izquierda, las propuestas con casillas a la derecha y el plan de aplicación](/gui/revisiones.png)
+
+Cada revisión muestra, ítem a ítem, el **antes** (el logro tal como está en la fuente, con su impacto y su `fichero:línea`) y el **después**: las propuestas del modelo, con casilla las que superaron la verificación (C2) y tachadas las rechazadas. Marcas la que quieras de cada ítem y **Guardar marcas** escribe solo `[ ]`→`[x]` en el fichero de la revisión (el resto queda intacto: `cv improve apply` lee exactamente lo mismo). **Plan de aplicación** enseña qué ficheros e ids cambiarían sin tocar nada; **Escribir en las fuentes** —tras confirmar— aplica las marcadas dejando una copia `.bak` de cada fichero, y si un original ya no está tal cual en la fuente no escribe nada y explica por qué. Después, recompila el artefacto en Estado. **Eliminar** borra solo el fichero de la revisión.
 
 ## Qué escribe la interfaz y qué no
 
-Escribe **solo cuando pulsas un botón con nombre**: Guardar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema (`themes/<nombre>/`). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.
+Escribe **solo cuando pulsas un botón con nombre**: Guardar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema (`themes/<nombre>/`), Lanzar (una revisión en `output/` al terminar un trabajo de mejorar o resumir), Guardar marcas (el fichero de la revisión), Escribir en las fuentes (tus fuentes, con copia `.bak`, tras confirmar) y Eliminar (una revisión). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.
 
 ## Seguridad
 
