@@ -1,0 +1,79 @@
+# Portal de documentación (T-7.1, docs/docs-portal.md §6): en cada pull request que toque la documentación se
+# construye; en cada push a main se construye y se despliega en GitHub Pages. Docs-as-Code: la referencia se
+# genera desde la CLI, las notas de diseño se sincronizan y los tutoriales se ejecutan contra el binario
+# compilado (con Typst real). Permisos mínimos, acciones fijadas por SHA (el comentario indica la versión),
+# sin secretos. Requisito único en el repositorio: Pages con origen «GitHub Actions».
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths: ['website/**', 'docs/**', 'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'ROADMAP.md', 'LICENSE', 'src/cli/**', 'scripts/docs/**', 'package.json', '.github/workflows/pages.yml']
+  pull_request:
+    paths: ['website/**', 'docs/**', 'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'ROADMAP.md', 'LICENSE', 'src/cli/**', 'scripts/docs/**', 'package.json', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TYPST_VERSION: '0.15.1'
+
+jobs:
+  build:
+    name: Construir el portal (referencia generada, sincronización, enlaces, tutoriales ejecutados)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            website/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix website
+      - run: npm run build
+      - name: Caché del binario de Typst (los tutoriales generan PDF de calidad editorial)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/chameleon-cv/typst
+          key: typst-${{ env.TYPST_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Typst ${{ env.TYPST_VERSION }} (cv typst install)
+        run: node dist/index.js typst install
+      - name: Ruta base de GitHub Pages (https://<propietario>.github.io/<repositorio>/)
+        run: echo "DOCS_BASE=/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_ENV"
+      - name: Generación, build (falla con enlaces muertos) y tutoriales contra el binario
+        run: npm run docs:check
+      - name: Configuración de Pages (solo al desplegar)
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Artefacto del sitio (solo al desplegar)
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: website/.vitepress/dist
+
+  deploy:
+    name: Desplegar en GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
