@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-6.1 · [RELEASE] Diseño de empaquetado y release (Hito 6) |
-| **Estado** | PROPUESTA v1 (2026-08-29), pendiente de aprobación del Director de Ingeniería. |
+| **Estado** | PROPUESTA v1 aprobada por el Director de Ingeniería el 2026-08-29; T-6.2 implementada (§11). |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | `docs/typst-integration.md` §3 (contenedor y consentimiento de red), `docs/llm-integration.md` §5 (cadena de suministro), `src/typst/` (instalación verificada de un binario externo), *spike* de empaquetado ejecutado en esta máquina el 2026-08-29 (§4). |
 
@@ -178,3 +178,7 @@ Sin certificados, el binario funciona en las tres plataformas pero macOS y Windo
 4. **Firma**: 1.0 sin certificados comerciales (firma *ad hoc* + hashes + atestación) o inversión en Developer ID y Authenticode (T-6.5).
 5. **Canales**: binarios en GitHub Releases + npm desde 1.0 (recomendado); Homebrew en 1.1.
 6. **Versión de Node de construcción**: 26 (con `--build-sea`; LTS en octubre de 2026) o 24 LTS con `postject`.
+
+## 11. Estado de la implementación
+
+- **T-6.2 (2026-08-29)**: entregada. **Capa de assets** (`src/shared/assets.ts`): `AssetStore` con `DiskAssets` (repositorio), `MemoryAssets` (pruebas) y `SeaAssets` (`node:sea`; materialización atómica en `<caché>/chameleon-cv/assets/<versión>/`, 0700/0644, SHA-256 de cada fichero comprobado contra el manifiesto embebido en cada uso; errores tipificados `invalid-key`/`missing`/`corrupt`/`unwritable`). Los ocho acoplamientos de §2.1 leen por la capa (`CliContext.assets`): versión, plantilla Markdown, prompts, dataset de `init`, temas distribuidos, fuentes de Typst (directorio materializado), fuentes de pdfkit (bytes) y worker de PDF (por código, `eval`, con los mismos límites). **Dos hallazgos** que el spike no había destapado: (1) pdf.js exige `DOMMatrix` al cargarse y, sin el addon nativo `@napi-rs/canvas`, no arranca: `src/pdf/dom-matrix.mts` es un `DOMMatrix` afín 2D mínimo instalado antes que pdf.js en el repositorio y en el binario por igual, y el manejador `pdf.worker.mjs` se importa de forma estática para que pdf.js no lo busque por ruta; (2) pdfkit carga sus fuentes estándar (Courier para el código en línea) con un `require` indirecto: `scripts/package.ts` lo hace estático con un plugin de esbuild y los datos viajan en el bundle. **`npm run package`** (linux-x64, Node 26 `--build-sea`): compilación limpia, bundles de 4,4 MB (CLI) y 3,2 MB (worker), 25 assets (4,4 MB con el manifiesto), ejecutable de 69 MB con el Node del sistema, prueba de humo (init, build, Markdown, pdfkit, oferta en PDF, temas, prompt, Typst) y archivo `chameleon-cv-0.1.0-linux-x64.tar.gz` de 23 MB reproducible con su `.sha256`; 21 s. **Aceptación**: los dos arneses admiten `--binary`; el determinista dio **77/77 pasos idénticos** con el ejecutable (22 s frente a 33 s con `node dist/index.js`) y el de IA **16/16** con el modelo local. Pendiente para T-6.6: la licencia del proyecto (`package.json` dice `UNLICENSED`; el archivo lleva el README y la licencia OFL de las fuentes).

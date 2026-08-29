@@ -41,6 +41,7 @@ npm run test:acceptance:deterministic          # compara: código 0 si todo coin
 npm run test:acceptance:deterministic -- core typst     # solo esos escenarios
 npm run test:acceptance:deterministic -- --require-typst  # sin binario de Typst, fallo en lugar de omisión (para el release)
 npm run test:acceptance:deterministic -- --keep           # conserva la copia temporal de cada escenario (imprime su ruta)
+npm run test:acceptance:deterministic -- --binary build/sea/cv   # los mismos escenarios y artefactos esperados contra el ejecutable autónomo (T-6.2)
 ```
 
 Typst es opcional: si hay binario (la caché de `cv typst install` o `CHAMELEON_TYPST`), el escenario `typst` se ejecuta; si no, se **omite de forma visible** en el resumen (`· typst: OMITIDO — …`) y sus artefactos no se tocan.
@@ -49,7 +50,7 @@ Typst es opcional: si hay binario (la caché de `cv typst install` o `CHAMELEON_
 
 1. Copia `bench/workspace/` a un directorio temporal (o parte de uno vacío, para `init`).
 2. Ejecuta cada paso con el **binario compilado** (`node dist/index.js …`) en un entorno mínimo y determinista: `PATH` vacío, `HOME` y los directorios XDG dentro de la copia (la caché y `keys.json` nunca son los del usuario), `TZ=UTC`, sin heredar nada del entorno; `CHAMELEON_TYPST` solo en el escenario `typst`.
-3. Normaliza las rutas volátiles en stdout y stderr: la copia → `<WS>`, el directorio temporal → `<TMP>`, el repositorio → `<REPO>`, el binario de Typst → `<TYPST>`.
+3. Normaliza las rutas volátiles en stdout y stderr: la copia → `<WS>`, el directorio temporal → `<TMP>`, el repositorio → `<REPO>`, el binario de Typst → `<TYPST>` y el directorio de los temas distribuidos → `<BUILTIN_THEMES>` (el del repositorio con `dist/`; la caché materializada con el ejecutable), de modo que los artefactos esperados valen para ambos.
 4. Compara con lo esperado: el código de salida (que además debe coincidir con el catálogo), stdout y stderr, y cada fichero declarado. Texto y JSON: byte a byte, y si difieren, un diff por líneas con contexto. PDF: byte a byte (pdfkit con fecha fija y Typst con `--creation-timestamp` son deterministas), y si difieren, páginas, tamaño y el diff del **texto extraído** de ambos. Árboles (`init`): ficheros que faltan, que sobran y contenido de cada uno.
 5. Un código de salida distinto del esperado detiene el escenario (el estado ya no es el previsto); el resto de diferencias se acumulan y se informan todas.
 
@@ -91,6 +92,7 @@ ollama serve && ollama pull qwen2.5:7b-instruct       # proveedor por defecto y 
 npm run build && npm run test:acceptance:ai            # código 0 si pasa, 1 si algo falla, 2 si no se puede ejecutar
 # alternativa: cualquier servidor local compatible con OpenAI (llama-server, LM Studio)
 CHAMELEON_LLM_PROVIDER=openai-compatible CHAMELEON_LLM_BASE_URL=http://127.0.0.1:8080 npm run test:acceptance:ai
+npm run test:acceptance:ai -- --binary build/sea/cv      # contra el ejecutable autónomo (T-6.2)
 ```
 
 **Precondición programática**: antes de nada comprueba, con la misma lógica de `cv llm status`, que el proveedor local configurado responde y sirve el modelo. Si no, imprime el estado y qué hacer (qué arrancar, qué modelo descargar) y termina con código 2. Al binario solo llegan `CHAMELEON_LLM_PROVIDER`, `CHAMELEON_LLM_BASE_URL` y `CHAMELEON_LLM_MODEL`; **nunca** una clave ni un proveedor remoto.
@@ -136,4 +138,5 @@ Ejecución del 2026-08-29 con Qwen2.5-7B-Instruct (Q4_K_M) en `llama-server` (CP
 | `npm run acceptance:bench` | Regenera los ficheros derivados del banco (PDF de ofertas, revisiones marcadas). |
 | `npm run test:acceptance:deterministic` | Arnés determinista (compara). `-- --update` regenera; `-- <escenario…>` acota; `-- --require-typst`; `-- --keep`. |
 | `npm run acceptance:update` | Alias de `test:acceptance:deterministic -- --update`. |
-| `npm run test:acceptance:ai` | Arnés de IA (requiere un modelo local que responda). |
+| `npm run test:acceptance:ai` | Arnés de IA (requiere un modelo local que responda). `-- --binary <ejecutable>` lo ejecuta contra el binario. |
+| `npm run package` | Ejecutable autónomo para esta plataforma (`build/release/…tar.gz`), con prueba de humo (`docs/packaging-and-release.md`). |
