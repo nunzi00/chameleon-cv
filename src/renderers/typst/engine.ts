@@ -10,6 +10,8 @@ import { access, stat } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { cacheDirectory } from '../../shared/cache';
+
 import { describeError } from '../../shared/errors';
 
 /** Versión fijada (`docs/typst-integration.md` §2.3): la plantilla se prueba contra esta versión. */
@@ -223,15 +225,7 @@ export interface LocateOptions {
 }
 
 /** Directorio de caché de usuario donde `cv typst install` (T-3.3) deja el binario. */
-export function cacheDirectory(env: NodeJS.ProcessEnv, platform: NodeJS.Platform, home: string): string {
-  if (platform === 'win32') {
-    return join(env['LOCALAPPDATA'] ?? join(home, 'AppData', 'Local'), 'chameleon-cv');
-  }
-  if (platform === 'darwin') {
-    return join(home, 'Library', 'Caches', 'chameleon-cv');
-  }
-  return join(env['XDG_CACHE_HOME'] ?? join(home, '.cache'), 'chameleon-cv');
-}
+export { cacheDirectory } from '../../shared/cache';
 
 export function cachedBinaryPath(env: NodeJS.ProcessEnv, platform: NodeJS.Platform, home: string, version: string = TYPST_VERSION): string {
   return join(cacheDirectory(env, platform, home), 'typst', version, platform === 'win32' ? 'typst.exe' : 'typst');
