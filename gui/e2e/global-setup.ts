@@ -1,0 +1,74 @@
+import { spawn, spawnSync } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(HERE, '..', '..');
+export const STATE_FILE = join(HERE, '.state.json');
+
+export interface ServerState {
+  readonly url: string;
+  readonly token: string;
+  readonly workspace: string;
+}
+
+/** `cv` bajo prueba: el ejecutable de CV_BINARY o dist/index.js con el Node actual. */
+function cvCommand(): readonly string[] {
+  const binary = process.env['CV_BINARY'];
+  // Relativo a la raíz del repositorio (npm --prefix gui ejecuta en gui/): CV_BINARY=build/sea/cv funciona desde la raíz.
+  return binary === undefined || binary === '' ? [process.execPath, join(ROOT, 'dist', 'index.js')] : [resolve(ROOT, binary)];
+}
+
+export default async function globalSetup(): Promise<() => Promise<void>> {
+  const temporary = mkdtempSync(join(tmpdir(), 'cv-gui-e2e-'));
+  const workspace = join(temporary, 'work');
+  const home = join(temporary, 'home');
+  mkdirSync(workspace);
+  mkdirSync(home);
+  const env: NodeJS.ProcessEnv = {
+    PATH: process.env['PATH'] ?? '',
+    HOME: home,
+    XDG_CONFIG_HOME: join(home, '.config'),
+    XDG_CACHE_HOME: join(home, '.cache'),
+    TZ: 'UTC',
+    LANG: 'C.UTF-8',
+    // Sin modelo local: el co-piloto no forma parte de estas pruebas (T-7.5b usará un doble).
+    CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9',
+    ...(process.env['CHAMELEON_TYPST'] === undefined ? {} : { CHAMELEON_TYPST: process.env['CHAMELEON_TYPST'] }),
+  };
+  const [command = '', ...leading] = cvCommand();
+  for (const args of [['init'], ['build']]) {
+    const result = spawnSync(command, [...leading, ...args], { cwd: workspace, env, encoding: 'utf8' });
+    if (result.status !== 0) {
+      throw new Error(`cv ${args.join(' ')} falló: ${result.stderr}${result.stdout}`);
+    }
+  }
+  mkdirSync(join(workspace, 'ofertas'));
+  cpSync(join(ROOT, 'tests', 'acceptance', 'bench', 'workspace', 'offers', 'nexo-senior-backend.txt'), join(workspace, 'ofertas', 'nexo.txt'));
+
+  const child = spawn(command, [...leading, 'serve', '--port', '0'], { cwd: workspace, env, stdio: ['ignore', 'ignore', 'pipe'] });
+  let stderr = '';
+  const started = await new Promise<ServerState>((resolvePromise, reject) => {
+    const deadline = setTimeout(() => reject(new Error(`cv serve no arrancó en 20 s\n${stderr}`)), 20_000);
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString('utf8');
+      const match = /Interfaz: (http:\/\/127\.0\.0\.1:\d+\/)#token=(\S+)/.exec(stderr);
+      if (match !== null) {
+        clearTimeout(deadline);
+        resolvePromise({ url: String(match[1]), token: String(match[2]), workspace });
+      }
+    });
+    child.once('exit', (code) => {
+      clearTimeout(deadline);
+      reject(new Error(`cv serve terminó con ${code}\n${stderr}`));
+    });
+  });
+  writeFileSync(STATE_FILE, JSON.stringify(started));
+  return async () => {
+    child.kill();
+    rmSync(STATE_FILE, { force: true });
+    rmSync(temporary, { recursive: true, force: true });
+  };
+}
