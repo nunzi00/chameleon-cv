@@ -23,7 +23,7 @@ const PROVIDER: LlmConfigResponse['llm']['providers'][number] = {
 function response(overrides: { llm?: Partial<LlmConfigResponse['llm']>; remote?: LlmConfigResponse['remote']; file?: LlmConfigResponse['file'] } = {}): LlmConfigResponse {
   return {
     llm: {
-      config: { provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen', sources: { provider: 'file', baseUrl: 'file', model: 'file' } },
+      config: { provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen', context: 16384, sources: { provider: 'file', baseUrl: 'file', model: 'file', context: 'default' } },
       configError: undefined,
       health: undefined,
       keys: { openai: 'none', anthropic: 'none', groq: 'none' },
@@ -73,7 +73,7 @@ describe('Ajustes', () => {
   it('rechaza una URL que no es loopback, muestra el 409 al guardar, bloquea lo fijado por el entorno y avisa del 401', async () => {
     const onsession = vi.fn();
     const api = fakeApi({
-      llmConfig: vi.fn(async () => response({ llm: { config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen', sources: { provider: 'env', baseUrl: 'default', model: 'default' } } } })),
+      llmConfig: vi.fn(async () => response({ llm: { config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen', context: 16384, sources: { provider: 'env', baseUrl: 'default', model: 'default', context: 'default' } } } })),
       writeLlmConfig: vi.fn(async () => {
         throw new ApiError(409, { code: 'conflict', message: '/work/cv.toml cambió desde que se leyó' });
       }),
@@ -218,7 +218,7 @@ describe('Ajustes · catálogo de modelos locales (T-8.13)', () => {
     configured: id === 'qwen2.5:7b-instruct',
   });
   const MODELS = { catalogue: [entry('qwen2.5:7b-instruct', 'none', true, undefined), entry('qwen3:8b', 'switchable', false, 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M')], others: [], running: true, disabled: undefined };
-  const OLLAMA = response({ llm: { config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', sources: { provider: 'file', baseUrl: 'default', model: 'file' } } } });
+  const OLLAMA = response({ llm: { config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', context: 16384, sources: { provider: 'file', baseUrl: 'default', model: 'file', context: 'default' } } } });
 
   it('con catálogo, el modelo se elige en un selector (con «otro» libre) y think se guarda como [llm] think', async () => {
     // El doble del servidor recuerda lo guardado: tras «Guardar», la pantalla recarga cv.toml y muestra el modelo elegido.
@@ -229,7 +229,7 @@ describe('Ajustes · catálogo de modelos locales (T-8.13)', () => {
       writeLlmConfig: vi.fn(async (body: { model?: string; think?: boolean }) => {
         current = response({
           llm: {
-            config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: body.model ?? '', sources: { provider: 'file', baseUrl: 'default', model: 'file' } },
+            config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: body.model ?? '', context: 16384, sources: { provider: 'file', baseUrl: 'default', model: 'file', context: 'default' } },
             settings: { path: '/work/cv.toml', present: true, configured: true, error: undefined, values: { provider: 'ollama', ...body } },
           },
         });

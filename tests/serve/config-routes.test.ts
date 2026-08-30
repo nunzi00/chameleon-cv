@@ -49,7 +49,7 @@ describe('cv serve: GET/PUT /config/llm y POST /config/llm/check', () => {
     expect(body.file).toMatchObject({ path: '/work/cv.toml', present: true });
     expect(response.headers.get('etag')).toBe(`"${body.file.sha256}"`);
     expect(body.llm.settings).toMatchObject({ present: true, configured: false });
-    expect(body.llm.config.sources).toEqual({ provider: 'default', baseUrl: 'default', model: 'default', think: 'default' });
+    expect(body.llm.config.sources).toEqual({ provider: 'default', baseUrl: 'default', model: 'default', think: 'default', context: 'default' });
     expect(body.llm.providers.map((provider) => provider.id)).toEqual(['openai', 'anthropic', 'groq']);
     expect(body.llm.providers[2]).toMatchObject({ plan: 'free', live: { remainingRequests: 28 } });
     expect(JSON.stringify(body)).not.toContain('sk-');

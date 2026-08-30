@@ -629,10 +629,12 @@
     ],
     "config": {
       "baseUrl": "http://127.0.0.1:9",
+      "context": 16384,
       "model": "qwen3:8b",
       "provider": "ollama",
       "sources": {
         "baseUrl": "env",
+        "context": "default",
         "model": "default",
         "provider": "default",
         "think": "default"
@@ -822,10 +824,12 @@
     ],
     "config": {
       "baseUrl": "http://127.0.0.1:9",
+      "context": 16384,
       "model": "qwen",
       "provider": "openai-compatible",
       "sources": {
         "baseUrl": "env",
+        "context": "default",
         "model": "file",
         "provider": "file",
         "think": "default"

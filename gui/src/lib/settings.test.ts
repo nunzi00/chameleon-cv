@@ -25,7 +25,7 @@ const GROQ: LlmConfigResponse['llm']['providers'][number] = {
 function config(overrides: Partial<LlmConfigResponse['llm']> = {}): LlmConfigResponse {
   return {
     llm: {
-      config: { provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen', sources: { provider: 'file', baseUrl: 'file', model: 'env' } },
+      config: { provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen', context: 16384, sources: { provider: 'file', baseUrl: 'file', model: 'env', context: 'default' } },
       configError: undefined,
       health: undefined,
       keys: { openai: 'none', anthropic: 'none', groq: 'none' },
@@ -55,12 +55,12 @@ describe('ajustes del co-piloto', () => {
   it('el formulario parte de la configuración efectiva y sabe qué fija el entorno', () => {
     expect(formFromConfig(config())).toMatchObject({ provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen' });
     expect(lockedFields(config())).toEqual({ provider: false, baseUrl: false, model: true });
-    const defaults = config({ config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', sources: { provider: 'default', baseUrl: 'default', model: 'default' } } });
+    const defaults = config({ config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', context: 16384, sources: { provider: 'default', baseUrl: 'default', model: 'default', context: 'default' } } });
     expect(formFromConfig(defaults)).toMatchObject({ provider: 'ollama', baseUrl: '', model: '' });
     const invalid = config({ config: undefined, configError: 'Configuración inválida' });
     expect(formFromConfig(invalid)).toMatchObject({ provider: 'ollama', baseUrl: '', model: '' });
     expect(lockedFields(invalid)).toEqual({ provider: false, baseUrl: false, model: false });
-    expect(lockedFields(config({ config: { provider: 'ollama', baseUrl: 'x', model: 'y', sources: { provider: 'flag', baseUrl: 'env', model: 'file' } } }))).toEqual({ provider: true, baseUrl: true, model: false });
+    expect(lockedFields(config({ config: { provider: 'ollama', baseUrl: 'x', model: 'y', context: 16384, sources: { provider: 'flag', baseUrl: 'env', model: 'file', context: 'default' } } }))).toEqual({ provider: true, baseUrl: true, model: false });
   });
 
   it('buildSettings exige URL loopback, omite vacíos y conserva los modelos por defecto de los remotos', () => {
@@ -226,5 +226,13 @@ describe('catálogo de modelos locales en Ajustes (T-8.13)', () => {
     const form = formFromConfig(on);
     expect(buildSettings({ ...form, provider: 'ollama' }, undefined)).toEqual({ ok: true, value: { provider: 'ollama', think: true } });
     expect(buildSettings({ ...form, provider: 'ollama', think: false }, undefined)).toEqual({ ok: true, value: { provider: 'ollama' } });
+  });
+
+  it('[llm] context se conserva tal cual al guardar (se edita en cv.toml, no en el formulario)', () => {
+    const withContext = { llm: { config: undefined, settings: { path: '/w/cv.toml', present: true, configured: true, error: undefined, values: { context: 8192 } } } } as unknown as LlmConfigResponse;
+    const form = formFromConfig(withContext);
+    expect(form.context).toBe(8192);
+    expect(buildSettings(form, undefined)).toEqual({ ok: true, value: { provider: 'ollama', context: 8192 } });
+    expect(formFromConfig(config()).context).toBeUndefined();
   });
 });

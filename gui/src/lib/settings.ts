@@ -29,6 +29,8 @@ export interface LocalForm {
   runtimeImage: string;
   /** `[llm] think` (T-8.13): pedir razonamiento a los modelos locales que lo conmutan. */
   think: boolean;
+  /** `[llm] context` (`num_ctx`): se conserva tal cual al guardar; se edita en cv.toml. */
+  context?: number | undefined;
 }
 
 export const RUNNER_CHOICES: readonly { readonly id: RuntimeRunnerChoice; readonly label: string }[] = [
@@ -62,7 +64,7 @@ export function isLoopbackUrl(url: string): boolean {
 export function formFromConfig(config: LlmConfigResponse): LocalForm {
   const effective = config.llm.config;
   const runtime = config.llm.settings.values?.runtime;
-  const preferences = { runtimeRunner: runtime?.runner ?? '', runtimeImage: runtime?.image ?? '', think: config.llm.settings.values?.think === true } as const;
+  const preferences = { runtimeRunner: runtime?.runner ?? '', runtimeImage: runtime?.image ?? '', think: config.llm.settings.values?.think === true, context: config.llm.settings.values?.context } as const;
   if (effective === undefined) {
     return { provider: 'ollama', baseUrl: '', model: '', ...preferences };
   }
@@ -95,6 +97,7 @@ export function buildSettings(form: LocalForm, models: LlmSettingsWriteRequest['
       ...(model === '' ? {} : { model }),
       ...(models === undefined || Object.keys(models).length === 0 ? {} : { models }),
       ...(form.think ? { think: true } : {}),
+      ...(form.context === undefined ? {} : { context: form.context }),
       ...(Object.keys(runtime).length === 0 ? {} : { runtime }),
     },
   };

@@ -6,11 +6,11 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
   it('por defecto Ollama en loopback con el modelo fijado; el entorno puede cambiar proveedor local, URL y modelo', () => {
     expect(resolveLlmConfig({})).toEqual({
       ok: true,
-      config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen3:8b', think: false, sources: { provider: 'default', baseUrl: 'default', model: 'default', think: 'default' } },
+      config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen3:8b', think: false, context: 16384, sources: { provider: 'default', baseUrl: 'default', model: 'default', think: 'default', context: 'default' } },
     });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: 'OpenAI-Compatible', [LLM_ENV.baseUrl]: 'http://localhost:8080 ', [LLM_ENV.model]: ' qwen ' })).toEqual({
       ok: true,
-      config: { provider: 'openai-compatible', baseUrl: 'http://localhost:8080', model: 'qwen', think: false, sources: { provider: 'env', baseUrl: 'env', model: 'env', think: 'default' } },
+      config: { provider: 'openai-compatible', baseUrl: 'http://localhost:8080', model: 'qwen', think: false, context: 16384, sources: { provider: 'env', baseUrl: 'env', model: 'env', think: 'default', context: 'default' } },
     });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: 'openai-compatible', [LLM_ENV.baseUrl]: '', [LLM_ENV.model]: '' })).toMatchObject({ ok: true, config: { baseUrl: 'http://127.0.0.1:8080', model: 'default' } });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: '' })).toMatchObject({ ok: true, config: { provider: 'ollama', sources: { provider: 'default' } } });

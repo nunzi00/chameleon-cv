@@ -13,6 +13,11 @@ import { DEFAULT_SEED, DEFAULT_TEMPERATURE, parseModelJson, type LlmCompletion, 
 export const OLLAMA_DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
 /** Defecto desde T-8.11/T-8.13 (docs/qwen3-evaluation.md §4): 16/16 en el arnés de IA y reescrituras que superan la verificación C2. */
 export const OLLAMA_DEFAULT_MODEL = 'qwen3:8b';
+/**
+ * Ventana de contexto (`options.num_ctx`) pedida en cada petición: sin ella Ollama carga el modelo con su
+ * defecto (4096) y los prompts largos (propuestas con fuentes) fallan con HTTP 400 `exceed_context_size_error`.
+ */
+export const OLLAMA_DEFAULT_CONTEXT = 16384;
 
 const ChatResponseSchema = z.looseObject({
   model: z.string(),
@@ -47,6 +52,8 @@ export interface OllamaOptions {
   readonly http?: JsonHttp | undefined;
   /** `[llm] think` (T-8.13): pedir razonamiento a los modelos que lo conmutan. */
   readonly think?: boolean | undefined;
+  /** `[llm] context`: ventana de contexto (`num_ctx`); por defecto `OLLAMA_DEFAULT_CONTEXT`. */
+  readonly contextLength?: number | undefined;
 }
 
 export function httpErrorToLlm(code: JsonHttpErrorCode): LlmErrorCode {
@@ -96,7 +103,7 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
           format: request.schema,
           // Qwen3 y gpt-oss razonan por defecto y romperían el JSON estricto (T-8.11): apagado salvo que se pida (T-8.13).
           ...thinkParameter(model, options.think),
-          options: { temperature: request.temperature ?? DEFAULT_TEMPERATURE, seed: request.seed ?? DEFAULT_SEED, num_predict: request.maxTokens },
+          options: { temperature: request.temperature ?? DEFAULT_TEMPERATURE, seed: request.seed ?? DEFAULT_SEED, num_predict: request.maxTokens, num_ctx: options.contextLength ?? OLLAMA_DEFAULT_CONTEXT },
         },
       });
       if (!result.ok) {

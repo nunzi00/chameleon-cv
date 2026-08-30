@@ -95,11 +95,14 @@ describe('proveedor Ollama (nativo)', () => {
     expect(result).toMatchObject({ ok: true, json: { proposals: [{ text: 'Rediseñé la caché', rationale: 'verbo' }] }, model: 'qwen2.5:7b-instruct', usage: { promptTokens: 120, completionTokens: 30 } });
     expect(recorded[0]).toEqual({
       url: '/api/chat',
-      body: { model: 'qwen2.5:7b-instruct', messages: REQUEST.messages, stream: false, format: { type: 'object' }, options: { temperature: 0.2, seed: 3, num_predict: 300 } },
+      body: { model: 'qwen2.5:7b-instruct', messages: REQUEST.messages, stream: false, format: { type: 'object' }, options: { temperature: 0.2, seed: 3, num_predict: 300, num_ctx: 16384 } },
     });
     const defaults = await provider.complete(REQUEST);
     expect(defaults.ok).toBe(true);
-    expect(recorded[1]?.body).toMatchObject({ options: { temperature: 0, seed: 7 } });
+    expect(recorded[1]?.body).toMatchObject({ options: { temperature: 0, seed: 7, num_ctx: 16384 } });
+    const tuned = createOllamaProvider({ baseUrl: base, model: 'qwen2.5:7b-instruct', contextLength: 32768 });
+    expect((await tuned.complete(REQUEST)).ok).toBe(true);
+    expect(recorded[2]?.body).toMatchObject({ options: { num_ctx: 32768 } });
   });
 
   it('health: versión, modelos y disponibilidad (con o sin :latest); sin servidor, no disponible', async () => {

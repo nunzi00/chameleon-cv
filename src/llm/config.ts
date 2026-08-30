@@ -13,7 +13,7 @@ import { allowsHosts, createRemoteHttp, isLoopbackUrl, type JsonHttp, type Quota
 import { KEY_ENV_VARIABLES, resolveApiKey, type KeyLookupOptions, type KeySource } from './keys';
 import { QuotaLedger, defaultQuotaLedger } from './quota';
 import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, isRemoteProviderId, registryHosts, remoteProvider, unavailableMessage, type RemoteProviderId } from './registry';
-import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL, createOllamaProvider } from './ollama';
+import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_CONTEXT, OLLAMA_DEFAULT_MODEL, createOllamaProvider } from './ollama';
 import { OPENAI_COMPATIBLE_DEFAULT_BASE_URL, OPENAI_COMPATIBLE_DEFAULT_MODEL, createOpenAiCompatibleProvider } from './openai-compatible';
 import type { LlmProvider, LlmProviderId, LocalProviderId } from './provider';
 import type { LlmSettings } from './settings';
@@ -23,6 +23,7 @@ export const LLM_ENV = {
   baseUrl: 'CHAMELEON_LLM_BASE_URL',
   model: 'CHAMELEON_LLM_MODEL',
   think: 'CHAMELEON_LLM_THINK',
+  context: 'CHAMELEON_LLM_CONTEXT',
   allowedHosts: 'CHAMELEON_LLM_ALLOWED_HOSTS',
   openaiBaseUrl: 'CHAMELEON_OPENAI_BASE_URL',
   anthropicBaseUrl: 'CHAMELEON_ANTHROPIC_BASE_URL',
@@ -57,8 +58,16 @@ export interface LlmConfig {
   readonly model: string;
   /** Razonamiento pedido a los modelos locales que lo conmutan (T-8.13); ausente = apagado. */
   readonly think?: boolean | undefined;
+  /** Ventana de contexto (`num_ctx`) pedida a Ollama en cada petición. */
+  readonly context: number;
   /** Qué vino de dónde, para explicarlo en `status` y en «Ajustes». */
-  readonly sources: { readonly provider: ConfigSource; readonly baseUrl: ConfigSource; readonly model: ConfigSource; readonly think?: ConfigSource | undefined };
+  readonly sources: { readonly provider: ConfigSource; readonly baseUrl: ConfigSource; readonly model: ConfigSource; readonly think?: ConfigSource | undefined; readonly context?: ConfigSource | undefined };
+}
+
+/** `CHAMELEON_LLM_CONTEXT`: un entero en [1024, 131072]; cualquier otra cosa se ignora. */
+function envInteger(value: string | undefined): number | undefined {
+  const parsed = Number.parseInt(value?.trim() ?? '', 10);
+  return Number.isInteger(parsed) && String(parsed) === value?.trim() && parsed >= 1024 && parsed <= 131072 ? parsed : undefined;
 }
 
 /** `CHAMELEON_LLM_THINK`: `1`/`true` enciende, `0`/`false` apaga; cualquier otra cosa se ignora. */
@@ -124,15 +133,25 @@ export function resolveLlmConfig(env: NodeJS.ProcessEnv = process.env, options: 
   const model = pick(resolved.model, env[LLM_ENV.model], settings?.model, defaults.model);
   const fromEnv = envBoolean(env[LLM_ENV.think]);
   const think = fromEnv !== undefined ? { value: fromEnv, source: 'env' as const } : settings?.think !== undefined ? { value: settings.think, source: 'file' as const } : { value: false, source: 'default' as const };
+  const contextFromEnv = envInteger(env[LLM_ENV.context]);
+  const context =
+    contextFromEnv !== undefined ? { value: contextFromEnv, source: 'env' as const } : settings?.context !== undefined ? { value: settings.context, source: 'file' as const } : { value: OLLAMA_DEFAULT_CONTEXT, source: 'default' as const };
   return {
     ok: true,
-    config: { provider, baseUrl: baseUrl.value, model: model.value, think: think.value, sources: { provider: chosen.source, baseUrl: baseUrl.source, model: model.source, think: think.source } },
+    config: {
+      provider,
+      baseUrl: baseUrl.value,
+      model: model.value,
+      think: think.value,
+      context: context.value,
+      sources: { provider: chosen.source, baseUrl: baseUrl.source, model: model.source, think: think.source, context: context.source },
+    },
   };
 }
 
 export function createProvider(config: LlmConfig, http?: JsonHttp): LlmProvider {
   return config.provider === 'ollama'
-    ? createOllamaProvider({ baseUrl: config.baseUrl, model: config.model, http, think: config.think })
+    ? createOllamaProvider({ baseUrl: config.baseUrl, model: config.model, http, think: config.think, contextLength: config.context })
     : createOpenAiCompatibleProvider({ baseUrl: config.baseUrl, model: config.model, http });
 }
 

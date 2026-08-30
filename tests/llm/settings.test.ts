@@ -33,6 +33,10 @@ describe('serializeLlmTable', () => {
     expect(serializeLlmTable({ think: false })).toBe('[llm]\nthink = false\n');
     expect(LlmSettingsSchema.parse({ think: true })).toEqual({ think: true });
     expect(LlmSettingsSchema.safeParse({ think: 'sí' }).success).toBe(false);
+    expect(serializeLlmTable({ context: 32768 })).toBe('[llm]\ncontext = 32768\n');
+    expect(LlmSettingsSchema.parse({ context: 16384 })).toEqual({ context: 16384 });
+    expect(LlmSettingsSchema.safeParse({ context: 512 }).success).toBe(false);
+    expect(LlmSettingsSchema.safeParse({ context: 16384.5 }).success).toBe(false);
     expect(serializeLlmTable({ base_url: 'http://127.0.0.1:8080', model: 'con "comillas" y \\ barra', models: { openai: 'gpt-4o-mini', anthropic: 'claude-sonnet-4-5' } })).toBe(
       '[llm]\nbase_url = "http://127.0.0.1:8080"\nmodel = "con \\"comillas\\" y \\\\ barra"\n\n[llm.models]\nopenai = "gpt-4o-mini"\nanthropic = "claude-sonnet-4-5"\n',
     );

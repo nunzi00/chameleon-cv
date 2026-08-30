@@ -22,7 +22,7 @@ describe('describeStatus · detalle de Typst, co-piloto y temas (T-8.6 S2)', () 
     const view = describeStatus(
       status({
         typst: { required: '0.15.1', candidates: [], selected: { source: 'env', path: '/opt/typst', state: 'ok', version: '0.15.1' } as StatusResponse['typst']['selected'], usable: true },
-        llm: { ...status().llm, config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', sources: { provider: 'default', baseUrl: 'default', model: 'default' } } },
+        llm: { ...status().llm, config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', context: 16384, sources: { provider: 'default', baseUrl: 'default', model: 'default', context: 'default' } } },
         themes: {
           defaultName: 'default',
           configWarning: undefined,

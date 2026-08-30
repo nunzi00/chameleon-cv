@@ -25,6 +25,8 @@ export const LlmSettingsSchema = z.strictObject({
   model: ModelName.optional(),
   /** `[llm] think` (T-8.13): pedir razonamiento a los modelos locales que lo conmutan (Qwen3, gpt-oss); apagado por defecto. */
   think: z.boolean().optional(),
+  /** `[llm] context`: ventana de contexto (`num_ctx`) pedida a Ollama; sin ella, 16384 (el defecto de Ollama, 4096, corta los prompts largos). */
+  context: z.number().int().min(1024).max(131072).optional(),
   /** `[llm.runtime]`: preferencias de `cv llm up` (T-8.8): runner forzado e imagen de Ollama para el runner docker. */
   runtime: z
     .strictObject({
@@ -57,6 +59,9 @@ export function serializeLlmTable(settings: LlmSettings): string {
   }
   if (settings.think !== undefined) {
     lines.push(`think = ${settings.think ? 'true' : 'false'}`);
+  }
+  if (settings.context !== undefined) {
+    lines.push(`context = ${settings.context}`);
   }
   const models = Object.entries(settings.models ?? {}).filter((entry): entry is [string, string] => entry[1] !== undefined);
   if (models.length > 0) {

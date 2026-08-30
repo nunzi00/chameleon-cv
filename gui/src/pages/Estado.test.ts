@@ -95,7 +95,7 @@ describe('Estado', () => {
     const api = fakeApi({
       status: vi.fn(async () => ({
         ...STATUS,
-        llm: { ...STATUS.llm, config: { provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', sources: { provider: 'default' as const, baseUrl: 'default' as const, model: 'default' as const } } },
+        llm: { ...STATUS.llm, config: { provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', context: 16384, sources: { provider: 'default' as const, baseUrl: 'default' as const, model: 'default' as const, context: 'default' as const } } },
         themes: {
           ...STATUS.themes,
           entries: [

@@ -8,6 +8,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 - Ofertas desde URL (T-8.5 S1): `cv analyze-offer <url>` y `cv generate-cv -f <url>` aceptan una URL `https` con `--allow-remote` y confirmación por petición (`--yes` para scripts): una sola descarga sin cookies (máximo 2 MB, 15 s, guardia SSRF, redirecciones re-validadas), extracción con procedencia —JSON-LD `JobPosting` (también en listas y `@graph`), contenido principal cuando la descripción es un resumen, `og:*` como reserva— y avisos de páginas que se pintan con JavaScript; `--save-offer [ruta]` guarda el texto en `offers/` con cabecera de origen (`--replace` para sustituir) y `cv analyze-offer` sin argumento (o con `--list`) lista `offers/**`. Calidad medida con un corpus versionado de nueve páginas (seis sintéticas y tres réplicas de LinkedIn/Jobgether/Manfred) con umbrales fijados antes de medir.
 
+### Arreglado
+
+- Co-piloto local: las peticiones a Ollama piden una ventana de contexto de 16384 tokens (`options.num_ctx`); sin ella Ollama carga el modelo con su defecto (4096) y las propuestas con fuentes largas fallaban con «HTTP 400 … exceeds the available context size». Configurable con `[llm] context` en `cv.toml` o `CHAMELEON_LLM_CONTEXT` (entero en [1024, 131072]); «Ajustes» conserva la clave al guardar.
+
 ## [1.8.1] - 2026-08-30
 
 ### Cambiado
