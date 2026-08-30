@@ -24,7 +24,7 @@ import {
   runtimeDirectory,
 } from '../../src/llm/runtime';
 
-const CONFIG: LlmConfig = { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', sources: { provider: 'default', baseUrl: 'default', model: 'default' } };
+const CONFIG: LlmConfig = { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', context: 16384, sources: { provider: 'default', baseUrl: 'default', model: 'default' } };
 const OK: ExecResult = { ok: true, code: 0, stdout: '', stderr: '', message: undefined };
 const MISSING: ExecResult = { ok: false, code: null, stdout: '', stderr: '', message: 'spawn ENOENT' };
 const HOME = '/home/ana';

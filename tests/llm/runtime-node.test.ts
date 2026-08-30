@@ -82,7 +82,7 @@ describe('createNodeRuntimeSystem', () => {
 
   it('la salud por defecto usa el proveedor real (loopback) y las opciones por defecto salen del proceso', async () => {
     const system = createNodeRuntimeSystem({ cwd: root });
-    const config: LlmConfig = { provider: 'ollama', baseUrl: 'http://127.0.0.1:9', model: 'm', sources: { provider: 'default', baseUrl: 'default', model: 'default' } };
+    const config: LlmConfig = { provider: 'ollama', baseUrl: 'http://127.0.0.1:9', model: 'm', context: 16384, sources: { provider: 'default', baseUrl: 'default', model: 'default' } };
     const health = await system.health(config);
     expect(health.ok).toBe(false);
     expect(system.platform).toBe(process.platform);

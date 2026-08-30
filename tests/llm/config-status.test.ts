@@ -41,8 +41,8 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
 
   it('createProvider construye el proveedor local configurado', () => {
     const http: JsonHttp = () => Promise.resolve({ ok: true, status: 200, data: {} });
-    expect(createProvider({ provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'm', sources: { provider: 'default', baseUrl: 'default', model: 'default' } }, http).id).toBe('ollama');
-    expect(createProvider({ provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'm', sources: { provider: 'env', baseUrl: 'env', model: 'env' } }).id).toBe('openai-compatible');
+    expect(createProvider({ provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'm', context: 16384, sources: { provider: 'default', baseUrl: 'default', model: 'default' } }, http).id).toBe('ollama');
+    expect(createProvider({ provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'm', context: 16384, sources: { provider: 'env', baseUrl: 'env', model: 'env' } }).id).toBe('openai-compatible');
   });
 });
 

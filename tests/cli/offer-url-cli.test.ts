@@ -227,7 +227,7 @@ describe('cv analyze-offer con URL (T-8.5)', () => {
     expect(ok.fs.file('/work/offers/backend-senior.txt')?.content).toContain('# Origen:');
     const ko = await harness({}, {
       fetcher: async () => page('%PDF-1.4 finto', 'application/pdf'),
-      pdfExtractor: async () => ({ ok: false as const, message: 'PDF cifrado' }),
+      pdfExtractor: async () => ({ ok: false as const, code: 'failed' as const, message: 'PDF cifrado' }),
     });
     expect(await runCli(['analyze-offer', OFFER_URL, '--allow-remote', '--yes'], ko.context)).toBe(EXIT_FAILURE);
     expect(ko.stderr()).toContain('PDF cifrado');

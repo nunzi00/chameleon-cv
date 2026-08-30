@@ -36,7 +36,7 @@ function harness(status: LlmStatus): { context: CliContext; stdout: () => string
   return { context, stdout: () => out.join('') };
 }
 
-const CONFIG = { provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', sources: { provider: 'default' as const, baseUrl: 'default' as const, model: 'default' as const } };
+const CONFIG = { provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', context: 16384, sources: { provider: 'default' as const, baseUrl: 'default' as const, model: 'default' as const } };
 
 describe('cv llm status', () => {
   it('imprime el estado y sale con 0 si el proveedor local es utilizable, con 2 si no', async () => {
