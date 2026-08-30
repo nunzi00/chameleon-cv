@@ -41,7 +41,7 @@ El archivo incluye `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` (licencia
 **Docker** (todo en un contenedor, con la IA local opcional): la imagen se publica en `ghcr.io/nunzi00/chameleon-cv` (linux/amd64 y linux/arm64, con SBOM y atestación de procedencia) en cada release; el contenedor corre sin red, sin privilegios y con el sistema de ficheros de solo lectura; tus datos quedan en `./my-profile`.
 
 ```bash
-docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.8.0 --help   # sin clonar nada
+docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.8.1 --help   # sin clonar nada
 mkdir -p my-profile && docker compose pull && docker compose run --rm chameleon-cv init  # o con Compose (docker compose build la construye en local con tu UID/GID)
 docker compose run --rm chameleon-cv build && docker compose run --rm chameleon-cv generate-cv -s backend --format pdf --engine typst
 docker compose -f compose.yml -f compose.ai.yml run --rm chameleon-cv llm status   # IA local con Ollama (≈ 8 GB la primera vez)

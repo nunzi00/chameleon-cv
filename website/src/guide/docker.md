@@ -44,7 +44,7 @@ echo 'COMPOSE_FILE=compose.yml:compose.ai.yml' >> .env      # para no repetir -f
 
 - Añade el servicio `ollama` (imagen oficial fijada por digest, modelos en el volumen `ollama-models`, `OLLAMA_HOST=127.0.0.1:11434`) y `ollama-pull`, que descarga el modelo una vez y termina.
 - `cv` pasa a compartir el **espacio de red de Ollama** (`network_mode: service:ollama`): `http://127.0.0.1:11434` sigue siendo loopback, la regla «solo local» del producto (canon C3) no se toca y Ollama **no publica ningún puerto** al anfitrión. Si quieres usarlo desde fuera, añade `ports` en una superposición tuya.
-- El modelo es **`qwen3:8b`** (por defecto desde 1.8.0; `qwen2.5:7b-instruct` también está validado y es más rápido: `cv llm models`). `CHAMELEON_LLM_MODEL` en `.env` cambia el que se descarga y se usa, pero recomienda otro solo tras pasar `npm run test:acceptance:ai` con él.
+- El modelo es **`qwen3:8b`** (por defecto desde 1.8.1; `qwen2.5:7b-instruct` también está validado y es más rápido: `cv llm models`). `CHAMELEON_LLM_MODEL` en `.env` cambia el que se descarga y se usa, pero recomienda otro solo tras pasar `npm run test:acceptance:ai` con él.
 - Primera vez: unos 3,2 GB de imagen y 4,7 GB de modelo. Con un modelo de 7B en CPU cuenta con 20–40 s por logro; `compose.gpu.yml` reserva la GPU NVIDIA para Ollama:
 
 ```bash
@@ -80,7 +80,7 @@ Cada release publica la imagen en **GitHub Container Registry** desde el mismo f
 
 | Etiqueta | Qué es |
 |---|---|
-| `ghcr.io/nunzi00/chameleon-cv:1.8.0` | La versión exacta (la misma que `cv --version` y que el tar.gz); es la que fija `compose.yml`. |
+| `ghcr.io/nunzi00/chameleon-cv:1.8.1` | La versión exacta (la misma que `cv --version` y que el tar.gz); es la que fija `compose.yml`. |
 | `:1.5` · `:1` · `:latest` | Alias móviles a la última 1.5.x / 1.x / estable. Las prereleases (`1.2.0-rc.1`) no mueven ningún alias. |
 | `:1.1.1-distroless` (y `:1-distroless`, `:latest-distroless`) | La variante sobre `distroless/cc`: sin shell ni gestor de paquetes, usuario `nonroot` (65532), para quien priorice la superficie mínima. |
 
@@ -88,14 +88,14 @@ Cada release publica la imagen en **GitHub Container Registry** desde el mismo f
 - **Verificar lo que descargas**: la imagen lleva SBOM y procedencia de BuildKit dentro del registro, y una atestación de procedencia firmada (Sigstore) por el flujo de release, igual que el ejecutable:
 
 ```bash
-gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.8.0 --owner nunzi00
-docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.8.0 --format '{{ json .SBOM }}'
-docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.8.0 --format '{{ json .Provenance }}'
+gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.8.1 --owner nunzi00
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.8.1 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.8.1 --format '{{ json .Provenance }}'
 ```
 
 - **Usuario**: la imagen publicada corre como `cv` con UID/GID `1000`. Si en Linux tu usuario es otro, construye en local (arriba) o ejecuta la variante distroless con `--user "$(id -u):$(id -g)"`, que no depende de un directorio personal.
 - **Otra imagen o versión**: `CHAMELEON_CV_IMAGE=ghcr.io/nunzi00/chameleon-cv:1 docker compose run --rm chameleon-cv --version` (o la tuya, `chameleon-cv:local`).
-- **`docker run` sin Compose**: `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.8.0 --help`.
+- **`docker run` sin Compose**: `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.8.1 --help`.
 
 ## Qué hay en la imagen
 

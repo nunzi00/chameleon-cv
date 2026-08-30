@@ -4,6 +4,8 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-08-30
+
 ### Cambiado
 
 - Runtime de Ollama adaptativo (T-8.14, encargo del Director): `cv llm status`, `GET /api/v1/llm/runtime` y «Ajustes» exponen las dos vías de arranque (binario `ollama` y Docker) con su motivo y el plan («se usará docker: sin binario ollama (…); se usa Docker: Docker 27.x»); `[llm.runtime] runner` y `CHAMELEON_LLM_RUNNER` pasan a ser preferencias con respaldo (si la vía preferida no está, se usa la otra con aviso; `--runner` y `runner` en la API siguen siendo estrictos); si el arranque falla y la otra vía está disponible, `cv llm up` la intenta a continuación y, si ambas fallan, el error lista los dos motivos. Ajustes muestra la vía y el motivo en el panel «Ollama local» y en el consentimiento de descarga.
