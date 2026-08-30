@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-8.2 · S1 · *spike* de proveedores (decisión 3 de `docs/copilot-settings.md` §10) |
-| **Estado** | Evidencia recogida el 2026-08-30; **decisión pendiente del Director de Ingeniería y Producto** |
+| **Estado** | Evidencia recogida el 2026-08-30; **decisión del Director de Ingeniería y Producto el 2026-08-30: integrar solo Groq** (§9); verificación al alta pendiente de una cuenta humana (§9) |
 | **Método** | Lectura de los documentos oficiales vigentes (política de privacidad, condiciones del servicio o de la API, páginas de datos y de límites) mediante peticiones GET públicas, sin registrarse en ningún servicio ni enviar datos. Cada afirmación lleva URL, fecha de acceso y cita literal en su idioma original. Cuando una página no se pudo leer, se dice. |
 | **Criterios** (§4.3) | (a) C7: sin entrenamiento ni retención más allá de lo operativo, también en el plan gratuito; (b) plan gratuito sin tarjeta y con límites publicados; (c) API compatible con OpenAI; (d) HTTPS con host fijo; (e) salida JSON estructurada |
 
@@ -91,3 +91,15 @@ Y: «Do not submit sensitive, confidential, or personal information to the Unpai
 1. **Integrar Groq** como proveedor `groq` del registro (`api: openai-chat`, host `api.groq.com`, URL `https://api.groq.com/openai/v1`, modelo por defecto `openai/gpt-oss-120b`, plan `free`, cuotas publicadas de la tabla con fuente y fecha, evidencia C7 con las dos citas), con una nota en la guía recomendando activar ZDR en su consola.
 2. **No integrar un segundo proveedor** en T-8.2: OpenRouter y Together no alcanzan la evidencia exigida. Registrar aquí la fecha y volver a mirar en la siguiente revisión del registro.
 3. **Verificar al alta** (sprint 2, cuenta del Director Técnico, solo datos del banco de pruebas): que el plan Free no exige tarjeta, que el arnés de IA pasa contra Groq con `json_object`/`json_schema` y que las cabeceras de cuota llegan como se documentan.
+
+## 9. Decisión del Director (2026-08-30) y protocolo de verificación al alta
+
+**Decisión**: integrar **Groq** como primer y único proveedor externo gratuito; ningún segundo proveedor sin garantía contractual clara y pública (la categoría «dudoso» no es aceptable); verificación al alta con una cuenta del Director Técnico y exclusivamente datos del banco de pruebas.
+
+**Nota del Director Técnico**: la creación de cuentas en servicios de terceros queda fuera de lo que este asistente puede hacer por sí mismo; la cuenta la abre una persona. El protocolo, reproducible por quien la tenga (el Director de Ingeniería o el Director Técnico humano), es este:
+
+1. Alta en console.groq.com en el plan Free **sin introducir ningún método de pago** y anotar si el alta lo exige (criterio (b) del §0: hoy no está escrito literalmente). Activar *Zero Data Retention* en Data Controls si la consola lo ofrece.
+2. Guardar la clave sin que pase por el historial ni por argumentos: `cv llm key set groq` (pregunta sin eco) y comprobar `cv llm key list`.
+3. Salud, modelos y cuota publicada, con una sola llamada y sin datos: `cv llm status --provider groq` (debe listar `openai/gpt-oss-120b` y no fallar).
+4. Prueba funcional con el banco (nunca con datos reales): en una copia de `tests/acceptance/bench/workspace`, `cv build` y `cv improve --provider groq -n 1 --yes`; comprobar la revisión escrita y la línea final «Cuota según groq: …» (las cabeceras llegan como se documentan).
+5. Anotar aquí la fecha, el resultado de cada paso y cualquier discrepancia con la evidencia de §1; si algo no cuadra (tarjeta obligatoria, salida JSON rechazada, cabeceras ausentes), Groq se retira del registro con un cambio de datos y una entrada en el CHANGELOG antes de la 1.5.0.
