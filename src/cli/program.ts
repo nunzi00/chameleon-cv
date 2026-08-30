@@ -10,7 +10,7 @@ import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, type ApplyOptions } from './commands/apply';
-import { runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
+import { runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
 import { runThemeCreate, runThemeList, runThemePath, type ThemeCreateOptions } from './commands/theme';
@@ -26,6 +26,7 @@ import { parseLimit, parseProposals } from './limits';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
+import { REMOTE_PROVIDER_IDS } from '../llm';
 
 export function createProgram(context: CliContext, onExit: (code: number) => void, version: string): Command {
   const program = new Command().enablePositionalOptions()
@@ -284,6 +285,27 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--model <name>', 'modelo del proveedor a comprobar')
     .action(async (options: LlmStatusCommandOptions) => {
       onExit(await runLlmStatus(context, options));
+    });
+  const key = llm.command('key').description('claves de los proveedores remotos: se guardan en tu fichero de claves (0600) y nunca se muestran');
+  key
+    .command('set')
+    .description('guarda la clave de un proveedor remoto; la pide sin eco en la terminal o la lee de la entrada estándar (nunca como argumento)')
+    .argument('<provider>', `proveedor remoto (${REMOTE_PROVIDER_IDS.join(', ')})`)
+    .action(async (provider: string) => {
+      onExit(await runLlmKeySet(context, provider));
+    });
+  key
+    .command('remove')
+    .description('elimina la clave de un proveedor remoto del fichero de claves')
+    .argument('<provider>', 'proveedor remoto')
+    .action(async (provider: string) => {
+      onExit(await runLlmKeyRemove(context, provider));
+    });
+  key
+    .command('list')
+    .description('de dónde sale cada clave (entorno, fichero o ninguna); nunca su valor')
+    .action(async () => {
+      onExit(await runLlmKeyList(context));
     });
   llm
     .command('cache')

@@ -1,5 +1,6 @@
 Proveedor local: ollama (http://127.0.0.1:9; por defecto) · modelo: qwen2.5:7b-instruct (por defecto)
 Estado: no disponible · Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version)
   Arranca Ollama en http://127.0.0.1:9 o configura CHAMELEON_LLM_PROVIDER/CHAMELEON_LLM_BASE_URL/CHAMELEON_LLM_MODEL
+Configuración del proyecto: <WS>/cv.toml (sin tabla [llm])
 Proveedores remotos (solo con --provider explícito): openai → clave ninguna · anthropic → clave ninguna · fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
 Lista blanca de hosts: api.openai.com, api.anthropic.com
