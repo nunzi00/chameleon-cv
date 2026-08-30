@@ -4,6 +4,8 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-31
+
 ### Añadido
 
 - Ofertas en la interfaz web (T-8.5 S2): en Generar, la pestaña «Del espacio» ofrece un selector con las ofertas de `offers/` (`GET /api/v1/offers`, con «Recargar» y ruta a mano como alternativa) y la pestaña nueva «URL» descarga una oferta https con consentimiento en dos pasos (`POST /api/v1/offers/fetch`: 403 sin `--allow-remote`, 409 `consent-required` con `estimateId` de un solo uso; una petición sin cookies, 2 MiB) mostrando el texto extraído editable con su procedencia y avisos, y «Guardar en offers/…» (`POST /api/v1/offers`, cabecera de origen, 409 salvo `replace`). El plan del Co-piloto muestra ahora el **modelo** efectivo y si el **razonamiento** va pedido (y que las tareas con esquema lo ignoran).
