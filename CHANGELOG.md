@@ -4,6 +4,16 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+Galería de temas (T-8.3, primer sprint): tres temas distribuidos nuevos, metadatos de autoría en `theme.toml` y la página «Galería de temas» del portal.
+
+### Añadido
+
+- Temas distribuidos **`modern`** (franja de acento en la cabecera, columna lateral con contacto, skills, idiomas, certificaciones y logros, periodos en pastillas), **`academic`** (serif de una columna para trayectorias largas: cabecera centrada, secciones numeradas, fechas al margen y pie «Nombre · página X de Y»; A4 o US Letter desde `cv.toml`) y **`minimal`** (monocromo, sin filetes, columnas ni espaciado entre letras: pensado para los sistemas de filtrado de candidaturas). Mismo contrato `cv(d, theme)` que `default` y `classic`, autocontenidos, anulables desde `cv.toml`; `cv theme create mio --from modern` parte de cualquiera.
+- `theme.toml` admite en `[theme]` los metadatos opcionales `author` (≤ 120), `license` (≤ 60) y `homepage` (URL `https`); `cv theme list` los muestra («· autor: … · licencia: …») y el inventario de la API (`GET /api/v1/themes`) los expone.
+- La vista estructurada que reciben las plantillas gana las etiquetas `contact`, `page` y `of` (es/en) para los temas con columna de contacto o pie paginado.
+- Portal: página **Galería de temas** con la primera página del CV del banco de pruebas compilada con cada tema (imágenes generadas con Typst por `npm run docs:themes` y versionadas; nada en línea desde el producto) y guía «Typst y temas» ampliada.
+- Verificación: prueba común de los temas distribuidos (carga, metadatos, autocontención de la plantilla y compilación con Typst real en español e inglés; US Letter para `academic`) y PDFs canónicos del arnés `typst` para los tres temas con el CV completo y cada especialidad del banco.
+
 ## [1.5.0] - 2026-08-30
 
 Configuración avanzada del co-piloto (T-8.2): `cv.toml`, claves desde la terminal, registro de proveedores con evidencia, Groq como primer proveedor externo gratuito, cuota visible sin telemetría y la pantalla «Ajustes».
