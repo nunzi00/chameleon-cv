@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-8.5 [OFERTAS] Ingesta desde URL (Hito 8, `ROADMAP.md`) |
-| **Estado** | PROPUESTA v1 (2026-08-30), pendiente de aprobación del Director de Ingeniería y Producto |
+| **Estado** | PROPUESTA v1 (2026-08-30) **APROBADA** por el Director de Ingeniería y Producto el 2026-08-30 (ocho decisiones de §10 aprobadas; T-8.5 tiene prioridad sobre T-8.4b; versión 1.7.0); S0 pendiente de las seis páginas reales que aporta Lucas |
 | **Origen** | Requisitos del Director del 2026-08-30 durante las pruebas con datos reales: «la oferta debe aceptar también URL» y «en Analizar oferta del espacio de trabajo debería salir un selector de las opciones disponibles» |
 | **Versión prevista** | 1.7.0 (menor: función nueva, sin cambios incompatibles) |
 
@@ -121,3 +121,4 @@ SSRF (bloqueo de loopback, rangos privados, enlace local y `169.254.169.254`, co
 ## 11. Estado de la implementación
 
 - 2026-08-30: PROPUESTA v1 redactada tras los dos requisitos del Director (URL como origen de la oferta y selector de ofertas del espacio de trabajo) durante las pruebas con el espacio de trabajo real; enviada al Product Owner junto con el informe final de T-8.4.
+- 2026-08-30: **APROBADA** por el Director de Ingeniería y Producto: las ocho decisiones de §10 tal como se recomendaban (solo `https`, extractor propio con corpus y umbrales, `--allow-remote` obligatorio, guardado explícito en `offers/`, listado limitado a `offers/`, sin navegador embebido, **prioridad sobre T-8.4b**, versión 1.7.0). Confirmado que Lucas aporta las seis páginas reales del S0. Luz verde para implementar.
