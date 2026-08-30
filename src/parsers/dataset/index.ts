@@ -5,3 +5,4 @@ export * from './merge';
 export * from './node-file-system';
 export * from './provenance';
 export * from './types';
+export * from './memory-file-system';

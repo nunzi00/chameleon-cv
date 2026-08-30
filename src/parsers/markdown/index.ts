@@ -6,3 +6,4 @@ export * from './frontmatter';
 export * from './markdown-parser';
 export * from './positions';
 export * from './profile';
+export * from './serialize';
