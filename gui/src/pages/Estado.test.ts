@@ -35,7 +35,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     startJob: vi.fn(),
     cancelJob: vi.fn(),
     jobEvents: vi.fn(),
-    shutdown: vi.fn(async () => ({ ok: true as const })),
+    exportProfile: vi.fn(), importProfile: vi.fn(), shutdown: vi.fn(async () => ({ ok: true as const })),
     ...overrides,
   };
 }

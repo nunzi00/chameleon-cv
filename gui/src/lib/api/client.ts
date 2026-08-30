@@ -10,9 +10,12 @@ import type {
   ApplyResponse,
   BuildResponse,
   ErrorResponse,
+  ExportResponse,
   ExtractResponse,
   GenerateRequest,
   GenerateResponse,
+  ImportRequest,
+  ImportResponse,
   ImproveJobRequest,
   JobCreatedResponse,
   JobResponse,
@@ -109,6 +112,10 @@ export interface ApiClient {
   deleteReview(name: string): Promise<ReviewDeleteResponse>;
   /** Sin `dryRun: false` solo devuelve el plan; con él escribe en las fuentes (C9). */
   applyReview(name: string, body: ApplyRequest): Promise<ApplyResponse>;
+  /** El perfil canónico desde las fuentes (cv export). */
+  exportProfile(): Promise<ExportResponse>;
+  /** Sin `dryRun: false` solo el plan y el auto-chequeo; con él regenera las fuentes (C9). */
+  importProfile(body: ImportRequest): Promise<ImportResponse>;
   shutdown(): Promise<ShutdownResponse>;
 }
 
@@ -227,6 +234,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     writeReview: (name, content, ifMatch) => requestWithHeaders('PUT', `/reviews/${encodeId(name)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
     deleteReview: (name) => request('DELETE', `/reviews/${encodeId(name)}`),
     applyReview: (name, body) => request('POST', `/reviews/${encodeId(name)}/apply`, { body }),
+    exportProfile: () => request('GET', '/export'),
+    importProfile: (body) => request('POST', '/import', { body }),
     shutdown: () => request('POST', '/shutdown', { body: {} }),
   };
 }

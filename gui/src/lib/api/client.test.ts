@@ -114,6 +114,15 @@ describe('cliente de la API', () => {
     expect(calls[4]?.body).toBe('{"dryRun":false,"deleteReview":true}');
   });
 
+  it('portabilidad: exportar e importar', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.exportProfile();
+    await api.importProfile({ profile: { personal: { fullName: 'Ada' } }, replace: true, dryRun: false });
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/export', 'POST /api/v1/import']);
+    expect(calls[1]?.body).toBe('{"profile":{"personal":{"fullName":"Ada"}},"replace":true,"dryRun":false}');
+  });
+
   it('sin token no envía Authorization y admite otra base', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, {}));
     await createApiClient({ fetch: f, token: () => undefined, base: 'http://127.0.0.1:4310/api/v1' }).status();

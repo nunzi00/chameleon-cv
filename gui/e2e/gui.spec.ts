@@ -115,6 +115,30 @@ test('Revisiones abre la revisión del co-piloto, guarda una marca, muestra el p
   expect(readdirSync(join(sources, 'experience')).some((name) => name.endsWith('.bak'))).toBe(true);
 });
 
+test('Estado exporta el perfil como descarga y lo importa sustituyendo las fuentes con copia; después compila', async ({ page }) => {
+  await openWithToken(page, state);
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar perfil (JSON)' }).click();
+  const download = await downloading;
+  expect(download.suggestedFilename()).toMatch(/^perfil-\d{4}-\d{2}-\d{2}\.json$/);
+  const exported = join(state.workspace, 'output', download.suggestedFilename());
+  await download.saveAs(exported);
+  const profile = JSON.parse(readFileSync(exported, 'utf8')) as { personal: { fullName: string } };
+  expect(profile.personal.fullName.length).toBeGreaterThan(0);
+  await expect(page.getByText(/Perfil exportado como perfil-/)).toBeVisible();
+  await page.getByLabel('Fichero del perfil (JSON)').setInputFiles(exported);
+  await expect(page.getByRole('heading', { name: 'Importar perfil' })).toBeVisible();
+  await page.getByRole('checkbox', { name: /Sustituir las fuentes actuales/ }).check();
+  await page.getByRole('button', { name: 'Ver plan' }).click();
+  await expect(page.getByText(/ficheros en .*data\/sources/)).toBeVisible();
+  await expect(page.getByText('Auto-chequeo superado: las fuentes regeneradas reproducen el perfil.')).toBeVisible();
+  await page.getByRole('button', { name: 'Escribir en las fuentes' }).click();
+  await expect(page.getByText(/Perfil importado en .* las fuentes anteriores quedan en .*\.bak/)).toBeVisible();
+  expect(readdirSync(join(state.workspace, 'data')).some((name) => /^sources\.\d{8}-\d{6}\.bak$/.test(name))).toBe(true);
+  await page.getByRole('button', { name: 'Compilar' }).click();
+  await expect(page.getByText(/Artefacto compilado en/)).toBeVisible();
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
   await page.getByRole('button', { name: 'Apagar el servidor' }).click();
