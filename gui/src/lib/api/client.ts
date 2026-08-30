@@ -40,6 +40,9 @@ import type {
   SummarizeJobRequest,
   ThemeCreateRequest,
   ThemeCreateResponse,
+  ThemeInstallRequest,
+  ThemeInstallResponse,
+  ThemeVerifyResponse,
   ThemesResponse,
   ValidateResponse,
 } from './types';
@@ -100,6 +103,9 @@ export interface ApiClient {
   extractOffer(pdf: Blob): Promise<ExtractResponse>;
   themes(): Promise<ThemesResponse>;
   createTheme(body: ThemeCreateRequest): Promise<ThemeCreateResponse>;
+  /** 200 plan (dryRun) o 201 instalado; 403 remote-disabled y 409 consent-required llegan como ApiError con sus detalles. */
+  installTheme(body: ThemeInstallRequest): Promise<ThemeInstallResponse>;
+  verifyTheme(name: string): Promise<ThemeVerifyResponse>;
   outputs(): Promise<OutputListResponse>;
   /** Un fichero de output/ tal cual (PDF o Markdown), con su tipo. */
   output(name: string): Promise<OutputFile>;
@@ -226,6 +232,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     },
     themes: () => request('GET', '/themes'),
     createTheme: (body) => request('POST', '/themes', { body }),
+    installTheme: (body) => request('POST', '/themes/install', { body }),
+    verifyTheme: (name) => request('POST', `/themes/${encodeId(name)}/verify`, { body: {} }),
     outputs: () => request('GET', '/output'),
     output: async (name) => {
       const response = await raw('GET', `/output/${encodeId(name)}`, { accept: '*/*' });

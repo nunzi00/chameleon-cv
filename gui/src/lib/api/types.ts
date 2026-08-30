@@ -42,6 +42,9 @@ export type {
   SummarizeJobRequest,
   ThemeCreateRequest,
   ThemeCreateResponse,
+  ThemeInstallRequest,
+  ThemeInstallResponse,
+  ThemeVerifyResponse,
   ThemesResponse,
   ValidateResponse,
 } from '../../../../src/serve/contract';

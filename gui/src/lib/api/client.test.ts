@@ -175,3 +175,17 @@ describe('cliente de la API', () => {
     expect(ifMatchHeader('abc')).toBe('"abc"');
   });
 });
+
+describe('temas de la comunidad (T-8.3)', () => {
+  it('instalar y verificar temas: cuerpos y rutas', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.installTheme({ source: 'themes/comunidad.zip', dryRun: true });
+    await api.installTheme({ source: 'https://cdn.example/t.zip', name: 'otra', sha256: 'abc', consent: { estimateId: 'e1' } });
+    await api.verifyTheme('comunidad');
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/themes/install', 'POST /api/v1/themes/install', 'POST /api/v1/themes/comunidad/verify']);
+    expect(calls[0]?.body).toBe('{"source":"themes/comunidad.zip","dryRun":true}');
+    expect(calls[1]?.body).toBe('{"source":"https://cdn.example/t.zip","name":"otra","sha256":"abc","consent":{"estimateId":"e1"}}');
+    expect(calls[2]?.body).toBe('{}');
+  });
+});

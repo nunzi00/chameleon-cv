@@ -54,6 +54,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   }
   mkdirSync(join(workspace, 'ofertas'));
   cpSync(join(ROOT, 'tests', 'acceptance', 'bench', 'workspace', 'offers', 'nexo-senior-backend.txt'), join(workspace, 'ofertas', 'nexo.txt'));
+  // Un tema de la comunidad del banco (T-8.3) para «Instalar tema…» sin red.
+  mkdirSync(join(workspace, 'themes'), { recursive: true });
+  cpSync(join(ROOT, 'tests', 'acceptance', 'bench', 'workspace', 'themes', 'comunidad.zip'), join(workspace, 'themes', 'comunidad.zip'));
 
   const child = spawn(command, [...leading, 'serve', '--port', '0'], { cwd: workspace, env, stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';

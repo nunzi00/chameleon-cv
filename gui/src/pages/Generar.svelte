@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
+  import Dialog from '../components/Dialog.svelte';
   import Notice from '../components/Notice.svelte';
   import PdfViewer from '../components/PdfViewer.svelte';
   import type { ApiClient, OutputFile } from '../lib/api/client';
@@ -9,6 +10,7 @@
   import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, type GenerateForm } from '../lib/generate/form';
   import { analysisView, reportSections, type AnalysisView, type ReportSection } from '../lib/generate/report';
   import type { Route } from '../lib/router';
+  import { describeInstalled, installProblem, themeOptionLabel, type InstallProblem } from '../lib/themes/install';
 
   interface Props {
     api: ApiClient;
@@ -30,6 +32,8 @@
   let report = $state<readonly ReportSection[]>([]);
   let analysis = $state<AnalysisView | undefined>(undefined);
   let newTheme = $state({ name: '', from: 'default' });
+  let install = $state({ source: '', name: '', sha256: '', replace: false });
+  let installIssue = $state<InstallProblem | undefined>(undefined);
 
   function fail(caught: unknown): void {
     const explained = explainError(caught);
@@ -136,6 +140,39 @@
     }
   }
 
+  /** «Instalar tema…»: con una URL, el servidor responde 409 y el diálogo pide confirmar la descarga (mismo patrón que el coste del co-piloto). */
+  async function installTheme(estimateId?: string, dryRun = false): Promise<void> {
+    const source = install.source.trim();
+    if (source === '') {
+      return;
+    }
+    error = undefined;
+    installIssue = undefined;
+    try {
+      const installed = await api.installTheme({
+        source,
+        ...(install.name.trim() === '' ? {} : { name: install.name.trim() }),
+        ...(install.sha256.trim() === '' ? {} : { sha256: install.sha256.trim() }),
+        ...(dryRun ? { dryRun: true } : {}),
+        ...(install.replace ? { replace: true } : {}),
+        ...(estimateId === undefined ? {} : { consent: { estimateId } }),
+      });
+      notice = describeInstalled(installed);
+      if (installed.written) {
+        install = { source: '', name: '', sha256: '', replace: false };
+        themes = await api.themes();
+        form = { ...form, theme: installed.plan.name };
+      }
+    } catch (caught) {
+      const problem = installProblem(caught);
+      if (problem === undefined) {
+        fail(caught);
+      } else {
+        installIssue = problem;
+      }
+    }
+  }
+
   onMount(() => {
     void loadContext();
   });
@@ -206,7 +243,7 @@
           <span>Tema</span>
           <select name="theme" bind:value={form.theme}>
             <option value="">Por defecto ({themes.defaultName})</option>
-            {#each themes.entries as entry (entry.name)}<option value={entry.name}>{entry.name}</option>{/each}
+            {#each themes.entries as entry (entry.name)}<option value={entry.name}>{themeOptionLabel(entry)}</option>{/each}
           </select>
         </label>
       {/if}
@@ -289,6 +326,26 @@
         <label class="cv-field"><span>A partir de</span><select name="themeFrom" bind:value={newTheme.from}>{#each themes.entries as entry (entry.name)}<option value={entry.name}>{entry.name}</option>{/each}</select></label>
         <div class="cv-actions"><button class="cv-button" type="submit">Crear tema</button></div>
       </form>
+      <form onsubmit={(event) => { event.preventDefault(); void installTheme(); }} class="cv-form">
+        <label class="cv-field"><span>Instalar tema (URL https a un .zip o .tar.gz, o archivo/directorio del espacio de trabajo)</span><input name="installSource" bind:value={install.source} required /></label>
+        <label class="cv-field"><span>Nombre (opcional)</span><input name="installName" bind:value={install.name} /></label>
+        <label class="cv-field"><span>Huella SHA-256 publicada (opcional)</span><input name="installSha256" bind:value={install.sha256} /></label>
+        <label class="cv-check"><input type="checkbox" name="installReplace" bind:checked={install.replace} /> Reemplazar si ya existe (el anterior se aparta a una copia .bak)</label>
+        <div class="cv-actions">
+          <button class="cv-button" type="button" onclick={() => void installTheme(undefined, true)}>Ver el plan</button>
+          <button class="cv-button" type="submit">Instalar tema…</button>
+        </div>
+        {#if installIssue?.kind === 'remote-disabled'}<p class="cv-hint">{installIssue.message}</p>{/if}
+      </form>
     </details>
+    <Dialog open={installIssue?.kind === 'consent-required'} title="Descargar un tema: confirma">
+      {#if installIssue?.kind === 'consent-required'}
+        <p>Se descargará <code>{installIssue.source}</code> (host {installIssue.host}, máximo {installIssue.limit}). El archivo se leerá en el propio proceso con la política de temas; la huella se mostrará al instalar.</p>
+        <div class="cv-actions">
+          <button class="cv-button primary" type="button" onclick={() => void installTheme(installIssue?.kind === 'consent-required' ? installIssue.estimateId : undefined)}>Descargar e instalar</button>
+          <button class="cv-button" type="button" onclick={() => (installIssue = undefined)}>Cancelar</button>
+        </div>
+      {/if}
+    </Dialog>
   {/if}
 </section>

@@ -44,6 +44,8 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     analyze: vi.fn(async () => ANALYSIS),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
     createTheme: vi.fn(async () => ({ name: 'mio', directory: '/work/themes/mio', from: 'classic' } as never)),
+    installTheme: vi.fn(),
+    verifyTheme: vi.fn(),
     output: vi.fn(async (name: string) => ({ name, contentType: 'application/pdf', blob: new Blob(['%PDF'], { type: 'application/pdf' }) })),
     ...overrides,
   };

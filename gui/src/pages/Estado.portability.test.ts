@@ -24,7 +24,7 @@ const PLAN: ImportResponse = {
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     status: vi.fn(async () => STATUS),
-    validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), shutdown: vi.fn(),
+    validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), shutdown: vi.fn(),
     llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(),
     exportProfile: vi.fn(async () => ({ meta: { schemaVersion: 1 as const }, personal: { fullName: 'Ada', links: [] }, specialties: [], experience: [], projects: [], education: [], skills: [], achievements: [], certifications: [], languages: [] })),
     importProfile: vi.fn(async (body: { dryRun?: boolean | undefined }) => (body.dryRun === false ? { ...PLAN, dryRun: false, written: ['profile.md'], backup: '/work/data/sources.20260830-120000.bak' } : PLAN)),

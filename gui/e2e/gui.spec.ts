@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -69,6 +69,20 @@ test('Generar analiza una oferta del espacio de trabajo y genera el CV en Markdo
   const frame = page.locator('iframe[title^="Vista previa de"]');
   await expect(frame).toHaveAttribute('src', /^blob:/);
   await expect(page.getByRole('link', { name: /Descargar .*\.pdf/ })).toBeVisible();
+});
+
+test('Generar instala un tema de la comunidad desde un archivo del espacio de trabajo, lo verifica y lo ofrece en el selector', async ({ page }) => {
+  await openWithToken(page, state, '#/generar');
+  await page.getByText(/Temas de Typst/).click();
+  await page.getByLabel(/Instalar tema/).fill('themes/comunidad.zip');
+  await page.getByRole('button', { name: 'Ver el plan' }).click();
+  await expect(page.getByText(/Plan: «comunidad» se instalaría en .*themes\/comunidad \(4 ficheros, SHA-256 bfbc3701c2d7c867…\)\. Nada escrito\./)).toBeVisible();
+  await page.getByRole('button', { name: 'Instalar tema…' }).click();
+  await expect(page.getByText(/Tema «comunidad» instalado en .*themes\/comunidad \(4 ficheros, SHA-256 bfbc3701c2d7c867…\)\./)).toBeVisible();
+  expect(existsSync(join(state.workspace, 'themes', 'comunidad', '.origin.json'))).toBe(true);
+  await page.getByLabel(/Instalar tema/).fill('https://ejemplo.org/temas/otro.zip');
+  await page.getByRole('button', { name: 'Instalar tema…' }).click();
+  await expect(page.getByText(/no descarga nada: arráncalo con «cv serve --allow-remote»/)).toBeVisible();
 });
 
 test('Salidas lista lo generado y muestra el Markdown', async ({ page }) => {
