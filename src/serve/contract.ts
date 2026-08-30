@@ -22,12 +22,12 @@ import type { MasterProfile } from '../core/schema';
 import { SUGGEST_TAGS_LIMITS } from '../llm';
 import type { PlanDescription } from '../app/portability';
 import type { LlmStatus, QuotaSnapshot } from '../llm';
-import type { RuntimeState } from '../llm/runtime';
+import type { LocalModelsState, RuntimeState } from '../llm/runtime';
 import type { SourceHistoryEntry, SourceHistoryFile } from '../app/source-history';
 
 export type { SourceHistoryEntry, SourceHistoryFile };
 
-export type { RuntimeState };
+export type { LocalModelsState, RuntimeState };
 import { LlmSettingsSchema, type LlmSettings } from '../llm/settings';
 import type { ServerErrorCode } from './http';
 import type { JobSnapshot } from './jobs';
@@ -157,8 +157,12 @@ export const LlmRuntimeActionSchema = z.object({
   runner: z.enum(['native', 'docker']).optional(),
   /** `false`: no descargar el modelo si falta. */
   pull: z.boolean().optional(),
+  /** De dónde descargar (T-8.13): el registro de Ollama (con el espejo como reserva) o directamente Hugging Face. */
+  source: z.enum(['ollama', 'huggingface']).optional(),
 });
 export type LlmRuntimeActionRequest = z.infer<typeof LlmRuntimeActionSchema>;
+/** GET /llm/models (T-8.13): el catálogo de modelos locales con lo descargado. */
+export type LlmModelsResponse = LocalModelsState;
 export interface LlmRuntimeResponse {
   readonly runtime: RuntimeState;
 }

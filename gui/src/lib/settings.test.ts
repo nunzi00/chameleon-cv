@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LlmConfigResponse } from './api/types';
-import { buildSettings, describeCheck, describeModelOptions, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields, quotaMeter } from './settings';
+import { OTHER_MODEL, buildSettings, describeCheck, describeDownload, describeLocalModel, describeModelOptions, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields, modelChoice, quotaMeter } from './settings';
 
 const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
@@ -64,13 +64,13 @@ describe('ajustes del co-piloto', () => {
   });
 
   it('buildSettings exige URL loopback, omite vacíos y conserva los modelos por defecto de los remotos', () => {
-    expect(buildSettings({ provider: 'ollama', baseUrl: ' ', model: '  ', runtimeRunner: '', runtimeImage: '' }, undefined)).toEqual({ ok: true, value: { provider: 'ollama' } });
-    expect(buildSettings({ provider: 'openai-compatible', baseUrl: ' http://127.0.0.1:8080 ', model: ' qwen ', runtimeRunner: '', runtimeImage: '' }, { groq: 'openai/gpt-oss-20b' })).toEqual({
+    expect(buildSettings({ provider: 'ollama', baseUrl: ' ', model: '  ', runtimeRunner: '', runtimeImage: '', think: false }, undefined)).toEqual({ ok: true, value: { provider: 'ollama' } });
+    expect(buildSettings({ provider: 'openai-compatible', baseUrl: ' http://127.0.0.1:8080 ', model: ' qwen ', runtimeRunner: '', runtimeImage: '', think: false }, { groq: 'openai/gpt-oss-20b' })).toEqual({
       ok: true,
       value: { provider: 'openai-compatible', base_url: 'http://127.0.0.1:8080', model: 'qwen', models: { groq: 'openai/gpt-oss-20b' } },
     });
-    expect(buildSettings({ provider: 'ollama', baseUrl: '', model: '', runtimeRunner: '', runtimeImage: '' }, {})).toEqual({ ok: true, value: { provider: 'ollama' } });
-    expect(buildSettings({ provider: 'ollama', baseUrl: 'https://api.openai.com', model: '', runtimeRunner: '', runtimeImage: '' }, undefined)).toMatchObject({ ok: false, message: expect.stringMatching(/loopback/) as string });
+    expect(buildSettings({ provider: 'ollama', baseUrl: '', model: '', runtimeRunner: '', runtimeImage: '', think: false }, {})).toEqual({ ok: true, value: { provider: 'ollama' } });
+    expect(buildSettings({ provider: 'ollama', baseUrl: 'https://api.openai.com', model: '', runtimeRunner: '', runtimeImage: '', think: false }, undefined)).toMatchObject({ ok: false, message: expect.stringMatching(/loopback/) as string });
   });
 
   it('describe cada proveedor (clave, plan, cuota publicada y viva) y el resultado de comprobar', () => {
@@ -150,7 +150,7 @@ describe('[llm.runtime] en el formulario (T-8.8, S3)', () => {
     const cleared = buildSettings({ ...form, runtimeRunner: '', runtimeImage: '  ' }, undefined);
     expect(cleared.ok && 'runtime' in cleared.value).toBe(false);
     const noValues = formFromConfig({ ...config, llm: { ...config.llm, settings: { ...config.llm.settings, values: undefined } } } as LlmConfigResponse);
-    expect(noValues).toMatchObject({ runtimeRunner: '', runtimeImage: '' });
+    expect(noValues).toMatchObject({ runtimeRunner: '', runtimeImage: '', think: false });
   });
 });
 
@@ -161,5 +161,55 @@ describe('quotaMeter (T-8.6 S3)', () => {
     expect(quotaMeter({ remainingTokens: 0, limitTokens: 100, observedAt: 'x' } as never)).toEqual({ percent: 100 });
     expect(quotaMeter({ remainingRequests: 5, limitRequests: 0, remainingTokens: 90, limitTokens: 100, observedAt: 'x' } as never)).toEqual({ percent: 10 });
     expect(quotaMeter({ retryAfterSeconds: 3, observedAt: 'x' } as never)).toBeUndefined();
+  });
+});
+
+describe('catálogo de modelos locales en Ajustes (T-8.13)', () => {
+  const entry = (id: string, thinking: 'none' | 'switchable' | 'always', present: boolean, mirror: string | undefined) => ({
+    id,
+    family: 'x',
+    thinking,
+    downloadGiB: 5.2,
+    minRamGiB: 8,
+    license: 'MIT',
+    recommendedFor: ['improve' as const],
+    note: '',
+    mirror,
+    sourceUrl: 'https://ollama.com/library/x',
+    verifiedAt: '2026-08-30',
+    present,
+    sizeBytes: undefined,
+    configured: false,
+  });
+  const catalogue = [entry('qwen2.5:7b-instruct', 'none', true, undefined), entry('qwen3:8b', 'switchable', false, 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M'), entry('deepseek-r1:8b', 'always', false, 'hf.co/x')];
+
+  it('describe cada modelo con su razonamiento, tamaño, RAM y si está descargado (solo con Ollama en marcha)', () => {
+    expect(describeLocalModel(catalogue[0]!, true)).toBe('qwen2.5:7b-instruct — sin razonamiento · 5.2 GiB · RAM ≥ 8 GiB · descargado');
+    expect(describeLocalModel(catalogue[1]!, true)).toBe('qwen3:8b — razonamiento conmutable · 5.2 GiB · RAM ≥ 8 GiB · no descargado');
+    expect(describeLocalModel(catalogue[2]!, false)).toBe('deepseek-r1:8b — razona siempre · 5.2 GiB · RAM ≥ 8 GiB');
+  });
+
+  it('el selector distingue vacío, catálogo (también con :latest) y «otro»', () => {
+    expect(modelChoice('', catalogue)).toBe('');
+    expect(modelChoice(' qwen3:8b ', catalogue)).toBe('qwen3:8b');
+    expect(modelChoice('qwen3:8b:latest', catalogue)).toBe('qwen3:8b');
+    expect(modelChoice('llama3:8b', catalogue)).toBe(OTHER_MODEL);
+  });
+
+  it('el consentimiento de descarga cita el registro, el tamaño y el espejo de Hugging Face si lo hay', () => {
+    expect(describeDownload('qwen3:8b', catalogue)).toBe(
+      'Ollama descargará «qwen3:8b» (unos 5.2 GiB) del registro público de Ollama (registry.ollama.ai); si el registro falla, se descarga el espejo «hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M» desde huggingface.co y se crea el alias. No sale ningún dato tuyo; solo entra el modelo.',
+    );
+    expect(describeDownload('qwen2.5:7b-instruct', catalogue)).toBe('Ollama descargará «qwen2.5:7b-instruct» (unos 5.2 GiB) del registro público de Ollama (registry.ollama.ai). No sale ningún dato tuyo; solo entra el modelo.');
+    expect(describeDownload('llama3:8b', undefined)).toContain('«llama3:8b» (varios GB) del registro público');
+  });
+
+  it('[llm] think: el formulario lo lee de cv.toml y solo se guarda cuando está activo', () => {
+    const on = { llm: { config: undefined, settings: { path: '/w/cv.toml', present: true, configured: true, error: undefined, values: { think: true } } } } as unknown as LlmConfigResponse;
+    expect(formFromConfig(on).think).toBe(true);
+    expect(formFromConfig(config()).think).toBe(false);
+    const form = formFromConfig(on);
+    expect(buildSettings({ ...form, provider: 'ollama' }, undefined)).toEqual({ ok: true, value: { provider: 'ollama', think: true } });
+    expect(buildSettings({ ...form, provider: 'ollama', think: false }, undefined)).toEqual({ ok: true, value: { provider: 'ollama' } });
   });
 });

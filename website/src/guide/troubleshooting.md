@@ -19,7 +19,7 @@ title: Solución de problemas
 | `No se encuentra Typst` | `--engine typst` sin binario. `cv typst install` (única operación de red), o `CHAMELEON_TYPST=/ruta/typst`, o `--typst-path`. `cv typst status` dice qué se usaría. |
 | `SHA-256 no coincide` (en `cv typst install`) | La descarga no es el release oficial esperado; el fichero se elimina sin instalarse. Reintenta; si persiste, no instales: comprueba tu red o proxy. |
 | `theme.toml: colors.primary: …` / `cv.toml: …` | Un valor del tema o de la configuración no pasa la validación; la ruta indica la clave. `cv theme list` muestra los temas inválidos con su motivo. |
-| `El proveedor local no responde` | No hay Ollama (o servidor compatible) escuchando en `CHAMELEON_LLM_BASE_URL`. Arranca el servicio, descarga el modelo (`ollama pull qwen2.5:7b-instruct`) y comprueba con `cv llm status`. |
+| `El proveedor local no responde` | No hay Ollama (o servidor compatible) escuchando en `CHAMELEON_LLM_BASE_URL`. Arranca el servicio, descarga el modelo (`ollama pull qwen3:8b`) y comprueba con `cv llm status`. |
 | `dirección no local rechazada` | `CHAMELEON_LLM_BASE_URL` apunta fuera de loopback. Los proveedores locales solo pueden ser `127.0.0.1`/`localhost`; para remotos usa `--provider`. |
 | `permisos abiertos` (fichero de claves) | `~/.config/chameleon-cv/keys.json` es legible por otros usuarios: `chmod 600` sobre el fichero. |
 | `Operación cancelada: sin terminal interactiva, confirma con --yes` | Un proveedor remoto pide confirmación y no hay TTY (script, CI). Añade `--yes` si aceptas el coste. |

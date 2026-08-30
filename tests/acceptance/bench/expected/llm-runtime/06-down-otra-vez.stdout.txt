@@ -5,7 +5,7 @@
     "managed": false,
     "running": false,
     "model": {
-      "name": "qwen2.5:7b-instruct",
+      "name": "qwen3:8b",
       "present": false
     },
     "log": "<TMP>/home/.cache/chameleon-cv/ollama/serve.log",

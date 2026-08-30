@@ -78,7 +78,7 @@ describe('cv llm status --provider <remoto>', () => {
 
 /* ─────────────────────────── cv llm up / down (T-8.8) ─────────────────────────── */
 
-import type { LlmRuntime, RuntimeResult, RuntimeState, RuntimeUpOptions } from '../../src/llm';
+import { LOCAL_MODELS, type LlmRuntime, type LocalModelsState, type RuntimeResult, type RuntimeState, type RuntimeUpOptions } from '../../src/llm';
 
 const RUNNING: RuntimeState = {
   runner: 'native',
@@ -110,9 +110,18 @@ function fakeRuntime(up: RuntimeResult, down: RuntimeResult): LlmRuntime & { rea
       runtime.downs += 1;
       return down;
     },
+    models: async () => MODELS,
   };
   return runtime;
 }
+
+/** Catálogo con lo descargado (T-8.13): el modelo por defecto presente y configurado; el resto, no. */
+const MODELS: LocalModelsState = {
+  catalogue: LOCAL_MODELS.map((entry) => ({ ...entry, present: entry.id === 'qwen2.5:7b-instruct', sizeBytes: entry.id === 'qwen2.5:7b-instruct' ? 4_683_087_332 : undefined, configured: entry.id === 'qwen2.5:7b-instruct' })),
+  others: [{ name: 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M', sizeBytes: 5_027_000_000 }],
+  running: true,
+  disabled: undefined,
+};
 
 const RUNTIME_STATUS: LlmStatus = {
   config: CONFIG,
@@ -189,10 +198,35 @@ describe('cv llm up / down', () => {
     expect(foreign.stderr()).toBe('Ollama está en marcha pero no lo arrancó cv\n');
   });
 
-  it('sin runtime en el contexto, up y down lo dicen y fallan', async () => {
+  it('sin runtime en el contexto, up, down y models lo dicen y fallan', async () => {
     const h = runtimeHarness(undefined);
     expect(await runCli(['llm', 'up'], h.context)).toBe(EXIT_FAILURE);
     expect(await runCli(['llm', 'down'], h.context)).toBe(EXIT_FAILURE);
-    expect(h.stderr()).toBe('El runtime de Ollama no está disponible en este contexto\nEl runtime de Ollama no está disponible en este contexto\n');
+    expect(await runCli(['llm', 'models'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toBe('El runtime de Ollama no está disponible en este contexto\n'.repeat(3));
+  });
+
+  it('up --source pasa el origen al runtime (ollama o huggingface) y rechaza otro valor como error de uso (T-8.13)', async () => {
+    const runtime = fakeRuntime(UP_OK, DOWN_OK);
+    const h = runtimeHarness(runtime);
+    expect(await runCli(['llm', 'up', '--model', 'qwen3:8b', '--source', 'HuggingFace', '--json'], h.context)).toBe(EXIT_OK);
+    expect(runtime.ups[0]).toMatchObject({ model: 'qwen3:8b', source: 'huggingface' });
+    expect(await runCli(['llm', 'up', '--source', 'github'], h.context)).toBe(1);
+    expect(h.stderr()).toBe('--source debe ser ollama o huggingface (no «github»)\n');
+    expect(runtime.ups).toHaveLength(1);
+  });
+
+  it('models: el catálogo con lo descargado, una línea por modelo y la pista en stderr; --json devuelve el estado íntegro (T-8.13)', async () => {
+    const h = runtimeHarness(fakeRuntime(UP_OK, DOWN_OK));
+    expect(await runCli(['llm', 'models'], h.context)).toBe(EXIT_OK);
+    const lines = h.stdout().split('\n');
+    expect(lines[0]).toBe('qwen3:8b             no descargado          razonamiento conmutable  5.2 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags');
+    expect(lines[1]).toBe('qwen2.5:7b-instruct  descargado (4.4 GiB)   sin razonamiento         4.7 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags · configurado');
+    expect(lines[5]).toBe('Otros modelos presentes: hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M (4.7 GiB)');
+    expect(h.stderr()).toBe('Descarga uno con «cv llm up --model <id>» (registro de Ollama; si falla, el espejo de Hugging Face del catálogo) o fíjalo con [llm] model en cv.toml\n');
+    const json = runtimeHarness(fakeRuntime(UP_OK, DOWN_OK));
+    expect(await runCli(['llm', 'models', '--json'], json.context)).toBe(EXIT_OK);
+    expect(JSON.parse(json.stdout())).toEqual(MODELS);
+    expect(json.stderr()).toBe('');
   });
 });

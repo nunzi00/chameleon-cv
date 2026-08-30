@@ -1,5 +1,5 @@
 #!/bin/sh
-# Doble de «ollama» para el arnés de aceptación (T-8.8): --version, pull (progreso fijo) y serve (HTTP mínimo con
+# Doble de «ollama» para el arnés de aceptación (T-8.8, T-8.13): --version, pull (progreso fijo), cp y serve (HTTP mínimo con
 # /api/version y /api/tags). El estado (modelos descargados) vive en $HOME/.ollama-fake.json del espacio temporal.
 # Sin órdenes externas: el arnés ejecuta con el PATH vacío (CV_NODE apunta al Node del arnés).
 exec "${CV_NODE:-node}" "${0%/*}/ollama-fake.mjs" "$@"

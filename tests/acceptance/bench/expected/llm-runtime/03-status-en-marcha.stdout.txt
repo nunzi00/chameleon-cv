@@ -1,5 +1,5 @@
-Proveedor local: ollama (http://127.0.0.1:43117; por defecto) · modelo: qwen2.5:7b-instruct (por defecto)
-Estado: alcanzable · versión 0.33.2-fake · 1 modelo (qwen2.5:7b-instruct) · el modelo configurado está disponible
+Proveedor local: ollama (http://127.0.0.1:43117; por defecto) · modelo: qwen3:8b (por defecto)
+Estado: alcanzable · versión 0.33.2-fake · 1 modelo (qwen3:8b) · el modelo configurado está disponible
 Configuración del proyecto: <WS>/cv.toml (sin tabla [llm])
 Proveedores remotos (solo con --provider explícito):
   openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini
@@ -8,4 +8,4 @@ Proveedores remotos (solo con --provider explícito):
     modelos (--model o [llm.models]): openai/gpt-oss-120b (estable; improve, summarize) · qwen/qwen3.8-27b (preview; suggest-tags, improve, summarize)
 Fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
 Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com
-runtime: Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b-instruct» presente
+runtime: Ollama en marcha (native, lo arrancó cv) · modelo «qwen3:8b» presente

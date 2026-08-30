@@ -1,0 +1,1 @@
+la descarga de «llama3:8b» falló: Error: max retries exceeded: Get "https://registry.ollama.ai/v2/library/…": dial tcp: i/o timeout

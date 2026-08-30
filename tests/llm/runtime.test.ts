@@ -15,7 +15,9 @@ import {
   type RuntimeSystem,
   createLlmRuntime,
   endpointOf,
+  formatLocalModels,
   formatRuntimeState,
+  isModelSource,
   isRuntimeRunner,
   isValidModelName,
   runtimeConfiguration,
@@ -44,19 +46,53 @@ interface World {
   startsResponding: boolean;
   pullFails: boolean;
   spawnFails: boolean;
+  /** El registro de Ollama falla (los espejos `hf.co/…` siguen bajando). */
+  registryDown: boolean;
+  cpFails: boolean;
+  /** Tamaños que Ollama informa en /api/tags. */
+  sizes: Record<string, number>;
 }
 
 function world(overrides: Partial<World> = {}): World {
-  return { up: false, models: [], alive: new Set(), container: 'none', ollamaBinary: true, dockerBinary: false, startsResponding: true, pullFails: false, spawnFails: false, ...overrides };
+  return { up: false, models: [], alive: new Set(), container: 'none', ollamaBinary: true, dockerBinary: false, startsResponding: true, pullFails: false, spawnFails: false, registryDown: false, cpFails: false, sizes: {}, ...overrides };
 }
 
-function fakeSystem(w: World, env: NodeJS.ProcessEnv = {}, files: Map<string, string> = new Map()) {
+function fakeSystem(w: World, env: NodeJS.ProcessEnv = {}, files: Map<string, string> = new Map(), config: LlmConfig = CONFIG) {
   const calls: string[] = [];
   let nextPid = 4242;
   const health = async (config: LlmConfig): Promise<LlmHealth> =>
     w.up
-      ? { ok: true, version: '0.33.2', models: [...w.models], modelAvailable: w.models.includes(config.model) }
+      ? { ok: true, version: '0.33.2', models: [...w.models], modelAvailable: w.models.includes(config.model), ...(Object.keys(w.sizes).length === 0 ? {} : { sizes: { ...w.sizes } }) }
       : { ok: false, code: 'unreachable', message: `Ollama no responde en ${config.baseUrl}` };
+  /** `pull`/`cp` como los ejecuta Ollama (native: args desde 0; docker exec: desde 3). */
+  const model = (args: readonly string[], offset: number): ExecResult | undefined => {
+    const [command, first, second] = [args[offset], args[offset + 1] ?? '', args[offset + 2] ?? ''];
+    if (command === 'pull') {
+      if (w.registryDown && !first.startsWith('hf.co/')) {
+        return { ...OK, ok: false, code: 1, stderr: 'Error: max retries exceeded' };
+      }
+      if (w.pullFails) {
+        // PULL_SILENT: fallo sin stderr ni mensaje (solo el código, o ni eso).
+        if (env['PULL_SILENT'] === '1') {
+          return { ...OK, ok: false, code: 1, stderr: '', message: undefined };
+        }
+        if (env['PULL_SILENT'] === '2') {
+          return { ...OK, ok: false, code: null, stderr: '', message: undefined };
+        }
+        return offset === 0 ? { ...OK, ok: false, code: 1, stderr: 'Error: model not found' } : { ...OK, ok: false, code: 1, stderr: '', message: 'exit 1' };
+      }
+      w.models.push(first);
+      return OK;
+    }
+    if (command === 'cp') {
+      if (w.cpFails) {
+        return { ...OK, ok: false, code: 1, stderr: 'cannot copy' };
+      }
+      w.models.push(second);
+      return OK;
+    }
+    return undefined;
+  };
   const system: RuntimeSystem = {
     exec: async (command, args, options) => {
       calls.push(`${command} ${args.join(' ')}`);
@@ -68,20 +104,12 @@ function fakeSystem(w: World, env: NodeJS.ProcessEnv = {}, files: Map<string, st
       if (isDocker && !w.dockerBinary) {
         return MISSING;
       }
-      if (isOllama && args[0] === 'pull') {
+      if (isOllama && (args[0] === 'pull' || args[0] === 'cp')) {
         options.onLine?.('pulling manifest');
-        if (w.pullFails) {
-          return { ...OK, ok: false, code: 1, stderr: 'Error: model not found' };
-        }
-        w.models.push(args[1] ?? '');
-        return OK;
+        return model(args, 0) ?? OK;
       }
       if (isDocker && args[0] === 'exec') {
-        if (w.pullFails) {
-          return { ...OK, ok: false, code: 1, stderr: '', message: 'exit 1' };
-        }
-        w.models.push(args[4] ?? '');
-        return OK;
+        return model(args, 3) ?? OK;
       }
       if (isDocker && args[0] === 'inspect') {
         return w.container === 'none' ? { ...OK, ok: false, code: 1, stderr: 'No such object' } : { ...OK, stdout: `${w.container === 'running'}\n` };
@@ -150,7 +178,7 @@ function fakeSystem(w: World, env: NodeJS.ProcessEnv = {}, files: Map<string, st
     cwd: '/work',
   };
   const preferences = { runner: undefined as RuntimeRunner | undefined, image: undefined as string | undefined };
-  const configure = async (): Promise<RuntimeConfiguration> => ({ result: { ok: true, config: CONFIG }, runner: preferences.runner, image: preferences.image });
+  const configure = async (): Promise<RuntimeConfiguration> => ({ result: { ok: true, config }, runner: preferences.runner, image: preferences.image });
   return { system, calls, files, preferences, runtime: createLlmRuntime(configure, system) };
 }
 
@@ -291,7 +319,7 @@ describe('up', () => {
     expect(progress).toEqual([
       `Ollama arrancado (native) · registro en ${LOG_PATH}`,
       'Ollama responde en http://127.0.0.1:11434',
-      'descargando el modelo «qwen2.5:7b» (native)…',
+      'descargando el modelo «qwen2.5:7b» (native, registro de Ollama)…',
       'pulling manifest',
       'modelo «qwen2.5:7b» disponible',
     ]);
@@ -336,7 +364,7 @@ describe('up', () => {
   it('ya en marcha: no lo toca; descarga el modelo con el binario disponible o avisa de que no hay con qué', async () => {
     const foreign = fakeSystem(world({ up: true }));
     const result = await foreign.runtime.up();
-    expect(result.ok && result.lines).toEqual(['Ollama ya está en marcha (no lo arrancó cv): no se toca', 'descargando el modelo «qwen2.5:7b» (native)…', 'pulling manifest', 'modelo «qwen2.5:7b» disponible']);
+    expect(result.ok && result.lines).toEqual(['Ollama ya está en marcha (no lo arrancó cv): no se toca', 'descargando el modelo «qwen2.5:7b» (native, registro de Ollama)…', 'pulling manifest', 'modelo «qwen2.5:7b» disponible']);
     expect(foreign.calls).not.toContain('spawn ollama serve OLLAMA_HOST=127.0.0.1:11434');
 
     const managed = fakeSystem(world({ up: true, alive: new Set([9]), models: ['qwen2.5:7b'] }), {}, new Map([[PID_PATH, '9']]));
@@ -418,5 +446,99 @@ describe('down', () => {
     expect(failing).toMatchObject({ ok: false, code: 'stop-failed', message: `no se pudo parar el contenedor ${OLLAMA_CONTAINER}: cannot stop` });
     const quiet = await fakeSystem(world({ up: true, dockerBinary: true, container: 'running' }), { DOCKER_STOP_FAILS: '2' }).runtime.down();
     expect(quiet).toMatchObject({ ok: false, code: 'stop-failed', message: `no se pudo parar el contenedor ${OLLAMA_CONTAINER}: exit 1` });
+  });
+});
+
+describe('espejo de Hugging Face y catálogo (T-8.13)', () => {
+  const MIRROR = 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M';
+
+  it('si el registro falla y el catálogo tiene espejo, descarga el espejo y crea el alias (native y docker)', async () => {
+    const native = fakeSystem(world({ up: true, registryDown: true }));
+    const result = await native.runtime.up({ model: 'qwen3:8b' });
+    expect(result.ok).toBe(true);
+    expect(result.lines).toEqual([
+      'Ollama ya está en marcha (no lo arrancó cv): no se toca',
+      'descargando el modelo «qwen3:8b» (native, registro de Ollama)…',
+      'pulling manifest',
+      `el registro de Ollama falló (Error: max retries exceeded); se intenta el espejo «${MIRROR}» en huggingface.co`,
+      'pulling manifest',
+      'pulling manifest',
+      `alias «qwen3:8b» creado a partir de «${MIRROR}»`,
+      'modelo «qwen3:8b» disponible',
+    ]);
+    expect(native.calls.filter((call) => call.includes(' pull ') || call.includes(' cp '))).toEqual(['ollama pull qwen3:8b', `ollama pull ${MIRROR}`, `ollama cp ${MIRROR} qwen3:8b`]);
+    const docker = fakeSystem(world({ up: true, container: 'running', ollamaBinary: false, dockerBinary: true, registryDown: true }));
+    const viaDocker = await docker.runtime.up({ model: 'qwen3:8b' });
+    expect(viaDocker.ok).toBe(true);
+    expect(docker.calls.filter((call) => call.includes('ollama pull') || call.includes('ollama cp'))).toEqual([
+      `docker exec ${OLLAMA_CONTAINER} ollama pull qwen3:8b`,
+      `docker exec ${OLLAMA_CONTAINER} ollama pull ${MIRROR}`,
+      `docker exec ${OLLAMA_CONTAINER} ollama cp ${MIRROR} qwen3:8b`,
+    ]);
+  });
+
+  it('--source huggingface va directo al espejo; sin espejo en el catálogo o fuera de él, lo explica sin tocar el registro', async () => {
+    const direct = fakeSystem(world({ up: true }));
+    const result = await direct.runtime.up({ model: 'qwen3:8b', source: 'huggingface' });
+    expect(result.ok).toBe(true);
+    expect(result.lines).toContain(`descargando «${MIRROR}» desde huggingface.co (native)…`);
+    expect(direct.calls.some((call) => call === 'ollama pull qwen3:8b')).toBe(false);
+    const noMirror = await fakeSystem(world({ up: true })).runtime.up({ model: 'gpt-oss:20b', source: 'huggingface' });
+    expect(noMirror).toMatchObject({ ok: false, code: 'pull-failed', message: '«gpt-oss:20b» no tiene espejo en Hugging Face en el catálogo (cv llm models); descárgalo del registro de Ollama' });
+    const unknown = await fakeSystem(world({ up: true, registryDown: true })).runtime.up({ model: 'llama3:8b' });
+    expect(unknown).toMatchObject({ ok: false, code: 'pull-failed', message: 'la descarga de «llama3:8b» falló: Error: max retries exceeded' });
+  });
+
+  it('el espejo que falla o el alias que no se puede crear se explican', async () => {
+    const mirrorFails = await fakeSystem(world({ up: true, registryDown: true, pullFails: true })).runtime.up({ model: 'qwen3:8b' });
+    expect(mirrorFails).toMatchObject({ ok: false, code: 'pull-failed', message: `la descarga de «${MIRROR}» falló: Error: model not found` });
+    const aliasFails = await fakeSystem(world({ up: true, registryDown: true, cpFails: true })).runtime.up({ model: 'qwen3:8b' });
+    expect(aliasFails).toMatchObject({ ok: false, code: 'pull-failed', message: `no se pudo crear el alias «qwen3:8b» de «${MIRROR}»: cannot copy` });
+    const silent = await fakeSystem(world({ up: true, container: 'running', ollamaBinary: false, dockerBinary: true, registryDown: true, pullFails: true })).runtime.up({ model: 'qwen3:8b' });
+    expect(silent).toMatchObject({ ok: false, message: `la descarga de «${MIRROR}» falló: exit 1` });
+    const onlyCode = await fakeSystem(world({ up: true, registryDown: true, pullFails: true }), { PULL_SILENT: '1' }).runtime.up({ model: 'qwen3:8b' });
+    expect(onlyCode).toMatchObject({ ok: false, message: `la descarga de «${MIRROR}» falló: código 1` });
+    const nothing = await fakeSystem(world({ up: true, registryDown: true, pullFails: true }), { PULL_SILENT: '2' }).runtime.up({ model: 'qwen3:8b' });
+    expect(nothing).toMatchObject({ ok: false, message: `la descarga de «${MIRROR}» falló: código ?` });
+  });
+
+  it('models(): el catálogo con lo descargado (tamaños, configurado, otros modelos) o sin comprobar si Ollama no responde; deshabilitado con el motivo', async () => {
+    const running = fakeSystem(world({ up: true, models: ['qwen3:8b:latest', MIRROR], sizes: { 'qwen3:8b:latest': 5_000_000_000, [MIRROR]: 5_000_000_000 } }), {}, new Map(), { ...CONFIG, model: 'qwen3:8b' });
+    const state = await running.runtime.models();
+    expect(state.running).toBe(true);
+    expect(state.disabled).toBeUndefined();
+    expect(state.catalogue.map((entry) => [entry.id, entry.present, entry.sizeBytes, entry.configured])).toEqual([
+      ['qwen3:8b', true, 5_000_000_000, true],
+      ['qwen2.5:7b-instruct', false, undefined, false],
+      ['deepseek-r1:8b', false, undefined, false],
+      ['gpt-oss:20b', false, undefined, false],
+      ['qwen3:4b', false, undefined, false],
+    ]);
+    expect(state.others).toEqual([{ name: MIRROR, sizeBytes: 5_000_000_000 }]);
+    const stopped = await fakeSystem(world()).runtime.models();
+    expect(stopped).toMatchObject({ running: false, disabled: undefined, others: [] });
+    expect(stopped.catalogue.every((entry) => !entry.present && entry.sizeBytes === undefined)).toBe(true);
+    const disabled = await fakeSystem(world(), { [RUNTIME_ENV.container]: '1' }).runtime.models();
+    expect(disabled).toMatchObject({ running: false, disabled: expect.stringContaining('Compose') as string, others: [] });
+    expect(disabled.catalogue.map((entry) => entry.configured)).toEqual([false, false, false, false, false]);
+  });
+
+  it('formatLocalModels: una línea por modelo con lo descargado, razonamiento, tamaño, RAM, licencia y tareas; otros modelos y avisos', async () => {
+    const running = fakeSystem(world({ up: true, models: ['qwen3:8b', 'llama3:8b'], sizes: { 'qwen3:8b': 5_368_709_120 } }), {}, new Map(), { ...CONFIG, model: 'qwen3:8b' });
+    const lines = formatLocalModels(await running.runtime.models());
+    expect(lines[0]).toBe('qwen3:8b             descargado (5.0 GiB)   razonamiento conmutable  5.2 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags · configurado');
+    expect(lines[1]).toBe('qwen2.5:7b-instruct  no descargado          sin razonamiento         4.7 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags');
+    expect(lines[3]).toContain('gpt-oss:20b          no descargado          razonamiento conmutable  14 GiB · RAM ≥ 16 GiB · Apache-2.0 · improve, summarize, suggest-tags · sin espejo');
+    expect(lines[5]).toBe('Otros modelos presentes: llama3:8b');
+    // Ollama sin tamaños en /api/tags: «descargado» a secas.
+    const noSizes = formatLocalModels(await fakeSystem(world({ up: true, models: ['qwen3:8b'] })).runtime.models());
+    expect(noSizes[0]).toBe('qwen3:8b             descargado             razonamiento conmutable  5.2 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags');
+    const stopped = formatLocalModels(await fakeSystem(world()).runtime.models());
+    expect(stopped[0]).toBe('Ollama parado: no se puede comprobar qué modelos están descargados (cv llm up)');
+    expect(stopped[1]).toContain('qwen3:8b             sin comprobar');
+    const disabled = formatLocalModels(await fakeSystem(world(), { [RUNTIME_ENV.container]: '1' }).runtime.models());
+    expect(disabled[0]).toMatch(/^Ollama no disponible \(dentro del contenedor de Compose/);
+    expect(isModelSource('huggingface')).toBe(true);
+    expect(isModelSource('github')).toBe(false);
   });
 });

@@ -37,7 +37,7 @@ export type LlmCompletion =
   | { readonly ok: false; readonly code: LlmErrorCode; readonly message: string; /** Con `quota-exceeded`, lo que pide el proveedor (`retry-after`). */ readonly retryAfterSeconds?: number | undefined };
 
 export type LlmHealth =
-  | { readonly ok: true; readonly version: string | undefined; readonly models: readonly string[]; readonly modelAvailable: boolean }
+  | { readonly ok: true; readonly version: string | undefined; readonly models: readonly string[]; readonly modelAvailable: boolean; readonly sizes?: Readonly<Record<string, number>> | undefined }
   | { readonly ok: false; readonly code: LlmErrorCode; readonly message: string };
 
 export type LocalProviderId = 'ollama' | 'openai-compatible';

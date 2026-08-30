@@ -7,10 +7,12 @@ import { z } from 'zod';
 
 import { LLM_HTTP_LIMITS, loopbackOnlyHttp, type JsonHttp, type JsonHttpErrorCode, type JsonHttpResult } from './http';
 import { parseDuration } from './quota';
+import { thinkingOf } from './registry';
 import { DEFAULT_SEED, DEFAULT_TEMPERATURE, parseModelJson, type LlmCompletion, type LlmErrorCode, type LlmHealth, type LlmProvider, type LlmRequest } from './provider';
 
 export const OLLAMA_DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
-export const OLLAMA_DEFAULT_MODEL = 'qwen2.5:7b-instruct';
+/** Defecto desde T-8.11/T-8.13 (docs/qwen3-evaluation.md §4): 16/16 en el arnés de IA y reescrituras que superan la verificación C2. */
+export const OLLAMA_DEFAULT_MODEL = 'qwen3:8b';
 
 const ChatResponseSchema = z.looseObject({
   model: z.string(),
@@ -18,12 +20,20 @@ const ChatResponseSchema = z.looseObject({
   prompt_eval_count: z.number().optional(),
   eval_count: z.number().optional(),
 });
-const TagsSchema = z.looseObject({ models: z.array(z.looseObject({ name: z.string() })) });
+const TagsSchema = z.looseObject({ models: z.array(z.looseObject({ name: z.string(), size: z.number().optional() })) });
 const VersionSchema = z.looseObject({ version: z.string() });
 
-/** Modelos que activan el razonamiento por defecto y aceptan `think: false` (Qwen3 y derivados). */
+/** Modelos que razonan (catálogo o familia, T-8.13): Qwen3 y gpt-oss lo conmutan con `think`; los DeepSeek-R1 razonan siempre. */
 export function isThinkingModel(model: string): boolean {
-  return /^qwen3/i.test(model.trim());
+  return thinkingOf(model) !== 'none';
+}
+
+/**
+ * El parámetro `think` de `/api/chat`: solo para los modelos que lo conmutan (apagado salvo `[llm] think = true`,
+ * T-8.13 D3); los que razonan siempre no lo admiten y su bloque se descarta con `stripThinking`.
+ */
+export function thinkParameter(model: string, think: boolean | undefined): { readonly think?: boolean } {
+  return thinkingOf(model) === 'switchable' ? { think: think === true } : {};
 }
 
 /** Quita un bloque `<think>…</think>` residual (o abierto) antes del JSON; el resto se devuelve intacto. */
@@ -35,6 +45,8 @@ export interface OllamaOptions {
   readonly baseUrl?: string | undefined;
   readonly model?: string | undefined;
   readonly http?: JsonHttp | undefined;
+  /** `[llm] think` (T-8.13): pedir razonamiento a los modelos que lo conmutan. */
+  readonly think?: boolean | undefined;
 }
 
 export function httpErrorToLlm(code: JsonHttpErrorCode): LlmErrorCode {
@@ -82,8 +94,8 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
           messages: request.messages,
           stream: false,
           format: request.schema,
-          // Qwen3 razona por defecto («thinking») y rompería el JSON estricto (T-8.11); en otros modelos no tiene efecto.
-          ...(isThinkingModel(model) ? { think: false } : {}),
+          // Qwen3 y gpt-oss razonan por defecto y romperían el JSON estricto (T-8.11): apagado salvo que se pida (T-8.13).
+          ...thinkParameter(model, options.think),
           options: { temperature: request.temperature ?? DEFAULT_TEMPERATURE, seed: request.seed ?? DEFAULT_SEED, num_predict: request.maxTokens },
         },
       });
@@ -121,8 +133,9 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
         return { ok: false, code: 'invalid-response', message: 'Ollama: la lista de modelos tiene una forma inesperada' };
       }
       const names = list.data.models.map((entry) => entry.name);
+      const sizes = Object.fromEntries(list.data.models.flatMap((entry) => (entry.size === undefined ? [] : [[entry.name, entry.size]])));
       const parsedVersion = VersionSchema.safeParse(version.data);
-      return { ok: true, version: parsedVersion.success ? parsedVersion.data.version : undefined, models: names, modelAvailable: modelListed(model, names) };
+      return { ok: true, version: parsedVersion.success ? parsedVersion.data.version : undefined, models: names, modelAvailable: modelListed(model, names), sizes };
     },
   };
 }

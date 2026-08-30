@@ -1,0 +1,1 @@
+Descarga uno con «cv llm up --model <id>» (registro de Ollama; si falla, el espejo de Hugging Face del catálogo) o fíjalo con [llm] model en cv.toml

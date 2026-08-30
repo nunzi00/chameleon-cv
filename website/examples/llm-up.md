@@ -11,3 +11,4 @@ cv llm up --json                       # estado, líneas de progreso y, si falla
 - Si Ollama ya responde pero lo arrancaste tú, no se toca: solo se asegura el modelo.
 - La única salida de red es la descarga del modelo desde el registro público de Ollama; no lleva ningún dato tuyo. Dentro de la imagen de Compose la orden está deshabilitada (allí Ollama es un servicio del propio Compose).
 - Salida `0` correcto; `1` modelo o runner inválidos; `2` sin runner, arranque o descarga fallidos.
+- `--source huggingface` descarga directamente el espejo del catálogo (`hf.co/<repositorio>:<cuantización>`) y crea el alias corto; sin `--source`, se intenta el registro de Ollama y, si falla, el espejo (T-8.13). Solo los modelos con espejo en `cv llm models` lo admiten.

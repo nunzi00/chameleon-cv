@@ -73,7 +73,7 @@ Las rutas son relativas a `/work`, que es tu `my-profile`. `-T` desactiva la pse
 
 ## 5. La IA local, cuando la quieras
 
-`compose.ai.yml` añade Ollama con el modelo validado (`qwen2.5:7b-instruct`) y hace que `cv` comparta su espacio de red: `http://127.0.0.1:11434` sigue siendo loopback, así que la regla «solo local» del producto no cambia y Ollama no publica ningún puerto. La primera vez descarga unos 3,2 GB de imagen y 4,7 GB de modelo, que persisten en un volumen.
+`compose.ai.yml` añade Ollama con el modelo validado (`qwen3:8b`) y hace que `cv` comparta su espacio de red: `http://127.0.0.1:11434` sigue siendo loopback, así que la regla «solo local» del producto no cambia y Ollama no publica ningún puerto. La primera vez descarga unos 3,2 GB de imagen y 4,7 GB de modelo, que persisten en un volumen.
 
 ```bash
 docker compose -f compose.yml -f compose.ai.yml run --rm chameleon-cv llm status

@@ -22,6 +22,7 @@ export const LLM_ENV = {
   provider: 'CHAMELEON_LLM_PROVIDER',
   baseUrl: 'CHAMELEON_LLM_BASE_URL',
   model: 'CHAMELEON_LLM_MODEL',
+  think: 'CHAMELEON_LLM_THINK',
   allowedHosts: 'CHAMELEON_LLM_ALLOWED_HOSTS',
   openaiBaseUrl: 'CHAMELEON_OPENAI_BASE_URL',
   anthropicBaseUrl: 'CHAMELEON_ANTHROPIC_BASE_URL',
@@ -54,8 +55,16 @@ export interface LlmConfig {
   readonly provider: LocalProviderId;
   readonly baseUrl: string;
   readonly model: string;
+  /** Razonamiento pedido a los modelos locales que lo conmutan (T-8.13); ausente = apagado. */
+  readonly think?: boolean | undefined;
   /** Qué vino de dónde, para explicarlo en `status` y en «Ajustes». */
-  readonly sources: { readonly provider: ConfigSource; readonly baseUrl: ConfigSource; readonly model: ConfigSource };
+  readonly sources: { readonly provider: ConfigSource; readonly baseUrl: ConfigSource; readonly model: ConfigSource; readonly think?: ConfigSource | undefined };
+}
+
+/** `CHAMELEON_LLM_THINK`: `1`/`true` enciende, `0`/`false` apaga; cualquier otra cosa se ignora. */
+function envBoolean(value: string | undefined): boolean | undefined {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' ? true : normalized === '0' || normalized === 'false' ? false : undefined;
 }
 
 /** De dónde sale cada valor efectivo: la orden (`--provider`/`--model`), el entorno, `cv.toml` o el valor por defecto. */
@@ -113,15 +122,17 @@ export function resolveLlmConfig(env: NodeJS.ProcessEnv = process.env, options: 
     return { ok: false, message: `${origin}=«${baseUrl.value}» no es una dirección local (loopback): los proveedores remotos exigen --provider explícito` };
   }
   const model = pick(resolved.model, env[LLM_ENV.model], settings?.model, defaults.model);
+  const fromEnv = envBoolean(env[LLM_ENV.think]);
+  const think = fromEnv !== undefined ? { value: fromEnv, source: 'env' as const } : settings?.think !== undefined ? { value: settings.think, source: 'file' as const } : { value: false, source: 'default' as const };
   return {
     ok: true,
-    config: { provider, baseUrl: baseUrl.value, model: model.value, sources: { provider: chosen.source, baseUrl: baseUrl.source, model: model.source } },
+    config: { provider, baseUrl: baseUrl.value, model: model.value, think: think.value, sources: { provider: chosen.source, baseUrl: baseUrl.source, model: model.source, think: think.source } },
   };
 }
 
 export function createProvider(config: LlmConfig, http?: JsonHttp): LlmProvider {
   return config.provider === 'ollama'
-    ? createOllamaProvider({ baseUrl: config.baseUrl, model: config.model, http })
+    ? createOllamaProvider({ baseUrl: config.baseUrl, model: config.model, http, think: config.think })
     : createOpenAiCompatibleProvider({ baseUrl: config.baseUrl, model: config.model, http });
 }
 

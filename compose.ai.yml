@@ -22,7 +22,7 @@ services:
     network_mode: "service:ollama"
     environment:
       OLLAMA_HOST: "127.0.0.1:11434"
-    entrypoint: ["ollama", "pull", "${CHAMELEON_LLM_MODEL:-qwen2.5:7b-instruct}"]
+    entrypoint: ["ollama", "pull", "${CHAMELEON_LLM_MODEL:-qwen3:8b}"]
     depends_on:
       ollama:
         condition: service_healthy
@@ -30,7 +30,7 @@ services:
   chameleon-cv:
     network_mode: "service:ollama"
     environment:
-      CHAMELEON_LLM_MODEL: "${CHAMELEON_LLM_MODEL:-qwen2.5:7b-instruct}"   # el único modelo validado por el arnés de IA
+      CHAMELEON_LLM_MODEL: "${CHAMELEON_LLM_MODEL:-qwen3:8b}"   # modelo por defecto validado por el arnés de IA (T-8.11); qwen2.5:7b-instruct también lo está
     depends_on:
       ollama:
         condition: service_healthy

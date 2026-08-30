@@ -105,10 +105,11 @@ describe('proveedor Ollama (nativo)', () => {
   it('health: versión, modelos y disponibilidad (con o sin :latest); sin servidor, no disponible', async () => {
     mode = 'ok';
     const provider = createOllamaProvider({ baseUrl: base });
-    expect(await provider.health()).toEqual({ ok: true, version: '0.33.1', models: ['qwen2.5:7b-instruct:latest', 'llama3.1:8b'], modelAvailable: true });
+    expect(await provider.health()).toEqual({ ok: true, version: '0.33.1', models: ['qwen2.5:7b-instruct:latest', 'llama3.1:8b'], modelAvailable: false, sizes: { 'qwen2.5:7b-instruct:latest': 1 } });
+    expect(await createOllamaProvider({ baseUrl: base, model: 'qwen2.5:7b-instruct' }).health()).toMatchObject({ ok: true, modelAvailable: true });
     expect(modelListed('llama3.1:8b:latest', ['llama3.1:8b'])).toBe(true);
     expect(modelListed('gemma3:12b', ['llama3.1:8b'])).toBe(false);
-    expect(OLLAMA_DEFAULT_MODEL).toBe('qwen2.5:7b-instruct');
+    expect(OLLAMA_DEFAULT_MODEL).toBe('qwen3:8b');
     expect(OLLAMA_DEFAULT_BASE_URL).toBe('http://127.0.0.1:11434');
     const down = createOllamaProvider({ baseUrl: 'http://127.0.0.1:9' });
     expect(await down.health()).toMatchObject({ ok: false, code: 'unreachable', message: expect.stringContaining('Ollama no responde en http://127.0.0.1:9') });
@@ -126,7 +127,7 @@ describe('proveedor Ollama (nativo)', () => {
     const flakyTags = createOllamaProvider({ baseUrl: base, http: (request) => (request.url.endsWith('/api/tags') ? Promise.resolve({ ok: false, code: 'http', message: 'HTTP 500', status: 500 }) : Promise.resolve({ ok: true, status: 200, data: { version: '0.33.1' } })) });
     expect(await flakyTags.health()).toEqual({ ok: false, code: 'http', message: 'Ollama: no se pudo listar los modelos: HTTP 500' });
     const noVersion = createOllamaProvider({ baseUrl: base, http: (request) => Promise.resolve({ ok: true, status: 200, data: request.url.endsWith('/api/tags') ? { models: [] } : { odd: true } }) });
-    expect(await noVersion.health()).toEqual({ ok: true, version: undefined, models: [], modelAvailable: false });
+    expect(await noVersion.health()).toEqual({ ok: true, version: undefined, models: [], modelAvailable: false, sizes: {} });
     const noCounts = createOllamaProvider({ http: () => Promise.resolve({ ok: true, status: 200, data: { model: 'm', message: { role: 'assistant', content: '{"a":1}' } } }) });
     expect(noCounts.baseUrl).toBe(OLLAMA_DEFAULT_BASE_URL);
     expect(await noCounts.complete({ ...REQUEST, timeoutMs: 50 })).toMatchObject({ ok: true, json: { a: 1 }, model: 'm', usage: {} });
@@ -173,10 +174,16 @@ describe('proveedor compatible con OpenAI (loopback)', () => {
 });
 
 describe('Qwen3 en Ollama (T-8.11)', () => {
-  it('isThinkingModel y stripThinking', () => {
+  it('isThinkingModel y stripThinking; `think` solo va a los modelos que lo conmutan, apagado salvo que se pida (T-8.13)', async () => {
     expect(isThinkingModel('qwen3:8b')).toBe(true);
     expect(isThinkingModel(' Qwen3-14B ')).toBe(true);
     expect(isThinkingModel('qwen2.5:7b-instruct')).toBe(false);
+    mode = 'ok';
+    recorded.length = 0;
+    await createOllamaProvider({ baseUrl: base, model: 'qwen3:8b' }).complete(REQUEST);
+    await createOllamaProvider({ baseUrl: base, model: 'qwen3:8b', think: true }).complete(REQUEST);
+    await createOllamaProvider({ baseUrl: base, model: 'deepseek-r1:8b', think: true }).complete(REQUEST);
+    expect(recorded.map((entry) => (entry.body as { think?: boolean }).think)).toEqual([false, true, undefined]);
     expect(stripThinking('<think>razono…</think>\n{"a":1}')).toBe('{"a":1}');
     expect(stripThinking('<think>sin cerrar')).toBe('');
     expect(stripThinking('{"a":1}')).toBe('{"a":1}');

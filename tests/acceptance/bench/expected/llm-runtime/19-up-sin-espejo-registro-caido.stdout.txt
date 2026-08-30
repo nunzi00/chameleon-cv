@@ -1,0 +1,3 @@
+Ollama ya está en marcha (native, lo arrancó cv)
+descargando el modelo «llama3:8b» (native, registro de Ollama)…
+Error: max retries exceeded: Get "https://registry.ollama.ai/v2/library/…": dial tcp: i/o timeout

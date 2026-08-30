@@ -3,7 +3,7 @@
  * el entorno, cómo validar antes de guardar y cómo describir cada proveedor del registro (plan, cuota
  * publicada y viva, clave). Nunca ve claves: solo su procedencia.
  */
-import type { LlmCheckResponse, LlmConfigResponse, LlmSettingsWriteRequest, RuntimeState } from './api/types';
+import type { LlmCheckResponse, LlmConfigResponse, LlmSettingsWriteRequest, LocalModelsState, RuntimeState } from './api/types';
 import { plural } from './format';
 
 type Llm = LlmConfigResponse['llm'];
@@ -27,6 +27,8 @@ export interface LocalForm {
   /** `[llm.runtime]` (T-8.8): runner forzado ('' = detectar) e imagen de Ollama para el runner docker. */
   runtimeRunner: RuntimeRunnerChoice;
   runtimeImage: string;
+  /** `[llm] think` (T-8.13): pedir razonamiento a los modelos locales que lo conmutan. */
+  think: boolean;
 }
 
 export const RUNNER_CHOICES: readonly { readonly id: RuntimeRunnerChoice; readonly label: string }[] = [
@@ -60,7 +62,7 @@ export function isLoopbackUrl(url: string): boolean {
 export function formFromConfig(config: LlmConfigResponse): LocalForm {
   const effective = config.llm.config;
   const runtime = config.llm.settings.values?.runtime;
-  const preferences = { runtimeRunner: runtime?.runner ?? '', runtimeImage: runtime?.image ?? '' } as const;
+  const preferences = { runtimeRunner: runtime?.runner ?? '', runtimeImage: runtime?.image ?? '', think: config.llm.settings.values?.think === true } as const;
   if (effective === undefined) {
     return { provider: 'ollama', baseUrl: '', model: '', ...preferences };
   }
@@ -92,6 +94,7 @@ export function buildSettings(form: LocalForm, models: LlmSettingsWriteRequest['
       ...(baseUrl === '' ? {} : { base_url: baseUrl }),
       ...(model === '' ? {} : { model }),
       ...(models === undefined || Object.keys(models).length === 0 ? {} : { models }),
+      ...(form.think ? { think: true } : {}),
       ...(Object.keys(runtime).length === 0 ? {} : { runtime }),
     },
   };
@@ -229,4 +232,26 @@ export function quotaMeter(live: ProviderStatus['live']): { readonly percent: nu
     }
   }
   return undefined;
+}
+
+/** Una línea por modelo del catálogo para el selector de Ajustes (T-8.13): razonamiento, tamaño, RAM y si está descargado. */
+export function describeLocalModel(entry: LocalModelsState['catalogue'][number], running: boolean): string {
+  const thinking = entry.thinking === 'none' ? 'sin razonamiento' : entry.thinking === 'switchable' ? 'razonamiento conmutable' : 'razona siempre';
+  const presence = !running ? '' : entry.present ? ' · descargado' : ' · no descargado';
+  return `${entry.id} — ${thinking} · ${entry.downloadGiB} GiB · RAM ≥ ${entry.minRamGiB} GiB${presence}`;
+}
+
+/** El valor del selector de modelo: '' (el del proveedor), una entrada del catálogo u «otro» (campo libre). */
+export const OTHER_MODEL = '__otro__';
+export function modelChoice(model: string, catalogue: LocalModelsState['catalogue']): string {
+  const name = model.trim().replace(/:latest$/, '');
+  return name === '' ? '' : catalogue.some((entry) => entry.id === name) ? name : OTHER_MODEL;
+}
+
+/** Qué descargará Ollama para un modelo: el registro y, si el catálogo tiene espejo, la reserva en Hugging Face. */
+export function describeDownload(model: string, catalogue: LocalModelsState['catalogue'] | undefined): string {
+  const entry = catalogue?.find((candidate) => candidate.id === model.trim().replace(/:latest$/, ''));
+  const size = entry === undefined ? 'varios GB' : `unos ${entry.downloadGiB} GiB`;
+  const mirror = entry?.mirror === undefined ? '' : `; si el registro falla, se descarga el espejo «${entry.mirror}» desde huggingface.co y se crea el alias`;
+  return `Ollama descargará «${model}» (${size}) del registro público de Ollama (registry.ollama.ai)${mirror}. No sale ningún dato tuyo; solo entra el modelo.`;
 }

@@ -1,0 +1,1 @@
+Ollama ya está en marcha (native, lo arrancó cv)

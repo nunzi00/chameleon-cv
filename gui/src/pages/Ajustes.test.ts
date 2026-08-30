@@ -42,7 +42,7 @@ function response(overrides: { llm?: Partial<LlmConfigResponse['llm']>; remote?:
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(),
     llmConfig: vi.fn(async () => response()),
     writeLlmConfig: vi.fn(async () => ({ path: '/work/cv.toml', sha256: 'def', llm: {} })),
     checkLlm: vi.fn(async () => ({ provider: 'openai-compatible', kind: 'local' as const, ok: true, models: ['qwen'], modelAvailable: true, message: undefined, quota: undefined })),
@@ -194,5 +194,73 @@ describe('Ajustes · Ollama local (T-8.8)', () => {
     const expired = fakeApi({ llmRuntime: vi.fn(async () => Promise.reject(new ApiError(401, { code: 'unauthorized', message: 'Caducó' }))) });
     render(Ajustes, { props: { api: expired, onsession } });
     await waitFor(() => expect(onsession).toHaveBeenCalled());
+  });
+});
+
+describe('Ajustes · catálogo de modelos locales (T-8.13)', () => {
+  const entry = (id: string, thinking: 'none' | 'switchable' | 'always', present: boolean, mirror: string | undefined) => ({
+    id,
+    family: 'x',
+    thinking,
+    downloadGiB: 5.2,
+    minRamGiB: 8,
+    license: 'MIT',
+    recommendedFor: ['improve' as const],
+    note: '',
+    mirror,
+    sourceUrl: 'https://ollama.com/library/x',
+    verifiedAt: '2026-08-30',
+    present,
+    sizeBytes: undefined,
+    configured: id === 'qwen2.5:7b-instruct',
+  });
+  const MODELS = { catalogue: [entry('qwen2.5:7b-instruct', 'none', true, undefined), entry('qwen3:8b', 'switchable', false, 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M')], others: [], running: true, disabled: undefined };
+  const OLLAMA = response({ llm: { config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', sources: { provider: 'file', baseUrl: 'default', model: 'file' } } } });
+
+  it('con catálogo, el modelo se elige en un selector (con «otro» libre) y think se guarda como [llm] think', async () => {
+    // El doble del servidor recuerda lo guardado: tras «Guardar», la pantalla recarga cv.toml y muestra el modelo elegido.
+    let current = OLLAMA;
+    const api = fakeApi({
+      llmConfig: vi.fn(async () => current),
+      llmModels: vi.fn(async () => MODELS),
+      writeLlmConfig: vi.fn(async (body: { model?: string; think?: boolean }) => {
+        current = response({
+          llm: {
+            config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: body.model ?? '', sources: { provider: 'file', baseUrl: 'default', model: 'file' } },
+            settings: { path: '/work/cv.toml', present: true, configured: true, error: undefined, values: { provider: 'ollama', ...body } },
+          },
+        });
+        return { path: '/work/cv.toml', sha256: 'def', llm: {} };
+      }),
+    });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByLabelText('Modelo')).toBeTruthy());
+    const select = screen.getByLabelText('Modelo') as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe('qwen2.5:7b-instruct'));
+    expect(within(select).getByText('qwen3:8b — razonamiento conmutable · 5.2 GiB · RAM ≥ 8 GiB · no descargado')).toBeTruthy();
+    await fireEvent.change(select, { target: { value: 'qwen3:8b' } });
+    await fireEvent.click(screen.getByLabelText(/Pedir razonamiento/));
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar en cv.toml' }));
+    await waitFor(() => expect(api.writeLlmConfig).toHaveBeenCalledWith({ provider: 'ollama', model: 'qwen3:8b', think: true }, 'abc'));
+    await waitFor(() => expect(screen.getByText(/modelo qwen3:8b \(cv\.toml\)/)).toBeTruthy());
+    expect((screen.getByLabelText(/Pedir razonamiento/) as HTMLInputElement).checked).toBe(true);
+    await fireEvent.change(screen.getByLabelText('Modelo'), { target: { value: '__otro__' } });
+    const free = screen.getByLabelText('Nombre del modelo en Ollama') as HTMLInputElement;
+    expect(free.value).toBe('qwen3:8b');
+    await fireEvent.input(free, { target: { value: 'llama3:8b' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar en cv.toml' }));
+    await waitFor(() => expect(api.writeLlmConfig).toHaveBeenLastCalledWith({ provider: 'ollama', model: 'llama3:8b', think: true }, 'abc'));
+  });
+
+  it('sin catálogo (runtime ausente) el campo sigue siendo libre y el consentimiento cita el espejo cuando lo hay', async () => {
+    const api = fakeApi({ llmConfig: vi.fn(async () => OLLAMA), llmModels: vi.fn(async () => Promise.reject(new ApiError(503, { code: 'environment', message: 'sin runtime' }))) });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    await waitFor(() => expect((screen.getByLabelText('Modelo') as HTMLInputElement).tagName).toBe('INPUT'));
+    const STOPPED = { runner: 'native' as const, managed: false, running: false, model: { name: 'qwen3:8b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
+    const withModels = fakeApi({ llmConfig: vi.fn(async () => OLLAMA), llmModels: vi.fn(async () => MODELS), llmRuntime: vi.fn(async () => ({ runtime: STOPPED })) });
+    render(Ajustes, { props: { api: withModels, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen3:8b»' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen3:8b»' }));
+    expect(screen.getByRole('dialog').textContent).toContain('se descarga el espejo «hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M» desde huggingface.co');
   });
 });

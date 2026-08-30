@@ -497,13 +497,15 @@
     ],
     "config": {
       "baseUrl": "http://127.0.0.1:9",
-      "model": "qwen2.5:7b-instruct",
+      "model": "qwen3:8b",
       "provider": "ollama",
       "sources": {
         "baseUrl": "env",
         "model": "default",
-        "provider": "default"
-      }
+        "provider": "default",
+        "think": "default"
+      },
+      "think": false
     },
     "health": {
       "code": "unreachable",
@@ -693,8 +695,10 @@
       "sources": {
         "baseUrl": "env",
         "model": "file",
-        "provider": "file"
-      }
+        "provider": "file",
+        "think": "default"
+      },
+      "think": false
     },
     "health": {
       "code": "unreachable",

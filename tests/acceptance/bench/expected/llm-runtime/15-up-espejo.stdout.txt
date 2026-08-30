@@ -1,0 +1,12 @@
+Ollama arrancado (native) · registro en <TMP>/home/.cache/chameleon-cv/ollama/serve.log
+Ollama responde en http://127.0.0.1:43117
+descargando el modelo «qwen3:4b» (native, registro de Ollama)…
+Error: max retries exceeded: Get "https://registry.ollama.ai/v2/library/…": dial tcp: i/o timeout
+el registro de Ollama falló (Error: max retries exceeded: Get "https://registry.ollama.ai/v2/library/…": dial tcp: i/o timeout); se intenta el espejo «hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M» en huggingface.co
+pulling manifest
+pulling 8934d96d3f08: 100%
+success
+copied 'hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M' to 'qwen3:4b'
+alias «qwen3:4b» creado a partir de «hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M»
+modelo «qwen3:4b» disponible
+runtime: Ollama en marcha (native, lo arrancó cv) · modelo «qwen3:4b» presente

@@ -12,6 +12,8 @@ import { cacheDirectory } from '../shared/cache';
 import { type LlmConfig, type LlmConfigResult, resolveLlmConfig } from './config';
 import type { LlmSettings } from './settings';
 import type { LlmHealth } from './provider';
+import { modelListed } from './ollama';
+import { HUGGINGFACE_HOST, LOCAL_MODELS, type LocalModelEntry, localModel } from './registry';
 
 export type RuntimeRunner = 'native' | 'docker';
 export const RUNTIME_RUNNERS: readonly RuntimeRunner[] = ['native', 'docker'];
@@ -48,7 +50,8 @@ export const RUNTIME_LIMITS = {
 } as const;
 
 /** Nombres de modelo de Ollama: `familia`, `familia:etiqueta` o `espacio/familia:etiqueta`, en minúsculas. */
-const MODEL_NAME = /^[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)?(?::[a-z0-9._-]+)?$/;
+/** `familia:etiqueta`, `espacio/nombre:etiqueta` o un GGUF de Hugging Face `hf.co/<usuario>/<repositorio>:<cuantización>` (T-8.13). */
+const MODEL_NAME = /^(?:hf\.co\/[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*(?::[A-Za-z0-9._-]+)?|[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)?(?::[a-z0-9._-]+)?)$/;
 export const MODEL_NAME_MAX = 128;
 
 export function isValidModelName(name: string): boolean {
@@ -117,19 +120,46 @@ export type RuntimeErrorCode = 'disabled' | 'invalid-model' | 'no-runner' | 'not
 export type RuntimeResult =
   | { readonly ok: true; readonly state: RuntimeState; readonly lines: readonly string[] }
   | { readonly ok: false; readonly code: RuntimeErrorCode; readonly message: string; readonly lines: readonly string[] };
+/** De dónde descargar el modelo (T-8.13): del registro de Ollama (y su espejo si falla) o directamente del espejo de Hugging Face. */
+export type ModelSource = 'ollama' | 'huggingface';
+export const MODEL_SOURCES: readonly ModelSource[] = ['ollama', 'huggingface'];
+export function isModelSource(value: string): value is ModelSource {
+  return (MODEL_SOURCES as readonly string[]).includes(value);
+}
+
 export interface RuntimeUpOptions {
   readonly runner?: RuntimeRunner | undefined;
   /** Modelo solo para este arranque; por defecto, el configurado. */
   readonly model?: string | undefined;
   /** `false`: no descargar el modelo si falta. */
   readonly pull?: boolean | undefined;
+  /** Origen de la descarga; por defecto el registro de Ollama con el espejo de Hugging Face como reserva. */
+  readonly source?: ModelSource | undefined;
   readonly progress?: ((line: string) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
 }
+/** Un modelo del catálogo con su estado en el Ollama configurado (T-8.13). */
+export interface LocalModelState extends LocalModelEntry {
+  readonly present: boolean;
+  /** Tamaño real en disco según `/api/tags`, si Ollama responde y lo tiene. */
+  readonly sizeBytes: number | undefined;
+  /** Es el modelo configurado (`[llm] model`, entorno u orden). */
+  readonly configured: boolean;
+}
+export interface LocalModelsState {
+  readonly catalogue: readonly LocalModelState[];
+  /** Modelos presentes en Ollama que no están en el catálogo (p. ej. los `hf.co/…` de los espejos). */
+  readonly others: readonly { readonly name: string; readonly sizeBytes: number | undefined }[];
+  readonly running: boolean;
+  readonly disabled: string | undefined;
+}
+
 export interface LlmRuntime {
   readonly status: () => Promise<RuntimeState>;
   readonly up: (options?: RuntimeUpOptions) => Promise<RuntimeResult>;
   readonly down: () => Promise<RuntimeResult>;
+  /** El catálogo de modelos locales con lo que hay descargado (T-8.13). */
+  readonly models: () => Promise<LocalModelsState>;
 }
 
 /** Lo que el runtime necesita de `cv.toml` y el entorno: la configuración efectiva del co-piloto y las preferencias de `[llm.runtime]`. */
@@ -321,19 +351,65 @@ export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>,
     return ready ? undefined : `el contenedor ${OLLAMA_CONTAINER} no responde en ${config.baseUrl} tras ${RUNTIME_LIMITS.startTimeoutMs / 1000} s; revisa «docker logs ${OLLAMA_CONTAINER}»`;
   }
 
+  /**
+   * Descarga del modelo (T-8.8) con la reserva de T-8.13: si el registro de Ollama falla y el catálogo tiene espejo en
+   * Hugging Face, se descarga el espejo y se crea el alias corto (`ollama cp`) para que el nombre configurado funcione.
+   */
   async function pull(config: LlmConfig, current: Managed | undefined, options: RuntimeUpOptions, say: (line: string) => void): Promise<string | undefined> {
     const { host, port } = endpointOf(config.baseUrl);
     const runner = current?.runner ?? ((await nativeAvailable()) ? 'native' : (await dockerAvailable()) ? 'docker' : 'none');
     if (runner === 'none') {
       return `no hay «${ollama()}» ni Docker para descargar «${config.model}»`;
     }
-    say(`descargando el modelo «${config.model}» (${runner})…`);
-    const exec = { timeoutMs: RUNTIME_LIMITS.pullTimeoutMs, onLine: say, signal: options.signal } as const;
-    const result =
-      runner === 'native'
-        ? await system.exec(ollama(), ['pull', config.model], { ...exec, env: { OLLAMA_HOST: `${host}:${port}` } })
-        : await system.exec(docker(), ['exec', OLLAMA_CONTAINER, 'ollama', 'pull', config.model], exec);
-    return result.ok ? undefined : `la descarga de «${config.model}» falló: ${result.stderr.trim() || result.message}`;
+    const run = (args: readonly string[], timeoutMs: number): Promise<ExecResult> => {
+      const exec = { timeoutMs, onLine: say, signal: options.signal } as const;
+      return runner === 'native'
+        ? system.exec(ollama(), args, { ...exec, env: { OLLAMA_HOST: `${host}:${port}` } })
+        : system.exec(docker(), ['exec', OLLAMA_CONTAINER, 'ollama', ...args], exec);
+    };
+    const failure = (result: ExecResult): string => result.stderr.trim() || result.message || `código ${result.code ?? '?'}`;
+    const mirror = localModel(config.model)?.mirror;
+    const source = options.source ?? 'ollama';
+    if (source === 'huggingface' && mirror === undefined) {
+      return `«${config.model}» no tiene espejo en Hugging Face en el catálogo (cv llm models); descárgalo del registro de Ollama`;
+    }
+    if (source === 'ollama') {
+      say(`descargando el modelo «${config.model}» (${runner}, registro de Ollama)…`);
+      const result = await run(['pull', config.model], RUNTIME_LIMITS.pullTimeoutMs);
+      if (result.ok) {
+        return undefined;
+      }
+      if (mirror === undefined) {
+        return `la descarga de «${config.model}» falló: ${failure(result)}`;
+      }
+      say(`el registro de Ollama falló (${failure(result)}); se intenta el espejo «${mirror}» en ${HUGGINGFACE_HOST}`);
+    } else {
+      say(`descargando «${mirror}» desde ${HUGGINGFACE_HOST} (${runner})…`);
+    }
+    const pulled = await run(['pull', mirror as string], RUNTIME_LIMITS.pullTimeoutMs);
+    if (!pulled.ok) {
+      return `la descarga de «${mirror}» falló: ${failure(pulled)}`;
+    }
+    const aliased = await run(['cp', mirror as string, config.model], RUNTIME_LIMITS.execTimeoutMs);
+    if (!aliased.ok) {
+      return `no se pudo crear el alias «${config.model}» de «${mirror}»: ${failure(aliased)}`;
+    }
+    say(`alias «${config.model}» creado a partir de «${mirror}»`);
+    return undefined;
+  }
+
+  async function models(): Promise<LocalModelsState> {
+    const gate = await disabledReason();
+    if (gate.reason !== undefined) {
+      return { catalogue: LOCAL_MODELS.map((entry) => ({ ...entry, present: false, sizeBytes: undefined, configured: entry.id === gate.model })), others: [], running: false, disabled: gate.reason };
+    }
+    const health = await system.health(gate.config);
+    const names = health.ok ? health.models : [];
+    const sizes = health.ok ? (health.sizes ?? {}) : {};
+    const sizeOf = (name: string): number | undefined => sizes[name] ?? sizes[`${name}:latest`];
+    const catalogue = LOCAL_MODELS.map((entry) => ({ ...entry, present: modelListed(entry.id, names), sizeBytes: sizeOf(entry.id), configured: modelListed(entry.id, [gate.config.model]) }));
+    const others = names.filter((name) => localModel(name) === undefined).map((name) => ({ name, sizeBytes: sizeOf(name) }));
+    return { catalogue, others, running: health.ok, disabled: undefined };
   }
 
   async function up(options: RuntimeUpOptions = {}): Promise<RuntimeResult> {
@@ -418,10 +494,37 @@ export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>,
     return { ok: true, state: await describe(gate.config, await system.health(gate.config), undefined), lines };
   }
 
-  return { status, up, down };
+  return { status, up, down, models };
 }
 
 /** Una línea para `cv llm status` y la GUI. */
 export function formatRuntimeState(state: RuntimeState): string {
   return state.disabled === undefined ? `runtime: ${state.detail}` : `runtime: no disponible · ${state.disabled}`;
+}
+
+function gibibytes(bytes: number): string {
+  return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
+}
+
+/** `cv llm models`: el catálogo con lo descargado, una línea por modelo, y los modelos presentes fuera del catálogo. */
+export function formatLocalModels(state: LocalModelsState): string[] {
+  const lines: string[] = [];
+  if (state.disabled !== undefined) {
+    lines.push(`Ollama no disponible (${state.disabled}); se muestra el catálogo sin comprobar lo descargado`);
+  } else if (!state.running) {
+    lines.push('Ollama parado: no se puede comprobar qué modelos están descargados (cv llm up)');
+  }
+  const width = state.catalogue.reduce((max, entry) => Math.max(max, entry.id.length), 0);
+  for (const entry of state.catalogue) {
+    const presence = state.running ? (entry.present ? `descargado${entry.sizeBytes === undefined ? '' : ` (${gibibytes(entry.sizeBytes)})`}` : 'no descargado') : 'sin comprobar';
+    const thinking = entry.thinking === 'none' ? 'sin razonamiento' : entry.thinking === 'switchable' ? 'razonamiento conmutable' : 'razona siempre';
+    const notes = [entry.configured ? 'configurado' : '', entry.mirror === undefined ? 'sin espejo' : ''].filter((note) => note !== '');
+    lines.push(
+      `${entry.id.padEnd(width)}  ${presence.padEnd(21)}  ${thinking.padEnd(23)}  ${entry.downloadGiB} GiB · RAM ≥ ${entry.minRamGiB} GiB · ${entry.license} · ${entry.recommendedFor.join(', ')}${notes.length === 0 ? '' : ` · ${notes.join(' · ')}`}`,
+    );
+  }
+  if (state.others.length > 0) {
+    lines.push(`Otros modelos presentes: ${state.others.map((other) => `${other.name}${other.sizeBytes === undefined ? '' : ` (${gibibytes(other.sizeBytes)})`}`).join(', ')}`);
+  }
+  return lines;
 }

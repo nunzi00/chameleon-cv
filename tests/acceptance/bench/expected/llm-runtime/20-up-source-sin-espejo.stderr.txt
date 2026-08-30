@@ -1,0 +1,1 @@
+«gpt-oss:20b» no tiene espejo en Hugging Face en el catálogo (cv llm models); descárgalo del registro de Ollama

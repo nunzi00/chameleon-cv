@@ -28,6 +28,8 @@ export type {
   LlmRuntimeActionRequest,
   LlmRuntimeActionResponse,
   LlmRuntimeResponse,
+  LlmModelsResponse,
+  LocalModelsState,
   RuntimeState,
   HistoryVersionRequest,
   SourceHistoryEntry,

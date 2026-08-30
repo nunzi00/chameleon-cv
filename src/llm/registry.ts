@@ -234,3 +234,129 @@ export function recommendedModel(entry: RemoteProviderEntry, task: CopilotTask):
 export function describeModels(models: readonly RemoteModelOption[]): string {
   return models.map((model) => `${model.id} (${model.status === 'production' ? 'estable' : 'preview'}; ${model.recommendedFor.join(', ')})`).join(' · ');
 }
+
+/* ─────────────────────────── Modelos locales (T-8.13) ─────────────────────────── */
+
+/** Cómo razona un modelo local: nunca, conmutable con `think` (Qwen3, gpt-oss) o siempre (destilados de DeepSeek-R1). */
+export type LocalThinking = 'none' | 'switchable' | 'always';
+
+/** Modelo local del catálogo: qué es, qué pide a la máquina, de dónde se descarga y con qué evidencia. */
+export interface LocalModelEntry {
+  /** Etiqueta en Ollama (`familia:tamaño`). */
+  readonly id: string;
+  readonly family: string;
+  readonly thinking: LocalThinking;
+  /** Descarga y RAM mínima recomendada, en GiB (los publica la biblioteca de Ollama; el tamaño real se lee al listar). */
+  readonly downloadGiB: number;
+  readonly minRamGiB: number;
+  /** Identificador SPDX de la licencia del modelo. */
+  readonly license: string;
+  readonly recommendedFor: readonly CopilotTask[];
+  /** Por qué está en el catálogo y con qué evidencia. */
+  readonly note: string;
+  /** Espejo en Hugging Face (`hf.co/<repo>:<cuantización>`) para cuando el registro de Ollama falla; `undefined` si no lo hay. */
+  readonly mirror: string | undefined;
+  readonly sourceUrl: string;
+  readonly verifiedAt: string;
+}
+
+/** Hosts a los que se conecta el propio Ollama al descargar (cv no descarga nada: se lo pide a Ollama). */
+export const OLLAMA_REGISTRY_HOST = 'registry.ollama.ai';
+export const HUGGINGFACE_HOST = 'huggingface.co';
+
+export const LOCAL_DEFAULT_MODEL_ID = 'qwen3:8b';
+
+export const LOCAL_MODELS: readonly LocalModelEntry[] = [
+  {
+    id: 'qwen3:8b',
+    family: 'Qwen3',
+    thinking: 'switchable',
+    downloadGiB: 5.2,
+    minRamGiB: 8,
+    license: 'Apache-2.0',
+    recommendedFor: ['improve', 'summarize', 'suggest-tags'],
+    note: 'modelo por defecto (T-8.11 D3): 16/16 en el arnés de IA en 1,29× el tiempo de qwen2.5 y 5 de 6 reescrituras aceptadas por C2 (docs/qwen3-evaluation.md §4); razonamiento conmutable con `think`; espejo verificado el 2026-08-30',
+    mirror: 'hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M',
+    sourceUrl: 'https://ollama.com/library/qwen3',
+    verifiedAt: '2026-08-30',
+  },
+  {
+    id: 'qwen2.5:7b-instruct',
+    family: 'Qwen2.5',
+    thinking: 'none',
+    downloadGiB: 4.7,
+    minRamGiB: 8,
+    license: 'Apache-2.0',
+    recommendedFor: ['improve', 'summarize', 'suggest-tags'],
+    note: 'el defecto anterior: el más rápido del catálogo en CPU (224 s en el arnés de IA), pero sus reescrituras no superaron la verificación C2 (0 de 6; docs/qwen3-evaluation.md §4)',
+    mirror: 'hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M',
+    sourceUrl: 'https://ollama.com/library/qwen2.5',
+    verifiedAt: '2026-08-30',
+  },
+  {
+    id: 'deepseek-r1:8b',
+    family: 'DeepSeek-R1',
+    thinking: 'always',
+    downloadGiB: 5.2,
+    minRamGiB: 8,
+    license: 'MIT',
+    recommendedFor: ['improve', 'summarize'],
+    note: 'destilado de DeepSeek-R1-0528 sobre Qwen3-8B: razona siempre (el bloque se descarta antes de validar el JSON) y tarda más; espejo verificado el 2026-08-30',
+    mirror: 'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_M',
+    sourceUrl: 'https://ollama.com/library/deepseek-r1',
+    verifiedAt: '2026-08-30',
+  },
+  {
+    id: 'gpt-oss:20b',
+    family: 'gpt-oss',
+    thinking: 'switchable',
+    downloadGiB: 14,
+    minRamGiB: 16,
+    license: 'Apache-2.0',
+    recommendedFor: ['improve', 'summarize', 'suggest-tags'],
+    note: 'modelo abierto de OpenAI con razonamiento por niveles; exige 16 GiB de RAM; sin espejo verificado',
+    mirror: undefined,
+    sourceUrl: 'https://ollama.com/library/gpt-oss',
+    verifiedAt: '2026-08-30',
+  },
+  {
+    id: 'qwen3:4b',
+    family: 'Qwen3',
+    thinking: 'switchable',
+    downloadGiB: 2.6,
+    minRamGiB: 6,
+    license: 'Apache-2.0',
+    recommendedFor: ['suggest-tags', 'summarize'],
+    note: 'para máquinas justas de memoria: el mismo razonamiento conmutable que qwen3:8b con menos calidad; espejo no verificado',
+    mirror: 'hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M',
+    sourceUrl: 'https://ollama.com/library/qwen3',
+    verifiedAt: '2026-08-30',
+  },
+];
+
+/** La entrada del catálogo para una etiqueta de Ollama (`nombre` y `nombre:latest` son el mismo modelo). */
+export function localModel(id: string): LocalModelEntry | undefined {
+  const name = id.trim().replace(/:latest$/, '');
+  return LOCAL_MODELS.find((entry) => entry.id === name);
+}
+
+/** Familias que razonan, por patrón, para modelos fuera del catálogo (también nombres `hf.co/<repo>:<tag>`). */
+const ALWAYS_THINKING = /(^|\/)(deepseek-r1|qwq|exaone-deep)(?![a-z0-9])/i;
+const SWITCHABLE_THINKING = /(^|\/)(qwen3(?!-coder)|gpt-oss|magistral|phi4-(?:mini-)?reasoning)(?![a-z])/i;
+
+/** Cómo razona un modelo: por el catálogo y, fuera de él, por la familia que delata su nombre. */
+export function thinkingOf(model: string): LocalThinking {
+  const entry = localModel(model);
+  if (entry !== undefined) {
+    return entry.thinking;
+  }
+  const name = model.trim();
+  if (ALWAYS_THINKING.test(name)) {
+    return 'always';
+  }
+  return SWITCHABLE_THINKING.test(name) ? 'switchable' : 'none';
+}
+
+export function describeThinking(thinking: LocalThinking): string {
+  return thinking === 'none' ? 'sin razonamiento' : thinking === 'switchable' ? 'razonamiento conmutable' : 'razona siempre';
+}

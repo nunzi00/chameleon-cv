@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { LlmRuntime, RuntimeResult, RuntimeState, RuntimeUpOptions } from '../../src/llm';
+import { LOCAL_MODELS, type LlmRuntime, type RuntimeResult, type RuntimeState, type RuntimeUpOptions } from '../../src/llm';
 import { startServer, type ServerHandle } from '../../src/serve';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
@@ -34,6 +34,12 @@ const runtime: LlmRuntime = {
     }
     return { ok: true, state: RUNNING, lines: ['descargando el modelo…', 'modelo disponible'] };
   },
+  models: async () => ({
+    catalogue: LOCAL_MODELS.map((entry) => ({ ...entry, present: entry.id === 'qwen2.5:7b-instruct', sizeBytes: undefined, configured: entry.id === 'qwen2.5:7b-instruct' })),
+    others: [],
+    running: false,
+    disabled: undefined,
+  }),
   down: async () => (foreign ? { ok: false, code: 'not-managed', message: 'Ollama está en marcha pero no lo arrancó cv', lines: [] } : { ok: true, state: STOPPED, lines: ['Ollama detenido (native)'] }),
 };
 
@@ -75,6 +81,29 @@ describe('cv serve: GET/POST /llm/runtime (T-8.8)', () => {
     const missing = await call(bare, '/llm/runtime');
     expect(missing.status).toBe(503);
     expect(await missing.json()).toMatchObject({ error: { code: 'environment' } });
+  });
+
+  it('GET /llm/models devuelve el catálogo con lo descargado (T-8.13); sin runtime, 503; POST up acepta source', async () => {
+    const response = await call(server, '/llm/models');
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { catalogue: { id: string; present: boolean; configured: boolean; mirror: string | undefined }[]; others: unknown[]; running: boolean; disabled: undefined };
+    expect(body.running).toBe(false);
+    expect(body.catalogue.map((entry) => [entry.id, entry.present, entry.configured])).toEqual([
+      ['qwen3:8b', false, false],
+      ['qwen2.5:7b-instruct', true, true],
+      ['deepseek-r1:8b', false, false],
+      ['gpt-oss:20b', false, false],
+      ['qwen3:4b', false, false],
+    ]);
+    expect(body.catalogue[0]?.mirror).toBe('hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M');
+    const missing = await call(bare, '/llm/models');
+    expect(missing.status).toBe(503);
+    const up = await post(server, { action: 'up', model: 'qwen3:8b', source: 'huggingface' });
+    expect(up.status).toBe(202);
+    await finished(((await up.json()) as { job: { id: string } }).job.id);
+    expect(ups.at(-1)).toMatchObject({ model: 'qwen3:8b', source: 'huggingface' });
+    const bad = await post(server, { action: 'up', source: 'github' });
+    expect(bad.status).toBe(400);
   });
 
   it('POST up crea el trabajo ollama-up (202 con Location) que recoge el progreso y el estado final', async () => {

@@ -29,6 +29,10 @@ describe('serializeLlmTable', () => {
   it('escribe solo las claves presentes, con cadenas TOML básicas y la subtabla de modelos si hay', () => {
     expect(serializeLlmTable({})).toBe('[llm]\n');
     expect(serializeLlmTable({ provider: 'ollama', model: 'qwen2.5:7b-instruct' })).toBe('[llm]\nprovider = "ollama"\nmodel = "qwen2.5:7b-instruct"\n');
+    expect(serializeLlmTable({ model: 'qwen3:8b', think: true })).toBe('[llm]\nmodel = "qwen3:8b"\nthink = true\n');
+    expect(serializeLlmTable({ think: false })).toBe('[llm]\nthink = false\n');
+    expect(LlmSettingsSchema.parse({ think: true })).toEqual({ think: true });
+    expect(LlmSettingsSchema.safeParse({ think: 'sí' }).success).toBe(false);
     expect(serializeLlmTable({ base_url: 'http://127.0.0.1:8080', model: 'con "comillas" y \\ barra', models: { openai: 'gpt-4o-mini', anthropic: 'claude-sonnet-4-5' } })).toBe(
       '[llm]\nbase_url = "http://127.0.0.1:8080"\nmodel = "con \\"comillas\\" y \\\\ barra"\n\n[llm.models]\nopenai = "gpt-4o-mini"\nanthropic = "claude-sonnet-4-5"\n',
     );

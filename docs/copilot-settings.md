@@ -23,7 +23,7 @@
 
 ## 2. Situación de partida
 
-- **Configuración**: `src/llm/config.ts` — `CHAMELEON_LLM_PROVIDER/BASE_URL/MODEL` (solo local, loopback obligatorio), `CHAMELEON_LLM_ALLOWED_HOSTS`, `CHAMELEON_OPENAI_BASE_URL`, `CHAMELEON_ANTHROPIC_BASE_URL`; por defecto `ollama` en `http://127.0.0.1:11434` con `qwen2.5:7b-instruct`; `selectProvider` rechaza un remoto por configuración y exige `--provider openai|anthropic` explícito, clave y host en la lista blanca (`DEFAULT_ALLOWED_HOSTS`).
+- **Configuración**: `src/llm/config.ts` — `CHAMELEON_LLM_PROVIDER/BASE_URL/MODEL` (solo local, loopback obligatorio), `CHAMELEON_LLM_ALLOWED_HOSTS`, `CHAMELEON_OPENAI_BASE_URL`, `CHAMELEON_ANTHROPIC_BASE_URL`; por defecto `ollama` en `http://127.0.0.1:11434` con `qwen3:8b`; `selectProvider` rechaza un remoto por configuración y exige `--provider openai|anthropic` explícito, clave y host en la lista blanca (`DEFAULT_ALLOWED_HOSTS`).
 - **Claves**: `src/llm/keys.ts` — `CHAMELEON_<PROVEEDOR>_API_KEY` o `keys.json` (zod estricto, 0600 exigido en cada lectura; `KeyPresence`: `env | file | none | insecure-file | invalid-file`); la API HTTP no acepta claves en ningún cuerpo; la GUI no las conoce.
 - **Consentimiento y coste** (C11): `estimate.ts` (≈ 4 caracteres por token, `formatCostWarning`), CLI `s/N` o `--yes`, API en dos pasos (`consent-required` con `estimateId` de un solo uso, TTL 10 min), `cv serve --allow-remote` como puerta.
 - **`cv.toml`**: `src/themes/project-config.ts` — `smol-toml`, `z.strictObject({ theme? })`: cualquier tabla nueva exige ampliar el esquema.
@@ -48,7 +48,8 @@
 [llm]
 provider = "openai-compatible"        # solo local: "ollama" | "openai-compatible"
 base_url = "http://127.0.0.1:8080"    # loopback obligatorio (como CHAMELEON_LLM_BASE_URL)
-model = "qwen2.5:7b-instruct"
+model = "qwen3:8b"
+think = false            # T-8.13: true pide razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss); más lento
 
 [llm.models]                          # opcional: modelo por defecto por proveedor remoto (no lo selecciona)
 openai = "gpt-4o-mini"

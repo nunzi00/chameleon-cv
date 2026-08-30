@@ -21,7 +21,11 @@ cv llm cache clear                              # vacía la caché local de resp
 
 ## Configurar un modelo local
 
-Variables de entorno, nada más: `CHAMELEON_LLM_PROVIDER` (`ollama` por defecto, u `openai-compatible` para llama.cpp `llama-server`, LM Studio…), `CHAMELEON_LLM_BASE_URL` (por defecto `http://127.0.0.1:11434` u `:8080`; cualquier dirección que no sea local se rechaza) y `CHAMELEON_LLM_MODEL` (por defecto `qwen2.5:7b-instruct`, el modelo con el que está validado el producto). Con un modelo de 7B en CPU cuenta con 20–40 s por logro: usa `--only`, `--top-n` y `--max-items` para acotar el lote. Tutorial: [El co-piloto con Ollama](/tutorials/copilot-ollama).
+Variables de entorno, nada más: `CHAMELEON_LLM_PROVIDER` (`ollama` por defecto, u `openai-compatible` para llama.cpp `llama-server`, LM Studio…), `CHAMELEON_LLM_BASE_URL` (por defecto `http://127.0.0.1:11434` u `:8080`; cualquier dirección que no sea local se rechaza) y `CHAMELEON_LLM_MODEL` (por defecto `qwen3:8b`, el modelo con el que está validado el producto). Con un modelo de 7B en CPU cuenta con 20–40 s por logro: usa `--only`, `--top-n` y `--max-items` para acotar el lote. Tutorial: [El co-piloto con Ollama](/tutorials/copilot-ollama).
+
+### Modelos locales: catálogo, descarga y razonamiento
+
+`cv llm models` lista el catálogo de modelos locales (`qwen3:8b` por defecto, `qwen2.5:7b-instruct`, `deepseek-r1:8b`, `gpt-oss:20b`, `qwen3:4b`) con familia, razonamiento (ninguno, conmutable o siempre), tamaño, RAM mínima, licencia, tareas recomendadas y espejo, y marca cuáles están descargados. `cv llm up --model <id>` los descarga y arranca Ollama; si el registro de Ollama falla y el modelo tiene espejo en Hugging Face, se descarga el espejo (`hf.co/<repositorio>:<cuantización>`) y se crea el alias con el nombre corto (`--source huggingface` va directo al espejo). `[llm] think = true` en `cv.toml` (o `CHAMELEON_LLM_THINK=1`) pide razonamiento a los modelos que lo conmutan; los que razonan siempre (DeepSeek-R1) se admiten igual: su razonamiento se descarta antes de validar el JSON. En la interfaz web, «Ajustes» ofrece el mismo catálogo en un selector.
 
 ## `cv improve`: reescrituras verificadas
 

@@ -8,7 +8,8 @@ Desde la versión 1.5.0 el co-piloto se configura en `cv.toml`, se gestiona desd
 [llm]
 provider = "openai-compatible"        # "ollama" (por defecto) u "openai-compatible"
 base_url = "http://127.0.0.1:8080"    # siempre local (loopback)
-model = "qwen2.5:7b-instruct"
+model = "qwen3:8b"
+think = false            # T-8.13: true pide razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss); más lento
 
 [llm.models]                          # opcional: el modelo por defecto de cada proveedor remoto
 groq = "openai/gpt-oss-120b"

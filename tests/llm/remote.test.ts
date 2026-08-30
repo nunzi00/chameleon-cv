@@ -178,7 +178,7 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
   };
 
   it('sin --provider usa el local del entorno; --provider local lo cambia; --model lo sobrescribe', async () => {
-    expect(await selectProvider({}, { env: {}, http })).toMatchObject({ ok: true, provider: { id: 'ollama', kind: 'local', model: 'qwen2.5:7b-instruct' } });
+    expect(await selectProvider({}, { env: {}, http })).toMatchObject({ ok: true, provider: { id: 'ollama', kind: 'local', model: 'qwen3:8b' } });
     expect(await selectProvider({ provider: ' Openai-Compatible ', model: ' mistral ' }, { env: {}, http })).toMatchObject({ ok: true, provider: { id: 'openai-compatible', kind: 'local', baseUrl: 'http://127.0.0.1:8080', model: 'mistral' } });
     expect(await selectProvider({ provider: '', model: '' }, { env: { CHAMELEON_LLM_MODEL: 'del-entorno' }, http })).toMatchObject({ ok: true, provider: { id: 'ollama', model: 'del-entorno' } });
     expect(await selectProvider({}, { env: { CHAMELEON_LLM_BASE_URL: 'http://192.168.1.2:11434' }, http })).toMatchObject({ ok: false, message: expect.stringContaining('no es una dirección local') });

@@ -1,0 +1,102 @@
+{
+  "catalogue": [
+    {
+      "id": "qwen3:8b",
+      "family": "Qwen3",
+      "thinking": "switchable",
+      "downloadGiB": 5.2,
+      "minRamGiB": 8,
+      "license": "Apache-2.0",
+      "recommendedFor": [
+        "improve",
+        "summarize",
+        "suggest-tags"
+      ],
+      "note": "modelo por defecto (T-8.11 D3): 16/16 en el arnés de IA en 1,29× el tiempo de qwen2.5 y 5 de 6 reescrituras aceptadas por C2 (docs/qwen3-evaluation.md §4); razonamiento conmutable con `think`; espejo verificado el 2026-08-30",
+      "mirror": "hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M",
+      "sourceUrl": "https://ollama.com/library/qwen3",
+      "verifiedAt": "2026-08-30",
+      "present": true,
+      "configured": true
+    },
+    {
+      "id": "qwen2.5:7b-instruct",
+      "family": "Qwen2.5",
+      "thinking": "none",
+      "downloadGiB": 4.7,
+      "minRamGiB": 8,
+      "license": "Apache-2.0",
+      "recommendedFor": [
+        "improve",
+        "summarize",
+        "suggest-tags"
+      ],
+      "note": "el defecto anterior: el más rápido del catálogo en CPU (224 s en el arnés de IA), pero sus reescrituras no superaron la verificación C2 (0 de 6; docs/qwen3-evaluation.md §4)",
+      "mirror": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+      "sourceUrl": "https://ollama.com/library/qwen2.5",
+      "verifiedAt": "2026-08-30",
+      "present": false,
+      "configured": false
+    },
+    {
+      "id": "deepseek-r1:8b",
+      "family": "DeepSeek-R1",
+      "thinking": "always",
+      "downloadGiB": 5.2,
+      "minRamGiB": 8,
+      "license": "MIT",
+      "recommendedFor": [
+        "improve",
+        "summarize"
+      ],
+      "note": "destilado de DeepSeek-R1-0528 sobre Qwen3-8B: razona siempre (el bloque se descarta antes de validar el JSON) y tarda más; espejo verificado el 2026-08-30",
+      "mirror": "hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_M",
+      "sourceUrl": "https://ollama.com/library/deepseek-r1",
+      "verifiedAt": "2026-08-30",
+      "present": false,
+      "configured": false
+    },
+    {
+      "id": "gpt-oss:20b",
+      "family": "gpt-oss",
+      "thinking": "switchable",
+      "downloadGiB": 14,
+      "minRamGiB": 16,
+      "license": "Apache-2.0",
+      "recommendedFor": [
+        "improve",
+        "summarize",
+        "suggest-tags"
+      ],
+      "note": "modelo abierto de OpenAI con razonamiento por niveles; exige 16 GiB de RAM; sin espejo verificado",
+      "sourceUrl": "https://ollama.com/library/gpt-oss",
+      "verifiedAt": "2026-08-30",
+      "present": false,
+      "configured": false
+    },
+    {
+      "id": "qwen3:4b",
+      "family": "Qwen3",
+      "thinking": "switchable",
+      "downloadGiB": 2.6,
+      "minRamGiB": 6,
+      "license": "Apache-2.0",
+      "recommendedFor": [
+        "suggest-tags",
+        "summarize"
+      ],
+      "note": "para máquinas justas de memoria: el mismo razonamiento conmutable que qwen3:8b con menos calidad; espejo no verificado",
+      "mirror": "hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M",
+      "sourceUrl": "https://ollama.com/library/qwen3",
+      "verifiedAt": "2026-08-30",
+      "present": true,
+      "configured": false
+    }
+  ],
+  "others": [
+    {
+      "name": "hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M"
+    }
+  ],
+  "running": true
+}

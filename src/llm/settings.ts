@@ -23,6 +23,8 @@ export const LlmSettingsSchema = z.strictObject({
     .refine(isLoopbackUrl, { error: 'base_url debe ser una dirección local (loopback): los proveedores remotos exigen --provider explícito' })
     .optional(),
   model: ModelName.optional(),
+  /** `[llm] think` (T-8.13): pedir razonamiento a los modelos locales que lo conmutan (Qwen3, gpt-oss); apagado por defecto. */
+  think: z.boolean().optional(),
   /** `[llm.runtime]`: preferencias de `cv llm up` (T-8.8): runner forzado e imagen de Ollama para el runner docker. */
   runtime: z
     .strictObject({
@@ -52,6 +54,9 @@ export function serializeLlmTable(settings: LlmSettings): string {
   }
   if (settings.model !== undefined) {
     lines.push(`model = ${tomlString(settings.model)}`);
+  }
+  if (settings.think !== undefined) {
+    lines.push(`think = ${settings.think ? 'true' : 'false'}`);
   }
   const models = Object.entries(settings.models ?? {}).filter((entry): entry is [string, string] => entry[1] !== undefined);
   if (models.length > 0) {

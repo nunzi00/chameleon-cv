@@ -30,7 +30,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
+import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -326,17 +326,31 @@ export function createRouter(): Router<ServerState> {
           ? json(200, { runtime: result.state, lines: result.lines } satisfies LlmRuntimeDownResponse)
           : errorResponse(runtimeErrorCode(result.code), result.message, { lines: result.lines });
       }
-      const { model, runner, pull } = parsed.value;
+      const { model, runner, pull, source } = parsed.value;
       const job = state.jobs.create('ollama-up', async (report) => {
-        const result = await runtime.up({ model, runner, pull, progress: report.line, signal: report.signal });
+        const result = await runtime.up({ model, runner, pull, source, progress: report.line, signal: report.signal });
         if (!result.ok) {
           const code = runtimeErrorCode(result.code);
           throw new JobFailure({ code, message: result.message, lines: result.lines, exitCode: code === 'invalid-data' ? 1 : 2 });
         }
         return { runtime: result.state, lines: result.lines };
       });
-      const sending = { destination: 'ninguno: solo la descarga del modelo desde el registro público de Ollama, sin datos del usuario' };
+      const sending = { destination: 'ninguno: solo la descarga del modelo desde el registro público de Ollama (o su espejo en Hugging Face si el registro falla), sin datos del usuario' };
       return json(202, { job, sending, warnings: [] } satisfies JobCreatedResponse, { Location: `${API_PREFIX}/jobs/${job.id}` });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/llm/models`,
+    summary: 'El catálogo de modelos locales (T-8.13): familia, razonamiento, tamaño, RAM, licencia, tareas y espejo de cada uno, con lo que hay descargado en el Ollama configurado y los modelos presentes fuera del catálogo.',
+    writes: false,
+    handler: async (_request, state) => {
+      const runtime = state.context.llmRuntime;
+      if (runtime === undefined) {
+        return errorResponse('environment', 'El runtime de Ollama no está disponible en este servidor');
+      }
+      return json(200, (await runtime.models()) satisfies LlmModelsResponse);
     },
   });
 

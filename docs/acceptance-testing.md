@@ -88,7 +88,7 @@ Solo cuando la salida cambia a propósito (nuevo diseño, nuevo mensaje, nueva o
 ### 4.1 Requisitos y ejecución
 
 ```bash
-ollama serve && ollama pull qwen2.5:7b-instruct       # proveedor por defecto y modelo fijado
+ollama serve && ollama pull qwen3:8b       # proveedor por defecto y modelo fijado
 npm run build && npm run test:acceptance:ai            # código 0 si pasa, 1 si algo falla, 2 si no se puede ejecutar
 # alternativa: cualquier servidor local compatible con OpenAI (llama-server, LM Studio)
 CHAMELEON_LLM_PROVIDER=openai-compatible CHAMELEON_LLM_BASE_URL=http://127.0.0.1:8080 npm run test:acceptance:ai

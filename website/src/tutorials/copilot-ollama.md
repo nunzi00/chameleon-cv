@@ -12,11 +12,11 @@ El co-piloto propone y tú decides: reescrituras de logros, resúmenes y etiquet
 Instala [Ollama](https://ollama.com) y descarga el modelo con el que está validado el producto:
 
 ```bash
-ollama pull qwen2.5:7b-instruct
+ollama pull qwen3:8b
 ollama serve            # si no está ya en marcha (escucha en http://127.0.0.1:11434)
 ```
 
-No hace falta configurar nada: `ollama` y `qwen2.5:7b-instruct` son los valores por defecto. Con otro servidor compatible con OpenAI (llama.cpp `llama-server`, LM Studio…): `CHAMELEON_LLM_PROVIDER=openai-compatible`, `CHAMELEON_LLM_BASE_URL=http://127.0.0.1:8080` y `CHAMELEON_LLM_MODEL=<nombre>`. Cualquier dirección que no sea local se rechaza.
+No hace falta configurar nada: `ollama` y `qwen3:8b` son los valores por defecto (`cv llm models` lista el catálogo local con lo descargado; `cv llm up` lo descarga y arranca Ollama por ti, con el espejo de Hugging Face si el registro de Ollama falla). Con otro servidor compatible con OpenAI (llama.cpp `llama-server`, LM Studio…): `CHAMELEON_LLM_PROVIDER=openai-compatible`, `CHAMELEON_LLM_BASE_URL=http://127.0.0.1:8080` y `CHAMELEON_LLM_MODEL=<nombre>`. Cualquier dirección que no sea local se rechaza.
 
 ```bash tutorial needs-llm
 cv llm status

@@ -1,4 +1,4 @@
-Proveedor local: ollama (http://127.0.0.1:43117; por defecto) · modelo: qwen2.5:7b-instruct (por defecto)
+Proveedor local: ollama (http://127.0.0.1:43117; por defecto) · modelo: qwen3:8b (por defecto)
 Estado: no disponible · Ollama no responde en http://127.0.0.1:43117: fetch failed (GET http://127.0.0.1:43117/api/version)
   Arranca Ollama en http://127.0.0.1:43117 o configura CHAMELEON_LLM_PROVIDER/CHAMELEON_LLM_BASE_URL/CHAMELEON_LLM_MODEL
 Configuración del proyecto: <WS>/cv.toml (sin tabla [llm])

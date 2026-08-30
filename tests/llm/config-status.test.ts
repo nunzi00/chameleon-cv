@@ -6,11 +6,11 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
   it('por defecto Ollama en loopback con el modelo fijado; el entorno puede cambiar proveedor local, URL y modelo', () => {
     expect(resolveLlmConfig({})).toEqual({
       ok: true,
-      config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', sources: { provider: 'default', baseUrl: 'default', model: 'default' } },
+      config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen3:8b', think: false, sources: { provider: 'default', baseUrl: 'default', model: 'default', think: 'default' } },
     });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: 'OpenAI-Compatible', [LLM_ENV.baseUrl]: 'http://localhost:8080 ', [LLM_ENV.model]: ' qwen ' })).toEqual({
       ok: true,
-      config: { provider: 'openai-compatible', baseUrl: 'http://localhost:8080', model: 'qwen', sources: { provider: 'env', baseUrl: 'env', model: 'env' } },
+      config: { provider: 'openai-compatible', baseUrl: 'http://localhost:8080', model: 'qwen', think: false, sources: { provider: 'env', baseUrl: 'env', model: 'env', think: 'default' } },
     });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: 'openai-compatible', [LLM_ENV.baseUrl]: '', [LLM_ENV.model]: '' })).toMatchObject({ ok: true, config: { baseUrl: 'http://127.0.0.1:8080', model: 'default' } });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: '' })).toMatchObject({ ok: true, config: { provider: 'ollama', sources: { provider: 'default' } } });
@@ -49,7 +49,7 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
 describe('llmStatus / formatLlmStatus', () => {
   const okHttp: JsonHttp = (request) => {
     if (request.url.endsWith('/api/version')) return Promise.resolve({ ok: true, status: 200, data: { version: '0.33.1' } });
-    if (request.url.endsWith('/api/tags')) return Promise.resolve({ ok: true, status: 200, data: { models: [{ name: 'qwen2.5:7b-instruct' }, { name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }, { name: 'f' }] } });
+    if (request.url.endsWith('/api/tags')) return Promise.resolve({ ok: true, status: 200, data: { models: [{ name: 'qwen3:8b' }, { name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }, { name: 'e' }, { name: 'f' }] } });
     return Promise.resolve({ ok: true, status: 200, data: { data: [{ id: 'served.gguf' }] } });
   };
   const HOME = { platform: 'linux' as const, home: '/h' };
@@ -65,8 +65,8 @@ describe('llmStatus / formatLlmStatus', () => {
     expect(status).toMatchObject({ usable: true, keys: { openai: 'none', anthropic: 'env', groq: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', allowedHosts: ['api.openai.com', 'api.anthropic.com', 'api.groq.com'], remote: undefined, health: { ok: true, modelAvailable: true } });
     expect(formatLlmStatus(status)).toBe(
       [
-        'Proveedor local: ollama (http://127.0.0.1:11434; por defecto) · modelo: qwen2.5:7b-instruct (por defecto)',
-        'Estado: alcanzable · versión 0.33.1 · 7 modelos (qwen2.5:7b-instruct, a, b, c, d, e, …) · el modelo configurado está disponible',
+        'Proveedor local: ollama (http://127.0.0.1:11434; por defecto) · modelo: qwen3:8b (por defecto)',
+        'Estado: alcanzable · versión 0.33.1 · 7 modelos (qwen3:8b, a, b, c, d, e, …) · el modelo configurado está disponible',
         'Proveedores remotos (solo con --provider explícito):',
         '  openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini',
         '  anthropic → clave definida en CHAMELEON_ANTHROPIC_API_KEY · plan de pago (límites según la cuenta) · api.anthropic.com · modelo por defecto claude-sonnet-4-5',

@@ -5,10 +5,10 @@
   import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
-  import type { LlmConfigResponse, RuntimeState } from '../lib/api/types';
+  import type { LlmConfigResponse, LocalModelsState, RuntimeState } from '../lib/api/types';
   import { isFinished } from '../lib/copilot/jobs';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { LOCAL_PROVIDERS, RUNNER_CHOICES, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, describeRuntime, formFromConfig, lockedFields, quotaMeter, type LocalForm, describeModelOptions } from '../lib/settings';
+  import { LOCAL_PROVIDERS, OTHER_MODEL, RUNNER_CHOICES, SOURCE_LABELS, buildSettings, describeCheck, describeDownload, describeLocalModel, describeProvider, describeRuntime, formFromConfig, lockedFields, modelChoice, quotaMeter, type LocalForm, describeModelOptions } from '../lib/settings';
 
   interface Props {
     api: ApiClient;
@@ -17,7 +17,10 @@
   let { api, onsession }: Props = $props();
 
   let config = $state<LlmConfigResponse | undefined>(undefined);
-  let form = $state<LocalForm>({ provider: 'ollama', baseUrl: '', model: '', runtimeRunner: '', runtimeImage: '' });
+  let form = $state<LocalForm>({ provider: 'ollama', baseUrl: '', model: '', runtimeRunner: '', runtimeImage: '', think: false });
+  // Catálogo de modelos locales (T-8.13): selector con lo descargado; sin catálogo, campo libre.
+  let models = $state<LocalModelsState | undefined>(undefined);
+  let modelSelect = $state('');
   let error = $state<ExplainedError | undefined>(undefined);
   let message = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
@@ -44,8 +47,27 @@
     try {
       config = await api.llmConfig();
       form = formFromConfig(config);
+      modelSelect = modelChoice(form.model, models?.catalogue ?? []);
     } catch (caught) {
       fail(caught);
+    }
+  }
+
+  /** El catálogo es opcional: si el servidor no lo sirve (runtime ausente), el campo de modelo sigue siendo libre. */
+  async function loadModels(): Promise<void> {
+    try {
+      models = await api.llmModels();
+      modelSelect = modelChoice(form.model, models.catalogue);
+    } catch {
+      models = undefined;
+    }
+  }
+
+  function chooseModel(event: Event): void {
+    const value = (event.currentTarget as HTMLSelectElement).value;
+    modelSelect = value;
+    if (value !== OTHER_MODEL) {
+      form.model = value;
     }
   }
 
@@ -162,6 +184,7 @@
   onMount(() => {
     void load();
     void loadRuntime();
+    void loadModels();
   });
 </script>
 
@@ -193,9 +216,30 @@
           <span>URL base{locked.baseUrl ? ' (fijada por el entorno)' : ''}</span>
           <input name="baseUrl" bind:value={form.baseUrl} placeholder="la del proveedor (loopback)" disabled={locked.baseUrl} />
         </label>
+        {#if models !== undefined && models.catalogue.length > 0 && form.provider === 'ollama'}
+          <label class="cv-field">
+            <span>Modelo{locked.model ? ' (fijado por el entorno)' : ''}</span>
+            <select name="modelChoice" value={modelSelect} onchange={chooseModel} disabled={locked.model}>
+              <option value="">El del proveedor (por defecto)</option>
+              {#each models.catalogue as entry (entry.id)}<option value={entry.id}>{describeLocalModel(entry, models.running)}</option>{/each}
+              <option value={OTHER_MODEL}>Otro (escribir el nombre)…</option>
+            </select>
+          </label>
+          {#if modelSelect === OTHER_MODEL}
+            <label class="cv-field">
+              <span>Nombre del modelo en Ollama</span>
+              <input name="model" bind:value={form.model} placeholder="familia:etiqueta o hf.co/repositorio:cuantización" disabled={locked.model} />
+            </label>
+          {/if}
+        {:else}
+          <label class="cv-field">
+            <span>Modelo{locked.model ? ' (fijado por el entorno)' : ''}</span>
+            <input name="model" bind:value={form.model} placeholder="el del proveedor" disabled={locked.model} />
+          </label>
+        {/if}
         <label class="cv-field">
-          <span>Modelo{locked.model ? ' (fijado por el entorno)' : ''}</span>
-          <input name="model" bind:value={form.model} placeholder="el del proveedor" disabled={locked.model} />
+          <span>Razonamiento ([llm] think)</span>
+          <span class="cv-check"><input type="checkbox" name="think" bind:checked={form.think} /> Pedir razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss): más lento; apagado por defecto</span>
         </label>
         <label class="cv-field">
           <span>Runner de Ollama ([llm.runtime])</span>
@@ -240,9 +284,7 @@
       </div>
     </div>
     <Dialog open={consentPull} title="Descargar el modelo" onclose={() => (consentPull = false)}>
-      <p>
-        Ollama descargará <strong>«{runtime?.model.name}»</strong> del registro público de Ollama: varios GB y varios minutos. No sale ningún dato tuyo; solo entra el modelo.
-      </p>
+      <p>{describeDownload(runtime?.model.name ?? '', models?.catalogue)}</p>
       <div class="cv-dialog-actions">
         <button class="cv-button" type="button" onclick={() => (consentPull = false)}>Cancelar</button>
         <button class="cv-button primary" type="button" onclick={runtimeUp}>Descargar y arrancar</button>

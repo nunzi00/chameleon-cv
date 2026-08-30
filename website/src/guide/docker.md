@@ -44,7 +44,7 @@ echo 'COMPOSE_FILE=compose.yml:compose.ai.yml' >> .env      # para no repetir -f
 
 - Añade el servicio `ollama` (imagen oficial fijada por digest, modelos en el volumen `ollama-models`, `OLLAMA_HOST=127.0.0.1:11434`) y `ollama-pull`, que descarga el modelo una vez y termina.
 - `cv` pasa a compartir el **espacio de red de Ollama** (`network_mode: service:ollama`): `http://127.0.0.1:11434` sigue siendo loopback, la regla «solo local» del producto (canon C3) no se toca y Ollama **no publica ningún puerto** al anfitrión. Si quieres usarlo desde fuera, añade `ports` en una superposición tuya.
-- El modelo es **`qwen2.5:7b-instruct`**, el único validado por el arnés de IA. `CHAMELEON_LLM_MODEL` en `.env` cambia el que se descarga y se usa, pero recomienda otro solo tras pasar `npm run test:acceptance:ai` con él.
+- El modelo es **`qwen3:8b`** (por defecto desde 1.8.0; `qwen2.5:7b-instruct` también está validado y es más rápido: `cv llm models`). `CHAMELEON_LLM_MODEL` en `.env` cambia el que se descarga y se usa, pero recomienda otro solo tras pasar `npm run test:acceptance:ai` con él.
 - Primera vez: unos 3,2 GB de imagen y 4,7 GB de modelo. Con un modelo de 7B en CPU cuenta con 20–40 s por logro; `compose.gpu.yml` reserva la GPU NVIDIA para Ollama:
 
 ```bash

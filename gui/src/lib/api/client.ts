@@ -24,6 +24,7 @@ import type {
   LlmRuntimeActionRequest,
   LlmRuntimeActionResponse,
   LlmRuntimeResponse,
+  LlmModelsResponse,
   HistoryVersionRequest,
   SourceHistoryResponse,
   SourceRestoreResponse,
@@ -146,6 +147,8 @@ export interface ApiClient {
   checkLlm(body: LlmCheckRequest): Promise<LlmCheckResponse>;
   /** El Ollama local: si responde, si lo arrancó cv, si el modelo está descargado y con qué runner arrancaría (T-8.8). */
   llmRuntime(): Promise<LlmRuntimeResponse>;
+  /** El catálogo de modelos locales con lo descargado (T-8.13). */
+  llmModels(): Promise<LlmModelsResponse>;
   /** «up» devuelve el trabajo `ollama-up` (202); «down» para lo que arrancó cv y devuelve el estado. */
   llmRuntimeAction(body: LlmRuntimeActionRequest): Promise<LlmRuntimeActionResponse>;
   /** El histórico de versiones de las fuentes (T-8.10), de la más reciente a la más antigua. */
@@ -281,6 +284,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     writeLlmConfig: (body, ifMatch) => requestWithHeaders('PUT', '/config/llm', body, { 'If-Match': ifMatchHeader(ifMatch) }),
     checkLlm: (body) => request('POST', '/config/llm/check', { body }),
     llmRuntime: () => request('GET', '/llm/runtime'),
+    llmModels: () => request('GET', '/llm/models'),
     llmRuntimeAction: (body) => request('POST', '/llm/runtime', { body }),
     sourceHistory: () => request('GET', '/history'),
     sourceVersion: (body) => request('POST', '/history/version', { body }),

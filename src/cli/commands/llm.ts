@@ -7,7 +7,7 @@ import {
   REMOTE_PROVIDER_IDS,
   describeKeys,
   formatLlmStatus,
-  formatRuntimeState,
+  formatLocalModels, formatRuntimeState, isModelSource,
   isRemoteProviderId,
   isRuntimeRunner,
   keysFilePath,
@@ -38,6 +38,8 @@ export async function runLlmStatus(context: CliContext, options: LlmStatusComman
 
 export interface LlmRuntimeCommandOptions {
   readonly model?: string | undefined;
+  /** `--source ollama|huggingface` (T-8.13). */
+  readonly source?: string | undefined;
   readonly runner?: string | undefined;
   /** `--no-pull` lo pone a `false`. */
   readonly pull?: boolean | undefined;
@@ -69,14 +71,38 @@ export async function runLlmUp(context: CliContext, options: LlmRuntimeCommandOp
     context.stderr(`--runner debe ser native o docker (no «${options.runner}»)\n`);
     return EXIT_DATA_ERROR;
   }
+  const source = options.source?.trim().toLowerCase();
+  if (source !== undefined && source !== '' && !isModelSource(source)) {
+    context.stderr(`--source debe ser ollama o huggingface (no «${options.source}»)\n`);
+    return EXIT_DATA_ERROR;
+  }
   const json = options.json === true;
   const result = await context.llmRuntime.up({
     model: options.model,
     runner: runner === undefined || runner === '' ? undefined : runner,
     pull: options.pull,
+    source: source === undefined || source === '' ? undefined : source,
     progress: json ? undefined : (line) => context.stdout(`${line}\n`),
   });
   return reportRuntime(context, result, json);
+}
+
+/** `cv llm models [--json]`: el catálogo de modelos locales (T-8.13) con lo que hay descargado en el Ollama configurado. */
+export async function runLlmModels(context: CliContext, options: LlmRuntimeCommandOptions = {}): Promise<number> {
+  if (context.llmRuntime === undefined) {
+    context.stderr('El runtime de Ollama no está disponible en este contexto\n');
+    return EXIT_FAILURE;
+  }
+  const state = await context.llmRuntime.models();
+  if (options.json === true) {
+    context.stdout(`${JSON.stringify(state, null, 2)}\n`);
+  } else {
+    for (const line of formatLocalModels(state)) {
+      context.stdout(`${line}\n`);
+    }
+    context.stderr('Descarga uno con «cv llm up --model <id>» (registro de Ollama; si falla, el espejo de Hugging Face del catálogo) o fíjalo con [llm] model en cv.toml\n');
+  }
+  return EXIT_OK;
 }
 
 /** `cv llm down [--json]`: para el Ollama que arrancó cv; nunca uno ajeno. */

@@ -1,6 +1,6 @@
 # Modelos locales de pensamiento en Ollama (T-8.13) — PROPUESTA v1
 
-Estado: APROBADA por el PO (2026-08-30, D1–D5; versión 1.8.0) · Encargo del Director · Pendiente de implementación
+Estado: APROBADA por el PO (2026-08-30, D1–D5; versión 1.8.0) · IMPLEMENTADA el 2026-08-30 (§6) · Pendiente del cierre del PO
 
 ## §0 Encargo
 
@@ -64,3 +64,14 @@ recogida en `docs/qwen3-evaluation.md`, que pasa a ser la evaluación de modelos
 3. **D3** `[llm] think` apagado por defecto.
 4. **D4** `cv llm models`, `GET /api/v1/llm/models` y el selector en Ajustes.
 5. **D5** Entra en la versión 1.8.0 junto con T-8.12 (o en 1.9.0 si el PO prefiere no cargar más la release).
+
+## §6 Estado de la implementación (2026-08-30)
+
+- `src/llm/registry.ts`: `LOCAL_MODELS` (cinco entradas; `qwen3:8b` por defecto tras T-8.11 §4), `localModel`, `thinkingOf` (catálogo y familias: `qwen3` salvo `qwen3-coder`, `gpt-oss`, `magistral`, `phi4-*reasoning` conmutables; `deepseek-r1`, `qwq`, `exaone-deep` siempre), `describeThinking`, hosts `registry.ollama.ai` y `huggingface.co`.
+- `src/llm/ollama.ts`: `thinkParameter` (solo modelos conmutables; `think: true` con `[llm] think`), tamaños de `/api/tags` en `health().sizes`; `OLLAMA_DEFAULT_MODEL = 'qwen3:8b'`.
+- `src/llm/config.ts` y `settings.ts`: `[llm] think` y `CHAMELEON_LLM_THINK` (`1`/`true`, `0`/`false`) con su origen; `serializeLlmTable` lo escribe.
+- `src/llm/runtime.ts`: `pull` con la reserva del espejo (registro → `hf.co/…` → `ollama cp` alias), `--source` (`ModelSource`), `models()` (catálogo + `present`/`sizeBytes`/`configured` + otros modelos), `formatLocalModels`; `isValidModelName` admite `hf.co/<usuario>/<repositorio>:<cuantización>`.
+- CLI `cv llm models [--json]` y `cv llm up --source`; API `GET /api/v1/llm/models` y `source` en `POST /llm/runtime`; GUI Ajustes: selector con el catálogo (o «Otro» libre), casilla `[llm] think`, consentimiento de descarga que cita el espejo.
+- Pruebas: `tests/llm/local-models.test.ts`, `runtime.test.ts` (espejo native/docker, `--source`, fallos del espejo y del alias, `models()`, formato), `providers.test.ts` (`think`, tamaños), `settings*.test.ts`, `llm-cli.test.ts`, `runtime-routes.test.ts`, GUI (`settings.test.ts`, `Ajustes.test.ts`); arnés `llm-runtime` con el doble de Ollama ampliado (`cp`, `FAKE_OLLAMA_REGISTRY=down`) y nueve pasos nuevos.
+- Verificación real: el espejo funcionó a mano el 2026-08-30 (`docker exec chameleon-ollama ollama pull hf.co/unsloth/…` + `ollama cp`) con Qwen3-8B y DeepSeek-R1-0528-Qwen3-8B; la evaluación de `deepseek-r1:8b` con el arnés de IA se recoge en `docs/qwen3-evaluation.md` §4.
+- Desviación respecto a §2.4: `cv llm models` no exige Ollama en marcha (parado, la columna «descargado» queda «sin comprobar»); el selector de Ajustes solo aparece con el proveedor `ollama` (con `openai-compatible` el campo sigue libre).

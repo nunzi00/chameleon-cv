@@ -289,6 +289,16 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'up-modelo-invalido', args: ['llm', 'up', '--model', 'Mayúsculas'], env: FAKE_OLLAMA, exitCode: 1 },
       { id: 'up-runner-desconocido', args: ['llm', 'up', '--runner', 'podman'], env: FAKE_OLLAMA, exitCode: 1 },
       { id: 'sin-runner', args: ['llm', 'up', '--json'], env: { ...FAKE_OLLAMA, CHAMELEON_OLLAMA_BIN: 'tools/no-ollama' }, exitCode: 2 },
+      // T-8.13: catálogo, espejo de Hugging Face con el registro caído y --source.
+      { id: 'models-parado', args: ['llm', 'models'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-espejo', args: ['llm', 'up', '--model', 'qwen3:4b'], env: { ...FAKE_OLLAMA, FAKE_OLLAMA_REGISTRY: 'down' }, exitCode: 0 },
+      { id: 'models-en-marcha', args: ['llm', 'models'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'models-json', args: ['llm', 'models', '--json'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-source-huggingface', args: ['llm', 'up', '--model', 'deepseek-r1:8b', '--source', 'huggingface'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-sin-espejo-registro-caido', args: ['llm', 'up', '--model', 'llama3:8b'], env: { ...FAKE_OLLAMA, FAKE_OLLAMA_REGISTRY: 'down' }, exitCode: 2 },
+      { id: 'up-source-sin-espejo', args: ['llm', 'up', '--model', 'gpt-oss:20b', '--source', 'huggingface'], env: FAKE_OLLAMA, exitCode: 2 },
+      { id: 'up-source-invalido', args: ['llm', 'up', '--source', 'github'], env: FAKE_OLLAMA, exitCode: 1 },
+      { id: 'down-tras-espejo', args: ['llm', 'down'], env: FAKE_OLLAMA, exitCode: 0 },
     ],
   },
 ];

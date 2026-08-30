@@ -1,2 +1,2 @@
-Saldrán 2 fragmentos seudonimizados (38 palabras; sin nombre ni datos de contacto; diccionario cerrado de 22 etiquetas de 4 especialidades) hacia ollama (http://127.0.0.1:11434, local; modelo qwen2.5:7b-instruct)
+Saldrán 2 fragmentos seudonimizados (38 palabras; sin nombre ni datos de contacto; diccionario cerrado de 22 etiquetas de 4 especialidades) hacia ollama (http://127.0.0.1:11434, local; modelo qwen3:8b)
 Ejecución en seco: no se ha enviado nada

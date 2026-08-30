@@ -74,7 +74,7 @@ runtime queda deshabilitado con el mensaje «gestiona Ollama con `docker compose
 
 ```json
 { "runner": "docker", "managed": true, "running": true,
-  "model": { "name": "qwen2.5:7b-instruct", "present": true },
+  "model": { "name": "qwen3:8b", "present": true },
   "pull": { "status": "running", "percent": 42, "message": "pulling 8934d96d3f08" },
   "log": "/home/ana/.cache/chameleon-cv/ollama/serve.log" }
 ```
@@ -95,7 +95,7 @@ Salida humana y `--json` (`{ runner, managed, running, model, pull }`); códigos
 
 ## §7 GUI (Ajustes → Proveedor local)
 
-- Línea de estado con chip: «Ollama en marcha (docker) · modelo `qwen2.5:7b-instruct` presente» /
+- Línea de estado con chip: «Ollama en marcha (docker) · modelo `qwen3:8b` presente» /
   «Ollama parado · runner docker disponible» / «Ollama en marcha (no lo arrancó cv)».
 - «Arrancar Ollama con `<modelo>`» deshabilitado si no hay runner (con el motivo). Si falta el modelo, diálogo
   de consentimiento; el progreso aparece en la lista de trabajos de Co-piloto y en la propia tarjeta.
@@ -131,3 +131,8 @@ en Compose), referencia de la CLI generada, `README.md`, `CHANGELOG.md`.
 6. **D6 dentro del contenedor de Compose** la función queda deshabilitada con mensaje.
 7. **D7 pid y log** en `~/.cache/chameleon-cv/ollama/` (0600), no en el espacio de trabajo.
 8. **D8 versión** 1.8.0.
+
+## Ampliación T-8.13: catálogo, espejo de Hugging Face y razonamiento
+
+- `cv llm models [--json]` (y `GET /api/v1/llm/models`) lista el catálogo `LOCAL_MODELS` con lo descargado; `cv llm up --model <id>` descarga del registro de Ollama y, si falla y el modelo tiene espejo (`hf.co/<repositorio>:<cuantización>`), descarga el espejo y crea el alias corto con `ollama cp`; `--source huggingface` va directo al espejo. Solo cambia el host al que se conecta el propio Ollama (`registry.ollama.ai` o `huggingface.co`); cv sigue sin descargar nada por su cuenta.
+- El modelo por defecto es `qwen3:8b` (docs/qwen3-evaluation.md §4); `[llm] think = true` pide razonamiento a los modelos que lo conmutan.

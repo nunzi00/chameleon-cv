@@ -198,7 +198,8 @@ describe('runtime de Ollama (T-8.8)', () => {
     const api = createApiClient({ fetch: f, token: () => 'tok-1234567890abcdef' });
     expect(await api.llmRuntime()).toEqual({ runtime: { running: false } });
     expect(await api.llmRuntimeAction({ action: 'up', model: 'llama3:8b', pull: true })).toEqual({ job: { id: 'j1' } });
-    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/llm/runtime', 'POST /api/v1/llm/runtime']);
+    expect(await api.llmModels()).toEqual({ runtime: { running: false } });
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/llm/runtime', 'POST /api/v1/llm/runtime', 'GET /api/v1/llm/models']);
     expect(calls[1]?.body).toBe(JSON.stringify({ action: 'up', model: 'llama3:8b', pull: true }));
   });
 });

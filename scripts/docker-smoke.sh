@@ -51,7 +51,7 @@ docker run --rm ${USER_ARGS[@]+"${USER_ARGS[@]}"} --read-only --tmpfs /tmp --cap
 if docker run --rm ${USER_ARGS[@]+"${USER_ARGS[@]}"} --network none -v "$WORK:/work" "$IMAGE" llm status >/dev/null 2>&1; then fail "llm status sin red debería terminar con código 2"; else pass "llm status sin red: no hay proveedor (código 2)"; fi
 mkdir -p "$WORK/stand-in/api"
 printf '{"version":"0.33.2"}' > "$WORK/stand-in/api/version"
-printf '{"models":[{"name":"qwen2.5:7b-instruct","model":"qwen2.5:7b-instruct"}]}' > "$WORK/stand-in/api/tags"
+printf '{"models":[{"name":"qwen3:8b","model":"qwen3:8b"}]}' > "$WORK/stand-in/api/tags"
 docker run -d --name "$STANDIN" -v "$WORK/stand-in:/srv:ro" "$BUSYBOX" httpd -f -p 127.0.0.1:11434 -h /srv >/dev/null
 sleep 1
 docker run --rm ${USER_ARGS[@]+"${USER_ARGS[@]}"} --network "container:$STANDIN" -v "$WORK:/work" "$IMAGE" llm status | grep -q 'alcanzable' \

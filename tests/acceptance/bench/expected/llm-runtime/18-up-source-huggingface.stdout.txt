@@ -1,0 +1,9 @@
+Ollama ya está en marcha (native, lo arrancó cv)
+descargando «hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_M» desde huggingface.co (native)…
+pulling manifest
+pulling 8934d96d3f08: 100%
+success
+copied 'hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_M' to 'deepseek-r1:8b'
+alias «deepseek-r1:8b» creado a partir de «hf.co/unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF:Q4_K_M»
+modelo «deepseek-r1:8b» disponible
+runtime: Ollama en marcha (native, lo arrancó cv) · modelo «deepseek-r1:8b» presente

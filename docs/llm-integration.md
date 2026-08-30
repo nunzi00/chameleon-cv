@@ -87,7 +87,7 @@ El **fichero de revisión** (`output/revision-<tarea>-<fecha>.md`, 0600) es Mark
 
 ```markdown
 # Revisión: improve · backend · oferta acme-backend · 2026-08-28
-proveedor: ollama · modelo: qwen2.5:7b-instruct · prompt: improve.v1 · entrada: sha256:3f2a…
+proveedor: ollama · modelo: qwen3:8b · prompt: improve.v1 · entrada: sha256:3f2a…
 
 ## exp-acme-1 (experience/acme.md:14)
 - [ ] original: Reduje la latencia p95 del checkout un **40 %** rediseñando la capa de caché.
@@ -124,7 +124,7 @@ perfil (artefacto) ──selección/puntuación/recorte deterministas──► f
 | Instalación | Binario/runtime aparte, descarga de modelos de 4–9 GB (fuera de nuestro alcance: lo hace el usuario con su gestor; `cv llm status` diagnostica). | Solo una clave. |
 | Determinismo | `seed` y `temperature: 0` bien soportados. | `temperature: 0`; `seed` solo en algunos; los modelos cambian con el tiempo (fijar versión). |
 
-**Propuesta**: abstraer sobre la **API compatible con OpenAI** (`/v1/chat/completions` con `response_format: json_schema` donde exista; Ollama, llama.cpp y LM Studio la exponen en loopback, y OpenAI la define), más un proveedor **Anthropic** (Messages API; salida estructurada mediante *tool use* con `input_schema`) y el **nativo de Ollama** (`/api/chat` con `format: <JSON Schema>`, que garantiza salida estructurada incluso con modelos pequeños). Por defecto: `ollama` en `http://127.0.0.1:11434` con un modelo fijado y documentado (candidatos a evaluar en el *spike* de T-4.2: `qwen2.5:7b-instruct`, `llama3.1:8b-instruct`, `gemma3:12b`); configurable con `CHAMELEON_LLM_PROVIDER`, `CHAMELEON_LLM_BASE_URL`, `CHAMELEON_LLM_MODEL`. **Regla de localidad**: un proveedor es «local» solo si su host resuelve a loopback; cualquier otra URL base se trata como remota y exige el consentimiento de C3, aunque sea de la LAN.
+**Propuesta**: abstraer sobre la **API compatible con OpenAI** (`/v1/chat/completions` con `response_format: json_schema` donde exista; Ollama, llama.cpp y LM Studio la exponen en loopback, y OpenAI la define), más un proveedor **Anthropic** (Messages API; salida estructurada mediante *tool use* con `input_schema`) y el **nativo de Ollama** (`/api/chat` con `format: <JSON Schema>`, que garantiza salida estructurada incluso con modelos pequeños). Por defecto: `ollama` en `http://127.0.0.1:11434` con un modelo fijado y documentado (candidatos a evaluar en el *spike* de T-4.2: `qwen3:8b`, `llama3.1:8b-instruct`, `gemma3:12b`); configurable con `CHAMELEON_LLM_PROVIDER`, `CHAMELEON_LLM_BASE_URL`, `CHAMELEON_LLM_MODEL`. **Regla de localidad**: un proveedor es «local» solo si su host resuelve a loopback; cualquier otra URL base se trata como remota y exige el consentimiento de C3, aunque sea de la LAN.
 
 Estas capacidades (JSON Schema en Ollama ≥ 0.5, `response_format` en OpenAI, *tool use* en Anthropic) constan en la documentación pública de cada proveedor; la primera tarea de implementación las **verificará con un spike** antes de fijar nada, como hicimos con pdf.js y Typst.
 

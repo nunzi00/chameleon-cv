@@ -1,0 +1,6 @@
+qwen3:8b             descargado             razonamiento conmutable  5.2 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags · configurado
+qwen2.5:7b-instruct  no descargado          sin razonamiento         4.7 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags
+deepseek-r1:8b       no descargado          razona siempre           5.2 GiB · RAM ≥ 8 GiB · MIT · improve, summarize
+gpt-oss:20b          no descargado          razonamiento conmutable  14 GiB · RAM ≥ 16 GiB · Apache-2.0 · improve, summarize, suggest-tags · sin espejo
+qwen3:4b             descargado             razonamiento conmutable  2.6 GiB · RAM ≥ 6 GiB · Apache-2.0 · suggest-tags, summarize
+Otros modelos presentes: hf.co/unsloth/Qwen3-4B-GGUF:Q4_K_M

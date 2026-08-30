@@ -16,7 +16,7 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
   it('cada campo toma el primer valor presente y recuerda su origen', () => {
     expect(resolveLlmConfig({}, { settings: FILE })).toEqual({
       ok: true,
-      config: { provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'del-fichero', sources: { provider: 'file', baseUrl: 'file', model: 'file' } },
+      config: { provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'del-fichero', think: false, sources: { provider: 'file', baseUrl: 'file', model: 'file', think: 'default' } },
     });
     expect(resolveLlmConfig({ [LLM_ENV.model]: 'del-entorno' }, { settings: FILE })).toMatchObject({ ok: true, config: { model: 'del-entorno', sources: { provider: 'file', model: 'env' } } });
     expect(resolveLlmConfig({ [LLM_ENV.model]: 'del-entorno' }, { model: 'de-la-orden', provider: 'ollama', settings: FILE })).toMatchObject({
@@ -25,6 +25,12 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
     });
     expect(resolveLlmConfig({}, { settings: {} })).toMatchObject({ ok: true, config: { provider: 'ollama', sources: { provider: 'default', baseUrl: 'default', model: 'default' } } });
     expect(resolveLlmConfig({}, { model: '  ' })).toMatchObject({ ok: true, config: { sources: { model: 'default' } } });
+    // [llm] think (T-8.13): entorno (1/true, 0/false) > cv.toml > apagado; otros valores del entorno se ignoran.
+    expect(resolveLlmConfig({}, { settings: {} })).toMatchObject({ ok: true, config: { think: false, sources: { think: 'default' } } });
+    expect(resolveLlmConfig({}, { settings: { think: true } })).toMatchObject({ ok: true, config: { think: true, sources: { think: 'file' } } });
+    expect(resolveLlmConfig({ [LLM_ENV.think]: '0' }, { settings: { think: true } })).toMatchObject({ ok: true, config: { think: false, sources: { think: 'env' } } });
+    expect(resolveLlmConfig({ [LLM_ENV.think]: 'TRUE' }, { settings: {} })).toMatchObject({ ok: true, config: { think: true, sources: { think: 'env' } } });
+    expect(resolveLlmConfig({ [LLM_ENV.think]: 'quizá' }, { settings: { think: true } })).toMatchObject({ ok: true, config: { think: true, sources: { think: 'file' } } });
   });
 
   it('un cv.toml con URL no local o proveedor remoto falla con el origen en el mensaje', () => {
@@ -66,15 +72,15 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
   it('llmStatus describe cv.toml y los orígenes; con cv.toml inválido no comprueba nada', async () => {
     const status = await llmStatus({ env: {}, http, settings: FILE, settingsPath: '/work/cv.toml', settingsPresent: true });
     expect(status.settings).toMatchObject({ path: '/work/cv.toml', present: true, configured: true, error: undefined });
-    expect(status.config?.sources).toEqual({ provider: 'file', baseUrl: 'file', model: 'file' });
+    expect(status.config?.sources).toEqual({ provider: 'file', baseUrl: 'file', model: 'file', think: 'default' });
     const text = formatLlmStatus(status);
     expect(text).toContain('Proveedor local: openai-compatible (http://127.0.0.1:8080; cv.toml) · modelo: del-fichero (cv.toml)');
     expect(text).toContain('Configuración del proyecto: /work/cv.toml (tabla [llm] presente)');
     const flagged = await llmStatus({ env: {}, http, provider: 'ollama', model: 'de-la-orden', settings: FILE, settingsPath: '/work/cv.toml', settingsPresent: true });
-    expect(flagged.config?.sources).toEqual({ provider: 'flag', baseUrl: 'file', model: 'flag' });
+    expect(flagged.config?.sources).toEqual({ provider: 'flag', baseUrl: 'file', model: 'flag', think: 'default' });
     expect(formatLlmStatus(flagged)).toContain('(http://127.0.0.1:8080; orden) · modelo: de-la-orden (orden)');
     const modelOnly = await llmStatus({ env: {}, http, model: 'de-la-orden', settings: FILE });
-    expect(modelOnly.config?.sources).toEqual({ provider: 'file', baseUrl: 'file', model: 'flag' });
+    expect(modelOnly.config?.sources).toEqual({ provider: 'file', baseUrl: 'file', model: 'flag', think: 'default' });
     const absent = await llmStatus({ env: {}, http, settingsPath: '/work/cv.toml' });
     expect(formatLlmStatus(absent)).toContain('Configuración del proyecto: /work/cv.toml (no existe)');
     const withoutTable = await llmStatus({ env: {}, http, settingsPath: '/work/cv.toml', settingsPresent: true });
