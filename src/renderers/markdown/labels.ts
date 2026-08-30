@@ -14,6 +14,10 @@ export interface Labels {
   readonly languages: string;
   readonly technologies: string;
   readonly link: string;
+  /** Cabecera de la columna de contacto (temas con lateral) y pie «página X de Y». */
+  readonly contact: string;
+  readonly page: string;
+  readonly of: string;
   readonly present: string;
   readonly native: string;
   readonly categories: Readonly<Record<SkillCategory, string>>;
@@ -29,6 +33,9 @@ const SPANISH: Labels = {
   languages: 'Idiomas',
   technologies: 'Tecnologías',
   link: 'enlace',
+  contact: 'Contacto',
+  page: 'página',
+  of: 'de',
   present: 'actualidad',
   native: 'nativo',
   categories: {
@@ -56,6 +63,9 @@ const ENGLISH: Labels = {
   languages: 'Languages',
   technologies: 'Technologies',
   link: 'link',
+  contact: 'Contact',
+  page: 'page',
+  of: 'of',
   present: 'present',
   native: 'native',
   categories: {

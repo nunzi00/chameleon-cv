@@ -30,7 +30,7 @@ Claves siempre presentes salvo las marcadas como opcionales (ausentes, no `null`
 | Clave | Tipo | Contenido |
 |---|---|---|
 | `locale`, `lang` | str | Idioma de la vista (`es-ES`) y código de dos letras (`es`) para `set text(lang:)`. |
-| `labels` | dict | Etiquetas ya traducidas: `experience`, `projects`, `skills`, `achievements`, `education`, `certifications`, `languages`, `technologies`, `link`, `present`… |
+| `labels` | dict | Etiquetas ya traducidas: `experience`, `projects`, `skills`, `achievements`, `education`, `certifications`, `languages`, `technologies`, `link`, `present`, `native`, `contact` (columna de contacto), `page` y `of` (pie «página X de Y»)… |
 | `fullName` | str | Nombre completo. |
 | `headline` | str, opcional | Titular (el de la especialidad, si la hay). |
 | `contact` | runs | Línea de contacto ya compuesta (`Madrid · ada@…`) con enlaces como runs con `link`. |

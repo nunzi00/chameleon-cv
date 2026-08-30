@@ -36,6 +36,10 @@ export const ThemeConfigSchema = z.strictObject({
     description: z.string().trim().max(200).optional(),
     /** Versión del formato de theme.toml. */
     version: z.literal(1),
+    /** Autoría (T-8.3): quién lo hizo, con qué licencia (se sugiere un identificador SPDX) y dónde vive. */
+    author: z.string().trim().min(1).max(120).optional(),
+    license: z.string().trim().min(1).max(60).optional(),
+    homepage: z.string().trim().max(2048).pipe(z.url({ protocol: /^https$/, error: 'homepage debe ser una URL https' })).optional(),
   }),
   colors: z.strictObject({
     /** Cuerpo de texto. */

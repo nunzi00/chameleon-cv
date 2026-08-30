@@ -138,6 +138,9 @@ export interface ThemeInventoryEntry {
   /** Un tema del proyecto con el mismo nombre que uno distribuido: prevalece y lo oculta. */
   readonly shadows: boolean;
   readonly description: string | undefined;
+  readonly author: string | undefined;
+  readonly license: string | undefined;
+  readonly homepage: string | undefined;
   /** Motivo por el que no se puede usar, si lo hay. */
   readonly error: string | undefined;
 }
@@ -160,6 +163,9 @@ export async function inventoryThemes(roots: readonly ThemeRoot[]): Promise<Them
         builtin: root.builtin,
         shadows: !root.builtin && builtinNames.has(name),
         description: loaded.ok ? loaded.theme.config.theme.description : undefined,
+        author: loaded.ok ? loaded.theme.config.theme.author : undefined,
+        license: loaded.ok ? loaded.theme.config.theme.license : undefined,
+        homepage: loaded.ok ? loaded.theme.config.theme.homepage : undefined,
         error: loaded.ok ? undefined : loaded.message,
       });
     }

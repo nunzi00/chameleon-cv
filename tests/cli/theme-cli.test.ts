@@ -62,27 +62,43 @@ describe('cv theme list (T-5.3)', () => {
   it('inventaría los temas distribuidos con su descripción y marca el tema por defecto', async () => {
     const h = harness();
     expect(await runCli(['theme', 'list'], h.context)).toBe(EXIT_OK);
-    const classic = await loadTheme('classic', [builtinThemeRoot()]);
-    const description = classic.ok ? classic.theme.config.theme.description : '';
-    expect(h.stdout()).toBe(`classic  distribuido   ${description}\ndefault  distribuido   ${defaultThemeConfig().theme.description} · por defecto\n`);
-    expect(h.stderr()).toBe(`2 temas en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
+    const describe = async (name: string): Promise<string> => {
+      const loaded = await loadTheme(name, [builtinThemeRoot()]);
+      return loaded.ok ? loaded.theme.config.theme.description ?? '' : '';
+    };
+    // Orden alfabético, nombre alineado al más largo; los temas de T-8.3 llevan autor y licencia.
+    const credit = ' · autor: Chameleon CV · licencia: MIT';
+    expect(h.stdout()).toBe(
+      [
+        `academic  distribuido   ${await describe('academic')}${credit}`,
+        `classic   distribuido   ${await describe('classic')}`,
+        `default   distribuido   ${defaultThemeConfig().theme.description} · por defecto`,
+        `minimal   distribuido   ${await describe('minimal')}${credit}`,
+        `modern    distribuido   ${await describe('modern')}${credit}`,
+        '',
+      ].join('\n'),
+    );
+    expect(h.stderr()).toBe(`5 temas en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
   });
 
   it('los temas del proyecto van primero, con su validez, si ocultan a un distribuido y el tema por defecto de cv.toml', async () => {
     const h = harness({ ...PROJECT, '/work/cv.toml': '[theme]\nname = "mio"\n' });
     expect(await runCli(['theme', 'list'], h.context)).toBe(EXIT_OK);
     expect(h.stdout().split('\n')).toEqual([
-      'default  del proyecto  sin descripción · oculta al distribuido del mismo nombre',
-      'feo      del proyecto  inválido: Tema «feo» inválido (/work/themes/feo/theme.toml): colors.primary: Color inválido: usa #rrggbb (p. ej. "#1f4e79")',
-      'mio      del proyecto  sin descripción · por defecto',
-      expect.stringMatching(/^classic  distribuido   Serif/),
+      'default   del proyecto  sin descripción · oculta al distribuido del mismo nombre',
+      'feo       del proyecto  inválido: Tema «feo» inválido (/work/themes/feo/theme.toml): colors.primary: Color inválido: usa #rrggbb (p. ej. "#1f4e79")',
+      'mio       del proyecto  sin descripción · por defecto',
+      expect.stringMatching(/^academic  distribuido   Serif de una columna/),
+      expect.stringMatching(/^classic   distribuido   Serif tradicional/),
+      expect.stringMatching(/^minimal   distribuido   Monocromo/),
+      expect.stringMatching(/^modern    distribuido   Contemporáneo/),
       '',
     ]);
-    expect(h.stderr()).toContain('4 temas en /work/themes y ');
+    expect(h.stderr()).toContain('7 temas en /work/themes y ');
     const broken = harness({ '/work/cv.toml': '[theme\n' });
     expect(await runCli(['theme', 'list'], broken.context)).toBe(EXIT_OK);
     expect(broken.stderr()).toMatch(/^Aviso: Configuración inválida \(\/work\/cv\.toml\):\n  - línea 1: /);
-    expect(broken.stdout()).toContain('default  distribuido   ');
+    expect(broken.stdout()).toContain('default   distribuido   ');
     expect(broken.stdout()).toContain(' · por defecto\n');
   });
 });
@@ -109,7 +125,7 @@ describe('cv theme path <nombre>', () => {
   it('explica el tema inexistente y el nombre inválido', async () => {
     const missing = harness();
     expect(await runCli(['theme', 'path', 'nada'], missing.context)).toBe(EXIT_DATA_ERROR);
-    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: classic, default\n`);
+    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, classic, default, minimal, modern\n`);
     expect(missing.stdout()).toBe('');
     const bad = harness();
     expect(await runCli(['theme', 'path', '../default'], bad.context)).toBe(EXIT_DATA_ERROR);

@@ -1,0 +1,48 @@
+# Tema «modern» de Chameleon CV (T-8.3): contemporáneo, con franja de acento en la cabecera y una columna
+# lateral con contacto, skills, idiomas y certificaciones. Copia este directorio a themes/<mi-tema>/ y genera
+# con `--theme mi-tema`; o anula valores desde cv.toml sin tocar ficheros.
+
+[theme]
+name = "modern"
+description = "Contemporáneo: franja de acento en la cabecera, columna lateral con contacto, skills e idiomas, y fechas en pastillas"
+version = 1
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#222222"       # cuerpo de texto
+primary = "#0f2f4f"    # nombre, títulos de entrada y títulos de sección
+secondary = "#5b6470"  # metadatos, fechas, ubicación e impacto
+accent = "#2a7de1"     # franja de la cabecera, marcas de sección, enlaces
+rule = "#dbe3ec"       # filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 26
+headline = 11.5
+contact = 9
+section = 10
+title = 10.8
+meta = 8.8
+body = 9.8
+footer = 8.5
+code = 9
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.65
+list = 0.4
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 14
+right = 16
+bottom = 15
+left = 16

@@ -1,0 +1,47 @@
+# Tema «academic» de Chameleon CV (T-8.3): serif sobrio de una columna, para trayectorias largas. Copia este
+# directorio a themes/<mi-tema>/ y genera con `--theme mi-tema`; o anula valores desde cv.toml sin tocar ficheros.
+
+[theme]
+name = "academic"
+description = "Serif de una columna para trayectorias largas: cabecera centrada, secciones numeradas, fechas al margen y pie con paginación"
+version = 1
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1c1c1c"       # cuerpo de texto
+primary = "#1c1c1c"    # nombre y títulos de entrada
+secondary = "#575757"  # metadatos, fechas al margen, ubicación e impacto
+accent = "#7a1f1f"     # enlaces y números de sección
+rule = "#b8b8b8"       # filetes
+
+[fonts]                # Libertinus Serif viene embebida en Typst; DejaVu Sans Mono también
+body = "Libertinus Serif"
+heading = "Libertinus Serif"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 21
+headline = 11
+contact = 9.2
+section = 10.5
+title = 10.6
+meta = 9
+body = 10.2
+footer = 8.5
+code = 9
+
+[spacing]              # en «em» del cuerpo
+leading = 0.6
+paragraph = 0.75
+list = 0.45
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 22
+right = 22
+bottom = 22
+left = 22

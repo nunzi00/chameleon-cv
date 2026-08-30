@@ -48,6 +48,18 @@ describe('theme.toml (T-5.1): lectura y validación estricta', () => {
     expect(parseThemeConfig('[theme]\nname = "x"\nversion = 1\n[colors]\ntext = [1,\n')).toEqual({ ok: false, errors: [expect.stringMatching(/^línea \d+: Invalid TOML document/)] });
     expect(tomlErrorMessage(new Error('otra cosa\nsegunda línea'))).toBe('otra cosa');
   });
+
+  it('admite los metadatos de autoría (T-8.3) y rechaza autor vacío o largo, licencia larga y homepage que no sea https', () => {
+    const withMeta = (extra: string): string => themeToml('x').replace('name = "x"', `name = "x"\n${extra}`);
+    const valid = parseThemeConfig(withMeta('author = "Ana"\nlicense = "CC-BY-4.0"\nhomepage = "https://ejemplo.org/tema"'));
+    expect(valid).toMatchObject({ ok: true, config: { theme: { name: 'x', author: 'Ana', license: 'CC-BY-4.0', homepage: 'https://ejemplo.org/tema' } } });
+    expect(parseThemeConfig(themeToml('x'))).toMatchObject({ ok: true, config: { theme: { name: 'x', version: 1 } } });
+    expect(parseThemeConfig(withMeta('author = ""'))).toEqual({ ok: false, errors: ['theme.author: Demasiado pequeño: se esperaba que texto tuviera >=1 caracteres'] });
+    expect(parseThemeConfig(withMeta(`author = "${'a'.repeat(121)}"`))).toEqual({ ok: false, errors: ['theme.author: Demasiado grande: se esperaba que texto tuviera <=120 caracteres'] });
+    expect(parseThemeConfig(withMeta(`license = "${'l'.repeat(61)}"`))).toEqual({ ok: false, errors: ['theme.license: Demasiado grande: se esperaba que texto tuviera <=60 caracteres'] });
+    expect(parseThemeConfig(withMeta('homepage = "http://ejemplo.org"'))).toEqual({ ok: false, errors: ['theme.homepage: homepage debe ser una URL https'] });
+    expect(parseThemeConfig(withMeta('homepage = "nada"'))).toEqual({ ok: false, errors: ['theme.homepage: homepage debe ser una URL https'] });
+  });
 });
 
 describe('cargador de temas: themes/ del proyecto y después los distribuidos', () => {
@@ -67,7 +79,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     // Si el proyecto es el propio repositorio, no se busca dos veces en el mismo directorio.
     expect(themeRoots(join(BUILTIN_THEMES_DIRECTORY, '..'), new MemoryFileSystem({}))).toHaveLength(1);
-    expect(await listThemes([builtinThemeRoot()])).toEqual(['classic', 'default']);
+    expect(await listThemes([builtinThemeRoot()])).toEqual(['academic', 'classic', 'default', 'minimal', 'modern']);
     const classic = await loadTheme('classic', [builtinThemeRoot()]);
     expect(classic).toMatchObject({ ok: true, theme: { name: 'classic', builtin: true, config: { theme: { name: 'classic', version: 1 }, fonts: { body: 'Libertinus Serif' }, page: { paper: 'a4' } } } });
   });
@@ -84,7 +96,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
       '/work/themes/suelto.txt': '',
     });
     const roots = [project, builtinThemeRoot()];
-    expect(await listThemes(roots)).toEqual(['default', 'mio', 'classic']);
+    expect(await listThemes(roots)).toEqual(['default', 'mio', 'academic', 'classic', 'minimal', 'modern']);
     const mio = await loadTheme('mio', roots);
     expect(mio).toMatchObject({ ok: true, theme: { name: 'mio', directory: '/work/themes/mio', fontsDirectory: '/work/themes/mio/fonts', builtin: false, config: { page: { paper: 'us-letter' } } } });
     const shadowed = await loadTheme('default', roots);
@@ -105,7 +117,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     const roots = [project, builtinThemeRoot()];
     expect(await loadTheme('../default', roots)).toEqual({ ok: false, message: 'Nombre de tema inválido «../default»: minúsculas, dígitos y guiones (p. ej. «default»)' });
-    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, classic, default` });
+    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, academic, classic, default, minimal, modern` });
     expect(await loadTheme('nada', [memoryRoot({})])).toEqual({ ok: false, message: 'No existe el tema «nada» (buscado en /work/themes); disponibles: ninguno' });
     expect(await loadTheme('sin-config', roots)).toEqual({ ok: false, message: 'El tema «sin-config» (/work/themes/sin-config) no tiene theme.toml' });
     expect(await loadTheme('sin-plantilla', roots)).toEqual({ ok: false, message: 'El tema «sin-plantilla» (/work/themes/sin-plantilla) no tiene template.typ' });
@@ -129,10 +141,16 @@ describe('localización e inventario (T-5.3)', () => {
     expect(inventory.map((entry) => [entry.name, entry.builtin, entry.shadows, entry.error === undefined])).toEqual([
       ['default', false, true, false],
       ['mio', false, false, true],
+      ['academic', true, false, true],
       ['classic', true, false, true],
+      ['minimal', true, false, true],
+      ['modern', true, false, true],
     ]);
     expect(inventory[0]?.error).toMatch(/^Tema «default» inválido/);
-    expect(inventory[2]?.description).toContain('Serif');
+    expect(inventory[3]?.description).toContain('Serif');
+    // Metadatos de autoría (T-8.3): los temas nuevos los declaran; los anteriores no los necesitan.
+    expect(inventory[2]).toMatchObject({ author: 'Chameleon CV', license: 'MIT', homepage: 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery' });
+    expect([inventory[3]?.author, inventory[3]?.license, inventory[3]?.homepage, inventory[1]?.author]).toEqual([undefined, undefined, undefined, undefined]);
     expect((await loadTheme('mio', roots)).ok && (await loadTheme('mio', roots))).toMatchObject({ theme: { root: project } });
   });
 });

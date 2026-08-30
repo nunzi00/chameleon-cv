@@ -1,0 +1,1 @@
+CV escrito en <WS>/output/cv-platform.typst-modern.pdf

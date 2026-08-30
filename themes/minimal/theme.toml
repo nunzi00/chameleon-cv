@@ -1,0 +1,48 @@
+# Tema «minimal» de Chameleon CV (T-8.3): monocromo, sin filetes ni columnas, con el máximo de aire; amable con
+# los sistemas de filtrado de candidaturas (ATS). Copia este directorio a themes/<mi-tema>/ y genera con
+# `--theme mi-tema`; o anula valores desde cv.toml sin tocar ficheros.
+
+[theme]
+name = "minimal"
+description = "Monocromo y sin filetes: jerarquía solo por tamaño y peso, listas planas, sin tablas ni columnas; pensado para los ATS"
+version = 1
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#111111"       # todo el texto
+primary = "#111111"    # nombre y títulos (mismo color: la jerarquía la dan tamaño y peso)
+secondary = "#6b6b6b"  # metadatos, fechas y ubicación
+accent = "#111111"     # enlaces, subrayados
+rule = "#ffffff"       # no se dibujan filetes
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 22
+headline = 11
+contact = 9.5
+section = 9.5
+title = 10.5
+meta = 9.5
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.62
+paragraph = 0.8
+list = 0.5
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 20
+right = 22
+bottom = 20
+left = 22

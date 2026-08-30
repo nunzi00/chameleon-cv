@@ -25,7 +25,8 @@ export async function runThemeList(context: CliContext): Promise<number> {
   for (const entry of inventory.entries) {
     const origin = entry.builtin ? 'distribuido ' : 'del proyecto';
     const detail = entry.error === undefined ? (entry.description ?? 'sin descripción') : `inválido: ${compactError(entry.error)}`;
-    const notes = [entry.name === inventory.defaultName ? 'por defecto' : '', entry.shadows ? 'oculta al distribuido del mismo nombre' : ''].filter((note) => note !== '');
+    const credit = [entry.author === undefined ? '' : `autor: ${entry.author}`, entry.license === undefined ? '' : `licencia: ${entry.license}`].filter((note) => note !== '').join(' · ');
+    const notes = [credit, entry.name === inventory.defaultName ? 'por defecto' : '', entry.shadows ? 'oculta al distribuido del mismo nombre' : ''].filter((note) => note !== '');
     context.stdout(`${entry.name.padEnd(width)}  ${origin}  ${detail}${notes.length === 0 ? '' : ` · ${notes.join(' · ')}`}\n`);
   }
   context.stderr(`${pluralize(inventory.entries.length, 'tema', 'temas')} en ${inventory.roots.map((root) => root.directory).join(' y ')}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);

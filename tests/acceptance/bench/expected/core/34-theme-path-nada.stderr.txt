@@ -1,1 +1,1 @@
-No existe el tema «nada» (buscado en <WS>/themes, <BUILTIN_THEMES>); disponibles: bench, classic, default
+No existe el tema «nada» (buscado en <WS>/themes, <BUILTIN_THEMES>); disponibles: bench, academic, classic, default, minimal, modern
