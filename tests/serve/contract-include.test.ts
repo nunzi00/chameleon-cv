@@ -9,3 +9,10 @@ describe('POST /generate: selección explícita de skills y proyectos', () => {
     expect(GenerateSchema.safeParse({ format: 'md', projects: 'proj-a' }).success).toBe(false);
   });
 });
+
+describe('keepEvidence (T-8.9)', () => {
+  it('GenerateSchema admite keepEvidence booleano y rechaza otros tipos', () => {
+    expect(GenerateSchema.parse({ keepEvidence: false })).toMatchObject({ keepEvidence: false });
+    expect(GenerateSchema.safeParse({ keepEvidence: 'no' }).success).toBe(false);
+  });
+});

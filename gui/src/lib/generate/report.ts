@@ -85,6 +85,9 @@ export function reportSections(report: GenerateReportPayload): readonly ReportSe
     sections.push({ title: 'Oferta', lines: matchLines(report.match) });
   }
   sections.push({ title: 'Recortes', lines: trimLines(report.removed, report.limits) });
+  if (report.kept.length > 0) {
+    sections.push({ title: 'Evidencias conservadas por la oferta', lines: [`${report.kept.length} ${report.kept.length === 1 ? 'ítem protegido' : 'ítems protegidos'} de los límites por demostrar requisitos: ${report.kept.join(', ')}`] });
+  }
   const theme = themeLine(report.theme);
   if (theme !== undefined) {
     sections.push({ title: 'Tema', lines: [theme] });
@@ -108,6 +111,8 @@ export interface AnalysisView {
   readonly missing: readonly TermView[];
   readonly gaps: readonly string[];
   readonly ranking: readonly { readonly id: string; readonly label: string; readonly score: string }[];
+  /** La especialidad real que más cubre la oferta (T-8.9), si alguna destaca. */
+  readonly suggested: { readonly id: string; readonly title: string; readonly covered: number; readonly total: number } | undefined;
 }
 
 /** El resumen de adecuación de `cv analyze-offer`, a partir de la respuesta de POST /analyze-offer. */
@@ -128,5 +133,6 @@ export function analysisView(response: AnalyzeResponse): AnalysisView {
     missing: terms.filter((term) => term.evidence.length === 0),
     gaps: offer.gaps,
     ranking: response.ranking.map((evidence) => ({ id: evidence.id, label: evidence.label, score: evidence.score.toFixed(2) })),
+    suggested: response.suggestedSpecialty,
   };
 }

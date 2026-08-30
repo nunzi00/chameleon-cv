@@ -252,3 +252,30 @@ describe('selección explícita de skills y proyectos (docs/trimming-cli.md §3.
     expect(applyLimits(profile, {}, NO_SCORES).unknown).toEqual({ skills: [], projects: [] });
   });
 });
+
+describe('evidencias protegidas de los límites (T-8.9)', () => {
+  it('keepTop trata los ids protegidos como anclados: sobreviven aunque el límite sea menor', () => {
+    const items = [
+      { id: 'a', tags: [] },
+      { id: 'b', tags: [] },
+      { id: 'c', tags: [] },
+    ];
+    const scores: ScoreLookup = (id) => ({ a: 3, b: 2, c: 1 })[id] ?? 0;
+    expect(keepTop(items, 1, scores).kept.map((item) => item.id)).toEqual(['a']);
+    expect(keepTop(items, 1, scores, new Set(['c'])).kept.map((item) => item.id)).toEqual(['c']);
+    expect(keepTop(items, 0, scores, new Set(['b', 'c'])).kept.map((item) => item.id)).toEqual(['b', 'c']);
+    expect(keepTop(items, 2, scores, new Set(['c'])).kept.map((item) => item.id)).toEqual(['a', 'c']);
+  });
+
+  it('applyLimits respeta limits.keep en logros anidados, skills, proyectos y certificaciones', () => {
+    const profile = selectionProfile();
+    const lastSkill = profile.skills[profile.skills.length - 1]?.id ?? '';
+    const lastProject = profile.projects[profile.projects.length - 1]?.id ?? '';
+    const withoutKeep = applyLimits(profile, { skills: 1, projects: 1 }, NO_SCORES);
+    expect(withoutKeep.profile.skills.map((skill) => skill.id)).toEqual([profile.skills[0]?.id]);
+    const withKeep = applyLimits(profile, { skills: 1, projects: 1, keep: [lastSkill, lastProject] }, NO_SCORES);
+    expect(withKeep.profile.skills.map((skill) => skill.id)).toEqual([lastSkill]);
+    expect(withKeep.profile.projects.map((project) => project.id)).toEqual([lastProject]);
+    expect(withKeep.removed.some((item) => item.id === lastSkill || item.id === lastProject)).toBe(false);
+  });
+});

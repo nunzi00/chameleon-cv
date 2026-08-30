@@ -113,7 +113,7 @@ describe('cv generate-cv --from-job-offer', () => {
 
   it('recorta con --top-n y --max-skills y lo explica con --explain', async () => {
     const h = compiled();
-    expect(await runCli(['generate-cv', ...OFFER, '--top-n', '1', '--max-skills', '2', '--explain', '--stdout'], h.context)).toBe(EXIT_OK);
+    expect(await runCli(['generate-cv', ...OFFER, '--top-n', '1', '--max-skills', '2', '--explain', '--no-keep-evidence', '--stdout'], h.context)).toBe(EXIT_OK);
     const cv = h.stdout();
     expect(cv).toContain('Reduje la latencia p95');
     expect(cv).not.toContain('Lideré la migración a Kubernetes');
@@ -127,10 +127,10 @@ describe('cv generate-cv --from-job-offer', () => {
 
   it('--compact aplica el preset y los límites explícitos prevalecen', async () => {
     const preset = compiled();
-    expect(await runCli(['generate-cv', ...OFFER, '--compact', '--explain', '--stdout'], preset.context)).toBe(EXIT_OK);
+    expect(await runCli(['generate-cv', ...OFFER, '--compact', '--explain', '--no-keep-evidence', '--stdout'], preset.context)).toBe(EXIT_OK);
     expect(preset.stderr()).toContain('Recortes (--top-n 4, --max-skills 12, --max-projects 4, --max-certifications 5): ninguno\n');
     const overridden = compiled();
-    expect(await runCli(['generate-cv', ...OFFER, '--compact', '-n', '1', '--explain', '--stdout'], overridden.context)).toBe(EXIT_OK);
+    expect(await runCli(['generate-cv', ...OFFER, '--compact', '-n', '1', '--explain', '--no-keep-evidence', '--stdout'], overridden.context)).toBe(EXIT_OK);
     expect(overridden.stderr()).toContain('Recortes (--top-n 1, --max-skills 12, --max-projects 4, --max-certifications 5): 1 ítem fuera\n  exp-acme: exp-acme-k8s (2.00)\n');
   });
 
@@ -389,5 +389,35 @@ describe('cv analyze-offer --build (T-2.7)', () => {
     expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--build'], invalid.context)).toBe(EXIT_DATA_ERROR);
     expect(invalid.stdout()).toBe('');
     expect(invalid.stderr()).toMatch(/\d+ problemas? en \/work\/data\/sources\n$/);
+  });
+});
+
+describe('generar con la adecuación de la oferta (T-8.9)', () => {
+  it('con oferta, las evidencias que demuestran requisitos no se recortan por --top-n y --explain lo dice; --no-keep-evidence lo desactiva', async () => {
+    const kept = compiled();
+    expect(await runCli(['generate-cv', ...OFFER, '--top-n', '1', '--max-skills', '1', '--explain'], kept.context)).toBe(EXIT_OK);
+    const explained = kept.stderr();
+    expect(explained).toMatch(/evidencias conservadas por la oferta \(no se recortan\): .*skill-2/);
+    const cv = kept.fs.file('/work/output/cv-ada-ejemplo-acme-backend.md')?.content ?? '';
+    expect(cv).toContain('Symfony');
+    expect(cv).toContain('Kubernetes');
+
+    const plain = compiled();
+    expect(await runCli(['generate-cv', ...OFFER, '--top-n', '1', '--max-skills', '1', '--explain', '--no-keep-evidence'], plain.context)).toBe(EXIT_OK);
+    expect(plain.stderr()).not.toContain('evidencias conservadas por la oferta');
+    const trimmed = plain.fs.file('/work/output/cv-ada-ejemplo-acme-backend.md')?.content ?? '';
+    expect(trimmed.length).toBeLessThan(cv.length);
+  });
+
+  it('analyze-offer imprime la especialidad sugerida y --json la incluye', async () => {
+    const h = compiled();
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt'], h.context)).toBe(EXIT_OK);
+    const lines = h.stdout().split('\n');
+    expect(lines[2]).toMatch(/^Especialidad sugerida: backend \(.*; cubre \d+ de \d+ requisitos con peso\)$/);
+    const json = compiled();
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--json'], json.context)).toBe(EXIT_OK);
+    const payload = JSON.parse(json.stdout()) as { suggestedSpecialty?: { id: string; covered: number; total: number } };
+    expect(payload.suggestedSpecialty?.id).toBe('backend');
+    expect(payload.suggestedSpecialty?.covered).toBeGreaterThan(0);
   });
 });

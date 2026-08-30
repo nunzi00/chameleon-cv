@@ -3,6 +3,7 @@ Esta oferta ya se procesó 2 veces:
   <ISO> · generate-cv (backend) → output/cv-backend-nexo.md
 Oferta nexo-senior-backend · 13 requisitos reconocidos · 5 años de experiencia exigidos
 Adecuación: 12 de 13 requisitos demostrados (92 %) · imprescindibles: 7 de 7
+Especialidad sugerida: backend (Senior Backend Engineer; cubre 6 de 21 requisitos con peso)
 
 Demostrados
   php            required      1.00  ← exp-delta-consultores, exp-delta-consultores-1, exp-delta-consultores-2, exp-freelance, exp-freelance-1, exp-freelance-2, exp-nexo-pagos, proj-kafka-guardian, proj-kafka-guardian-2, skill-1, skill-2, skill-6, skill-7, cert-4

@@ -135,6 +135,11 @@
       const analyzed = await api.analyze(request.body);
       analysis = analysisView(analyzed);
       history = analyzed.history;
+      // T-8.9: si no se eligió especialidad, se rellena con la que más cubre la oferta.
+      if (form.specialty === '' && analysis.suggested !== undefined && specialties.includes(analysis.suggested.id)) {
+        form = { ...form, specialty: analysis.suggested.id };
+        notice = `Especialidad sugerida por la oferta: «${analysis.suggested.id}» (${analysis.suggested.title}; cubre ${analysis.suggested.covered} de ${analysis.suggested.total} requisitos). Cámbiala en el paso 1 si no te encaja.`;
+      }
     } catch (caught) {
       fail(caught);
     } finally {
@@ -162,7 +167,8 @@
       if (result.output.kind === 'pdf') {
         pdf = await api.output(result.output.name);
       }
-      notice = `CV escrito en ${result.output.path}${result.warnings.length === 0 ? '' : ' (con avisos)'}`;
+      const kept = result.report?.kept.length ?? 0;
+      notice = `CV escrito en ${result.output.path}${kept === 0 ? '' : ` · ${kept} ${kept === 1 ? 'evidencia de la oferta conservada' : 'evidencias de la oferta conservadas'}`}${result.warnings.length === 0 ? '' : ' (con avisos)'}`;
     } catch (caught) {
       fail(caught);
     } finally {
@@ -423,6 +429,13 @@
                 </div>
               {/if}
               <p>{analysis.adequacy}</p>
+              {#if analysis.suggested !== undefined}
+                <p class="cv-muted">Especialidad sugerida: <strong>{analysis.suggested.id}</strong> ({analysis.suggested.title}; cubre {analysis.suggested.covered} de {analysis.suggested.total} requisitos con peso).</p>
+              {/if}
+              <div class="cv-actions">
+                <button class="cv-button primary small" type="button" disabled={busy !== undefined} onclick={generate}>Generar con esta adecuación</button>
+                <span class="cv-actions-note">Las evidencias demostradas no se recortan por los límites.</span>
+              </div>
               <div class="cv-adequacy-columns">
                 <div>
                   <h3><span class="cv-dot ok"></span>Demostrados <span class="cv-muted">{analysis.demonstrated.length}</span></h3>

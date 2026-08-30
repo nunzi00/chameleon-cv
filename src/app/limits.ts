@@ -32,7 +32,7 @@ export function resolveLimits(options: LimitOptions): SectionLimits {
 }
 
 export function hasLimits(limits: SectionLimits): boolean {
-  return Object.values(limits).some((limit) => limit !== undefined);
+  return Object.entries(limits).some(([key, limit]) => key !== 'keep' && limit !== undefined);
 }
 
 /** `--top-n 1, --max-skills 2` (solo los límites definidos). */

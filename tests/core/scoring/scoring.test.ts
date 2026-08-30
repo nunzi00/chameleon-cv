@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildVocabulary, extractJobRequirements, type JobRequirements } from '../../../src/core/keywords';
 import { parseMasterProfile, validateMasterProfile, type MasterProfile } from '../../../src/core/schema';
-import { OFFER_SPECIALTY_ID, itemScore, matchedTerms, offerSpecialty, scoreSelection, tailorToOffer, type ScoredSelection } from '../../../src/core/scoring';
+import { type MatchReport, OFFER_SPECIALTY_ID, type ScoredSelection, evidenceIds, itemScore, matchedTerms, offerSpecialty, scoreSelection, suggestSpecialty, tailorToOffer } from '../../../src/core/scoring';
 import { selectForSpecialty } from '../../../src/core/selection';
 import { formatMatchReport } from '../../../src/cli/explain';
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../../src/parsers';
@@ -165,5 +165,42 @@ describe('scoreSelection y utilidades', () => {
     const lines = formatMatchReport(tailor(profile, single).report).split('\n');
     expect(lines[0]).toBe('Oferta: 1 requisitos reconocidos · carencias: aws');
     expect(lines.at(-2)).toBe('Todos los requisitos reconocidos están demostrados');
+  });
+});
+
+describe('especialidad sugerida y evidencias (T-8.9)', () => {
+  it('suggestSpecialty elige la especialidad cuyas tags más pesan en la oferta; sin requisitos, sin coincidencias o con empate, ninguna', () => {
+    const profile = selectionProfile();
+    const requirements = extractJobRequirements(BACKEND_OFFER, buildVocabulary(profile));
+    const suggested = suggestSpecialty(profile, requirements);
+    expect(suggested).toBeDefined();
+    expect(profile.specialties.map((specialty) => specialty.id)).toContain(suggested?.id);
+    expect(suggested?.covered).toBeGreaterThan(0);
+    expect(suggested?.total).toBe(Object.keys(requirements.tagWeights).length);
+    expect(suggestSpecialty(profile, { ...requirements, tagWeights: {} })).toBeUndefined();
+    expect(suggestSpecialty({ ...profile, specialties: [] }, requirements)).toBeUndefined();
+    expect(suggestSpecialty(profile, { ...requirements, tagWeights: { 'tag-que-nadie-tiene': 1 } })).toBeUndefined();
+    const twin = { ...profile, specialties: [{ id: 'a', title: 'A', tags: ['php'] }, { id: 'b', title: 'B', tags: ['php'] }] };
+    expect(suggestSpecialty(twin, { ...requirements, tagWeights: { php: 1 } })).toBeUndefined();
+    const ordered = { ...profile, specialties: [{ id: 'a', title: 'A', tags: ['php'] }, { id: 'b', title: 'B', tags: ['php', 'kafka'] }] };
+    expect(suggestSpecialty(ordered, { ...requirements, tagWeights: { php: 1, kafka: 1 } })).toMatchObject({ id: 'b', title: 'B', covered: 2, total: 2 });
+    const tied = { ...profile, specialties: [{ id: 'a', title: 'A', tags: ['php', 'go'] }, { id: 'b', title: 'B', tags: ['kafka'] }] };
+    expect(suggestSpecialty(tied, { ...requirements, tagWeights: { php: 1, go: 1, kafka: 2 } })).toMatchObject({ id: 'a', covered: 2 });
+  });
+
+  it('evidenceIds devuelve los ítems incluidos con algún término coincidente', () => {
+    const profile = selectionProfile();
+    const requirements = extractJobRequirements(BACKEND_OFFER, buildVocabulary(profile));
+    const tailored = tailorToOffer(profile, requirements);
+    expect(tailored.ok).toBe(true);
+    const report = tailored.ok ? tailored.scored.report : undefined;
+    const ids = evidenceIds(report as MatchReport);
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      const decision = report?.decisions.find((entry) => entry.id === id);
+      expect(decision?.included).toBe(true);
+      expect(decision?.matchedTerms.length).toBeGreaterThan(0);
+    }
+    expect(evidenceIds({ requirements, decisions: [{ id: 'x', section: 'skills', included: false, reason: 'universal', matchedTags: [], score: 1, matchedTerms: ['php'] } as never], coverage: {} })).toEqual([]);
   });
 });

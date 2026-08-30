@@ -2,6 +2,7 @@ Esta oferta ya se procesó una vez:
   <ISO> · generate-cv → output/cv-orbita-compact.md
 Oferta orbita-platform-engineer · 9 requisitos reconocidos
 Adecuación: 8 de 9 requisitos demostrados (89 %) · imprescindibles: 7 de 7
+Especialidad sugerida: platform (Platform Engineer; cubre 7 de 12 requisitos con peso)
 
 Demostrados
   kubernetes     required      1.00  ← exp-delta-consultores-3, exp-nexo-pagos, exp-nexo-pagos-3, exp-orbita-cloud, exp-orbita-cloud-1, skill-3, skill-5, skill-12, cert-1, ach-3, ach-4

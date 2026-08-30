@@ -789,6 +789,7 @@
     "path": "output/cv-lucia-ferrer-montalban-backend.md"
   },
   "report": {
+    "kept": [],
     "limits": {},
     "removed": [],
     "selection": {
@@ -1341,10 +1342,70 @@
     "path": "output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf"
   },
   "report": {
+    "kept": [
+      "exp-delta-consultores",
+      "exp-delta-consultores-1",
+      "exp-delta-consultores-2",
+      "exp-delta-consultores-4",
+      "exp-freelance",
+      "exp-freelance-1",
+      "exp-freelance-2",
+      "exp-lumen-analytics",
+      "exp-lumen-analytics-1",
+      "exp-nexo-pagos",
+      "exp-nexo-pasarela",
+      "exp-nexo-pagos-2",
+      "exp-nexo-pagos-3",
+      "exp-nexo-pagos-4",
+      "exp-orbita-cloud",
+      "exp-orbita-cloud-1",
+      "proj-kafka-guardian",
+      "proj-kafka-guardian-1",
+      "proj-kafka-guardian-2",
+      "skill-1",
+      "skill-2",
+      "skill-3",
+      "skill-6",
+      "skill-7",
+      "cert-1",
+      "cert-4",
+      "ach-1",
+      "ach-3"
+    ],
     "limits": {
       "achievements": 4,
       "achievementsPerContainer": 4,
       "certifications": 5,
+      "keep": [
+        "exp-delta-consultores",
+        "exp-delta-consultores-1",
+        "exp-delta-consultores-2",
+        "exp-delta-consultores-4",
+        "exp-freelance",
+        "exp-freelance-1",
+        "exp-freelance-2",
+        "exp-lumen-analytics",
+        "exp-lumen-analytics-1",
+        "exp-nexo-pagos",
+        "exp-nexo-pasarela",
+        "exp-nexo-pagos-2",
+        "exp-nexo-pagos-3",
+        "exp-nexo-pagos-4",
+        "exp-orbita-cloud",
+        "exp-orbita-cloud-1",
+        "proj-kafka-guardian",
+        "proj-kafka-guardian-1",
+        "proj-kafka-guardian-2",
+        "skill-1",
+        "skill-2",
+        "skill-3",
+        "skill-6",
+        "skill-7",
+        "cert-1",
+        "cert-4",
+        "ach-1",
+        "ach-3"
+      ],
       "projects": 4,
       "skills": 12
     },
@@ -4423,6 +4484,12 @@
       "api",
       "performance"
     ]
+  },
+  "suggestedSpecialty": {
+    "covered": 4,
+    "id": "backend",
+    "title": "Senior Backend Engineer",
+    "total": 9
   },
   "summary": {
     "demonstrated": 6,

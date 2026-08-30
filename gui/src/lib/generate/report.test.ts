@@ -40,9 +40,9 @@ describe('informe de decisiones', () => {
   });
 
   it('las secciones siguen el orden de las decisiones y omiten lo que no aplica', () => {
-    const full = reportSections({ selection, match, limits: {}, removed: [], theme: { name: 'classic', builtin: true, overridden: [] } });
+    const full = reportSections({ selection, match, limits: {}, removed: [], kept: [], theme: { name: 'classic', builtin: true, overridden: [] } });
     expect(full.map((section) => section.title)).toEqual(['Selección', 'Oferta', 'Recortes', 'Tema']);
-    const minimal = reportSections({ selection: undefined, match: undefined, limits: {}, removed: [], theme: undefined });
+    const minimal = reportSections({ selection: undefined, match: undefined, limits: {}, removed: [], kept: [], theme: undefined });
     expect(minimal.map((section) => section.title)).toEqual(['Selección', 'Recortes']);
     expect(minimal[0]?.lines).toEqual(['Sin especialidad: se genera el CV completo, sin selección']);
   });
@@ -56,6 +56,7 @@ describe('analysisView', () => {
     coverage: { kubernetes: ['exp-acme'], go: [] },
     decisions: match.decisions,
     ranking: [{ id: 'exp-acme', section: 'experience', score: 2.25, label: 'ACME · Dev' } as never],
+    suggestedSpecialty: undefined,
     selection,
     warnings: [],
   };
@@ -74,6 +75,19 @@ describe('analysisView', () => {
     expect(nothing.headline).toBe('Oferta x · 0 requisitos reconocidos');
     expect(nothing.adequacy).toContain('no menciona nada');
     expect(nothing.percent).toBeUndefined();
+    expect(view.suggested).toBeUndefined();
+    expect(analysisView({ ...base, suggestedSpecialty: { id: 'backend', title: 'Backend', covered: 2, total: 3 } }).suggested).toEqual({ id: 'backend', title: 'Backend', covered: 2, total: 3 });
     expect(analysisView({ ...base, coverage: {} }).missing).toHaveLength(2);
   });
 });
+
+describe('evidencias conservadas (T-8.9)', () => {
+  it('reportSections añade la sección cuando hay ids protegidos', () => {
+    const sections = reportSections({ selection: undefined, match: undefined, limits: { skills: 1, keep: ['exp-acme', 'skill-2'] }, removed: [], kept: ['exp-acme', 'skill-2'], theme: undefined });
+    expect(sections.map((section) => section.title)).toEqual(['Selección', 'Recortes', 'Evidencias conservadas por la oferta']);
+    expect(sections[2]?.lines).toEqual(['2 ítems protegidos de los límites por demostrar requisitos: exp-acme, skill-2']);
+    const one = reportSections({ selection: undefined, match: undefined, limits: {}, removed: [], kept: ['skill-2'], theme: undefined });
+    expect(one[2]?.lines[0]).toContain('1 ítem protegido');
+  });
+});
+

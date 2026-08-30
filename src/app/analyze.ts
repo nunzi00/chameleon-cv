@@ -4,7 +4,7 @@
  */
 import { resolve } from 'node:path';
 
-import { summarizeMatch, type MatchSummary, type ScoredSelection } from '../core/scoring';
+import { type MatchSummary, type ScoredSelection, type SuggestedSpecialty, suggestSpecialty, summarizeMatch } from '../core/scoring';
 import type { AppContext } from './context';
 import { buildProfile, loadProfile } from './dataset';
 import type { AppError } from './errors';
@@ -26,6 +26,8 @@ export interface OfferAnalysis {
   readonly requirements: JobRequirements;
   readonly scored: ScoredSelection;
   readonly summary: MatchSummary;
+  /** La especialidad real que más cubre la oferta (T-8.9), si alguna destaca. */
+  readonly suggestedSpecialty: SuggestedSpecialty | undefined;
 }
 
 export type AnalyzeResult =
@@ -66,7 +68,12 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
   if (failure !== undefined) {
     warnings.push({ kind: 'history-unwritable', message: failure });
   }
-  return { ok: true, analysis: { offerName: read.offer.name, requirements, scored, summary: summarizeMatch(scored.report, scored.profile) }, history, warnings };
+  return {
+    ok: true,
+    analysis: { offerName: read.offer.name, requirements, scored, summary: summarizeMatch(scored.report, scored.profile), suggestedSpecialty: suggestSpecialty(loaded.profile, requirements) },
+    history,
+    warnings,
+  };
 }
 
 /** La salida de `cv analyze-offer --json`, campo a campo en este orden (también la de POST /analyze-offer). */
@@ -78,6 +85,7 @@ export interface AnalysisPayload {
   readonly coverage: OfferAnalysis['scored']['report']['coverage'];
   readonly decisions: OfferAnalysis['scored']['report']['decisions'];
   readonly ranking: OfferAnalysis['summary']['topEvidence'];
+  readonly suggestedSpecialty: SuggestedSpecialty | undefined;
 }
 
 export function analysisPayload(analysis: OfferAnalysis, history: readonly HistoryEntry[] = []): AnalysisPayload {
@@ -95,5 +103,6 @@ export function analysisPayload(analysis: OfferAnalysis, history: readonly Histo
     coverage: scored.report.coverage,
     decisions: scored.report.decisions,
     ranking: summary.topEvidence,
+    suggestedSpecialty: analysis.suggestedSpecialty,
   };
 }

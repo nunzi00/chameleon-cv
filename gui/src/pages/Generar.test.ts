@@ -21,7 +21,7 @@ const STATUS = {
 
 const MD: GenerateResponse = { history: [],
   output: { name: 'cv-ada-backend.md', kind: 'md', path: 'output/cv-ada-backend.md', markdown: '# Ada Ejemplo\n' },
-  report: { selection: { specialtyId: 'backend', vocabulary: ['php'], decisions: [] }, match: undefined, limits: {}, removed: [], theme: undefined },
+  report: { selection: { specialtyId: 'backend', vocabulary: ['php'], decisions: [] }, match: undefined, limits: {}, removed: [], kept: [], theme: undefined },
   warnings: [],
 };
 
@@ -152,3 +152,32 @@ describe('Generar · historial de la oferta', () => {
     expect(screen.getByText('2026-08-30 12:10 · Generar CV (backend) → output/cv-nexo.pdf')).toBeTruthy();
   });
 });
+
+describe('Generar · generar con la adecuación (T-8.9)', () => {
+  it('tras analizar, rellena la especialidad sugerida si estaba vacía y el botón genera con ella y la oferta', async () => {
+    const api = fakeApi({
+      analyze: vi.fn(async () => ({
+        offer: { source: 'texto', terms: [], gaps: [], experienceYears: undefined },
+        history: [],
+        summary: { recognized: 2, demonstrated: 1, ratio: 0.5, requiredTotal: 1, requiredDemonstrated: 1 },
+        coverage: {},
+        decisions: [],
+        ranking: [],
+        suggestedSpecialty: { id: 'backend', title: 'Backend', covered: 2, total: 3 },
+        selection: { specialtyId: 'backend', vocabulary: [], decisions: [] },
+        warnings: [],
+      }) as never),
+    });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos backend con PHP' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
+    await waitFor(() => expect(screen.getByText(/Especialidad sugerida por la oferta: «backend»/)).toBeTruthy());
+    expect((screen.getByLabelText('Especialidad') as HTMLSelectElement).value).toBe('backend');
+    await fireEvent.change(screen.getByLabelText('Formato'), { target: { value: 'md' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Generar con esta adecuación' }));
+    await waitFor(() => expect(api.generate).toHaveBeenCalledWith({ specialty: 'backend', offer: { text: 'Buscamos backend con PHP' }, format: 'md' }));
+  });
+});
+

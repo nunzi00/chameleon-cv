@@ -33,6 +33,21 @@ Cada requisito pesa según dónde aparece —`Requisitos` 1.0 · resto 0.75 · `
 
 Analiza sin generar: adecuación global, evidencias (qué ítems del perfil demuestran cada requisito) y carencias. `--explain` da la auditoría por ítem; `--json` lo mismo en JSON para scripts; `-s` acota el análisis a una especialidad; `<offer>` puede ser `-` (stdin). Referencia: [`cv analyze-offer`](/reference/analyze-offer).
 
+## Generar con la adecuación
+
+Analizar y generar están conectados (T-8.9):
+
+- **Especialidad sugerida.** `cv analyze-offer` imprime la especialidad real del perfil cuyas tags más pesan entre los
+  requisitos reconocidos («Especialidad sugerida: backend (…; cubre 5 de 8 requisitos con peso)»). En la CLI solo
+  se imprime; en la pantalla Generar, si el paso 1 estaba vacío, se rellena con ella y se avisa.
+- **Evidencias conservadas.** Al generar con oferta, los ítems que demuestran algún requisito (logros, skills,
+  proyectos y certificaciones con términos coincidentes) **no se recortan por los límites de cantidad**
+  (`--top-n`, `--compact`, `--max-*`): cuentan para el límite y se cortan los demás. `--explain` los lista
+  («evidencias conservadas por la oferta (no se recortan): …») y la API los devuelve en `report.kept`.
+  `--no-keep-evidence` (CLI) o `keepEvidence: false` (API) recuperan el recorte puro por puntuación.
+- **Un gesto en la interfaz.** El panel de adecuación tiene «Generar con esta adecuación»: conserva la oferta, usa la
+  especialidad (sugerida o elegida) y genera; el aviso de éxito dice cuántas evidencias se conservaron.
+
 ## Ofertas en PDF
 
 El PDF se procesa en un *worker* aislado con límites (10 MiB, 50 páginas, 20 s, 512 MB), sin cargar fuentes ni renderizar; solo se extrae el texto. Un PDF escaneado sin capa de texto no aporta nada: pega el texto a mano.

@@ -2,6 +2,7 @@ Esta oferta ya se procesó una vez:
   <ISO> · generate-cv (engineering-manager) → output/cv-em-acme-en.md
 Oferta acme-engineering-manager-en · 10 requisitos reconocidos
 Adecuación: 8 de 10 requisitos demostrados (80 %) · imprescindibles: 5 de 7
+Especialidad sugerida: backend (Senior Backend Engineer; cubre 4 de 16 requisitos con peso)
 
 Demostrados
   php            required      1.00  ← exp-nexo-pagos

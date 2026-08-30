@@ -6,7 +6,7 @@
 import { dirname, resolve } from 'node:path';
 
 import type { MasterProfile } from '../core/schema';
-import { applyLimits, type MatchReport, type RemovedItem, type SectionLimits } from '../core/scoring';
+import { type MatchReport, type RemovedItem, type SectionLimits, applyLimits, evidenceIds } from '../core/scoring';
 import type { SelectionReport } from '../core/selection';
 import { loadFonts, renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../renderers';
 import { describeError } from '../shared/errors';
@@ -44,6 +44,8 @@ export interface GenerateRequest extends LimitOptions {
   readonly theme?: string | undefined;
   /** Recompila el artefacto desde las fuentes antes de generar. */
   readonly build: boolean;
+  /** Con oferta, las evidencias que demuestran requisitos no se recortan por los límites de cantidad (T-8.9); `false` lo desactiva. */
+  readonly keepEvidence?: boolean | undefined;
 }
 
 export interface ThemeReport {
@@ -57,6 +59,8 @@ export interface GenerateReport {
   readonly match: MatchReport | undefined;
   readonly limits: SectionLimits;
   readonly removed: readonly RemovedItem[];
+  /** Ids protegidos de los límites por demostrar la oferta (T-8.9); vacío sin oferta o con keepEvidence: false. */
+  readonly kept: readonly string[];
   readonly profileBeforeTrim: MasterProfile;
   /** Solo con el motor Typst, en cuanto se resuelve el tema (antes de renderizar). */
   theme: ThemeReport | undefined;
@@ -150,7 +154,9 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
   if (!tailored.ok) {
     return { ok: false, error: tailored.error, report: undefined, warnings };
   }
-  const limits = resolveLimits(request);
+  const match = tailored.tailored.match;
+  const kept = request.keepEvidence === false || match === undefined ? [] : evidenceIds(match);
+  const limits: SectionLimits = { ...resolveLimits(request), ...(kept.length === 0 ? {} : { keep: kept }) };
   const trimmed = applyLimits(tailored.tailored.profile, limits, tailored.tailored.scoreOf);
   if (trimmed.unknown.skills.length > 0) {
     warnings.push({ kind: 'unknown-selection', section: 'skills', names: trimmed.unknown.skills });
@@ -158,7 +164,7 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
   if (trimmed.unknown.projects.length > 0) {
     warnings.push({ kind: 'unknown-selection', section: 'projects', names: trimmed.unknown.projects });
   }
-  const report: GenerateReport = { selection: tailored.tailored.selection, match: tailored.tailored.match, limits, removed: trimmed.removed, profileBeforeTrim: tailored.tailored.profile, theme: undefined };
+  const report: GenerateReport = { selection: tailored.tailored.selection, match: tailored.tailored.match, limits, removed: trimmed.removed, kept, profileBeforeTrim: tailored.tailored.profile, theme: undefined };
   const outputPath = resolve(context.cwd, request.output ?? defaultOutputPath(trimmed.profile, request.specialty, tailored.tailored.offerName, request.format));
   const history = await generateHistory(context, offer, request, outputPath);
 

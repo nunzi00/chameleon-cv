@@ -387,9 +387,10 @@ export function createRouter(): Router<ServerState> {
         maxCertifications: body.maxCertifications,
         compact: body.compact ?? false,
         skills: body.skills,
+        keepEvidence: body.keepEvidence,
         projects: body.projects,
       });
-      const report = result.report === undefined ? undefined : { selection: result.report.selection, match: result.report.match, limits: result.report.limits, removed: result.report.removed, theme: result.report.theme };
+      const report = result.report === undefined ? undefined : { selection: result.report.selection, match: result.report.match, limits: result.report.limits, removed: result.report.removed, kept: result.report.kept, theme: result.report.theme };
       if (!result.ok) {
         return appErrorResponse(result.error, { report, warnings: result.warnings });
       }

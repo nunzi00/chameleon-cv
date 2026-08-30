@@ -58,6 +58,8 @@ export const GenerateSchema = z.object({
   /** Nombre del fichero en `output/` (sin directorios); por defecto el de la CLI. */
   output: z.string().regex(OUTPUT_NAME).optional(),
   build: z.boolean().optional(),
+  /** Con oferta, conservar las evidencias que demuestran requisitos frente a los límites (T-8.9); por defecto `true`. */
+  keepEvidence: z.boolean().optional(),
   ...LimitsSchema,
 });
 export const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1).optional(), build: z.boolean().optional() });
@@ -245,7 +247,7 @@ export interface ImportResponse {
   /** Directorio al que se apartaron las fuentes anteriores, si las había (ausente si no). */
   readonly backup?: string | undefined;
 }
-export type GenerateReportPayload = Pick<GenerateReport, 'selection' | 'match' | 'limits' | 'removed' | 'theme'>;
+export type GenerateReportPayload = Pick<GenerateReport, 'selection' | 'match' | 'limits' | 'removed' | 'kept' | 'theme'>;
 export interface GenerateResponse {
   readonly output: {
     readonly name: string;

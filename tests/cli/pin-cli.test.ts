@@ -69,9 +69,13 @@ describe('#pin de extremo a extremo (T-2.9)', () => {
 
     const offer = harness();
     expect(await runCli(['build'], offer.context)).toBe(EXIT_OK);
-    expect(await runCli(['generate-cv', '-f', 'offers/php.txt', '-n', '1', '--stdout'], offer.context)).toBe(EXIT_OK);
+    expect(await runCli(['generate-cv', '-f', 'offers/php.txt', '-n', '1', '--stdout', '--no-keep-evidence'], offer.context)).toBe(EXIT_OK);
     expect(offer.stdout()).toContain('- Logro anclado.\n');
     expect(offer.stdout()).not.toContain('Logro PHP.');
+    // Por defecto (T-8.9) la evidencia de la oferta también se conserva junto al anclado.
+    expect(await runCli(['generate-cv', '-f', 'offers/php.txt', '-n', '1', '--stdout'], offer.context)).toBe(EXIT_OK);
+    expect(offer.stdout()).toContain('- Logro anclado.\n');
+    expect(offer.stdout()).toContain('Logro PHP.');
     expect(offer.stdout()).toMatch(/Excel, PHP|Excel.*\n.*PHP/);
   });
 

@@ -40,6 +40,12 @@ Cuenta cada decisión, por sección e ítem, en stderr: qué entró y por qué (
 
 `0` correcto · `1` datos inválidos (fuentes, artefacto o especialidad desconocida) · `2` uso incorrecto o fallo del entorno (permisos, disco, plantilla ilegible, Typst ausente).
 
+## Evidencias de la oferta conservadas
+
+Con `--from-job-offer`, lo que demuestra un requisito de la oferta no se recorta por `--top-n`, `--compact` ni
+`--max-*` (cuenta para el límite; se cortan los demás). `--explain` lo lista y `--no-keep-evidence` lo desactiva.
+Más en [Ofertas → Generar con la adecuación](./offers#generar-con-la-adecuacion).
+
 ## Elegir skills y proyectos a mano
 
 Además de los límites por cantidad (`--max-skills`, `--max-projects`), puedes decir exactamente qué skills y qué proyectos van al CV: `--skills` y `--projects` admiten nombres o ids separados por comas (sin distinguir mayúsculas ni acentos) y se aplican **antes** del límite por cantidad; los nombres que no existen en el perfil se avisan y se ignoran. En la interfaz web, Generar ofrece dos selectores múltiples alimentados por tu perfil.

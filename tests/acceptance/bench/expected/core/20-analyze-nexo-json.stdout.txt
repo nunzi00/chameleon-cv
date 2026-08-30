@@ -1131,5 +1131,11 @@
       "score": 3,
       "label": "Freelance — Desarrolladora web"
     }
-  ]
+  ],
+  "suggestedSpecialty": {
+    "id": "backend",
+    "title": "Senior Backend Engineer",
+    "covered": 6,
+    "total": 21
+  }
 }

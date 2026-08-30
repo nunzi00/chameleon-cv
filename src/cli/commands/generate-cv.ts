@@ -31,6 +31,8 @@ export interface GenerateCvOptions extends LimitOptions {
   /** `--theme`: tema de diseño de Typst (T-5.1); por defecto `default`. */
   readonly theme?: string | undefined;
   readonly explain: boolean;
+  /** `--no-keep-evidence` lo pone a `false`; Commander lo deja en `true` por defecto. */
+  readonly keepEvidence?: boolean | undefined;
   readonly stdout: boolean;
   readonly build: boolean;
 }
@@ -98,6 +100,7 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     compact: options.compact,
     skills: options.skills,
     projects: options.projects,
+    keepEvidence: options.keepEvidence,
   });
   reportWarnings(context, result.warnings);
   if (options.explain && result.report !== undefined) {

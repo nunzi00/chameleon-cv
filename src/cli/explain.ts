@@ -1,5 +1,5 @@
 import type { MasterProfile } from '../core/schema';
-import { labelOrId, type MatchReport, type MatchSummary, type RemovedItem, type SectionLimits } from '../core/scoring';
+import { type MatchReport, type MatchSummary, type RemovedItem, type SectionLimits, type SuggestedSpecialty, labelOrId } from '../core/scoring';
 import type { ItemDecision, SelectionReport } from '../core/selection';
 import { describeLimits } from './limits';
 
@@ -50,8 +50,9 @@ export function formatMatchReport(report: MatchReport): string {
 /** Resumen de recortes (`docs/trimming-cli.md` §4.4), agrupado por contenedor o sección. */
 export function formatTrimReport(removed: readonly RemovedItem[], limits: SectionLimits, profileBeforeTrim: MasterProfile): string {
   const header = `Recortes (${describeLimits(limits)})`;
+  const keptLine = limits.keep !== undefined && limits.keep.length > 0 ? `  evidencias conservadas por la oferta (no se recortan): ${limits.keep.join(', ')}\n` : '';
   if (removed.length === 0) {
-    return `${header}: ninguno\n`;
+    return `${header}: ninguno\n${keptLine}`;
   }
   const groups = new Map<string, string[]>();
   for (const item of removed) {
@@ -65,11 +66,11 @@ export function formatTrimReport(removed: readonly RemovedItem[], limits: Sectio
   for (const [key, entries] of groups) {
     lines.push(`  ${key}: ${entries.join(', ')}`);
   }
-  return `${lines.join('\n')}\n`;
+  return `${lines.join('\n')}\n${keptLine}`;
 }
 
 /** Resumen de adecuación de `cv analyze-offer` (`docs/trimming-cli.md` §4.5). */
-export function formatMatchSummary(summary: MatchSummary, offer: string): string {
+export function formatMatchSummary(summary: MatchSummary, offer: string, suggested?: SuggestedSpecialty | undefined): string {
   const years = summary.experienceYears === undefined ? '' : ` · ${summary.experienceYears} años de experiencia exigidos`;
   const lines = [`Oferta ${offer} · ${summary.recognized} requisitos reconocidos${years}`];
   if (summary.recognized === 0) {
@@ -78,6 +79,9 @@ export function formatMatchSummary(summary: MatchSummary, offer: string): string
     lines.push(
       `Adecuación: ${summary.demonstrated} de ${summary.recognized} requisitos demostrados (${Math.round(summary.ratio * 100)} %) · imprescindibles: ${summary.requiredDemonstrated} de ${summary.requiredTotal}`,
     );
+  }
+  if (suggested !== undefined) {
+    lines.push(`Especialidad sugerida: ${suggested.id} (${suggested.title}; cubre ${suggested.covered} de ${suggested.total} requisitos con peso)`);
   }
   const demonstrated = summary.terms.filter((term) => term.evidence.length > 0);
   const missing = summary.terms.filter((term) => term.evidence.length === 0);

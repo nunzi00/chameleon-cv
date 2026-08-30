@@ -98,6 +98,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--skills <lista>', 'solo estas skills (nombres o ids separados por comas), antes de --max-skills; las desconocidas se avisan', parseList)
     .option('--projects <lista>', 'solo estos proyectos (nombres o ids separados por comas), antes de --max-projects; los desconocidos se avisan', parseList)
     .option('--compact', 'preset: --top-n 4 --max-skills 12 --max-projects 4 --max-certifications 5 (los límites explícitos prevalecen)', false)
+    .option('--no-keep-evidence', 'con oferta, no proteger de los límites las evidencias que demuestran requisitos (por defecto se conservan)')
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
     .option('-o, --output <file>', 'fichero de salida')

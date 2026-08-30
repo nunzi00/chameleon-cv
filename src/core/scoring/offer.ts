@@ -7,7 +7,7 @@ import type { JobRequirements } from '../keywords';
 import type { MasterProfile, Specialty } from '../schema';
 import { selectForSpecialty, type SelectionError } from '../selection';
 import { scoreSelection } from './scorer';
-import type { ScoredSelection, ScoringOptions } from './types';
+import type { MatchReport, ScoredSelection, ScoringOptions } from './types';
 
 export const OFFER_SPECIALTY_ID = 'offer';
 
@@ -18,6 +18,43 @@ export function offerSpecialty(profile: MasterProfile, requirements: JobRequirem
     title: profile.personal.headline ?? profile.personal.fullName,
     tags: Object.keys(requirements.tagWeights),
   };
+}
+
+export interface SuggestedSpecialty {
+  readonly id: string;
+  readonly title: string;
+  /** Requisitos de la oferta (tags con peso) que la especialidad cubre, y el total. */
+  readonly covered: number;
+  readonly total: number;
+}
+
+/**
+ * La especialidad real del perfil cuyas tags más pesan entre los requisitos de la oferta (T-8.9). Sin especialidades,
+ * sin requisitos, sin ninguna coincidencia o con empate en cabeza, `undefined`.
+ */
+export function suggestSpecialty(profile: MasterProfile, requirements: JobRequirements): SuggestedSpecialty | undefined {
+  const tags = Object.keys(requirements.tagWeights);
+  if (tags.length === 0) {
+    return undefined;
+  }
+  const ranked = profile.specialties
+    .map((specialty) => {
+      const own = new Set(specialty.tags);
+      const covered = tags.filter((tag) => own.has(tag));
+      return { specialty, covered: covered.length, weight: covered.reduce((sum, tag) => sum + (requirements.tagWeights[tag] ?? 0), 0) };
+    })
+    .filter((entry) => entry.weight > 0)
+    .sort((a, b) => b.weight - a.weight || b.covered - a.covered);
+  const best = ranked[0];
+  if (best === undefined || (ranked[1] !== undefined && ranked[1].weight === best.weight && ranked[1].covered === best.covered)) {
+    return undefined;
+  }
+  return { id: best.specialty.id, title: best.specialty.title, covered: best.covered, total: tags.length };
+}
+
+/** Ids de los ítems incluidos que demuestran algún requisito (T-8.9: no se recortan por los límites de cantidad). */
+export function evidenceIds(report: MatchReport): readonly string[] {
+  return report.decisions.filter((decision) => decision.included && decision.matchedTerms.length > 0).map((decision) => decision.id);
 }
 
 export interface TailorOptions {

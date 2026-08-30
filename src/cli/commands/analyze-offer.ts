@@ -31,7 +31,7 @@ export async function runAnalyzeOffer(context: CliContext, source: string, optio
     return EXIT_OK;
   }
   context.stdout(describeHistory(history));
-  context.stdout(formatMatchSummary(analysis.summary, analysis.offerName));
+  context.stdout(formatMatchSummary(analysis.summary, analysis.offerName, analysis.suggestedSpecialty));
   if (options.explain) {
     context.stdout(`\n${formatSelectionReport(analysis.scored.selection.report)}${formatMatchReport(analysis.scored.report)}`);
   }

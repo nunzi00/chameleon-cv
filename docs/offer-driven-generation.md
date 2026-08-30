@@ -1,6 +1,12 @@
 # Generar con la adecuación de la oferta (T-8.9) — PROPUESTA v1
 
-Estado: PROPUESTA (2026-08-30) · Encargo del Director · Pendiente de aprobación del PO
+Estado: **APROBADA por el PO (D1–D3) e IMPLEMENTADA el 2026-08-30** · Encargo del Director
+
+Implementación: `suggestSpecialty` y `evidenceIds` en `src/core/scoring/offer.ts`; `SectionLimits.keep` en el recorte
+(`keepTop` trata los ids protegidos como anclados); `GenerateRequest.keepEvidence` y `GenerateReport.kept`;
+`--no-keep-evidence`; `AnalysisPayload.suggestedSpecialty`; API `keepEvidence` y `report.kept`; GUI (vista previa,
+relleno de la especialidad sugerida, botón «Generar con esta adecuación», sección del informe). Goldens de `core` y
+`serve` regenerados; guía de ofertas y de generación actualizadas.
 
 ## §0 Encargo
 

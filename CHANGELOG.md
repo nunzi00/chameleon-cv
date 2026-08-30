@@ -6,6 +6,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ### Añadido
 
+- Generar con la adecuación de la oferta (T-8.9): `cv analyze-offer` (y `POST /analyze-offer`) sugieren la especialidad real que más cubre la oferta (`suggestedSpecialty`); al generar con oferta, los ítems que demuestran algún requisito no se recortan por los límites de cantidad (`report.kept`, `--explain` los lista; `--no-keep-evidence` / `keepEvidence: false` lo desactivan); en Generar, la especialidad sugerida rellena el paso 1 si estaba vacío y el panel de adecuación ofrece «Generar con esta adecuación».
 - Arrancar y parar el Ollama local desde cv (T-8.8): `cv llm up [--model] [--runner native|docker] [--no-pull] [--json]` y `cv llm down [--json]`, `GET|POST /api/v1/llm/runtime` (arranque como trabajo `ollama-up` seguible por SSE) y el panel «Ollama local» en Ajustes con consentimiento antes de descargar el modelo. Runners `native` (`ollama serve` como proceso hijo; pid y registro 0600 en la caché de usuario) y `docker` (contenedor `chameleon-ollama` con la imagen fijada por digest, publicada solo en loopback, volumen conservado al parar). Solo se para lo que arrancó cv; deshabilitado dentro de la imagen de Compose (`CHAMELEON_CONTAINER=1`); sin shell y con el nombre del modelo validado. `cv llm status` añade la línea `runtime: …`.
 
 ### Cambiado
