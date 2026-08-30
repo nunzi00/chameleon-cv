@@ -49,7 +49,7 @@
 provider = "openai-compatible"        # solo local: "ollama" | "openai-compatible"
 base_url = "http://127.0.0.1:8080"    # loopback obligatorio (como CHAMELEON_LLM_BASE_URL)
 model = "qwen3:8b"
-think = false            # T-8.13: true pide razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss); más lento
+think = false            # T-8.13: true pide razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss); más lento. Las tareas con esquema JSON (todas las del co-piloto) lo ignoran
 context = 16384          # ventana de contexto (num_ctx) pedida a Ollama; sin ella Ollama usa 4096 y los prompts largos fallan con HTTP 400
 
 [llm.models]                          # opcional: modelo por defecto por proveedor remoto (no lo selecciona)

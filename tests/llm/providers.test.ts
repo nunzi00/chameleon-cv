@@ -186,7 +186,8 @@ describe('Qwen3 en Ollama (T-8.11)', () => {
     await createOllamaProvider({ baseUrl: base, model: 'qwen3:8b' }).complete(REQUEST);
     await createOllamaProvider({ baseUrl: base, model: 'qwen3:8b', think: true }).complete(REQUEST);
     await createOllamaProvider({ baseUrl: base, model: 'deepseek-r1:8b', think: true }).complete(REQUEST);
-    expect(recorded.map((entry) => (entry.body as { think?: boolean }).think)).toEqual([false, true, undefined]);
+    // REQUEST lleva esquema: aunque el usuario pida think, viaja apagado (el razonamiento vacía el content; 30-ago-2026).
+    expect(recorded.map((entry) => (entry.body as { think?: boolean }).think)).toEqual([false, false, undefined]);
     expect(stripThinking('<think>razono…</think>\n{"a":1}')).toBe('{"a":1}');
     expect(stripThinking('<think>sin cerrar')).toBe('');
     expect(stripThinking('{"a":1}')).toBe('{"a":1}');

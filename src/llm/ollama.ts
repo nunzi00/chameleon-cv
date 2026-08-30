@@ -102,7 +102,10 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
           stream: false,
           format: request.schema,
           // Qwen3 y gpt-oss razonan por defecto y romperían el JSON estricto (T-8.11): apagado salvo que se pida (T-8.13).
-          ...thinkParameter(model, options.think),
+          // Con esquema, NUNCA: el razonamiento consume todo `num_predict` y el content llega vacío (reproducido el
+          // 30-ago-2026 con qwen3:8b y think=true: 20/20 propuestas con `invalid-json`). El conmutador queda para
+          // futuras tareas sin esquema estricto.
+          ...thinkParameter(model, options.think === true && request.schema === undefined),
           options: { temperature: request.temperature ?? DEFAULT_TEMPERATURE, seed: request.seed ?? DEFAULT_SEED, num_predict: request.maxTokens, num_ctx: options.contextLength ?? OLLAMA_DEFAULT_CONTEXT },
         },
       });

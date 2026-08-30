@@ -10,6 +10,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ### Arreglado
 
+- Co-piloto local: con `[llm] think = true`, las tareas con esquema JSON estricto (todas) fallaban con «el modelo no devolvió JSON válido»: el razonamiento consumía todo el presupuesto de tokens y el contenido llegaba vacío. Las peticiones con esquema ya no piden razonamiento nunca (el conmutador queda para futuras tareas de texto libre); la casilla de Ajustes y la guía lo explican.
 - Co-piloto local: las peticiones a Ollama piden una ventana de contexto de 16384 tokens (`options.num_ctx`); sin ella Ollama carga el modelo con su defecto (4096) y las propuestas con fuentes largas fallaban con «HTTP 400 … exceeds the available context size». Configurable con `[llm] context` en `cv.toml` o `CHAMELEON_LLM_CONTEXT` (entero en [1024, 131072]); «Ajustes» conserva la clave al guardar.
 
 ## [1.8.1] - 2026-08-30

@@ -239,7 +239,7 @@
         {/if}
         <label class="cv-field">
           <span>Razonamiento ([llm] think)</span>
-          <span class="cv-check"><input type="checkbox" name="think" bind:checked={form.think} /> Pedir razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss): más lento; apagado por defecto</span>
+          <span class="cv-check"><input type="checkbox" name="think" bind:checked={form.think} /> Pedir razonamiento a los modelos que lo conmutan (Qwen3, gpt-oss): más lento; apagado por defecto. Las tareas con esquema JSON estricto (todas las del co-piloto) lo ignoran: razonando, la respuesta llega vacía</span>
         </label>
         <label class="cv-field">
           <span>Runner de Ollama ([llm.runtime])</span>
