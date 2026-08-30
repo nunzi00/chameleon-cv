@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadLlmSettings, projectConfigPath, renderLlmSettings } from '../../src/app/settings';
+import { loadLlmSettings, projectConfigPath, readConfigFile, renderLlmSettings, writeLlmSettings } from '../../src/app/settings';
+import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
 describe('loadLlmSettings', () => {
@@ -27,5 +28,39 @@ describe('renderLlmSettings', () => {
     const dotted = renderLlmSettings('llm.provider = "ollama"\n', { provider: 'ollama' });
     expect(dotted.ok).toBe(false);
     expect(!dotted.ok && dotted.message).toMatch(/^El cv\.toml resultante no sería válido; no se escribe nada:\n  - /);
+  });
+});
+
+describe('readConfigFile / writeLlmSettings', () => {
+  it('crea cv.toml con «*», exige la huella cuando existe, detecta conflictos y no escribe un resultado inválido', async () => {
+    const fs = new MemoryFileSystem();
+    const context = appContext(fs);
+    expect(await readConfigFile(context)).toEqual({ path: '/work/cv.toml', present: false, sha256: undefined, text: undefined });
+    const conflict = await writeLlmSettings(context, { settings: { provider: 'ollama' }, expectedSha256: 'abc' });
+    expect(!conflict.ok && conflict.error.message).toBe('No existe /work/cv.toml: envía «*» como huella para crearlo');
+    const created = await writeLlmSettings(context, { settings: { provider: 'ollama', model: 'qwen' }, expectedSha256: '*' });
+    expect(created.ok && created.path).toBe('/work/cv.toml');
+    expect(fs.file('/work/cv.toml')).toMatchObject({ mode: 0o600, content: '[llm]\nprovider = "ollama"\nmodel = "qwen"\n' });
+    const current = await readConfigFile(context);
+    expect('sha256' in current && current.sha256).toBe(created.ok ? created.sha256 : '');
+    const star = await writeLlmSettings(context, { settings: {}, expectedSha256: '*' });
+    expect(!star.ok && star.error.message).toBe('Ya existe /work/cv.toml: envía su huella actual (If-Match) para modificarlo');
+    const stale = await writeLlmSettings(context, { settings: {}, expectedSha256: 'otra' });
+    expect(!stale.ok && stale.error.message).toMatch(/^\/work\/cv\.toml cambió desde que se leyó/);
+    await fs.writeFile('/work/cv.toml', 'llm.provider = "ollama"\n', 0o600);
+    const dotted = await readConfigFile(context);
+    const invalid = await writeLlmSettings(context, { settings: { model: 'x' }, expectedSha256: 'sha256' in dotted ? (dotted.sha256 ?? '') : '' });
+    expect(!invalid.ok && invalid.error.code).toBe('invalid-data');
+    await fs.writeFile('/work/cv.toml', '[theme]\nname = "classic"\n', 0o600);
+    const fresh = await readConfigFile(context);
+    fs.failures.add('writeFile');
+    const failed = await writeLlmSettings(context, { settings: { model: 'x' }, expectedSha256: 'sha256' in fresh ? (fresh.sha256 ?? '') : '' });
+    expect(!failed.ok && failed.error.message).toMatch(/^No se pudo escribir \/work\/cv\.toml: /);
+    fs.failures.delete('writeFile');
+    const asDirectory = appContext(new MemoryFileSystem({ '/work/cv.toml': { kind: 'directory' } }));
+    const unreadable = await readConfigFile(asDirectory);
+    expect('error' in unreadable && unreadable.error.message).toMatch(/^No se pudo leer \/work\/cv\.toml: /);
+    const unreadableWrite = await writeLlmSettings(asDirectory, { settings: {}, expectedSha256: '*' });
+    expect(!unreadableWrite.ok && unreadableWrite.error.code).toBe('environment');
   });
 });

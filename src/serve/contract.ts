@@ -18,6 +18,8 @@ import type { WorkspaceStatus } from '../app/workspace';
 import type { MasterProfile } from '../core/schema';
 import { SUGGEST_TAGS_LIMITS } from '../llm';
 import type { PlanDescription } from '../app/portability';
+import type { LlmStatus, QuotaSnapshot } from '../llm';
+import { LlmSettingsSchema, type LlmSettings } from '../llm/settings';
 import type { ServerErrorCode } from './http';
 import type { JobSnapshot } from './jobs';
 
@@ -107,6 +109,18 @@ export const ImportSchema = z.object({
 });
 
 export type ImportRequest = z.infer<typeof ImportSchema>;
+
+/** PUT /config/llm: la tabla `[llm]` de cv.toml (solo local; los remotos solo como modelo por defecto). */
+export { LlmSettingsSchema };
+export type LlmSettingsWriteRequest = LlmSettings;
+
+export const LlmCheckSchema = z.object({
+  /** Proveedor a comprobar (local o del registro); sin él, el local efectivo. */
+  provider: z.string().trim().min(1).max(40).optional(),
+  model: z.string().trim().min(1).max(120).optional(),
+});
+
+export type LlmCheckRequest = z.infer<typeof LlmCheckSchema>;
 export type OfferInputBody = z.infer<typeof OfferSchema>;
 export type GenerateRequest = z.infer<typeof GenerateSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeSchema>;
@@ -158,6 +172,27 @@ export interface BuildResponse {
 export type ProfileResponse = MasterProfile;
 /** GET /export: el perfil canónico desde las fuentes. */
 export type ExportResponse = MasterProfile;
+/** GET /config/llm: nunca claves, solo procedencias. */
+export interface LlmConfigResponse {
+  readonly llm: LlmStatus;
+  readonly file: { readonly path: string; readonly present: boolean; readonly sha256: string | undefined };
+  readonly remote: { readonly allowed: boolean };
+}
+export interface LlmConfigWriteResponse {
+  readonly path: string;
+  readonly sha256: string;
+  readonly llm: LlmSettings;
+}
+/** POST /config/llm/check: una llamada de salud, sin datos del usuario. */
+export interface LlmCheckResponse {
+  readonly provider: string;
+  readonly kind: 'local' | 'remote';
+  readonly ok: boolean;
+  readonly models: readonly string[];
+  readonly modelAvailable: boolean;
+  readonly message: string | undefined;
+  readonly quota: QuotaSnapshot | undefined;
+}
 export interface ImportResponse {
   readonly root: string;
   readonly dryRun: boolean;

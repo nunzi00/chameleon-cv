@@ -3,11 +3,17 @@
  * la selección del proveedor y el estado, y componer el fichero nuevo con la tabla `[llm]` sustituida
  * quirúrgicamente y **comprobada** (se vuelve a analizar entera antes de darla por buena).
  */
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+
+import { isMissingFile } from '../artifact';
+import { describeError } from '../shared/errors';
 
 import { replaceLlmTable, type LlmSettings } from '../llm/settings';
 import type { FileSystem } from '../parsers';
 import { PROJECT_CONFIG_FILE, loadProjectConfig, parseProjectConfig } from '../themes/project-config';
+import type { AppContext } from './context';
+import { conflictError, dataError, environmentError, type AppError } from './errors';
+import { SOURCE_FILE_MODE, contentHash } from './sources';
 
 export interface LlmSettingsSnapshot {
   /** Ruta absoluta de `cv.toml` (exista o no). */
@@ -47,4 +53,68 @@ export function renderLlmSettings(currentText: string | undefined, settings: Llm
 
 export function projectConfigPath(cwd: string): string {
   return resolve(cwd, PROJECT_CONFIG_FILE);
+}
+
+export interface ConfigFileState {
+  readonly path: string;
+  readonly present: boolean;
+  /** Huella del texto actual (`undefined` si no existe). */
+  readonly sha256: string | undefined;
+  readonly text: string | undefined;
+}
+
+/** `cv.toml` tal cual está en disco, con su huella (para `If-Match`). */
+export async function readConfigFile(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>): Promise<ConfigFileState | { readonly error: AppError }> {
+  const path = projectConfigPath(context.cwd);
+  try {
+    const text = await context.datasetFileSystem.readTextFile(path);
+    return { path, present: true, sha256: contentHash(text), text };
+  } catch (error) {
+    if (isMissingFile(error)) {
+      return { path, present: false, sha256: undefined, text: undefined };
+    }
+    return { error: environmentError(`No se pudo leer ${path}: ${describeError(error)}`) };
+  }
+}
+
+export interface WriteLlmSettingsRequest {
+  readonly settings: LlmSettings;
+  /** Huella leída de `cv.toml`, o `*` si todavía no existe (concurrencia optimista, como las fuentes). */
+  readonly expectedSha256: string;
+}
+
+export type WriteLlmSettingsResult = { readonly ok: true; readonly path: string; readonly sha256: string; readonly settings: LlmSettings } | { readonly ok: false; readonly error: AppError };
+
+/**
+ * Escribe la tabla `[llm]` en `cv.toml` con sustitución quirúrgica (el resto del fichero no cambia), previa
+ * comprobación de la huella y del resultado; escritura atómica con permisos 0600 (T-8.2, decisión 7).
+ */
+export async function writeLlmSettings(context: AppContext, request: WriteLlmSettingsRequest): Promise<WriteLlmSettingsResult> {
+  const current = await readConfigFile(context);
+  if ('error' in current) {
+    return { ok: false, error: current.error };
+  }
+  if (current.present) {
+    if (request.expectedSha256 === '*') {
+      return { ok: false, error: conflictError(`Ya existe ${current.path}: envía su huella actual (If-Match) para modificarlo`) };
+    }
+    if (current.sha256 !== request.expectedSha256) {
+      return { ok: false, error: conflictError(`${current.path} cambió desde que se leyó (huella ${String(current.sha256).slice(0, 12)}…): vuelve a cargarlo`) };
+    }
+  } else if (request.expectedSha256 !== '*') {
+    return { ok: false, error: conflictError(`No existe ${current.path}: envía «*» como huella para crearlo`) };
+  }
+  const rendered = renderLlmSettings(current.text, request.settings);
+  if (!rendered.ok) {
+    return { ok: false, error: dataError(rendered.message) };
+  }
+  const temporary = `${current.path}.tmp-${process.pid}-${Date.now().toString(36)}`;
+  try {
+    await context.artifactFileSystem.mkdir(dirname(current.path));
+    await context.artifactFileSystem.writeFile(temporary, rendered.text, SOURCE_FILE_MODE);
+    await context.artifactFileSystem.rename(temporary, current.path);
+  } catch (error) {
+    return { ok: false, error: environmentError(`No se pudo escribir ${current.path}: ${describeError(error)}`) };
+  }
+  return { ok: true, path: current.path, sha256: contentHash(rendered.text), settings: request.settings };
 }

@@ -18,6 +18,8 @@ import { isSafeSourcePath } from '../app/paths';
 import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
+import { readConfigFile, writeLlmSettings } from '../app/settings';
+import { isRemoteProviderId, type LlmStatus } from '../llm';
 import { profileSummary } from '../app/text';
 import { createTheme, themeInventory } from '../app/themes';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -25,7 +27,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse } from './contract';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmConfigResponse, type LlmConfigWriteResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -77,6 +79,30 @@ function statusPayload(status: WorkspaceStatus, version: string): StatusResponse
 function contentTypeOf(name: string): string {
   const extension = extname(name).toLowerCase();
   return extension === '.pdf' ? 'application/pdf' : extension === '.md' ? 'text/markdown; charset=utf-8' : extension === '.json' ? 'application/json' : 'application/octet-stream';
+}
+
+
+/** El resultado de una comprobación de proveedor (POST /config/llm/check), local o remoto, en una sola forma. */
+function checkPayload(status: LlmStatus, requested: string): LlmCheckResponse {
+  if (status.remote !== undefined) {
+    if ('error' in status.remote) {
+      return { provider: requested, kind: 'remote', ok: false, models: [], modelAvailable: false, message: status.remote.error, quota: undefined };
+    }
+    const { id, health, model } = status.remote;
+    const live = status.providers.find((provider) => provider.id === id)?.live;
+    if (!health.ok) {
+      return { provider: id, kind: 'remote', ok: false, models: [], modelAvailable: false, message: health.message, quota: live };
+    }
+    return { provider: id, kind: 'remote', ok: health.modelAvailable, models: health.models, modelAvailable: health.modelAvailable, message: health.modelAvailable ? undefined : `el modelo configurado «${model}» no está disponible`, quota: live };
+  }
+  if (status.config === undefined || status.health === undefined) {
+    return { provider: requested === '' ? 'local' : requested, kind: 'local', ok: false, models: [], modelAvailable: false, message: status.configError, quota: undefined };
+  }
+  const { health, config } = status;
+  if (!health.ok) {
+    return { provider: config.provider, kind: 'local', ok: false, models: [], modelAvailable: false, message: health.message, quota: undefined };
+  }
+  return { provider: config.provider, kind: 'local', ok: health.modelAvailable, models: health.models, modelAvailable: health.modelAvailable, message: health.modelAvailable ? undefined : `el modelo configurado «${config.model}» no está disponible`, quota: undefined };
 }
 
 export function createRouter(): Router<ServerState> {
@@ -196,6 +222,67 @@ export function createRouter(): Router<ServerState> {
       }
       const { outcome } = result;
       return json(200, { root: outcome.root, dryRun: outcome.dryRun, plan: describePlan(outcome.plan), written: outcome.written, backup: outcome.backup } satisfies ImportResponse);
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/config/llm`,
+    summary:
+      'La configuración efectiva del co-piloto con el origen de cada valor, cv.toml y su huella (ETag), los proveedores del registro (plan, cuota publicada con fuente y fecha, evidencia C7, procedencia de la clave, cuota viva) y si el servidor admite remotos. Nunca claves.',
+    writes: false,
+    handler: async (_request, state) => {
+      const file = await readConfigFile(state.context);
+      if ('error' in file) {
+        return appErrorResponse(file.error);
+      }
+      const llm = await state.context.llmStatus({});
+      const payload = { llm, file: { path: file.path, present: file.present, sha256: file.sha256 }, remote: { allowed: state.allowRemote } } satisfies LlmConfigResponse;
+      return json(200, payload, file.sha256 === undefined ? undefined : { ETag: `"${file.sha256}"` });
+    },
+  });
+
+  router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/config/llm`,
+    summary:
+      'Guarda la tabla [llm] de cv.toml —proveedor local, URL loopback, modelo y modelos por defecto de los remotos— con sustitución quirúrgica (el resto del fichero no cambia); exige If-Match con la huella actual del fichero, o «*» si no existe.',
+    writes: true,
+    body: LlmSettingsSchema,
+    handler: async (request, state) => {
+      const ifMatch = request.headers['if-match'];
+      if (ifMatch === undefined) {
+        return errorResponse('precondition-required', 'Falta la cabecera If-Match: la huella actual de cv.toml, o «*» para crearlo');
+      }
+      const parsed = parseJsonBody(request.body, LlmSettingsSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await writeLlmSettings(state.context, { settings: parsed.value, expectedSha256: ifMatch.trim().replace(/^"|"$/g, '') });
+      return result.ok
+        ? json(200, { path: result.path, sha256: result.sha256, llm: result.settings } satisfies LlmConfigWriteResponse, { ETag: `"${result.sha256}"` })
+        : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/config/llm/check`,
+    summary:
+      'Comprueba un proveedor con una única llamada de salud sin datos del usuario (lista de modelos y cuota viva si la devuelve); un remoto exige --allow-remote y su clave. Explícito: nunca en segundo plano.',
+    writes: false,
+    body: LlmCheckSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, LlmCheckSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const requested = parsed.value.provider?.trim().toLowerCase() ?? '';
+      if (isRemoteProviderId(requested) && !state.allowRemote) {
+        return errorResponse('remote-disabled', 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo');
+      }
+      const status = await state.context.llmStatus({ provider: requested === '' ? undefined : requested, model: parsed.value.model });
+      return json(200, checkPayload(status, requested) satisfies LlmCheckResponse);
     },
   });
 
