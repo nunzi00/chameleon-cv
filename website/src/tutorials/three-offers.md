@@ -99,6 +99,16 @@ cv analyze-offer ofertas/acme-backend.pdf -s backend      # el texto se extrae e
 cv generate-cv -f - --compact < oferta.txt                # oferta por la entrada estándar
 ```
 
+## 6. Guarda y reutiliza (offers/)
+
+```bash tutorial
+mkdir -p offers && cp ofertas/acme-backend.txt offers/acme-backend.txt
+cv analyze-offer --list
+cv generate-cv -f offers/acme-backend.txt -s backend --stdout > /dev/null
+```
+
+Todo lo que vive en `offers/` aparece también en el selector de Generar de la interfaz web. Y si la oferta está publicada en una URL, `cv analyze-offer "https://…" --allow-remote` la trae con una única petición confirmada (sin cookies) y `--save-offer` la deja aquí guardada — [la guía](/guide/offers) lo cuenta entero.
+
 ## Siguiente
 
 [Tu propio tema](./own-theme): el mismo contenido, con la maquetación que tú decidas.

@@ -305,7 +305,7 @@
         <span class={`cv-chip ${config.remote.allowed ? 'warn' : 'quiet'}`}><Icon name="shield" size={13} weight={1.8} />{config.remote.allowed ? 'remotos permitidos (--allow-remote)' : 'sin remotos: nada sale de esta máquina'}</span>
       </div>
       <p class="cv-muted">
-        Solo con clave y eligiéndolos en cada trabajo. Las claves se guardan desde la terminal (<code>cv llm key set &lt;proveedor&gt;</code>) en <code>{config.llm.keysFile}</code>; nunca pasan por esta página.
+        Solo con clave y eligiéndolos <strong>en cada trabajo</strong> (Co-piloto → Trabajos → selector «Proveedor»); en esta página únicamente se comprueban. Las claves se guardan desde la terminal (<code>cv llm key set &lt;proveedor&gt;</code>) en <code>{config.llm.keysFile}</code>; nunca pasan por esta página.
         {config.remote.allowed ? 'Este servidor admite remotos (--allow-remote).' : 'Este servidor no envía nada a remotos: arráncalo con «cv serve --allow-remote» para permitirlo.'}
       </p>
       <div class="cv-providers">

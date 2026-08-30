@@ -13,6 +13,7 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ### Cambiado
 
+- Rematada la experiencia de ofertas y co-piloto (T-8.5 S3, parte 1): la guía «Adaptar el CV a una oferta» y el tutorial «Tres ofertas» cubren la URL y `offers/`; la guía de la API documenta `GET/POST /offers*` y `POST /import-cv` con `curl`; en Ajustes, el bloque de proveedores externos dice dónde se eligen de verdad (Co-piloto → Trabajos); y en Generar los selectores «Solo estas skills / Solo estos proyectos» viven agrupados en un plegable «Afinar el contenido» con el resumen de lo elegido.
 - **Groq disponible**: verificado al alta el 30/31-ago-2026 (protocolo §9 de `docs/copilot-providers.md`: clave sin eco, estado con cuota publicada, tanda real con el banco y cabeceras de cuota correctas) y activado en el registro; se selecciona por orden con `--provider groq` (canon C3).
 
 ### Arreglado

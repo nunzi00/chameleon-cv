@@ -65,3 +65,16 @@ Esta oferta ya se procesó 2 veces:
 ```
 
 En la interfaz web el aviso aparece en Generar en cuanto añades la oferta; en la API, `POST /api/v1/offers/history` consulta el historial sin efectos y las respuestas de `/analyze-offer` y `/generate` lo incluyen (`history`). El fichero es tuyo: puedes borrarlo o editarlo; se conservan las 500 entradas más recientes.
+
+## Desde una URL (T-8.5)
+
+Una oferta publicada en la web se trae con **una sola petición https, sin cookies ni datos tuyos** (máximo 2 MiB y 15 s, con guardia contra direcciones internas). La extracción prefiere el `JSON-LD JobPosting` de la página (LinkedIn, Jobgether, Manfred…), cae al contenido principal cuando la descripción es un resumen, y a los metadatos `og:*` en última instancia; la **procedencia** y los avisos se muestran siempre.
+
+```bash
+cv analyze-offer "https://empresa.com/ofertas/backend" --allow-remote        # pide confirmación (o --yes para scripts)
+cv generate-cv -f "https://empresa.com/ofertas/backend" --allow-remote --yes --save-offer
+cv analyze-offer --list                                                      # qué hay guardado en offers/
+```
+
+`--save-offer [ruta]` guarda el texto en `offers/` con cabecera de origen (`--replace` para sustituir). En la **interfaz web**, la pestaña «URL» del paso Oferta de Generar hace lo mismo con un diálogo de consentimiento (host y límite a la vista) y un «Guardar en offers/ como…»; la pestaña «Del espacio» ofrece el selector con lo ya guardado.
+

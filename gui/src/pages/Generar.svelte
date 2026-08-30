@@ -435,17 +435,24 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
           <label class="cv-check"><input name="compact" type="checkbox" bind:checked={form.compact} /> Compacto (una página)</label>
           <label class="cv-check"><input name="build" type="checkbox" bind:checked={form.build} /> Recompilar el artefacto antes</label>
         </div>
-        {#if skillGroups(profile).length > 0}
-          <div class="cv-field">
-            <span>Solo estas skills ({form.skills.length === 0 ? 'todas' : form.skills.length})</span>
-            <TagPicker name="Solo estas skills" groups={skillGroups(profile).map((group) => ({ label: group.category, options: group.names.map((skill) => ({ value: skill, label: skill })) }))} bind:selected={form.skills} />
-          </div>
-        {/if}
-        {#if projectOptions(profile).length > 0}
-          <div class="cv-field">
-            <span>Solo estos proyectos ({form.projects.length === 0 ? 'todos' : form.projects.length})</span>
-            <TagPicker name="Solo estos proyectos" groups={[{ label: '', options: projectOptions(profile).map((project) => ({ value: project.id, label: project.name })) }]} bind:selected={form.projects} />
-          </div>
+        {#if skillGroups(profile).length > 0 || projectOptions(profile).length > 0}
+          <details class="cv-collapse">
+            <summary><strong>Afinar el contenido</strong><span class="cv-muted">skills {form.skills.length === 0 ? 'todas' : form.skills.length} · proyectos {form.projects.length === 0 ? 'todos' : form.projects.length}</span></summary>
+            <div class="cv-stack">
+              {#if skillGroups(profile).length > 0}
+                <div class="cv-field">
+                  <span>Solo estas skills ({form.skills.length === 0 ? 'todas' : form.skills.length})</span>
+                  <TagPicker name="Solo estas skills" groups={skillGroups(profile).map((group) => ({ label: group.category, options: group.names.map((skill) => ({ value: skill, label: skill })) }))} bind:selected={form.skills} />
+                </div>
+              {/if}
+              {#if projectOptions(profile).length > 0}
+                <div class="cv-field">
+                  <span>Solo estos proyectos ({form.projects.length === 0 ? 'todos' : form.projects.length})</span>
+                  <TagPicker name="Solo estos proyectos" groups={[{ label: '', options: projectOptions(profile).map((project) => ({ value: project.id, label: project.name })) }]} bind:selected={form.projects} />
+                </div>
+              {/if}
+            </div>
+          </details>
         {/if}
         <details class="cv-collapse">
           <summary><strong>Más opciones</strong><span class="cv-muted">límites, idioma y nombre del fichero</span></summary>
