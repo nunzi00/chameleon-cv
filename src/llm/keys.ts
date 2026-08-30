@@ -11,18 +11,12 @@ import { dirname, join } from 'node:path';
 import { z } from 'zod';
 
 import { describeError } from '../shared/errors';
+import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, type RemoteProviderId } from './registry';
 
-export type RemoteProviderId = 'openai' | 'anthropic';
+export const KEY_ENV_VARIABLES: Readonly<Record<RemoteProviderId, string>> = Object.fromEntries(REMOTE_PROVIDERS.map((entry) => [entry.id, entry.keyEnv])) as Record<RemoteProviderId, string>;
 
-export const KEY_ENV_VARIABLES: Readonly<Record<RemoteProviderId, string>> = {
-  openai: 'CHAMELEON_OPENAI_API_KEY',
-  anthropic: 'CHAMELEON_ANTHROPIC_API_KEY',
-};
-
-const KeysFileSchema = z.strictObject({
-  openai: z.string().min(1).optional(),
-  anthropic: z.string().min(1).optional(),
-});
+/** Una clave opcional por proveedor del registro; cualquier otra clave es un error. */
+const KeysFileSchema = z.strictObject(Object.fromEntries(REMOTE_PROVIDER_IDS.map((id) => [id, z.string().min(1).optional()])) as Record<RemoteProviderId, z.ZodOptional<z.ZodString>>);
 
 export type KeySource = 'env' | 'file';
 
@@ -156,7 +150,7 @@ export async function removeApiKey(provider: RemoteProviderId, options: KeyLooku
 /** Procedencia de las claves definidas, sin valores (para `cv llm status`). */
 export async function describeKeys(options: KeyLookupOptions = {}): Promise<Record<RemoteProviderId, KeySource | 'none' | 'insecure-file' | 'invalid-file'>> {
   const result = {} as Record<RemoteProviderId, KeySource | 'none' | 'insecure-file' | 'invalid-file'>;
-  for (const provider of ['openai', 'anthropic'] as const) {
+  for (const provider of REMOTE_PROVIDER_IDS) {
     const lookup = await resolveApiKey(provider, options);
     result[provider] = lookup.ok ? lookup.source : lookup.code === 'missing' ? 'none' : lookup.code;
   }

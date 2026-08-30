@@ -18,7 +18,7 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
   });
 
   it('rechaza proveedores desconocidos, remotos como valor por defecto y URLs que no sean locales', () => {
-    expect(resolveLlmConfig({ [LLM_ENV.provider]: 'gemini' })).toEqual({ ok: false, message: 'CHAMELEON_LLM_PROVIDER=«gemini» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic)' });
+    expect(resolveLlmConfig({ [LLM_ENV.provider]: 'gemini' })).toEqual({ ok: false, message: 'CHAMELEON_LLM_PROVIDER=«gemini» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic, groq)' });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: 'openai' })).toEqual({
       ok: false,
       message: 'CHAMELEON_LLM_PROVIDER=«openai» es un proveedor remoto: los remotos exigen --provider explícito en cada orden y nunca son el valor por defecto',
@@ -32,10 +32,10 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
 
   it('solo informa de qué claves remotas existen, nunca de su valor; la lista blanca son los dominios oficiales más el entorno', () => {
     expect(definedRemoteKeys({ CHAMELEON_OPENAI_API_KEY: 'sk-secreta', OPENAI_API_KEY: 'ignorada', CHAMELEON_ANTHROPIC_API_KEY: '' })).toEqual(['CHAMELEON_OPENAI_API_KEY']);
-    expect(REMOTE_KEY_VARIABLES).toEqual(['CHAMELEON_OPENAI_API_KEY', 'CHAMELEON_ANTHROPIC_API_KEY']);
+    expect(REMOTE_KEY_VARIABLES).toEqual(['CHAMELEON_OPENAI_API_KEY', 'CHAMELEON_ANTHROPIC_API_KEY', 'CHAMELEON_GROQ_API_KEY']);
     expect(definedRemoteKeys().every((name) => name.startsWith('CHAMELEON_'))).toBe(true);
-    expect(allowedHosts({})).toEqual(['api.openai.com', 'api.anthropic.com']);
-    expect(allowedHosts({ [LLM_ENV.allowedHosts]: ' Proxy.Empresa.com, api.openai.com,, ' })).toEqual(['api.openai.com', 'api.anthropic.com', 'proxy.empresa.com']);
+    expect(allowedHosts({})).toEqual(['api.openai.com', 'api.anthropic.com', 'api.groq.com']);
+    expect(allowedHosts({ [LLM_ENV.allowedHosts]: ' Proxy.Empresa.com, api.openai.com,, ' })).toEqual(['api.openai.com', 'api.anthropic.com', 'api.groq.com', 'proxy.empresa.com']);
     expect(allowedHosts()).toContain('api.anthropic.com');
   });
 
@@ -56,13 +56,17 @@ describe('llmStatus / formatLlmStatus', () => {
 
   it('describe el proveedor local alcanzable, la procedencia de las claves y la lista blanca', async () => {
     const status = await llmStatus({ env: { CHAMELEON_ANTHROPIC_API_KEY: 'x' }, http: okHttp, ...HOME });
-    expect(status).toMatchObject({ usable: true, keys: { openai: 'none', anthropic: 'env' }, keysFile: '/h/.config/chameleon-cv/keys.json', allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, health: { ok: true, modelAvailable: true } });
+    expect(status).toMatchObject({ usable: true, keys: { openai: 'none', anthropic: 'env', groq: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', allowedHosts: ['api.openai.com', 'api.anthropic.com', 'api.groq.com'], remote: undefined, health: { ok: true, modelAvailable: true } });
     expect(formatLlmStatus(status)).toBe(
       [
         'Proveedor local: ollama (http://127.0.0.1:11434; por defecto) · modelo: qwen2.5:7b-instruct (por defecto)',
         'Estado: alcanzable · versión 0.33.1 · 7 modelos (qwen2.5:7b-instruct, a, b, c, d, e, …) · el modelo configurado está disponible',
-        'Proveedores remotos (solo con --provider explícito): openai → clave ninguna · anthropic → clave definida en CHAMELEON_ANTHROPIC_API_KEY · fichero de claves: /h/.config/chameleon-cv/keys.json',
-        'Lista blanca de hosts: api.openai.com, api.anthropic.com',
+        'Proveedores remotos (solo con --provider explícito):',
+        '  openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini',
+        '  anthropic → clave definida en CHAMELEON_ANTHROPIC_API_KEY · plan de pago (límites según la cuenta) · api.anthropic.com · modelo por defecto claude-sonnet-4-5',
+        '  groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b',
+        'Fichero de claves: /h/.config/chameleon-cv/keys.json',
+        'Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com',
         '',
       ].join('\n'),
     );
@@ -73,7 +77,7 @@ describe('llmStatus / formatLlmStatus', () => {
     expect(missing.usable).toBe(false);
     expect(formatLlmStatus(missing)).toContain('Estado: alcanzable · 1 modelo (served.gguf) · el modelo configurado «otro» no está disponible\n');
     expect(formatLlmStatus(missing)).toContain('Proveedor local: openai-compatible (http://127.0.0.1:8080; entorno) · modelo: otro (entorno)\n');
-    expect(formatLlmStatus(missing)).toContain('Lista blanca de hosts: api.openai.com, api.anthropic.com, proxy.empresa.com (ampliada con CHAMELEON_LLM_ALLOWED_HOSTS)\n');
+    expect(formatLlmStatus(missing)).toContain('Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com, proxy.empresa.com (ampliada con CHAMELEON_LLM_ALLOWED_HOSTS)\n');
 
     const down = await llmStatus({ env: {}, http: () => Promise.resolve({ ok: false, code: 'unreachable', message: 'ECONNREFUSED' }), ...HOME });
     expect(down.usable).toBe(false);
@@ -83,8 +87,10 @@ describe('llmStatus / formatLlmStatus', () => {
     expect(invalid).toMatchObject({ config: undefined, usable: false, health: undefined });
     expect(formatLlmStatus(invalid)).toContain('Configuración inválida: CHAMELEON_LLM_PROVIDER=«gemini» no es un proveedor conocido');
     expect(formatLlmStatus({ ...down, health: undefined })).toContain('Estado: no disponible · sin comprobar\n');
-    expect(formatLlmStatus({ ...down, keys: { openai: 'file', anthropic: 'insecure-file' } })).toContain('openai → clave definida en el fichero de claves · anthropic → clave fichero de claves con permisos abiertos (corrígelo con chmod 600)');
-    expect(formatLlmStatus({ ...down, keys: { openai: 'invalid-file', anthropic: 'none' } })).toContain('openai → clave fichero de claves inválido');
+    const relabelled = formatLlmStatus({ ...down, keys: { openai: 'file', anthropic: 'insecure-file', groq: 'none' } });
+    expect(relabelled).toContain('  openai → clave definida en el fichero de claves · plan de pago');
+    expect(relabelled).toContain('  anthropic → clave fichero de claves con permisos abiertos (corrígelo con chmod 600) · plan de pago');
+    expect(formatLlmStatus({ ...down, keys: { openai: 'invalid-file', anthropic: 'none', groq: 'none' } })).toContain('openai → clave fichero de claves inválido');
   });
 
   it('con --provider remoto explícito comprueba ese proveedor (o explica por qué no puede)', async () => {

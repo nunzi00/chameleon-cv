@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LLM_ENV, formatLlmStatus, llmStatus, resolveLlmConfig, selectProvider, type JsonHttp, type LlmStatus } from '../../src/llm';
+import { LLM_ENV, QuotaLedger, formatLlmStatus, llmStatus, resolveLlmConfig, selectProvider, type JsonHttp, type LlmStatus, type QuotaObserver } from '../../src/llm';
 
 const FILE = { provider: 'openai-compatible' as const, base_url: 'http://127.0.0.1:8080', model: 'del-fichero', models: { openai: 'gpt-del-fichero' } };
 
@@ -46,6 +46,23 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
     expect(await selectProvider({}, { env: {}, http, settingsError: 'Configuración inválida (cv.toml)' })).toEqual({ ok: false, message: 'Configuración inválida (cv.toml)' });
   });
 
+  it('selectProvider anota en el libro de cuotas las cabeceras que el cliente remoto observa', async () => {
+    const ledger = new QuotaLedger();
+    let observer: QuotaObserver | undefined;
+    const remoteHttp = (_allowed: readonly string[], _fetch?: typeof fetch, observe?: QuotaObserver): JsonHttp => {
+      observer = observe;
+      return http;
+    };
+    const now = () => new Date('2026-08-30T12:00:00.000Z');
+    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk' }, remoteHttp, quotaLedger: ledger, now })).toMatchObject({ ok: true, provider: { id: 'groq', model: 'openai/gpt-oss-120b' } });
+    observer?.({ 'x-ratelimit-remaining-requests': '29', 'x-ratelimit-limit-requests': '30' });
+    expect(ledger.get('groq')).toMatchObject({ provider: 'groq', observedAt: '2026-08-30T12:00:00.000Z', remainingRequests: 29, limitRequests: 30 });
+    const status = await llmStatus({ env: {}, http, quotaLedger: ledger });
+    expect(formatLlmStatus(status)).toContain('    cuota viva: quedan 29/30 peticiones (leída 2026-08-30T12:00:00.000Z)');
+    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk' }, remoteHttp })).toMatchObject({ ok: true });
+    observer?.({ 'retry-after': '3' });
+  });
+
   it('llmStatus describe cv.toml y los orígenes; con cv.toml inválido no comprueba nada', async () => {
     const status = await llmStatus({ env: {}, http, settings: FILE, settingsPath: '/work/cv.toml', settingsPresent: true });
     expect(status.settings).toEqual({ path: '/work/cv.toml', present: true, configured: true, error: undefined });
@@ -56,6 +73,8 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
     const flagged = await llmStatus({ env: {}, http, provider: 'ollama', model: 'de-la-orden', settings: FILE, settingsPath: '/work/cv.toml', settingsPresent: true });
     expect(flagged.config?.sources).toEqual({ provider: 'flag', baseUrl: 'file', model: 'flag' });
     expect(formatLlmStatus(flagged)).toContain('(http://127.0.0.1:8080; orden) · modelo: de-la-orden (orden)');
+    const modelOnly = await llmStatus({ env: {}, http, model: 'de-la-orden', settings: FILE });
+    expect(modelOnly.config?.sources).toEqual({ provider: 'file', baseUrl: 'file', model: 'flag' });
     const absent = await llmStatus({ env: {}, http, settingsPath: '/work/cv.toml' });
     expect(formatLlmStatus(absent)).toContain('Configuración del proyecto: /work/cv.toml (no existe)');
     const withoutTable = await llmStatus({ env: {}, http, settingsPath: '/work/cv.toml', settingsPresent: true });

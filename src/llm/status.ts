@@ -5,7 +5,9 @@
  */
 import { DEFAULT_ALLOWED_HOSTS, allowedHosts, createProvider, isLocalProviderId, resolveLlmConfig, selectProvider, type ConfigSource, type LlmConfig, type SelectProviderOptions } from './config';
 import type { JsonHttp } from './http';
-import { KEY_ENV_VARIABLES, describeKeys, keysFilePath, type KeySource, type RemoteProviderId } from './keys';
+import { KEY_ENV_VARIABLES, describeKeys, keysFilePath, type KeySource } from './keys';
+import { QuotaLedger, defaultQuotaLedger, describeQuotaSnapshot, type QuotaSnapshot } from './quota';
+import { REMOTE_PROVIDERS, describeQuota, type ProviderEvidence, type ProviderQuota, type RemoteProviderId } from './registry';
 import type { LlmHealth } from './provider';
 
 export type KeyPresence = KeySource | 'none' | 'insecure-file' | 'invalid-file';
@@ -27,6 +29,21 @@ export interface SettingsStatus {
   readonly error: string | undefined;
 }
 
+/** Un proveedor remoto del registro tal como lo ven `cv llm status`, la API y «Ajustes»: nunca la clave. */
+export interface RemoteProviderStatus {
+  readonly id: RemoteProviderId;
+  readonly plan: 'free' | 'paid';
+  readonly host: string;
+  readonly baseUrl: string;
+  readonly defaultModel: string;
+  readonly keyPresence: KeyPresence;
+  readonly quota: ProviderQuota | undefined;
+  readonly rateLimitsUrl: string;
+  readonly c7: ProviderEvidence;
+  /** Última cuota leída de las cabeceras en este proceso. */
+  readonly live: QuotaSnapshot | undefined;
+}
+
 export interface LlmStatus {
   readonly config: LlmConfig | undefined;
   readonly configError: string | undefined;
@@ -40,6 +57,8 @@ export interface LlmStatus {
   readonly usable: boolean;
   /** `cv.toml` y su tabla `[llm]` (T-8.2). */
   readonly settings: SettingsStatus;
+  /** Los remotos del registro con su plan, cuota publicada, evidencia C7, clave (procedencia) y cuota viva. */
+  readonly providers: readonly RemoteProviderStatus[];
 }
 
 export interface LlmStatusOptions extends SelectProviderOptions {
@@ -47,6 +66,8 @@ export interface LlmStatusOptions extends SelectProviderOptions {
   /** Ruta de `cv.toml`, para explicarla. */
   readonly settingsPath?: string | undefined;
   readonly settingsPresent?: boolean | undefined;
+  /** Libro de cuotas a consultar (por defecto, el del proceso). */
+  readonly quotaLedger?: QuotaLedger | undefined;
   /** `--provider` explícito: si es remoto, se comprueba de verdad. */
   readonly provider?: string | undefined;
   readonly model?: string | undefined;
@@ -56,22 +77,39 @@ export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStat
   const env = options.env ?? process.env;
   const keys = await describeKeys(options);
   const settings: SettingsStatus = { path: options.settingsPath, present: options.settingsPresent ?? false, configured: options.settings !== undefined, error: options.settingsError };
-  const base = { keys, keysFile: keysFilePath(env, options.platform ?? process.platform, options.home), allowedHosts: allowedHosts(env), settings };
+  const ledger = options.quotaLedger ?? defaultQuotaLedger;
+  const providers: RemoteProviderStatus[] = REMOTE_PROVIDERS.map((entry) => ({
+    id: entry.id,
+    plan: entry.plan,
+    host: entry.host,
+    baseUrl: entry.baseUrl,
+    defaultModel: entry.defaultModel,
+    keyPresence: keys[entry.id],
+    quota: entry.quota,
+    rateLimitsUrl: entry.rateLimitsUrl,
+    c7: entry.c7,
+    live: ledger.get(entry.id),
+  }));
+  const base = { keys, keysFile: keysFilePath(env, options.platform ?? process.platform, options.home), allowedHosts: allowedHosts(env), settings, providers };
   let remote: LlmStatus['remote'];
-  if (options.provider !== undefined && options.provider !== '') {
+  const requested = options.provider?.trim().toLowerCase();
+  // Un `--provider` local se resuelve como configuración local (más abajo); solo un remoto (o un id desconocido) se comprueba aquí.
+  if (requested !== undefined && requested !== '' && !isLocalProviderId(requested)) {
     const selected = await selectProvider({ provider: options.provider, model: options.model }, options);
     if (!selected.ok) {
       remote = { error: selected.message };
-    } else if (selected.provider.kind === 'remote') {
+    } else {
+      // Un id que no es local y se seleccionó con éxito es, por construcción, un remoto del registro.
       remote = { id: selected.provider.id as RemoteProviderId, baseUrl: selected.provider.baseUrl, model: selected.provider.model, keySource: selected.keySource, health: await selected.provider.health() };
     }
   }
   if (options.settingsError !== undefined) {
     return { ...base, config: undefined, configError: options.settingsError, health: undefined, remote, usable: false };
   }
-  const requested = options.provider?.trim().toLowerCase();
   const localFlag = requested !== undefined && isLocalProviderId(requested) ? requested : undefined;
-  const resolved = resolveLlmConfig(env, { provider: localFlag, model: localFlag === undefined ? undefined : options.model, settings: options.settings });
+  // `--model` sin `--provider` (o con uno local) afecta al local; con un remoto pertenece al remoto.
+  const localModel = requested === undefined || requested === '' || localFlag !== undefined ? options.model : undefined;
+  const resolved = resolveLlmConfig(env, { provider: localFlag, model: localModel, settings: options.settings });
   if (!resolved.ok) {
     return { ...base, config: undefined, configError: resolved.message, health: undefined, remote, usable: false };
   }
@@ -125,9 +163,16 @@ export function formatLlmStatus(status: LlmStatus): string {
   if (settings.path !== undefined) {
     lines.push(`Configuración del proyecto: ${settings.path} ${settings.error !== undefined ? '(inválida)' : settings.present ? (settings.configured ? '(tabla [llm] presente)' : '(sin tabla [llm])') : '(no existe)'}`);
   }
-  lines.push(
-    `Proveedores remotos (solo con --provider explícito): openai → clave ${describeKey(status.keys.openai, KEY_ENV_VARIABLES.openai)} · anthropic → clave ${describeKey(status.keys.anthropic, KEY_ENV_VARIABLES.anthropic)} · fichero de claves: ${status.keysFile}`,
-  );
+  lines.push('Proveedores remotos (solo con --provider explícito):');
+  for (const provider of status.providers) {
+    const published = provider.quota === undefined ? 'límites según la cuenta' : `${describeQuota(provider.quota)} (${provider.quota.sourceUrl}, ${provider.quota.verifiedAt})`;
+    const plan = provider.plan === 'free' ? `plan gratuito: ${published}` : `plan de pago (${published})`;
+    lines.push(`  ${provider.id} → clave ${describeKey(status.keys[provider.id], KEY_ENV_VARIABLES[provider.id])} · ${plan} · ${provider.host} · modelo por defecto ${provider.defaultModel}`);
+    if (provider.live !== undefined) {
+      lines.push(`    cuota viva: ${describeQuotaSnapshot(provider.live)} (leída ${provider.live.observedAt})`);
+    }
+  }
+  lines.push(`Fichero de claves: ${status.keysFile}`);
   lines.push(`Lista blanca de hosts: ${status.allowedHosts.join(', ')}${status.allowedHosts.length > Object.keys(DEFAULT_ALLOWED_HOSTS).length ? ' (ampliada con CHAMELEON_LLM_ALLOWED_HOSTS)' : ''}`);
   if (status.remote !== undefined) {
     if ('error' in status.remote) {

@@ -8,9 +8,11 @@
  *   oficiales; `CHAMELEON_LLM_ALLOWED_HOSTS` la amplía) y con clave de `CHAMELEON_*_API_KEY` o del
  *   fichero de claves 0600.
  */
-import { ANTHROPIC_DEFAULT_BASE_URL, ANTHROPIC_DEFAULT_MODEL, createAnthropicProvider } from './anthropic';
-import { allowsHosts, createRemoteHttp, isLoopbackUrl, type JsonHttp } from './http';
-import { KEY_ENV_VARIABLES, resolveApiKey, type KeyLookupOptions, type KeySource, type RemoteProviderId } from './keys';
+import { createAnthropicProvider } from './anthropic';
+import { allowsHosts, createRemoteHttp, isLoopbackUrl, type JsonHttp, type QuotaObserver } from './http';
+import { KEY_ENV_VARIABLES, resolveApiKey, type KeyLookupOptions, type KeySource } from './keys';
+import { QuotaLedger, defaultQuotaLedger } from './quota';
+import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, isRemoteProviderId, registryHosts, remoteProvider, type RemoteProviderId } from './registry';
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL, createOllamaProvider } from './ollama';
 import { OPENAI_COMPATIBLE_DEFAULT_BASE_URL, OPENAI_COMPATIBLE_DEFAULT_MODEL, createOpenAiCompatibleProvider } from './openai-compatible';
 import type { LlmProvider, LlmProviderId, LocalProviderId } from './provider';
@@ -26,30 +28,26 @@ export const LLM_ENV = {
 } as const;
 
 /** Claves de proveedores remotos; `status` solo informa de su procedencia. */
-export const REMOTE_KEY_VARIABLES = [KEY_ENV_VARIABLES.openai, KEY_ENV_VARIABLES.anthropic] as const;
+export const REMOTE_KEY_VARIABLES: readonly string[] = REMOTE_PROVIDER_IDS.map((id) => KEY_ENV_VARIABLES[id]);
 
 export const LOCAL_PROVIDER_IDS: readonly LocalProviderId[] = ['ollama', 'openai-compatible'];
-export const REMOTE_PROVIDER_IDS: readonly RemoteProviderId[] = ['openai', 'anthropic'];
 export const LLM_PROVIDER_IDS: readonly LlmProviderId[] = [...LOCAL_PROVIDER_IDS, ...REMOTE_PROVIDER_IDS];
 
-export const OPENAI_DEFAULT_BASE_URL = 'https://api.openai.com';
-export const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
+export const OPENAI_DEFAULT_BASE_URL = remoteProvider('openai').baseUrl;
+export const OPENAI_DEFAULT_MODEL = remoteProvider('openai').defaultModel;
 
 /** Dominios oficiales: lo único permitido si el usuario no amplía la lista. */
-export const DEFAULT_ALLOWED_HOSTS: Readonly<Record<RemoteProviderId, string>> = { openai: 'api.openai.com', anthropic: 'api.anthropic.com' };
+export const DEFAULT_ALLOWED_HOSTS: Readonly<Record<RemoteProviderId, string>> = Object.fromEntries(REMOTE_PROVIDERS.map((entry) => [entry.id, entry.host])) as Record<RemoteProviderId, string>;
 
 export function isLocalProviderId(value: string): value is LocalProviderId {
   return (LOCAL_PROVIDER_IDS as readonly string[]).includes(value);
 }
 
-export function isRemoteProviderId(value: string): value is RemoteProviderId {
-  return (REMOTE_PROVIDER_IDS as readonly string[]).includes(value);
-}
 
 /** Lista blanca efectiva: dominios oficiales más `CHAMELEON_LLM_ALLOWED_HOSTS` (separados por comas). */
 export function allowedHosts(env: NodeJS.ProcessEnv = process.env): string[] {
   const extra = (env[LLM_ENV.allowedHosts] ?? '').split(',').map((host) => host.trim().toLowerCase()).filter((host) => host !== '');
-  return [...new Set([...Object.values(DEFAULT_ALLOWED_HOSTS), ...extra])];
+  return [...new Set([...registryHosts(), ...extra])];
 }
 
 export interface LlmConfig {
@@ -148,18 +146,22 @@ export interface SelectProviderOptions extends KeyLookupOptions {
   readonly settingsError?: string | undefined;
   /** Cliente local inyectable (pruebas). */
   readonly http?: JsonHttp | undefined;
-  /** Constructor del cliente remoto inyectable (pruebas); por defecto https + lista blanca. */
-  readonly remoteHttp?: ((allowed: readonly string[]) => JsonHttp) | undefined;
+  /** Constructor del cliente remoto inyectable (pruebas); por defecto https + lista blanca, con observador de cuota. */
+  readonly remoteHttp?: ((allowed: readonly string[], fetchImpl?: typeof fetch, observe?: QuotaObserver) => JsonHttp) | undefined;
+  /** Libro de cuotas donde anotar las cabeceras de cada respuesta remota (por defecto, el del proceso). */
+  readonly quotaLedger?: QuotaLedger | undefined;
+  readonly now?: (() => Date) | undefined;
 }
 
 export type ProviderSelectionResult =
   | { readonly ok: true; readonly provider: LlmProvider; readonly keySource?: KeySource }
   | { readonly ok: false; readonly message: string };
 
-/** URL base de un proveedor remoto: la oficial o la variable `CHAMELEON_<PROVEEDOR>_BASE_URL`, siempre dentro de la lista blanca. */
+/** URL base de un proveedor remoto: la del registro o la variable `CHAMELEON_<PROVEEDOR>_BASE_URL`, siempre dentro de la lista blanca. */
 export function remoteBaseUrl(provider: RemoteProviderId, env: NodeJS.ProcessEnv): string {
-  const override = env[provider === 'openai' ? LLM_ENV.openaiBaseUrl : LLM_ENV.anthropicBaseUrl];
-  const fallback = provider === 'openai' ? OPENAI_DEFAULT_BASE_URL : ANTHROPIC_DEFAULT_BASE_URL;
+  const entry = remoteProvider(provider);
+  const override = env[entry.baseUrlEnv];
+  const fallback = entry.baseUrl;
   return (override === undefined || override.trim() === '' ? fallback : override.trim()).replace(/\/+$/, '');
 }
 
@@ -190,12 +192,17 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   if (!allowsHosts(hosts)(`${baseUrl}/`)) {
     return { ok: false, message: `La URL base de «${requested}» (${baseUrl}) no es https o su host no está en la lista blanca (${hosts.join(', ')}); amplíala con ${LLM_ENV.allowedHosts}` };
   }
-  const http = (options.remoteHttp ?? createRemoteHttp)(hosts);
+  const entry = remoteProvider(requested);
+  const ledger = options.quotaLedger ?? defaultQuotaLedger;
+  const observe: QuotaObserver = (headers) => {
+    ledger.record(requested, headers, options.now?.() ?? new Date());
+  };
+  const http = (options.remoteHttp ?? createRemoteHttp)(hosts, undefined, observe);
   const flagModel = selection.model === undefined || selection.model.trim() === '' ? undefined : selection.model.trim();
-  const model = flagModel ?? options.settings?.models?.[requested];
+  const model = flagModel ?? options.settings?.models?.[requested] ?? entry.defaultModel;
   const provider =
-    requested === 'openai'
-      ? createOpenAiCompatibleProvider({ id: 'openai', kind: 'remote', baseUrl, model: model ?? OPENAI_DEFAULT_MODEL, http, headers: { authorization: `Bearer ${key.key}` } })
-      : createAnthropicProvider({ apiKey: key.key, http, baseUrl, model: model ?? ANTHROPIC_DEFAULT_MODEL });
+    entry.api === 'anthropic-messages'
+      ? createAnthropicProvider({ apiKey: key.key, http, baseUrl, model })
+      : createOpenAiCompatibleProvider({ id: entry.id, kind: 'remote', baseUrl, model, http, headers: { authorization: `Bearer ${key.key}` } });
   return { ok: true, provider, keySource: key.source };
 }

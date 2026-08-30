@@ -7,11 +7,11 @@
 import { z } from 'zod';
 
 import { isLoopbackUrl } from './http';
+import { REMOTE_PROVIDER_IDS, type RemoteProviderId } from './registry';
 
 z.config(z.locales.es());
 
 export const LOCAL_PROVIDER_ID_VALUES = ['ollama', 'openai-compatible'] as const;
-export const REMOTE_PROVIDER_ID_VALUES = ['openai', 'anthropic'] as const;
 
 const ModelName = z.string().trim().min(1).max(120);
 
@@ -24,12 +24,7 @@ export const LlmSettingsSchema = z.strictObject({
     .optional(),
   model: ModelName.optional(),
   /** `[llm.models]`: modelo por defecto por proveedor remoto. */
-  models: z
-    .strictObject({
-      openai: ModelName.optional(),
-      anthropic: ModelName.optional(),
-    })
-    .optional(),
+  models: z.strictObject(Object.fromEntries(REMOTE_PROVIDER_IDS.map((id) => [id, ModelName.optional()])) as Record<RemoteProviderId, z.ZodOptional<typeof ModelName>>).optional(),
 });
 
 export type LlmSettings = z.output<typeof LlmSettingsSchema>;

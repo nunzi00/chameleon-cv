@@ -13,6 +13,8 @@ export * from './keys';
 export * from './ollama';
 export * from './openai-compatible';
 export * from './provider';
+export * from './quota';
+export * from './registry';
 export * from './review';
 export * from './settings';
 export * from './status';

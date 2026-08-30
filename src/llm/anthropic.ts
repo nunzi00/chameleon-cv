@@ -7,7 +7,7 @@
 import { z } from 'zod';
 
 import { LLM_HTTP_LIMITS, type JsonHttp } from './http';
-import { httpErrorToLlm } from './ollama';
+import { httpErrorToLlm, llmFailure } from './ollama';
 import { DEFAULT_TEMPERATURE, type LlmCompletion, type LlmHealth, type LlmProvider, type LlmRequest } from './provider';
 
 export const ANTHROPIC_DEFAULT_BASE_URL = 'https://api.anthropic.com';
@@ -59,7 +59,7 @@ export function createAnthropicProvider(options: AnthropicOptions): LlmProvider 
         },
       });
       if (!result.ok) {
-        return { ok: false, code: httpErrorToLlm(result.code), message: `Anthropic: ${result.message}` };
+        return llmFailure(result, 'Anthropic');
       }
       const parsed = MessageSchema.safeParse(result.data);
       if (!parsed.success) {

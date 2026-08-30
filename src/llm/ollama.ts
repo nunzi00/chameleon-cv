@@ -5,7 +5,8 @@
  */
 import { z } from 'zod';
 
-import { LLM_HTTP_LIMITS, loopbackOnlyHttp, type JsonHttp, type JsonHttpErrorCode } from './http';
+import { LLM_HTTP_LIMITS, loopbackOnlyHttp, type JsonHttp, type JsonHttpErrorCode, type JsonHttpResult } from './http';
+import { parseDuration } from './quota';
 import { DEFAULT_SEED, DEFAULT_TEMPERATURE, parseModelJson, type LlmCompletion, type LlmErrorCode, type LlmHealth, type LlmProvider, type LlmRequest } from './provider';
 
 export const OLLAMA_DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
@@ -28,6 +29,20 @@ export interface OllamaOptions {
 
 export function httpErrorToLlm(code: JsonHttpErrorCode): LlmErrorCode {
   return code === 'too-large' ? 'invalid-response' : code;
+}
+
+type HttpFailure = Extract<JsonHttpResult, { ok: false }>;
+type LlmFailure = Extract<LlmCompletion, { ok: false }>;
+
+/** Un fallo HTTP como fallo del proveedor; un 429 es `quota-exceeded` con el `retry-after` si lo hay (C11: sin reintentos). */
+export function llmFailure(result: HttpFailure, prefix: string): LlmFailure {
+  if (result.status === 429) {
+    const retryAfter = result.headers?.['retry-after'];
+    const retryAfterSeconds = retryAfter === undefined ? undefined : parseDuration(retryAfter);
+    const wait = retryAfterSeconds === undefined ? '' : ` (el proveedor pide esperar ${retryAfterSeconds} s)`;
+    return { ok: false, code: 'quota-exceeded', message: `${prefix}: cuota agotada, HTTP 429${wait}; no se reintenta`, retryAfterSeconds };
+  }
+  return { ok: false, code: httpErrorToLlm(result.code), message: `${prefix}: ${result.message}` };
 }
 
 /** `qwen2.5:7b-instruct` y `qwen2.5:7b-instruct:latest` son el mismo modelo para Ollama. */
@@ -61,7 +76,7 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
         },
       });
       if (!result.ok) {
-        return { ok: false, code: httpErrorToLlm(result.code), message: `Ollama: ${result.message}` };
+        return llmFailure(result, 'Ollama');
       }
       const parsed = ChatResponseSchema.safeParse(result.data);
       if (!parsed.success) {

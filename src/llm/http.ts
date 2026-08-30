@@ -25,9 +25,25 @@ export interface JsonHttpRequest {
 
 export type JsonHttpErrorCode = 'refused' | 'unreachable' | 'timeout' | 'cancelled' | 'http' | 'too-large' | 'invalid-json';
 
+/** Cabeceras de cuota de la respuesta (`x-ratelimit-*`, `anthropic-ratelimit-*`, `retry-after`), en minúsculas. */
+export type QuotaHeaders = Readonly<Record<string, string>>;
+
 export type JsonHttpResult =
-  | { readonly ok: true; readonly status: number; readonly data: unknown }
-  | { readonly ok: false; readonly code: JsonHttpErrorCode; readonly message: string; readonly status?: number };
+  | { readonly ok: true; readonly status: number; readonly data: unknown; readonly headers?: QuotaHeaders | undefined }
+  | { readonly ok: false; readonly code: JsonHttpErrorCode; readonly message: string; readonly status?: number; readonly headers?: QuotaHeaders | undefined };
+
+const QUOTA_HEADER = /^(?:x-ratelimit-|anthropic-ratelimit-|retry-after$)/;
+
+/** Solo las cabeceras de cuota, nunca las demás (ni las de autenticación, que ni siquiera vuelven). */
+export function quotaHeadersOf(headers: Headers): QuotaHeaders {
+  const picked: Record<string, string> = {};
+  headers.forEach((value, name) => {
+    if (QUOTA_HEADER.test(name.toLowerCase())) {
+      picked[name.toLowerCase()] = value;
+    }
+  });
+  return picked;
+}
 
 export type JsonHttp = (request: JsonHttpRequest) => Promise<JsonHttpResult>;
 
@@ -97,27 +113,29 @@ export function createJsonHttp(policy: JsonHttpPolicy, fetchImpl: typeof fetch =
       const failure = classify(error, request.signal);
       return { ok: false, code: failure.code, message: `${failure.message} (${request.method} ${request.url})` };
     }
+    const quota = quotaHeadersOf(response.headers);
+    const headers = Object.keys(quota).length === 0 ? undefined : quota;
     const declared = response.headers.get('content-length');
     if (declared !== null && Number(declared) > maxBytes) {
-      return { ok: false, code: 'too-large', message: `la respuesta anuncia ${declared} bytes (máximo ${maxBytes})`, status: response.status };
+      return { ok: false, code: 'too-large', message: `la respuesta anuncia ${declared} bytes (máximo ${maxBytes})`, status: response.status, ...(headers === undefined ? {} : { headers }) };
     }
     let text: string;
     try {
       text = await response.text();
     } catch (error) {
       const failure = classify(error, request.signal);
-      return { ok: false, code: failure.code, message: `${failure.message} (leyendo la respuesta de ${request.url})`, status: response.status };
+      return { ok: false, code: failure.code, message: `${failure.message} (leyendo la respuesta de ${request.url})`, status: response.status, ...(headers === undefined ? {} : { headers }) };
     }
     if (Buffer.byteLength(text, 'utf8') > maxBytes) {
-      return { ok: false, code: 'too-large', message: `la respuesta supera el máximo de ${maxBytes} bytes`, status: response.status };
+      return { ok: false, code: 'too-large', message: `la respuesta supera el máximo de ${maxBytes} bytes`, status: response.status, ...(headers === undefined ? {} : { headers }) };
     }
     if (!response.ok) {
-      return { ok: false, code: 'http', message: `HTTP ${response.status}: ${text.slice(0, 300).trim()}`, status: response.status };
+      return { ok: false, code: 'http', message: `HTTP ${response.status}: ${text.slice(0, 300).trim()}`, status: response.status, ...(headers === undefined ? {} : { headers }) };
     }
     try {
-      return { ok: true, status: response.status, data: JSON.parse(text) as unknown };
+      return { ok: true, status: response.status, data: JSON.parse(text) as unknown, ...(headers === undefined ? {} : { headers }) };
     } catch {
-      return { ok: false, code: 'invalid-json', message: `la respuesta no es JSON: ${text.slice(0, 120).trim()}`, status: response.status };
+      return { ok: false, code: 'invalid-json', message: `la respuesta no es JSON: ${text.slice(0, 120).trim()}`, status: response.status, ...(headers === undefined ? {} : { headers }) };
     }
   };
 }
@@ -125,7 +143,20 @@ export function createJsonHttp(policy: JsonHttpPolicy, fetchImpl: typeof fetch =
 /** Política local: solo loopback. */
 export const loopbackOnlyHttp: JsonHttp = createJsonHttp({ allowUrl: isLoopbackUrl });
 
-/** Política remota (T-4.5): https hacia la lista blanca. */
-export function createRemoteHttp(allowedHosts: Iterable<string>, fetchImpl?: typeof fetch): JsonHttp {
-  return createJsonHttp({ allowUrl: allowsHosts(allowedHosts) }, fetchImpl);
+/** Quien quiera enterarse de las cabeceras de cuota de cada respuesta (el libro de cuotas, T-8.2). */
+export type QuotaObserver = (headers: QuotaHeaders) => void;
+
+/** Política remota (T-4.5): https hacia la lista blanca; `observe` recibe las cabeceras de cuota de cada respuesta. */
+export function createRemoteHttp(allowedHosts: Iterable<string>, fetchImpl?: typeof fetch, observe?: QuotaObserver): JsonHttp {
+  const http = createJsonHttp({ allowUrl: allowsHosts(allowedHosts) }, fetchImpl);
+  if (observe === undefined) {
+    return http;
+  }
+  return async (request) => {
+    const result = await http(request);
+    if (result.headers !== undefined && Object.keys(result.headers).length > 0) {
+      observe(result.headers);
+    }
+    return result;
+  };
 }

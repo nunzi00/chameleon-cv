@@ -4,6 +4,8 @@
  * ya parseado (pero **no** validado contra el esquema de la tarea: eso lo hace la tarea con zod).
  */
 
+import type { RemoteProviderId } from './registry';
+
 export interface LlmMessage {
   readonly role: 'system' | 'user';
   readonly content: string;
@@ -28,18 +30,18 @@ export interface LlmUsage {
   readonly completionTokens?: number | undefined;
 }
 
-export type LlmErrorCode = 'refused' | 'unreachable' | 'timeout' | 'cancelled' | 'http' | 'invalid-response' | 'invalid-json' | 'failed';
+export type LlmErrorCode = 'refused' | 'unreachable' | 'timeout' | 'cancelled' | 'http' | 'quota-exceeded' | 'invalid-response' | 'invalid-json' | 'failed';
 
 export type LlmCompletion =
   | { readonly ok: true; readonly json: unknown; readonly raw: string; readonly model: string; readonly usage: LlmUsage; readonly elapsedMs: number }
-  | { readonly ok: false; readonly code: LlmErrorCode; readonly message: string };
+  | { readonly ok: false; readonly code: LlmErrorCode; readonly message: string; /** Con `quota-exceeded`, lo que pide el proveedor (`retry-after`). */ readonly retryAfterSeconds?: number | undefined };
 
 export type LlmHealth =
   | { readonly ok: true; readonly version: string | undefined; readonly models: readonly string[]; readonly modelAvailable: boolean }
   | { readonly ok: false; readonly code: LlmErrorCode; readonly message: string };
 
 export type LocalProviderId = 'ollama' | 'openai-compatible';
-export type LlmProviderId = LocalProviderId | 'openai' | 'anthropic';
+export type LlmProviderId = LocalProviderId | RemoteProviderId;
 
 export interface LlmProvider {
   readonly id: LlmProviderId;

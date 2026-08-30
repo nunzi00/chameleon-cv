@@ -6,8 +6,8 @@
 import { z } from 'zod';
 
 import { LLM_HTTP_LIMITS, loopbackOnlyHttp, type JsonHttp } from './http';
-import { httpErrorToLlm } from './ollama';
-import { DEFAULT_SEED, DEFAULT_TEMPERATURE, parseModelJson, type LlmCompletion, type LlmHealth, type LlmProvider, type LlmRequest } from './provider';
+import { httpErrorToLlm, llmFailure } from './ollama';
+import { DEFAULT_SEED, DEFAULT_TEMPERATURE, parseModelJson, type LlmCompletion, type LlmHealth, type LlmProvider, type LlmProviderId, type LlmRequest } from './provider';
 
 export const OPENAI_COMPATIBLE_DEFAULT_BASE_URL = 'http://127.0.0.1:8080';
 /** Los servidores de un solo modelo ignoran el nombre; «default» significa «el que sirva». */
@@ -25,7 +25,7 @@ export interface OpenAiCompatibleOptions {
   readonly model?: string | undefined;
   readonly http?: JsonHttp | undefined;
   /** Identidad del proveedor: `openai-compatible` (local) u `openai` (remoto, T-4.5). */
-  readonly id?: 'openai-compatible' | 'openai' | undefined;
+  readonly id?: LlmProviderId | undefined;
   readonly kind?: 'local' | 'remote' | undefined;
   /** Cabeceras de autenticación (`Authorization: Bearer …`); nunca se registran. */
   readonly headers?: Readonly<Record<string, string>> | undefined;
@@ -60,7 +60,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
         },
       });
       if (!result.ok) {
-        return { ok: false, code: httpErrorToLlm(result.code), message: `Servidor compatible con OpenAI: ${result.message}` };
+        return llmFailure(result, 'Servidor compatible con OpenAI');
       }
       const parsed = CompletionSchema.safeParse(result.data);
       if (!parsed.success) {

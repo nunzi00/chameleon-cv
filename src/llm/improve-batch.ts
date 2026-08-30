@@ -103,6 +103,10 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
     }
     if (!result.ok) {
       items.push({ id, location, original, impact, proposals: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} });
+      if (result.code === 'quota-exceeded') {
+        options.progress?.(`${label}: cuota agotada; el lote se detiene (${result.message})`);
+        break;
+      }
       options.progress?.(`${label}: fallo (${result.code})`);
       continue;
     }
