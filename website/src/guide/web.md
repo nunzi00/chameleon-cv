@@ -60,13 +60,13 @@ Los ficheros de `output/` —CV en PDF y Markdown, revisiones del co-piloto— e
 
 ## Co-piloto
 
-![Pantalla Co-piloto: el formulario de mejorar logros, el panel «qué sale y a dónde» y un trabajo terminado con su progreso y el enlace a la revisión](/gui/copiloto.png)
+![Pantalla Co-piloto: la tarea y el proveedor elegidos en tarjetas, los límites, el panel «qué sale y a dónde» y un trabajo terminado con su progreso y el enlace a la revisión](/gui/copiloto.png)
 
 Las tres tareas de `cv improve`, `cv summarize` y `cv suggest tags` como **trabajos**: eliges la tarea y sus límites (logros por ejecución, propuestas por logro, longitud máxima, una oferta opcional por texto o fichero), pulsas **Lanzar** y sigues el progreso en directo —las mismas líneas `[n/m]` que la terminal— con un botón para cancelar. Antes de lanzar, el panel «qué sale y a dónde» dice qué se envía al proveedor (los textos de los logros o del perfil, y la oferta si la hay; nunca tus ficheros enteros) y a cuál. Con un proveedor remoto (`cv serve --allow-remote`), el servidor responde primero con una **estimación** de lo que se enviaría y la interfaz pide tu confirmación; solo entonces se lanza. El resultado de mejorar y resumir es una **revisión** en `output/`, enlazada desde el trabajo; el de sugerir etiquetas, una lista que copias y aplicas tú en la fuente. Ningún trabajo escribe en tus fuentes.
 
 ## Revisiones
 
-![Pantalla Revisiones: un ítem con su original a la izquierda, las propuestas con casillas a la derecha y el plan de aplicación](/gui/revisiones.png)
+![Pantalla Revisiones: un ítem con su original a la izquierda, las propuestas con casillas a la derecha y el plan de aplicación con el fichero completo antes y después](/gui/revisiones.png)
 
 Cada revisión muestra, ítem a ítem, el **antes** (el logro tal como está en la fuente, con su impacto y su `fichero:línea`) y el **después**: las propuestas del modelo, con casilla las que superaron la verificación (C2) y tachadas las rechazadas. Marcas la que quieras de cada ítem y **Guardar marcas** escribe solo `[ ]`→`[x]` en el fichero de la revisión (el resto queda intacto: `cv improve apply` lee exactamente lo mismo). **Plan de aplicación** enseña qué ficheros e ids cambiarían sin tocar nada; **Escribir en las fuentes** —tras confirmar— aplica las marcadas dejando una copia `.bak` de cada fichero, y si un original ya no está tal cual en la fuente no escribe nada y explica por qué. Después, recompila el artefacto en Estado. **Eliminar** borra solo el fichero de la revisión.
 

@@ -573,3 +573,38 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 .cv-diff-line.removed { background: var(--cv-error-soft); }
 .cv-diff-line.added { background: var(--cv-ok-soft); }
 .cv-diff-no { display: inline-block; width: 40px; padding-right: 10px; text-align: right; color: var(--cv-muted); opacity: .7; user-select: none; }
+/* Co-piloto (T-8.6 S3): tareas y proveedores como opciones en tarjeta, panel «qué sale y a dónde», lista de trabajos. */
+.cv-split-copiloto { display: grid; grid-template-columns: minmax(430px, 46%) 1fr; flex: 1; min-height: 0; }
+@media (max-width: 1280px) { .cv-split-copiloto { grid-template-columns: minmax(380px, 46%) 1fr; } }
+.cv-copiloto-status { margin: 0; font-size: var(--cv-size-sm); }
+.cv-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.cv-fieldset > legend { padding: 0; margin-bottom: 8px; }
+.cv-options { display: grid; gap: 8px; }
+.cv-option-body { display: grid; gap: 2px; min-width: 0; font-size: 13px; }
+.cv-option-body .cv-muted { font-size: var(--cv-size-sm); }
+.cv-option-body code { font-size: var(--cv-size-xs); color: var(--cv-muted); }
+.cv-option-body .cv-badge { margin-left: 6px; vertical-align: middle; }
+.cv-option[aria-disabled='true'] { opacity: .6; cursor: not-allowed; }
+.cv-fieldset .cv-checks { margin: 10px 0 0; }
+.cv-sending-panel { display: grid; gap: 8px; background: var(--cv-surface-2); }
+.cv-job-head { flex-wrap: wrap; }
+.cv-job-icon { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; }
+.cv-job-icon.ok { color: var(--cv-ok); background: var(--cv-ok-soft); }
+.cv-job-icon.error { color: var(--cv-error); background: var(--cv-error-soft); }
+.cv-job-icon.warn { color: var(--cv-warn); background: var(--cv-warn-soft); }
+.cv-job-progress { display: grid; gap: 4px; margin: 10px 0 6px; font-size: var(--cv-size-sm); }
+.cv-job .cv-actions { margin-top: 6px; }
+/* Ajustes (T-8.6 S3): una columna de 940 px; proveedores externos como fichas. */
+.cv-ajustes { max-width: 940px; }
+.cv-providers { display: grid; gap: 10px; }
+.cv-provider[data-pending] { opacity: .72; }
+.cv-provider .cv-card-head { margin-bottom: 8px; }
+.cv-provider-foot { margin: 8px 0; font-size: var(--cv-size-xs); }
+.cv-provider .cv-meter { margin-bottom: 4px; }
+/* Puerta de sesión (T-8.6 S3): pantalla-puerta centrada. */
+.cv-gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--cv-bg); }
+.cv-gate-card { width: min(520px, 100%); margin: 0; }
+.cv-gate-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; font-size: 14px; font-weight: 600; color: var(--cv-accent); }
+.cv-gate-card h1 { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
+.cv-gate-card .cv-command { margin: 10px 0 14px; }
+.cv-gate-note { margin: 10px 0 0; font-size: var(--cv-size-xs); }

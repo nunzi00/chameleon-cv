@@ -124,7 +124,7 @@ describe('Ajustes: remotos pendientes de verificación humana', () => {
     const api = fakeApi({ llmConfig: vi.fn(async () => response({ llm: { providers: [pending] }, remote: { allowed: true } })) });
     render(Ajustes, { props: { api, onsession: vi.fn() } });
     await waitFor(() => expect(screen.getByText(/Pendiente de verificación humana: pendiente de la verificación al alta/)).toBeTruthy());
-    const item = screen.getByText('groq', { selector: 'strong' }).closest('li') as HTMLElement;
+    const item = screen.getByText('groq', { selector: 'strong' }).closest('article') as HTMLElement;
     expect((within(item).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
   });
 });

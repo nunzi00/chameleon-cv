@@ -213,3 +213,20 @@ export function describeRuntime(state: RuntimeState): RuntimeView {
     needsPull: !state.model.present,
   };
 }
+
+/** Cuota viva como barra: porcentaje usado de peticiones (o de tokens si no hay peticiones); sin límites, `undefined`. */
+export function quotaMeter(live: ProviderStatus['live']): { readonly percent: number } | undefined {
+  if (live === undefined) {
+    return undefined;
+  }
+  const pairs = [
+    [live.remainingRequests, live.limitRequests],
+    [live.remainingTokens, live.limitTokens],
+  ] as const;
+  for (const [remaining, limit] of pairs) {
+    if (remaining !== undefined && limit !== undefined && limit > 0) {
+      return { percent: Math.min(100, Math.max(0, Math.round(((limit - remaining) / limit) * 100))) };
+    }
+  }
+  return undefined;
+}

@@ -27,6 +27,7 @@
   let theme = $state<ThemeMode>(readTheme(preferences));
   let collapsed = $state(readCollapsed(preferences));
   let stopped = $state(false);
+  let gateReason = $state<'expired' | undefined>(undefined);
   const api = createApiClient({ fetch: (input, init) => fetchImpl(input, init), token: () => token });
 
   function navigate(target: Route): void {
@@ -37,6 +38,7 @@
     forgetToken(sessionStorage);
     token = undefined;
     context = undefined;
+    gateReason = 'expired';
   }
 
   /** Una sola consulta alimenta los chips de la cabecera y el contador de revisiones en todas las pantallas. */
@@ -76,6 +78,7 @@
 
   function enter(value: string): void {
     token = rememberToken(sessionStorage, value);
+    gateReason = undefined;
     void refreshContext();
   }
 
@@ -99,7 +102,7 @@
 </script>
 
 {#if token === undefined}
-  <SessionGate onsubmit={enter} />
+  <SessionGate onsubmit={enter} reason={gateReason} />
 {:else}
   <div class="cv-app" data-rail={collapsed ? '' : undefined}>
     <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} />

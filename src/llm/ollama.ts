@@ -21,6 +21,16 @@ const ChatResponseSchema = z.looseObject({
 const TagsSchema = z.looseObject({ models: z.array(z.looseObject({ name: z.string() })) });
 const VersionSchema = z.looseObject({ version: z.string() });
 
+/** Modelos que activan el razonamiento por defecto y aceptan `think: false` (Qwen3 y derivados). */
+export function isThinkingModel(model: string): boolean {
+  return /^qwen3/i.test(model.trim());
+}
+
+/** Quita un bloque `<think>…</think>` residual (o abierto) antes del JSON; el resto se devuelve intacto. */
+export function stripThinking(content: string): string {
+  return content.replace(/^\s*<think>[\s\S]*?(?:<\/think>|$)/i, '').trimStart();
+}
+
 export interface OllamaOptions {
   readonly baseUrl?: string | undefined;
   readonly model?: string | undefined;
@@ -72,6 +82,8 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
           messages: request.messages,
           stream: false,
           format: request.schema,
+          // Qwen3 razona por defecto («thinking») y rompería el JSON estricto (T-8.11); en otros modelos no tiene efecto.
+          ...(isThinkingModel(model) ? { think: false } : {}),
           options: { temperature: request.temperature ?? DEFAULT_TEMPERATURE, seed: request.seed ?? DEFAULT_SEED, num_predict: request.maxTokens },
         },
       });
@@ -82,7 +94,7 @@ export function createOllamaProvider(options: OllamaOptions = {}): LlmProvider {
       if (!parsed.success) {
         return { ok: false, code: 'invalid-response', message: 'Ollama: respuesta con una forma inesperada (falta model o message.content)' };
       }
-      const json = parseModelJson(parsed.data.message.content);
+      const json = parseModelJson(stripThinking(parsed.data.message.content));
       if (!json.ok) {
         return { ok: false, code: 'invalid-json', message: `Ollama: ${json.message}` };
       }

@@ -41,7 +41,8 @@ export function suggestSpecialty(profile: MasterProfile, requirements: JobRequir
     .map((specialty) => {
       const own = new Set(specialty.tags);
       const covered = tags.filter((tag) => own.has(tag));
-      return { specialty, covered: covered.length, weight: covered.reduce((sum, tag) => sum + (requirements.tagWeights[tag] ?? 0), 0) };
+      // Las tags cubiertas salen de las claves de tagWeights: siempre tienen peso.
+      return { specialty, covered: covered.length, weight: covered.reduce((sum, tag) => sum + (requirements.tagWeights[tag] as number), 0) };
     })
     .filter((entry) => entry.weight > 0)
     .sort((a, b) => b.weight - a.weight || b.covered - a.covered);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LlmConfigResponse } from './api/types';
-import { buildSettings, describeCheck, describeModelOptions, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields } from './settings';
+import { buildSettings, describeCheck, describeModelOptions, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields, quotaMeter } from './settings';
 
 const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
@@ -151,5 +151,15 @@ describe('[llm.runtime] en el formulario (T-8.8, S3)', () => {
     expect(cleared.ok && 'runtime' in cleared.value).toBe(false);
     const noValues = formFromConfig({ ...config, llm: { ...config.llm, settings: { ...config.llm.settings, values: undefined } } } as LlmConfigResponse);
     expect(noValues).toMatchObject({ runtimeRunner: '', runtimeImage: '' });
+  });
+});
+
+describe('quotaMeter (T-8.6 S3)', () => {
+  it('convierte la cuota viva en porcentaje usado, prefiriendo peticiones y cayendo a tokens', () => {
+    expect(quotaMeter(undefined)).toBeUndefined();
+    expect(quotaMeter({ remainingRequests: 28, limitRequests: 30, observedAt: 'x' } as never)).toEqual({ percent: 7 });
+    expect(quotaMeter({ remainingTokens: 0, limitTokens: 100, observedAt: 'x' } as never)).toEqual({ percent: 100 });
+    expect(quotaMeter({ remainingRequests: 5, limitRequests: 0, remainingTokens: 90, limitTokens: 100, observedAt: 'x' } as never)).toEqual({ percent: 10 });
+    expect(quotaMeter({ retryAfterSeconds: 3, observedAt: 'x' } as never)).toBeUndefined();
   });
 });

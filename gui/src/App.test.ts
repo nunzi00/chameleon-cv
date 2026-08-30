@@ -70,6 +70,7 @@ describe('App', () => {
     render(App, { props: { fetchImpl } });
     await waitFor(() => expect(screen.getByLabelText('Token de sesión')).toBeTruthy());
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
+    expect(screen.getByText('La sesión ha caducado')).toBeTruthy();
   });
 
   it('entrar por la puerta consulta el contexto; cambiar de pantalla lo refresca', async () => {

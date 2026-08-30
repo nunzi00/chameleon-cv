@@ -2,12 +2,13 @@
   import { onMount } from 'svelte';
 
   import Dialog from '../components/Dialog.svelte';
+  import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
   import type { LlmConfigResponse, RuntimeState } from '../lib/api/types';
   import { isFinished } from '../lib/copilot/jobs';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { LOCAL_PROVIDERS, RUNNER_CHOICES, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, describeRuntime, formFromConfig, lockedFields, type LocalForm, describeModelOptions } from '../lib/settings';
+  import { LOCAL_PROVIDERS, RUNNER_CHOICES, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, describeRuntime, formFromConfig, lockedFields, quotaMeter, type LocalForm, describeModelOptions } from '../lib/settings';
 
   interface Props {
     api: ApiClient;
@@ -164,15 +165,15 @@
   });
 </script>
 
-<section aria-labelledby="cv-ajustes-title">
-  <h2 id="cv-ajustes-title">Ajustes</h2>
+<section class="cv-ajustes" aria-labelledby="cv-ajustes-title">
+  <div class="cv-page-title"><h1 id="cv-ajustes-title">Ajustes</h1></div>
   {#if error !== undefined}
     <Notice kind="error" title={error.title} lines={error.lines}>{error.detail}</Notice>
   {/if}
   {#if message !== undefined}<Notice kind="ok">{message}</Notice>{/if}
   {#if config !== undefined}
-    <div class="cv-card">
-      <h3>Co-piloto local</h3>
+    <div class="cv-card cv-card-tight">
+      <div class="cv-card-head"><h2>Co-piloto local</h2></div>
       <p class="cv-muted">
         Se guarda en <code>{config.file.path}</code> ({config.llm.settings.error !== undefined ? 'inválido: corrígelo a mano' : config.llm.settings.configured ? 'con tabla [llm]' : config.file.present ? 'sin tabla [llm]' : 'no existe todavía'}). Solo proveedores locales: los remotos se eligen en cada trabajo.
       </p>
@@ -254,30 +255,54 @@
         <button class="cv-button danger" type="button" onclick={runtimeDown}>Parar</button>
       </div>
     </Dialog>
-    <div class="cv-card">
-      <h3>Proveedores externos</h3>
+    <div class="cv-card cv-card-tight">
+      <div class="cv-card-head">
+        <h2>Proveedores externos</h2>
+        <span class={`cv-chip ${config.remote.allowed ? 'warn' : 'quiet'}`}><Icon name="shield" size={13} weight={1.8} />{config.remote.allowed ? 'remotos permitidos (--allow-remote)' : 'sin remotos: nada sale de esta máquina'}</span>
+      </div>
       <p class="cv-muted">
         Solo con clave y eligiéndolos en cada trabajo. Las claves se guardan desde la terminal (<code>cv llm key set &lt;proveedor&gt;</code>) en <code>{config.llm.keysFile}</code>; nunca pasan por esta página.
         {config.remote.allowed ? 'Este servidor admite remotos (--allow-remote).' : 'Este servidor no envía nada a remotos: arráncalo con «cv serve --allow-remote» para permitirlo.'}
       </p>
-      <ul class="cv-providers">
+      <div class="cv-providers">
         {#each config.llm.providers as provider (provider.id)}
           {@const view = describeProvider(provider)}
-          <li class="cv-provider">
-            <strong>{provider.id}</strong> <span class="cv-muted">· {view.plan} · {provider.host} · modelo por defecto <code>{provider.defaultModel}</code></span>
+          {@const meter = quotaMeter(provider.live)}
+          <article class="cv-panel cv-provider" data-pending={provider.availability !== 'available' ? '' : undefined}>
+            <div class="cv-card-head">
+              <strong>{provider.id}</strong>
+              <span class={`cv-badge ${view.hasKey ? 'ok' : ''}`}>{view.key}</span>
+              <span class="cv-muted">· {view.plan} · {provider.host}</span>
+            </div>
             {#if provider.availability !== 'available'}<div class="cv-warning">Pendiente de verificación humana: {provider.availabilityNote}</div>{/if}
-            {#if describeModelOptions(provider.models) !== undefined}<div class="cv-muted">Modelos (<code>--model</code> o <code>[llm.models]</code>): {describeModelOptions(provider.models)}</div>{/if}
-            <div>{view.key}</div>
-            {#if view.quota !== undefined}<div class="cv-muted">Cuota publicada: {view.quota}</div>{/if}
-            {#if view.live !== undefined}<div>Cuota viva: {view.live}</div>{/if}
-            <div class="cv-muted">Sin entrenamiento con tus datos según <a href={provider.c7.sourceUrl} target="_blank" rel="noreferrer">{provider.c7.sourceUrl}</a> ({provider.c7.verifiedAt}); límites en <a href={provider.rateLimitsUrl} target="_blank" rel="noreferrer">{provider.rateLimitsUrl}</a>.</div>
+            <dl class="cv-kv cv-kv-rows">
+              <dt>Modelo por defecto</dt><dd><code>{provider.defaultModel}</code></dd>
+              {#if describeModelOptions(provider.models) !== undefined}<dt>Modelos</dt><dd class="cv-muted">Modelos (<code>--model</code> o <code>[llm.models]</code>): {describeModelOptions(provider.models)}</dd>{/if}
+              {#if view.quota !== undefined}<dt>Cuota</dt><dd class="cv-muted">Cuota publicada: {view.quota}</dd>{/if}
+              {#if view.live !== undefined}
+                <dt>Cuota viva</dt>
+                <dd>
+                  {#if meter !== undefined}<div class="cv-meter thin" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow={meter.percent} aria-label={`Cuota usada de ${provider.id}`}><div style={`width: ${meter.percent}%`}></div></div>{/if}
+                  Cuota viva: {view.live}
+                </dd>
+              {/if}
+            </dl>
+            <p class="cv-muted cv-provider-foot">Sin entrenamiento con tus datos según <a href={provider.c7.sourceUrl} target="_blank" rel="noreferrer">{provider.c7.sourceUrl}</a> ({provider.c7.verifiedAt}); límites en <a href={provider.rateLimitsUrl} target="_blank" rel="noreferrer">{provider.rateLimitsUrl}</a>.</p>
             <div class="cv-actions">
-              <button class="cv-button" type="button" disabled={busy !== undefined || !view.hasKey || !config.remote.allowed || provider.availability !== 'available'} title={!view.hasKey ? 'Sin clave' : !config.remote.allowed ? 'El servidor no admite remotos' : 'Una llamada de salud, sin datos tuyos'} onclick={() => check(provider.id, undefined)}>Comprobar {provider.id}</button>
+              <button class="cv-button small" type="button" disabled={busy !== undefined || !view.hasKey || !config.remote.allowed || provider.availability !== 'available'} title={!view.hasKey ? 'Sin clave' : !config.remote.allowed ? 'El servidor no admite remotos' : provider.availability !== 'available' ? 'Pendiente de verificación humana' : undefined} onclick={() => check(provider.id, undefined)}>Comprobar {provider.id}</button>
               {#if checks[provider.id] !== undefined}<span>{checks[provider.id]}</span>{/if}
             </div>
-          </li>
+          </article>
         {/each}
-      </ul>
+      </div>
+    </div>
+    <div class="cv-card cv-card-tight">
+      <div class="cv-card-head"><h2>Lista blanca de hosts</h2></div>
+      <p class="cv-muted">Los únicos hosts a los que el co-piloto puede enviar algo con un proveedor remoto; se amplía con <code>CHAMELEON_LLM_ALLOWED_HOSTS</code>.</p>
+      <div class="cv-chips">
+        {#each config.llm.allowedHosts as host (host)}<span class="cv-chip plain cv-mono">{host}</span>{/each}
+        {#if config.llm.allowedHosts.length === 0}<span class="cv-muted">ninguno</span>{/if}
+      </div>
     </div>
   {/if}
 </section>

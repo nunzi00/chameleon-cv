@@ -3,15 +3,18 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  type JsonHttp,
+  type LlmRequest,
   OLLAMA_DEFAULT_BASE_URL,
   OLLAMA_DEFAULT_MODEL,
   OPENAI_COMPATIBLE_DEFAULT_MODEL,
   createOllamaProvider,
   createOpenAiCompatibleProvider,
   httpErrorToLlm,
+  isThinkingModel,
   modelListed,
   parseModelJson,
-  type LlmRequest,
+  stripThinking,
 } from '../../src/llm';
 
 /** Doble de Ollama y de un servidor compatible con OpenAI: responde según la ruta y registra las peticiones. */
@@ -166,5 +169,31 @@ describe('proveedor compatible con OpenAI (loopback)', () => {
     mode = 'ok';
     const minimal = createOpenAiCompatibleProvider({ baseUrl: base, http: () => Promise.resolve({ ok: true, status: 200, data: { choices: [{ message: { content: '{"ok":true}' } }] } }) });
     expect(await minimal.complete(REQUEST)).toMatchObject({ ok: true, json: { ok: true }, model: 'default', usage: {} });
+  });
+});
+
+describe('Qwen3 en Ollama (T-8.11)', () => {
+  it('isThinkingModel y stripThinking', () => {
+    expect(isThinkingModel('qwen3:8b')).toBe(true);
+    expect(isThinkingModel(' Qwen3-14B ')).toBe(true);
+    expect(isThinkingModel('qwen2.5:7b-instruct')).toBe(false);
+    expect(stripThinking('<think>razono…</think>\n{"a":1}')).toBe('{"a":1}');
+    expect(stripThinking('<think>sin cerrar')).toBe('');
+    expect(stripThinking('{"a":1}')).toBe('{"a":1}');
+  });
+
+  it('con un modelo qwen3 envía think:false y tolera un bloque <think> antes del JSON', async () => {
+    const bodies: unknown[] = [];
+    const http: JsonHttp = async (request) => {
+      bodies.push(request.body);
+      return { ok: true, status: 200, data: { model: 'qwen3:8b', message: { role: 'assistant', content: '<think>pienso</think>{"ok":true}' } } };
+    };
+    const provider = createOllamaProvider({ model: 'qwen3:8b', http });
+    const completion = await provider.complete({ messages: [{ role: 'user', content: 'hola' }], timeoutMs: 1000 } as never);
+    expect(completion).toMatchObject({ ok: true, json: { ok: true } });
+    expect(bodies[0]).toMatchObject({ think: false });
+    const classic = createOllamaProvider({ model: 'qwen2.5:7b-instruct', http });
+    await classic.complete({ messages: [{ role: 'user', content: 'hola' }], timeoutMs: 1000 } as never);
+    expect('think' in (bodies[1] as Record<string, unknown>)).toBe(false);
   });
 });
