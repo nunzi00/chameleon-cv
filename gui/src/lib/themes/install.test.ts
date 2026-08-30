@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../api/client';
 import type { ThemeInstallResponse } from '../api/types';
-import { describeInstalled, installProblem, themeOptionLabel } from './install';
+import { describeInstalled, installProblem, themeGroups, themeOptionLabel } from './install';
 
 const apiError = (status: number, code: string, message: string, extra: Record<string, unknown> = {}): ApiError => new ApiError(status, { code, message, ...extra });
 
@@ -50,5 +50,20 @@ describe('describeInstalled y themeOptionLabel', () => {
     expect(themeOptionLabel(base)).toBe('mio');
     expect(themeOptionLabel({ ...base, author: 'Ada' })).toBe('mio — Ada');
     expect(themeOptionLabel({ ...base, author: 'Ada', origin: { source: 'https://cdn.example/t.zip', kind: 'url', installedAt: '2026-08-30T10:00:00.000Z' } })).toBe('mio — Ada (instalado)');
+  });
+});
+
+describe('themeGroups (T-8.12)', () => {
+  const entry = (name: string, kind: 'organization' | 'style' | undefined) => ({ name, directory: `/t/${name}`, builtin: true, shadows: false, description: undefined, kind, author: undefined, license: undefined, homepage: undefined, error: undefined });
+
+  it('agrupa organizaciones, estilos y temas sin clasificar, en ese orden y sin grupos vacíos', () => {
+    const groups = themeGroups([entry('default', 'style'), entry('mio', undefined), entry('hybrid', 'organization'), entry('one-page', 'organization')]);
+    expect(groups.map((group) => [group.label, group.entries.map((item) => item.name)])).toEqual([
+      ['Organizaciones (orden y agrupación de las secciones)', ['hybrid', 'one-page']],
+      ['Estilos (la organización cronológica con otra maquetación)', ['default']],
+      ['Sin clasificar', ['mio']],
+    ]);
+    expect(themeGroups([entry('default', 'style')])).toHaveLength(1);
+    expect(themeGroups([])).toEqual([]);
   });
 });

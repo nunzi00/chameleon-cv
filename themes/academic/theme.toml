@@ -5,6 +5,7 @@
 name = "academic"
 description = "Serif de una columna para trayectorias largas: cabecera centrada, secciones numeradas, fechas al margen y pie con paginación"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 author = "Chameleon CV"
 license = "MIT"
 homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"

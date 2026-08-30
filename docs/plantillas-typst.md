@@ -30,14 +30,14 @@ Claves siempre presentes salvo las marcadas como opcionales (ausentes, no `null`
 | Clave | Tipo | Contenido |
 |---|---|---|
 | `locale`, `lang` | str | Idioma de la vista (`es-ES`) y código de dos letras (`es`) para `set text(lang:)`. |
-| `labels` | dict | Etiquetas ya traducidas: `experience`, `projects`, `skills`, `achievements`, `education`, `certifications`, `languages`, `technologies`, `link`, `present`, `native`, `contact` (columna de contacto), `page` y `of` (pie «página X de Y»)… |
+| `labels` | dict | Etiquetas ya traducidas: `experience`, `projects`, `skills`, `achievements`, `education`, `certifications`, `languages`, `technologies`, `link`, `present`, `native`, `contact` (columna de contacto), `page` y `of` (pie «página X de Y»)…, `level`, `years` y `levels` (cabeceras y nombres de los niveles de skill: `levels.expert` = «Experto», T-8.12) |
 | `fullName` | str | Nombre completo. |
 | `headline` | str, opcional | Titular (el de la especialidad, si la hay). |
 | `contact` | runs | Línea de contacto ya compuesta (`Madrid · ada@…`) con enlaces como runs con `link`. |
 | `summary` | blocks | Resumen (párrafos y listas). |
 | `experience[]` | `role`, `company`, `period`, `location?`, `summary` (blocks), `achievements[]`, `technologies` (str, puede ser `""`) | Experiencias en el orden del perfil. |
 | `projects[]` | `name`, `role?`, `meta` (periodo · URL, puede ser `""`), `summary`, `achievements[]`, `technologies` | Proyectos. |
-| `skillGroups[]` | `label`, `names` | Skills agrupadas por categoría, ya ordenadas (con oferta: por puntuación; ancladas primero). |
+| `skillGroups[]` | `label`, `names`, `items[]` (`name`, `level?`, `years?`) | Skills agrupadas por categoría, ya ordenadas (con oferta: por puntuación; ancladas primero). `items` trae cada skill con la clave de su nivel (`beginner` … `expert`; el nombre traducido está en `labels.levels`) y sus años, si constan (matrices de skills, T-8.12). |
 | `achievements[]` | `runs`, `impact?` | Logros transversales. |
 | `education[]` | `degree`, `field?`, `institution`, `period` | Formación. |
 | `certifications[]` | `name`, `issuer?`, `date` (puede ser `""`), `url?` | Certificaciones. |
@@ -57,7 +57,7 @@ El segundo argumento es el `theme.toml` del tema, ya validado por la CLI (`src/t
 
 | Clave | Contenido |
 |---|---|
-| `theme` | `name?` (debe coincidir con el directorio), `description?`, `version` (1). |
+| `theme` | `name?` (debe coincidir con el directorio), `description?`, `version` (1), `kind?` (`organization` u `style`, T-8.12: qué aporta el tema; `cv theme list`, la galería y la GUI agrupan por él), `author?`, `license?`, `homepage?`. |
 | `colors` | `text` (cuerpo), `primary` (nombre y títulos de entrada), `secondary` (metadatos, fechas, etiquetas de sección), `accent` (enlaces), `rule` (reglas). |
 | `fonts` | `body`, `heading`, `mono`: familias disponibles en `templates/fonts`, embebidas en Typst o en `themes/<nombre>/fonts/`. |
 | `sizes` | `name`, `headline`, `contact`, `section`, `title`, `meta`, `body`, `footer`, `code`, en puntos (4–72). |

@@ -11,7 +11,7 @@ describe('theme.toml (T-5.1): lectura y validación estricta', () => {
   it('el tema distribuido es válido y reproduce el diseño de referencia (T-3.4)', () => {
     const config = defaultThemeConfig();
     expect(config).toEqual({
-      theme: { name: 'default', description: 'Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha', version: 1 },
+      theme: { name: 'default', description: 'Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha', version: 1, kind: 'style' },
       colors: { text: '#1b1b1b', primary: '#1b1b1b', secondary: '#5c5c5c', accent: '#1f4e79', rule: '#c9c9c9' },
       fonts: { body: 'Source Sans 3', heading: 'Source Sans 3', mono: 'DejaVu Sans Mono' },
       sizes: { name: 24, headline: 11.5, contact: 9.3, section: 9.4, title: 10.8, meta: 9.3, body: 10, footer: 8.5, code: 9.2 },
@@ -79,7 +79,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     // Si el proyecto es el propio repositorio, no se busca dos veces en el mismo directorio.
     expect(themeRoots(join(BUILTIN_THEMES_DIRECTORY, '..'), new MemoryFileSystem({}))).toHaveLength(1);
-    expect(await listThemes([builtinThemeRoot()])).toEqual(['academic', 'awesome', 'classic', 'default', 'executive', 'minimal', 'modern', 'tech', 'timeline']);
+    expect(await listThemes([builtinThemeRoot()])).toEqual(['academic', 'awesome', 'chronological', 'classic', 'default', 'executive', 'functional', 'hybrid', 'minimal', 'modern', 'one-page', 'project-portfolio', 'skills-first', 'tech', 'timeline']);
     const classic = await loadTheme('classic', [builtinThemeRoot()]);
     expect(classic).toMatchObject({ ok: true, theme: { name: 'classic', builtin: true, config: { theme: { name: 'classic', version: 1 }, fonts: { body: 'Libertinus Serif' }, page: { paper: 'a4' } } } });
   });
@@ -96,7 +96,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
       '/work/themes/suelto.txt': '',
     });
     const roots = [project, builtinThemeRoot()];
-    expect(await listThemes(roots)).toEqual(['default', 'mio', 'academic', 'awesome', 'classic', 'executive', 'minimal', 'modern', 'tech', 'timeline']);
+    expect(await listThemes(roots)).toEqual(['default', 'mio', 'academic', 'awesome', 'chronological', 'classic', 'executive', 'functional', 'hybrid', 'minimal', 'modern', 'one-page', 'project-portfolio', 'skills-first', 'tech', 'timeline']);
     const mio = await loadTheme('mio', roots);
     expect(mio).toMatchObject({ ok: true, theme: { name: 'mio', directory: '/work/themes/mio', fontsDirectory: '/work/themes/mio/fonts', builtin: false, config: { page: { paper: 'us-letter' } } } });
     const shadowed = await loadTheme('default', roots);
@@ -117,7 +117,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     const roots = [project, builtinThemeRoot()];
     expect(await loadTheme('../default', roots)).toEqual({ ok: false, message: 'Nombre de tema inválido «../default»: minúsculas, dígitos y guiones (p. ej. «default»)' });
-    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, academic, awesome, classic, default, executive, minimal, modern, tech, timeline` });
+    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, academic, awesome, chronological, classic, default, executive, functional, hybrid, minimal, modern, one-page, project-portfolio, skills-first, tech, timeline` });
     expect(await loadTheme('nada', [memoryRoot({})])).toEqual({ ok: false, message: 'No existe el tema «nada» (buscado en /work/themes); disponibles: ninguno' });
     expect(await loadTheme('sin-config', roots)).toEqual({ ok: false, message: 'El tema «sin-config» (/work/themes/sin-config) no tiene theme.toml' });
     expect(await loadTheme('sin-plantilla', roots)).toEqual({ ok: false, message: 'El tema «sin-plantilla» (/work/themes/sin-plantilla) no tiene template.typ' });
@@ -143,18 +143,25 @@ describe('localización e inventario (T-5.3)', () => {
       ['mio', false, false, true],
       ['academic', true, false, true],
       ['awesome', true, false, true],
+      ['chronological', true, false, true],
       ['classic', true, false, true],
       ['executive', true, false, true],
+      ['functional', true, false, true],
+      ['hybrid', true, false, true],
       ['minimal', true, false, true],
       ['modern', true, false, true],
+      ['one-page', true, false, true],
+      ['project-portfolio', true, false, true],
+      ['skills-first', true, false, true],
       ['tech', true, false, true],
       ['timeline', true, false, true],
     ]);
     expect(inventory[0]?.error).toMatch(/^Tema «default» inválido/);
-    expect(inventory[4]?.description).toContain('Serif');
+    expect(inventory[4]?.description).toContain('Cronológica inversa');
+    expect(inventory.map((entry) => entry.kind)).toEqual([undefined, undefined, 'style', 'style', 'organization', 'style', 'style', 'organization', 'organization', 'style', 'style', 'organization', 'organization', 'organization', 'style', 'style']);
     // Metadatos de autoría (T-8.3): los temas nuevos los declaran; los anteriores no los necesitan.
     expect(inventory[2]).toMatchObject({ author: 'Chameleon CV', license: 'MIT', homepage: 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery' });
-    expect([inventory[4]?.author, inventory[4]?.license, inventory[4]?.homepage, inventory[1]?.author]).toEqual([undefined, undefined, undefined, undefined]);
+    expect([inventory[5]?.name, inventory[5]?.author, inventory[5]?.license, inventory[5]?.homepage, inventory[1]?.author]).toEqual(['classic', undefined, undefined, undefined, undefined]);
     expect((await loadTheme('mio', roots)).ok && (await loadTheme('mio', roots))).toMatchObject({ theme: { root: project } });
   });
 });

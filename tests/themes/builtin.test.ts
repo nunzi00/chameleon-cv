@@ -12,10 +12,27 @@ import { extractPdfText } from '../../src/pdf';
 import { renderTypstCv } from '../../src/renderers/typst';
 import { applyThemeOverrides, builtinThemeRoot, listThemes, loadTheme, type LoadedTheme } from '../../src/themes';
 import { fullProfileInput } from '../fixtures/master-profile';
+import { defaultSourceParsers } from '../../src/parsers';
+import { NodeFileSystem, loadDataset } from '../../src/parsers/dataset';
+import type { MasterProfile } from '../../src/core/schema';
 
-/** Los temas de la galería (T-8.3) declaran autoría; los de T-5.1 no la necesitan. */
-const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline'];
+/** Las seis organizaciones (T-8.12, docs/theme-catalog.md D1), por orden alfabético como las lista la CLI. */
+const ORGANIZATIONS: readonly string[] = ['chronological', 'functional', 'hybrid', 'one-page', 'project-portfolio', 'skills-first'];
+const BENCH_SOURCES = 'tests/acceptance/bench/workspace/data/sources';
+
+/** El perfil del banco de pruebas: cinco puestos con hasta seis logros, tres proyectos y dieciséis skills con nivel y años. */
+async function benchProfile(): Promise<MasterProfile> {
+  const dataset = await loadDataset(BENCH_SOURCES, { fileSystem: new NodeFileSystem(), parsers: defaultSourceParsers() });
+  if (!dataset.ok) {
+    throw new Error(dataset.errors.map((error) => `${error.file}: ${error.message}`).join('\n'));
+  }
+  return dataset.profile;
+}
+
+/** Los temas de la galería (T-8.3) y las organizaciones (T-8.12) declaran autoría; los de T-5.1 no la necesitan. */
+const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS];
 const HOMEPAGE = 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery';
+const STYLES: readonly string[] = ['academic', 'awesome', 'classic', 'default', 'executive', 'minimal', 'modern', 'tech', 'timeline'];
 
 async function builtinThemes(): Promise<LoadedTheme[]> {
   const themes: LoadedTheme[] = [];
@@ -29,8 +46,8 @@ async function builtinThemes(): Promise<LoadedTheme[]> {
   return themes;
 }
 
-async function pdfOf(theme: LoadedTheme, locale: string): Promise<Buffer> {
-  const result = await renderTypstCv(parseMasterProfile(fullProfileInput()), { theme, locale });
+async function pdfOf(theme: LoadedTheme, locale: string, profile: MasterProfile = parseMasterProfile(fullProfileInput())): Promise<Buffer> {
+  const result = await renderTypstCv(profile, { theme, locale });
   if (!result.ok) {
     throw new Error(`${theme.name} (${locale}): ${result.error.message}`);
   }
@@ -46,13 +63,14 @@ async function textOf(pdf: Buffer): Promise<{ text: string; pages: number }> {
 }
 
 describe('temas distribuidos (T-8.3): contrato común', () => {
-  it('los nueve temas cargan, validan, se describen y los de la galería declaran autor, licencia y página', async () => {
+  it('los quince temas cargan, validan, se describen, declaran su clase y los de la galería llevan autor, licencia y página', async () => {
     const themes = await builtinThemes();
-    expect(themes.map((theme) => theme.name)).toEqual(['academic', 'awesome', 'classic', 'default', 'executive', 'minimal', 'modern', 'tech', 'timeline']);
+    expect(themes.map((theme) => theme.name)).toEqual([...ORGANIZATIONS, ...STYLES].sort());
     for (const theme of themes) {
       expect(theme.builtin).toBe(true);
       expect(theme.config.theme.name).toBe(theme.name);
       expect(theme.config.theme.description).toMatch(/\S/);
+      expect(theme.config.theme.kind, theme.name).toBe(ORGANIZATIONS.includes(theme.name) ? 'organization' : 'style');
       if (GALLERY_THEMES.includes(theme.name)) {
         expect(theme.config.theme).toMatchObject({ author: 'Chameleon CV', license: 'MIT', homepage: HOMEPAGE });
       }
@@ -105,4 +123,48 @@ describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('temas distribuido
     expect(letter.config.page.paper).toBe('us-letter');
     expect((await pdfOf(letter, 'es-ES')).toString('latin1')).toContain('MediaBox[0 0 612 792]');
   }, 60_000);
+
+  it('cada organización ordena las secciones a su manera con el perfil del banco de pruebas, en ambos idiomas', async () => {
+    const profile = await benchProfile();
+    const themes = await builtinThemes();
+    const theme = (name: string): LoadedTheme => themes.find((candidate) => candidate.name === name)!;
+    for (const [locale, labels] of [
+      ['es-ES', { experience: 'Experiencia', skills: 'Habilidades', projects: 'Proyectos', achievements: 'Logros destacados', level: 'Nivel', years: 'Años', expert: 'Experto' }],
+      ['en-US', { experience: 'Experience', skills: 'Skills', projects: 'Projects', achievements: 'Highlights', level: 'Level', years: 'Years', expert: 'Expert' }],
+    ] as const) {
+      const at = (text: string, label: string): number => {
+        const index = text.indexOf(label);
+        expect(index, `${locale}: ${label}`).toBeGreaterThan(-1);
+        return index;
+      };
+      // chronological: el periodo precede al puesto y la formación va antes que los proyectos.
+      const chronological = (await textOf(await pdfOf(theme('chronological'), locale, profile))).text;
+      expect(at(chronological, 'Staff Backend Engineer')).toBeGreaterThan(at(chronological, locale === 'es-ES' ? 'mar 2022' : 'Mar 2022'));
+      expect(at(chronological, labels.projects)).toBeGreaterThan(at(chronological, locale === 'es-ES' ? 'Formación' : 'Education'));
+      // functional: competencias y logros (con la empresa de origen) antes que la trayectoria.
+      const functional = (await textOf(await pdfOf(theme('functional'), locale, profile))).text;
+      expect(at(functional, labels.skills)).toBeLessThan(at(functional, labels.achievements));
+      expect(at(functional, labels.achievements)).toBeLessThan(at(functional, labels.experience));
+      expect(functional).toContain('— Nexo Pagos');
+      // hybrid: competencias antes que la experiencia, que conserva sus logros.
+      const hybrid = (await textOf(await pdfOf(theme('hybrid'), locale, profile))).text;
+      expect(at(hybrid, labels.skills)).toBeLessThan(at(hybrid, labels.experience));
+      expect(hybrid).toContain('Kafka y PostgreSQL');
+      // skills-first: la matriz con nivel y años precede a la experiencia; el nivel se traduce.
+      const skillsFirst = (await textOf(await pdfOf(theme('skills-first'), locale, profile))).text;
+      expect(at(skillsFirst, labels.level)).toBeLessThan(at(skillsFirst, labels.experience));
+      expect(at(skillsFirst, labels.years)).toBeLessThan(at(skillsFirst, labels.experience));
+      expect(skillsFirst).toContain(labels.expert);
+      // project-portfolio: los proyectos abren el documento y la experiencia queda en una línea por puesto (sin logros).
+      const portfolio = (await textOf(await pdfOf(theme('project-portfolio'), locale, profile))).text;
+      expect(at(portfolio, labels.projects)).toBeLessThan(at(portfolio, labels.experience));
+      expect(portfolio).toContain('Kafka Guardian');
+      expect(portfolio).not.toContain('Kafka y PostgreSQL');
+      // one-page: una sola página con las marcas de recorte.
+      const onePage = await textOf(await pdfOf(theme('one-page'), locale, profile));
+      expect(onePage.pages).toBe(1);
+      expect(onePage.text).toMatch(/\(\+\d+\)/);
+      expect(onePage.text).not.toContain('(Valencia (remoto))');
+    }
+  }, 180_000);
 });

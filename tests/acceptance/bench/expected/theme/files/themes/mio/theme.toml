@@ -5,6 +5,7 @@
 name = "mio"
 description = "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 
 [colors]
 text = "#222222"

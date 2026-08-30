@@ -6,6 +6,7 @@
 name = "minimal"
 description = "Monocromo y sin filetes: jerarquía solo por tamaño y peso, listas planas, sin tablas ni columnas; pensado para los ATS"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 author = "Chameleon CV"
 license = "MIT"
 homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"

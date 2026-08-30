@@ -24,7 +24,7 @@ const PPI = 96;
 export const GALLERY_START = '<!-- galería:inicio (bloque generado por npm run docs:themes desde los theme.toml; no editar a mano) -->';
 export const GALLERY_END = '<!-- galería:fin -->';
 
-/** Orden de la galería: el tema por defecto primero y el resto por nombre, como `cv theme list`. */
+/** Orden de la galería (T-8.12): las organizaciones por nombre y después los estilos, con el tema por defecto primero. */
 export async function galleryThemes(): Promise<LoadedTheme[]> {
   const names = await listThemes([builtinThemeRoot()]);
   const themes: LoadedTheme[] = [];
@@ -35,8 +35,22 @@ export async function galleryThemes(): Promise<LoadedTheme[]> {
     }
     themes.push(loaded.theme);
   }
-  return themes;
+  return [...themes.filter((theme) => theme.config.theme.kind === 'organization'), ...themes.filter((theme) => theme.config.theme.kind !== 'organization')];
 }
+
+/** Los dos grupos de la galería: qué aporta cada uno, para la cabecera de su bloque. */
+export const GALLERY_GROUPS: readonly { readonly kind: 'organization' | 'style'; readonly title: string; readonly intro: string }[] = [
+  {
+    kind: 'organization',
+    title: 'Organizaciones',
+    intro: 'Cambian el orden y la agrupación de las secciones: qué se lee primero. Elige una por el tipo de proceso al que te presentas.',
+  },
+  {
+    kind: 'style',
+    title: 'Estilos',
+    intro: 'Mantienen la organización cronológica inversa (experiencia → proyectos → habilidades → logros → formación → certificaciones → idiomas) y cambian la maquetación.',
+  },
+];
 
 function card(theme: LoadedTheme): string {
   const meta = theme.config.theme;
@@ -46,7 +60,7 @@ function card(theme: LoadedTheme): string {
       ? []
       : [`- **Autoría**: ${meta.author}${meta.license === undefined ? '' : ` · licencia ${meta.license}`}${meta.homepage === undefined ? '' : ` · [página del tema](${meta.homepage})`}`];
   return [
-    `## \`${theme.name}\`${theme.name === 'default' ? ' (por defecto)' : ''}`,
+    `### \`${theme.name}\`${theme.name === 'default' ? ' (por defecto)' : ''}`,
     '',
     `![Primera página del CV del banco de pruebas con el tema ${theme.name}](/themes/${theme.name}.png)`,
     '',
@@ -64,9 +78,13 @@ function card(theme: LoadedTheme): string {
   ].join('\n');
 }
 
-/** El bloque de fichas, entre las marcas, tal como debe aparecer en la página. */
+/** El bloque de fichas, entre las marcas, tal como debe aparecer en la página: un apartado por grupo con sus fichas. */
 export function galleryCards(themes: readonly LoadedTheme[]): string {
-  return [GALLERY_START, '', ...themes.map(card), GALLERY_END].join('\n');
+  const groups = GALLERY_GROUPS.map((group) => {
+    const members = themes.filter((theme) => theme.config.theme.kind === group.kind);
+    return [`## ${group.title} (${members.length})`, '', group.intro, '', ...members.map(card)].join('\n');
+  });
+  return [GALLERY_START, '', ...groups, GALLERY_END].join('\n');
 }
 
 /** Sustituye el bloque entre las marcas; sin marcas, la página no es la de la galería. */

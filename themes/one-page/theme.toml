@@ -1,0 +1,48 @@
+# Tema «one-page» de Chameleon CV (T-8.12): organización del contenido (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from one-page`) y genera con `--theme mio`.
+
+[theme]
+name = "one-page"
+description = "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)"
+version = 1
+kind = "organization"   # orden y agrupación de las secciones (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#161616"       # cuerpo de texto
+primary = "#111111"    # nombre y títulos de entrada
+secondary = "#5a5a5a"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#1f4e79"     # enlaces
+rule = "#c9c9c9"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 19
+headline = 10.5
+contact = 8.6
+section = 8.6
+title = 9.8
+meta = 8.4
+body = 9.2
+footer = 8
+code = 8.4
+
+[spacing]              # en «em» del cuerpo
+leading = 0.5         # interlineado
+paragraph = 0.55        # separación entre párrafos
+list = 0.3            # separación entre viñetas
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 12
+right = 13
+bottom = 11
+left = 13

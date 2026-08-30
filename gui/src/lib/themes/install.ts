@@ -51,3 +51,19 @@ export function themeOptionLabel(entry: ThemesResponse['entries'][number]): stri
   const origin = entry.origin === undefined ? '' : ' (instalado)';
   return `${entry.name}${author}${origin}`;
 }
+
+export interface ThemeGroup {
+  readonly label: string;
+  readonly entries: readonly ThemesResponse['entries'][number][];
+}
+
+const GROUPS: readonly { readonly kind: 'organization' | 'style' | undefined; readonly label: string }[] = [
+  { kind: 'organization', label: 'Organizaciones (orden y agrupación de las secciones)' },
+  { kind: 'style', label: 'Estilos (la organización cronológica con otra maquetación)' },
+  { kind: undefined, label: 'Sin clasificar' },
+];
+
+/** Los temas agrupados para un `<optgroup>` por grupo (T-8.12): organizaciones, estilos y sin clasificar; los grupos vacíos no salen. */
+export function themeGroups(entries: readonly ThemesResponse['entries'][number][]): ThemeGroup[] {
+  return GROUPS.map((group) => ({ label: group.label, entries: entries.filter((entry) => entry.kind === group.kind) })).filter((group) => group.entries.length > 0);
+}

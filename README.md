@@ -14,7 +14,7 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 
 - **Un perfil, muchos CV.** Escribes tus fuentes una vez (Markdown y CSV, validadas con rigor) y cada especialidad —`backend`, `engineering-manager`…— genera su propia versión con un comando.
 - **Adaptación a una oferta** (texto, entrada estándar o PDF): el CV se afina con una puntuación transparente y se recorta a lo mejor; `analyze-offer` dice qué demuestras y qué te falta.
-- **Salida** en Markdown (plantillas Handlebars) o PDF: pdfkit sin dependencias, o Typst con temas de calidad editorial (`default`, `classic` o los tuyos).
+- **Salida** en Markdown (plantillas Handlebars) o PDF: pdfkit sin dependencias, o Typst con quince temas de calidad editorial —seis organizaciones del contenido (cronológica, funcional, híbrida, skills-first, portfolio de proyectos y una página) y nueve estilos— o los tuyos.
 - **Co-piloto de IA** que sugiere y nunca decide: reescrituras, resúmenes y etiquetas verificados por código, local por defecto y con consentimiento explícito para cualquier proveedor remoto.
 - **Interfaz web local** (`cv serve --open`): las mismas tareas sin terminal —fuentes, validación, generación con visor de PDF, análisis de ofertas—, servida desde el propio ejecutable solo en `127.0.0.1`, con token de sesión y sin nada externo.
 - **Distribución cuidada**: ejecutable autónomo para linux-x64 con `sha256` y atestación de procedencia, imagen Docker con Compose (incluido un modelo de IA local opcional), o directamente desde el repositorio. Licencia MIT.

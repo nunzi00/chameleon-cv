@@ -138,6 +138,12 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'generate-theme-nada', args: ['generate-cv', '-s', 'platform', '--format', 'pdf', '--engine', 'typst', '--theme', 'nada'], exitCode: 1 },
       { id: 'theme-install-comunidad', args: ['theme', 'install', 'themes/comunidad.zip'], exitCode: 0 },
       { id: 'generate-data-typst-comunidad', args: ['generate-cv', '-s', 'data', '--format', 'pdf', '--engine', 'typst', '--theme', 'comunidad', '-o', 'output/cv-data.typst-comunidad.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-data.typst-comunidad.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-chronological', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'chronological', '-o', 'output/cv-full.typst-chronological.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-chronological.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-functional', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'functional', '-o', 'output/cv-full.typst-functional.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-functional.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-hybrid', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'hybrid', '-o', 'output/cv-full.typst-hybrid.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-hybrid.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-skills-first', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'skills-first', '-o', 'output/cv-full.typst-skills-first.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-skills-first.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-project-portfolio', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'project-portfolio', '-o', 'output/cv-full.typst-project-portfolio.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-project-portfolio.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-one-page', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'one-page', '-o', 'output/cv-full.typst-one-page.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-one-page.pdf', kind: 'pdf' }] },
     ],
   },
   {

@@ -66,47 +66,68 @@ describe('cv theme list (T-5.3)', () => {
       const loaded = await loadTheme(name, [builtinThemeRoot()]);
       return loaded.ok ? loaded.theme.config.theme.description ?? '' : '';
     };
-    // Orden alfabético, nombre alineado al más largo; los temas de T-8.3 llevan autor y licencia.
+    // Agrupados por clase (T-8.12) y, dentro, por orden alfabético con el nombre alineado al más largo; los temas de
+    // la galería llevan autor y licencia.
     const credit = ' · autor: Chameleon CV · licencia: MIT';
+    const width = 'project-portfolio'.length;
+    const line = async (name: string, extra = credit): Promise<string> => `${name.padEnd(width)}  distribuido   ${await describe(name)}${extra}`;
     expect(h.stdout()).toBe(
       [
-        `academic   distribuido   ${await describe('academic')}${credit}`,
-        `awesome    distribuido   ${await describe('awesome')}${credit}`,
-        `classic    distribuido   ${await describe('classic')}`,
-        `default    distribuido   ${defaultThemeConfig().theme.description} · por defecto`,
-        `executive  distribuido   ${await describe('executive')}${credit}`,
-        `minimal    distribuido   ${await describe('minimal')}${credit}`,
-        `modern     distribuido   ${await describe('modern')}${credit}`,
-        `tech       distribuido   ${await describe('tech')}${credit}`,
-        `timeline   distribuido   ${await describe('timeline')}${credit}`,
+        'Organizaciones (orden y agrupación de las secciones):',
+        await line('chronological'),
+        await line('functional'),
+        await line('hybrid'),
+        await line('one-page'),
+        await line('project-portfolio'),
+        await line('skills-first'),
+        'Estilos (la organización cronológica con otra maquetación):',
+        await line('academic'),
+        await line('awesome'),
+        await line('classic', ''),
+        `${'default'.padEnd(width)}  distribuido   ${defaultThemeConfig().theme.description} · por defecto`,
+        await line('executive'),
+        await line('minimal'),
+        await line('modern'),
+        await line('tech'),
+        await line('timeline'),
         '',
       ].join('\n'),
     );
-    expect(h.stderr()).toBe(`9 temas en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
+    expect(h.stderr()).toBe(`15 temas (6 organizaciones, 9 estilos) en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
   });
 
   it('los temas del proyecto van primero, con su validez, si ocultan a un distribuido y el tema por defecto de cv.toml', async () => {
     const h = harness({ ...PROJECT, '/work/cv.toml': '[theme]\nname = "mio"\n' });
     expect(await runCli(['theme', 'list'], h.context)).toBe(EXIT_OK);
+    // Los temas del proyecto sin `kind` (theme.toml anteriores a T-8.12) cierran la lista, en su propio grupo.
     expect(h.stdout().split('\n')).toEqual([
-      'default    del proyecto  sin descripción · oculta al distribuido del mismo nombre',
-      'feo        del proyecto  inválido: Tema «feo» inválido (/work/themes/feo/theme.toml): colors.primary: Color inválido: usa #rrggbb (p. ej. "#1f4e79")',
-      'mio        del proyecto  sin descripción · por defecto',
-      expect.stringMatching(/^academic   distribuido   Serif de una columna/),
-      expect.stringMatching(/^awesome    distribuido   Estilo Awesome-CV/),
-      expect.stringMatching(/^classic    distribuido   Serif tradicional/),
-      expect.stringMatching(/^executive  distribuido   Ejecutivo tipo banking/),
-      expect.stringMatching(/^minimal    distribuido   Monocromo/),
-      expect.stringMatching(/^modern     distribuido   Contemporáneo/),
-      expect.stringMatching(/^tech       distribuido   Skills-first/),
-      expect.stringMatching(/^timeline   distribuido   Línea de tiempo/),
+      'Organizaciones (orden y agrupación de las secciones):',
+      expect.stringMatching(/^chronological      distribuido   Cronológica inversa/),
+      expect.stringMatching(/^functional         distribuido   Funcional/),
+      expect.stringMatching(/^hybrid             distribuido   Híbrida/),
+      expect.stringMatching(/^one-page           distribuido   Una página/),
+      expect.stringMatching(/^project-portfolio  distribuido   Portfolio de proyectos/),
+      expect.stringMatching(/^skills-first       distribuido   Skills-first: matriz/),
+      'Estilos (la organización cronológica con otra maquetación):',
+      expect.stringMatching(/^academic           distribuido   Serif de una columna/),
+      expect.stringMatching(/^awesome            distribuido   Estilo Awesome-CV/),
+      expect.stringMatching(/^classic            distribuido   Serif tradicional/),
+      expect.stringMatching(/^executive          distribuido   Ejecutivo tipo banking/),
+      expect.stringMatching(/^minimal            distribuido   Monocromo/),
+      expect.stringMatching(/^modern             distribuido   Contemporáneo/),
+      expect.stringMatching(/^tech               distribuido   Skills-first para perfiles/),
+      expect.stringMatching(/^timeline           distribuido   Línea de tiempo/),
+      'Sin clasificar (theme.toml sin kind):',
+      'default            del proyecto  sin descripción · oculta al distribuido del mismo nombre',
+      'feo                del proyecto  inválido: Tema «feo» inválido (/work/themes/feo/theme.toml): colors.primary: Color inválido: usa #rrggbb (p. ej. "#1f4e79")',
+      'mio                del proyecto  sin descripción · por defecto',
       '',
     ]);
-    expect(h.stderr()).toContain('11 temas en /work/themes y ');
+    expect(h.stderr()).toContain('17 temas (6 organizaciones, 8 estilos, 3 sin clasificar) en /work/themes y ');
     const broken = harness({ '/work/cv.toml': '[theme\n' });
     expect(await runCli(['theme', 'list'], broken.context)).toBe(EXIT_OK);
     expect(broken.stderr()).toMatch(/^Aviso: Configuración inválida \(\/work\/cv\.toml\):\n  - línea 1: /);
-    expect(broken.stdout()).toContain('default    distribuido   ');
+    expect(broken.stdout()).toContain('default            distribuido   ');
     expect(broken.stdout()).toContain(' · por defecto\n');
   });
 });
@@ -133,7 +154,7 @@ describe('cv theme path <nombre>', () => {
   it('explica el tema inexistente y el nombre inválido', async () => {
     const missing = harness();
     expect(await runCli(['theme', 'path', 'nada'], missing.context)).toBe(EXIT_DATA_ERROR);
-    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, awesome, classic, default, executive, minimal, modern, tech, timeline\n`);
+    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, awesome, chronological, classic, default, executive, functional, hybrid, minimal, modern, one-page, project-portfolio, skills-first, tech, timeline\n`);
     expect(missing.stdout()).toBe('');
     const bad = harness();
     expect(await runCli(['theme', 'path', '../default'], bad.context)).toBe(EXIT_DATA_ERROR);

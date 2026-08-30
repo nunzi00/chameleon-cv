@@ -134,7 +134,7 @@ describe('cv generate-cv --theme (T-5.1)', () => {
 
     const unknown = harness(OK);
     expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'nada'], unknown.context)).toBe(EXIT_DATA_ERROR);
-    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: academic, awesome, classic, default, executive, minimal, modern, tech, timeline\n$/);
+    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: academic, awesome, chronological, classic, default, executive, functional, hybrid, minimal, modern, one-page, project-portfolio, skills-first, tech, timeline\n$/);
     expect(unknown.calls).toEqual([]);
 
     const invalid = harness(OK, { '/work/themes/feo/theme.toml': themeToml('feo').replace('body = 10', 'body = 1'), '/work/themes/feo/template.typ': '' });

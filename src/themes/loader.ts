@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 
 import { NodeFileSystem, type FileSystem } from '../parsers';
 import { describeError } from '../shared/errors';
-import { THEME_NAME_PATTERN, parseThemeConfig, type ThemeConfig } from './schema';
+import { THEME_NAME_PATTERN, parseThemeConfig, type ThemeConfig, type ThemeKind } from './schema';
 
 export const DEFAULT_THEME = 'default';
 export const THEMES_DIRECTORY_NAME = 'themes';
@@ -138,6 +138,8 @@ export interface ThemeInventoryEntry {
   /** Un tema del proyecto con el mismo nombre que uno distribuido: prevalece y lo oculta. */
   readonly shadows: boolean;
   readonly description: string | undefined;
+  /** `organization` o `style` (T-8.12); sin declarar en temas antiguos del proyecto. */
+  readonly kind?: ThemeKind | undefined;
   readonly author: string | undefined;
   readonly license: string | undefined;
   readonly homepage: string | undefined;
@@ -173,6 +175,7 @@ export async function inventoryThemes(roots: readonly ThemeRoot[]): Promise<Them
         builtin: root.builtin,
         shadows: !root.builtin && builtinNames.has(name),
         description: loaded.ok ? loaded.theme.config.theme.description : undefined,
+        kind: loaded.ok ? loaded.theme.config.theme.kind : undefined,
         author: loaded.ok ? loaded.theme.config.theme.author : undefined,
         license: loaded.ok ? loaded.theme.config.theme.license : undefined,
         homepage: loaded.ok ? loaded.theme.config.theme.homepage : undefined,

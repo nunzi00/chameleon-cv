@@ -5,6 +5,7 @@
 name = "default"
 description = "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 
 [colors]
 text = "#1b1b1b"       # cuerpo de texto

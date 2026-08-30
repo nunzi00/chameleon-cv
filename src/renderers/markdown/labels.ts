@@ -2,7 +2,7 @@
  * Etiquetas de la plantilla por idioma (`docs/selector-engine.md` §5.1): una sola plantilla
  * sirve para todos los idiomas; los títulos de sección y palabras fijas salen de aquí.
  */
-import type { SkillCategory } from '../../core/schema';
+import type { SkillCategory, SkillLevel } from '../../core/schema';
 
 export interface Labels {
   readonly experience: string;
@@ -21,6 +21,10 @@ export interface Labels {
   readonly present: string;
   readonly native: string;
   readonly categories: Readonly<Record<SkillCategory, string>>;
+  /** Matriz de skills (T-8.12): cabeceras «nivel» y «años» y el nombre de cada nivel. */
+  readonly level: string;
+  readonly years: string;
+  readonly levels: Readonly<Record<SkillLevel, string>>;
 }
 
 const SPANISH: Labels = {
@@ -51,6 +55,9 @@ const SPANISH: Labels = {
     soft: 'Competencias',
     other: 'Otras',
   },
+  level: 'Nivel',
+  years: 'Años',
+  levels: { beginner: 'Básico', intermediate: 'Intermedio', advanced: 'Avanzado', expert: 'Experto' },
 };
 
 const ENGLISH: Labels = {
@@ -81,6 +88,9 @@ const ENGLISH: Labels = {
     soft: 'Soft skills',
     other: 'Other',
   },
+  level: 'Level',
+  years: 'Years',
+  levels: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', expert: 'Expert' },
 };
 
 /** Idioma del locale (`es-ES` → `es`). */

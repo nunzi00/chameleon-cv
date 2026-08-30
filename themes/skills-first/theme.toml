@@ -1,0 +1,48 @@
+# Tema «skills-first» de Chameleon CV (T-8.12): organización del contenido (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from skills-first`) y genera con `--theme mio`.
+
+[theme]
+name = "skills-first"
+description = "Skills-first: matriz de competencias por categoría con nivel y años antes que nada; después la experiencia completa, proyectos, logros y formación"
+version = 1
+kind = "organization"   # orden y agrupación de las secciones (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1e1e1e"       # cuerpo de texto
+primary = "#222222"    # nombre y títulos de entrada
+secondary = "#5a5a5a"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#7a2e2e"     # enlaces
+rule = "#cfcfcf"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 24
+headline = 11.5
+contact = 9.3
+section = 9.4
+title = 10.8
+meta = 9.3
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55         # interlineado
+paragraph = 0.7        # separación entre párrafos
+list = 0.45            # separación entre viñetas
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 17
+right = 19
+bottom = 16
+left = 19

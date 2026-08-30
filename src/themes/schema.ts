@@ -40,6 +40,8 @@ export const ThemeConfigSchema = z.strictObject({
     author: z.string().trim().min(1).max(120).optional(),
     license: z.string().trim().min(1).max(60).optional(),
     homepage: z.string().trim().max(2048).pipe(z.url({ protocol: /^https$/, error: 'homepage debe ser una URL https' })).optional(),
+    /** Qué aporta el tema (T-8.12): una organización del contenido (`organization`) o un estilo sobre la cronológica (`style`). */
+    kind: z.enum(['organization', 'style'], { error: 'kind debe ser organization o style' }).optional(),
   }),
   colors: z.strictObject({
     /** Cuerpo de texto. */
@@ -84,6 +86,8 @@ export const ThemeConfigSchema = z.strictObject({
 });
 
 export type ThemeConfig = z.output<typeof ThemeConfigSchema>;
+/** `organization` (orden y agrupación de las secciones) o `style` (maquetación sobre la cronológica), T-8.12. */
+export type ThemeKind = NonNullable<ThemeConfig['theme']['kind']>;
 
 export type ThemeParseResult = { readonly ok: true; readonly config: ThemeConfig } | { readonly ok: false; readonly errors: readonly string[] };
 

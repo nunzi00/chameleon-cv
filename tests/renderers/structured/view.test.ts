@@ -45,6 +45,12 @@ describe('buildStructuredView', () => {
       { name: 'Español', level: 'native' },
       { name: 'Inglés', level: 'C1' },
     ]);
+    // Cada skill con su nivel y años si constan (matrices de skills, T-8.12); las claves ausentes no se emiten.
+    expect(view.skillGroups).toEqual([
+      { label: 'Platforms', names: 'Kubernetes', items: [{ name: 'Kubernetes', level: 'advanced', years: 5 }] },
+      { label: 'Other', names: 'PHP', items: [{ name: 'PHP' }] },
+    ]);
+    expect(view.labels.levels.advanced).toBe('Advanced');
     expect(JSON.stringify(view)).not.toContain('null');
   });
 

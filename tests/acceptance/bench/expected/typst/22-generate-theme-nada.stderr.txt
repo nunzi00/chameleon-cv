@@ -1,1 +1,1 @@
-No existe el tema «nada» (buscado en <WS>/themes, <BUILTIN_THEMES>); disponibles: bench, mio, academic, awesome, classic, default, executive, minimal, modern, tech, timeline
+No existe el tema «nada» (buscado en <WS>/themes, <BUILTIN_THEMES>); disponibles: bench, mio, academic, awesome, chronological, classic, default, executive, functional, hybrid, minimal, modern, one-page, project-portfolio, skills-first, tech, timeline

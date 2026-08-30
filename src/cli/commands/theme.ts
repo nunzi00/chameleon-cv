@@ -32,20 +32,37 @@ function describeOrigin(entry: { readonly origin?: { readonly source: string; re
   return `origen: ${entry.origin.source}${state}`;
 }
 
+/** Grupos de `cv theme list` (T-8.12): primero las organizaciones, luego los estilos y al final los temas sin `kind`. */
+const THEME_GROUPS: readonly { readonly kind: 'organization' | 'style' | undefined; readonly heading: string; readonly singular: string; readonly plural: string }[] = [
+  { kind: 'organization', heading: 'Organizaciones (orden y agrupación de las secciones)', singular: 'organización', plural: 'organizaciones' },
+  { kind: 'style', heading: 'Estilos (la organización cronológica con otra maquetación)', singular: 'estilo', plural: 'estilos' },
+  { kind: undefined, heading: 'Sin clasificar (theme.toml sin kind)', singular: 'sin clasificar', plural: 'sin clasificar' },
+];
+
 export async function runThemeList(context: CliContext, options: ThemeListOptions = { verify: false }): Promise<number> {
   const inventory = await themeInventory(context, { verify: options.verify });
   if (inventory.configWarning !== undefined) {
     context.stderr(`Aviso: ${inventory.configWarning}\n`);
   }
   const width = inventory.entries.reduce((max, entry) => Math.max(max, entry.name.length), 0);
-  for (const entry of inventory.entries) {
-    const origin = entry.builtin ? 'distribuido ' : 'del proyecto';
-    const detail = entry.error === undefined ? (entry.description ?? 'sin descripción') : `inválido: ${compactError(entry.error)}`;
-    const credit = [entry.author === undefined ? '' : `autor: ${entry.author}`, entry.license === undefined ? '' : `licencia: ${entry.license}`].filter((note) => note !== '').join(' · ');
-    const notes = [credit, describeOrigin(entry), entry.name === inventory.defaultName ? 'por defecto' : '', entry.shadows ? 'oculta al distribuido del mismo nombre' : ''].filter((note) => note !== '');
-    context.stdout(`${entry.name.padEnd(width)}  ${origin}  ${detail}${notes.length === 0 ? '' : ` · ${notes.join(' · ')}`}\n`);
+  const groups = THEME_GROUPS.map((group) => ({ ...group, entries: inventory.entries.filter((entry) => entry.kind === group.kind) })).filter((group) => group.entries.length > 0);
+  // Con una sola clase de tema (p. ej. un proyecto sin `kind` en ningún theme.toml) la lista sale plana, sin cabeceras.
+  const counts: string[] = [];
+  for (const { entries, ...group } of groups) {
+    counts.push(`${entries.length} ${entries.length === 1 ? group.singular : group.plural}`);
+    if (groups.length > 1) {
+      context.stdout(`${group.heading}:\n`);
+    }
+    for (const entry of entries) {
+      const origin = entry.builtin ? 'distribuido ' : 'del proyecto';
+      const detail = entry.error === undefined ? (entry.description ?? 'sin descripción') : `inválido: ${compactError(entry.error)}`;
+      const credit = [entry.author === undefined ? '' : `autor: ${entry.author}`, entry.license === undefined ? '' : `licencia: ${entry.license}`].filter((note) => note !== '').join(' · ');
+      const notes = [credit, describeOrigin(entry), entry.name === inventory.defaultName ? 'por defecto' : '', entry.shadows ? 'oculta al distribuido del mismo nombre' : ''].filter((note) => note !== '');
+      context.stdout(`${entry.name.padEnd(width)}  ${origin}  ${detail}${notes.length === 0 ? '' : ` · ${notes.join(' · ')}`}\n`);
+    }
   }
-  context.stderr(`${pluralize(inventory.entries.length, 'tema', 'temas')} en ${inventory.roots.map((root) => root.directory).join(' y ')}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
+  const summary = counts.length > 1 ? ` (${counts.join(', ')})` : '';
+  context.stderr(`${pluralize(inventory.entries.length, 'tema', 'temas')}${summary} en ${inventory.roots.map((root) => root.directory).join(' y ')}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
   return EXIT_OK;
 }
 

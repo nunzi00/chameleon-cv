@@ -1,6 +1,6 @@
 # Catálogo de temas: quince estilos y seis organizaciones (T-8.12) — PROPUESTA v1
 
-Estado: PROPUESTA (2026-08-30) · Encargo del Director · Pendiente de aprobación del PO
+Estado: APROBADA por el PO (2026-08-30, D1–D4) · Parte 1 (organizaciones) IMPLEMENTADA el 2026-08-30 · Parte 2 (estilos) pendiente
 
 ## §0 Encargo
 
@@ -47,3 +47,9 @@ con una generación por organización; goldens regenerados.
 2. **D2** Metadato `kind` en `theme.toml` (obligatorio en los integrados, opcional en los del proyecto).
 3. **D3** Entrega en dos partes: organizaciones (más valor) y después estilos.
 4. **D4** Versión 1.8.0.
+
+## §6 Estado de la implementación
+
+- **Parte 1 (2026-08-30)**: `themes/{chronological,functional,hybrid,skills-first,project-portfolio,one-page}` (plantillas autocontenidas con el bloque común de `default` y su documento propio; `kind = "organization"`, autoría y licencia como los de la galería). `kind` en `ThemeConfigSchema` (`organization` | `style`, opcional; los nueve estilos lo declaran), en el inventario (`ThemeInventoryEntry.kind`), en `cv theme list` (tres grupos con cabecera y resumen con cuentas), en la galería (`## Organizaciones (6)` / `## Estilos (9)`, fichas en H3) y en Generar (`<optgroup>` por grupo; `themeGroups`). La vista estructurada añade `skillGroups[].items[]` y `labels.level/years/levels` para la matriz de `skills-first`. Pruebas: `tests/themes/builtin.test.ts` (quince temas, clase de cada uno, y con Typst real el orden de secciones de cada organización con el perfil del banco, «— Nexo Pagos» en la funcional, nivel traducido en la matriz, una página y marcas «(+N)» en `one-page`), `cv theme list` unitaria y en el arnés (`core`, `theme`), seis generaciones nuevas en `typst`, galería regenerada con capturas.
+- Desviaciones respecto a §2: `skills-first` imprime «—» cuando una skill no tiene nivel o años; `one-page` recorta a cinco puestos × cuatro logros, tres proyectos y tres logros destacados y no imprime los resúmenes de puesto/proyecto (documentado en su ficha); la miniatura en el plegable de temas de Generar queda para la parte 2 (necesita servir la captura desde la API).
+- **Parte 2**: seis estilos (`elegant`, `bold`, `compact-grid`, `monochrome`, `warm`, `europass-like`) → 21 temas; versión 1.8.0.

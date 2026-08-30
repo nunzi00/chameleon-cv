@@ -7,6 +7,7 @@
 name = "timeline"
 description = "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 author = "Chameleon CV"
 license = "MIT"
 homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"

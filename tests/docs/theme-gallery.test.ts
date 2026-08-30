@@ -14,10 +14,30 @@ const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 describe('galería de temas (T-8.3)', () => {
   it('la página contiene exactamente las fichas generadas desde los theme.toml y una imagen PNG por tema', async () => {
     const themes = await galleryThemes();
-    expect(themes.map((theme) => theme.name)).toEqual(['default', 'academic', 'awesome', 'classic', 'executive', 'minimal', 'modern', 'tech', 'timeline']);
+    expect(themes.map((theme) => theme.name)).toEqual([
+      'chronological',
+      'functional',
+      'hybrid',
+      'one-page',
+      'project-portfolio',
+      'skills-first',
+      'default',
+      'academic',
+      'awesome',
+      'classic',
+      'executive',
+      'minimal',
+      'modern',
+      'tech',
+      'timeline',
+    ]);
     const page = readFileSync(GALLERY_PAGE, 'utf8');
     const cards = galleryCards(themes);
     expect(page).toContain(cards);
+    // Dos apartados (T-8.12): las organizaciones y los estilos, cada uno con su cuenta y sus fichas.
+    expect(cards.indexOf('## Organizaciones (6)')).toBeLessThan(cards.indexOf('### `chronological`'));
+    expect(cards.indexOf('### `skills-first`')).toBeLessThan(cards.indexOf('## Estilos (9)'));
+    expect(cards.indexOf('## Estilos (9)')).toBeLessThan(cards.indexOf('### `default` (por defecto)'));
     expect(replaceGallery(page, cards)).toBe(page);
     for (const theme of themes) {
       const image = join(GALLERY_IMAGES, `${theme.name}.png`);

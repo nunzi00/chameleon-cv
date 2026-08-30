@@ -7,6 +7,7 @@
 name = "tech"
 description = "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 author = "Chameleon CV"
 license = "MIT"
 homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"

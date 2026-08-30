@@ -8,6 +8,7 @@
 name = "awesome"
 description = "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2"
 version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
 author = "Chameleon CV"
 license = "MIT"
 homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"

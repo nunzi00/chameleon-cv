@@ -34,9 +34,18 @@ export interface StructuredProject extends StructuredContainer {
   readonly meta: string;
 }
 
+export interface StructuredSkillItem {
+  readonly name: string;
+  /** Clave del nivel (`beginner` … `expert`); el nombre traducido está en `labels.levels`. */
+  readonly level?: string;
+  readonly years?: number;
+}
+
 export interface StructuredSkillGroup {
   readonly label: string;
   readonly names: string;
+  /** Cada skill con su nivel y años, si constan (matrices de skills, T-8.12). */
+  readonly items: readonly StructuredSkillItem[];
 }
 
 export interface StructuredEducation {
@@ -132,7 +141,11 @@ export function buildStructuredView(profile: MasterProfile, locale: string): Str
       achievements: item.achievements.map(achievement),
       technologies: item.technologies,
     })),
-    skillGroups: view.skillGroups.map((group) => ({ label: group.label, names: group.names })),
+    skillGroups: view.skillGroups.map((group) => ({
+      label: group.label,
+      names: group.names,
+      items: group.skills.map((skill) => ({ name: skill.name, ...optional('level', skill.level), ...(skill.years === undefined ? {} : { years: skill.years }) })),
+    })),
     achievements: view.achievements.map(achievement),
     education: view.education.map((item) => ({
       degree: item.degree,

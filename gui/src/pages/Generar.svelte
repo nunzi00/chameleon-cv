@@ -13,7 +13,7 @@
   import { describeHistoryEntries } from '../lib/generate/history';
   import { analysisView, reportSections, type AnalysisView, type ReportSection } from '../lib/generate/report';
   import type { Route } from '../lib/router';
-  import { describeInstalled, installProblem, themeOptionLabel, type InstallProblem } from '../lib/themes/install';
+  import { describeInstalled, installProblem, themeGroups, themeOptionLabel, type InstallProblem } from '../lib/themes/install';
 
   interface Props {
     api: ApiClient;
@@ -313,7 +313,11 @@
               <span>Tema</span>
               <select name="theme" bind:value={form.theme} disabled={form.format !== 'pdf' || form.engine !== 'typst'}>
                 <option value="">Por defecto ({themes.defaultName})</option>
-                {#each themes.entries as entry (entry.name)}<option value={entry.name}>{themeOptionLabel(entry)}</option>{/each}
+                {#each themeGroups(themes.entries) as group (group.label)}
+                  <optgroup label={group.label}>
+                    {#each group.entries as entry (entry.name)}<option value={entry.name}>{themeOptionLabel(entry)}</option>{/each}
+                  </optgroup>
+                {/each}
               </select>
             </label>
           {:else}

@@ -28,6 +28,14 @@
       "domain": "Dominio",
       "soft": "Competencias",
       "other": "Otras"
+    },
+    "level": "Nivel",
+    "years": "Años",
+    "levels": {
+      "beginner": "Básico",
+      "intermediate": "Intermedio",
+      "advanced": "Avanzado",
+      "expert": "Experto"
     }
   },
   "fullName": "Ada Ejemplo",
@@ -122,15 +130,30 @@
   "skillGroups": [
     {
       "label": "Lenguajes",
-      "names": "PHP"
+      "names": "PHP",
+      "items": [
+        {
+          "name": "PHP"
+        }
+      ]
     },
     {
       "label": "Plataformas",
-      "names": "Kubernetes"
+      "names": "Kubernetes",
+      "items": [
+        {
+          "name": "Kubernetes"
+        }
+      ]
     },
     {
       "label": "Competencias",
-      "names": "Comunicación"
+      "names": "Comunicación",
+      "items": [
+        {
+          "name": "Comunicación"
+        }
+      ]
     }
   ],
   "achievements": [],
