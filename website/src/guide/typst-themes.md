@@ -24,7 +24,9 @@ Al generar, Typst se ejecuta como proceso hijo **contenido**: stdin/stdout sin f
 
 El aspecto lo decide un **tema**: un directorio `themes/<nombre>/` con `theme.toml` —las variables de diseño: colores, tipografías, tamaños, espaciados y página, **validadas** antes de arrancar Typst— y `template.typ`, la maquetación, que recibe la vista estructurada y esas variables. `--theme <nombre>` elige el tema, buscándolo primero en `themes/` de tu proyecto y después entre los distribuidos.
 
-Se distribuyen dos temas: **`default`** (Source Sans 3, jerarquía sobria con versalitas y fechas alineadas) y **`classic`** (serif Libertinus, cabecera centrada bajo un doble filete, secciones en mayúsculas y cuerpo justificado: aire académico o tradicional). Ambos maquetan exactamente el mismo contenido.
+Se distribuyen cinco temas, todos con el mismo contenido y el mismo contrato: **`default`** (Source Sans 3, jerarquía sobria con versalitas y fechas alineadas), **`classic`** (serif Libertinus, cabecera centrada bajo un doble filete, secciones en mayúsculas y cuerpo justificado), **`modern`** (franja de acento en la cabecera, columna lateral con contacto, skills e idiomas, periodos en pastillas), **`academic`** (serif de una columna para trayectorias largas: secciones numeradas, fechas al margen y pie «Nombre · página X de Y») y **`minimal`** (monocromo, sin filetes ni columnas, pensado para los sistemas de filtrado de candidaturas). Míralos en la [galería de temas](./theme-gallery) y parte de cualquiera con `cv theme create mio --from <tema>`.
+
+Un tema puede declarar en `[theme]` quién lo firma: `author`, `license` (se sugiere un identificador SPDX) y `homepage` (URL `https`); `cv theme list` los muestra junto a la descripción.
 
 ```bash
 cv theme list                                                        # qué temas hay, de dónde salen y cuál es el de por defecto

@@ -52,6 +52,7 @@ export default defineConfig({
             { text: 'Generar el CV', link: '/guide/generate' },
             { text: 'Adaptar el CV a una oferta', link: '/guide/offers' },
             { text: 'Typst y temas', link: '/guide/typst-themes' },
+            { text: 'Galería de temas', link: '/guide/theme-gallery' },
             { text: 'Co-piloto de IA', link: '/guide/copilot' },
             { text: 'Configurar el co-piloto', link: '/guide/copilot-settings' },
             { text: 'La interfaz web', link: '/guide/web' },

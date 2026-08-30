@@ -26,6 +26,7 @@ import {
   typstVersion,
   type CompileErrorCode,
   type LocateOptions,
+  type OutputFormat,
   type ProcessRunner,
   type TypstLocation,
 } from './engine';
@@ -61,6 +62,10 @@ export type TypstRenderResult =
   | { readonly ok: true; readonly pdf: Buffer; readonly binary: TypstLocation; readonly version: string }
   | { readonly ok: false; readonly error: TypstRenderError };
 
+type RenderedBytes =
+  | { readonly ok: true; readonly bytes: Buffer; readonly binary: TypstLocation; readonly version: string }
+  | { readonly ok: false; readonly error: TypstRenderError };
+
 export async function isReadableFile(path: string): Promise<boolean> {
   try {
     await access(path, constants.R_OK);
@@ -74,7 +79,7 @@ export function notFoundMessage(): string {
   return `No se encontró Typst ${TYPST_VERSION}: ejecuta «cv typst install», indica su ruta con --typst-path o ${TYPST_ENV_VARIABLE}, o instálalo en el PATH (${TYPST_RELEASES_URL})`;
 }
 
-export async function renderTypstCv(profile: MasterProfile, options: TypstRenderOptions = {}): Promise<TypstRenderResult> {
+async function render(profile: MasterProfile, options: TypstRenderOptions, output: OutputFormat): Promise<RenderedBytes> {
   const runner = options.runner ?? runProcess;
   const platform = options.platform ?? process.platform;
   const env = containedEnvironment(platform, options.env ?? process.env);
@@ -125,11 +130,35 @@ export async function renderTypstCv(profile: MasterProfile, options: TypstRender
         creationTimestamp: Math.floor(created.getTime() / 1000),
         timeoutMs: options.timeoutMs,
         env,
+        output,
       },
       runner,
     );
   } catch (error) {
     return { ok: false, error: { code: 'failed', message: `No se pudo ejecutar Typst: ${describeError(error)}` } };
   }
-  return result.ok ? { ok: true, pdf: result.pdf, binary, version: version.version } : { ok: false, error: { code: result.code, message: result.message } };
+  return result.ok ? { ok: true, bytes: result.bytes, binary, version: version.version } : { ok: false, error: { code: result.code, message: result.message } };
+}
+
+/** `MasterProfile` → PDF con Typst (documento completo). */
+export async function renderTypstCv(profile: MasterProfile, options: TypstRenderOptions = {}): Promise<TypstRenderResult> {
+  const result = await render(profile, options, { format: 'pdf' });
+  return result.ok ? { ok: true, pdf: result.bytes, binary: result.binary, version: result.version } : result;
+}
+
+/** Resolución por defecto de la vista previa: A4 a 96 ppp son 794 × 1123 px. */
+export const DEFAULT_PREVIEW_PPI = 96;
+
+export interface TypstPreviewOptions extends TypstRenderOptions {
+  readonly ppi?: number | undefined;
+}
+
+export type TypstPreviewResult =
+  | { readonly ok: true; readonly png: Buffer; readonly binary: TypstLocation; readonly version: string }
+  | { readonly ok: false; readonly error: TypstRenderError };
+
+/** Primera página como PNG (galería de temas, T-8.3): el mismo proceso contenido con otro formato de salida. */
+export async function renderTypstPreview(profile: MasterProfile, options: TypstPreviewOptions = {}): Promise<TypstPreviewResult> {
+  const result = await render(profile, options, { format: 'png', ppi: options.ppi ?? DEFAULT_PREVIEW_PPI });
+  return result.ok ? { ok: true, png: result.bytes, binary: result.binary, version: result.version } : result;
 }

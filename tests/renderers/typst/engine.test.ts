@@ -91,7 +91,7 @@ describe('compileTypst', () => {
   it('devuelve el PDF de stdout y pasa la fuente por stdin con el entorno contenido y el root como cwd', async () => {
     const calls: ProcessRequest[] = [];
     const result = await compileTypst(REQUEST, fakeRunner({ kind: 'exited', status: 0, stdout: PDF, stderr: '' }, calls));
-    expect(result).toEqual({ ok: true, pdf: PDF });
+    expect(result).toEqual({ ok: true, bytes: PDF });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ file: '/opt/typst', args: typstArguments(REQUEST), input: REQUEST.source, cwd: '/tpl', timeoutMs: TYPST_LIMITS.timeoutMs, maxOutputBytes: TYPST_LIMITS.maxOutputBytes });
     expect(calls[0]?.env).toEqual(containedEnvironment());
@@ -236,5 +236,22 @@ describe('runProcess (binarios de prueba reales)', () => {
     expect(classifyExecError(Object.assign(new Error('killed'), { killed: true, signal: 'SIGKILL' as const }), out, err)).toEqual({ kind: 'timeout' });
     expect(classifyExecError(Object.assign(new Error('exit'), { code: 2 }), out, err)).toEqual({ kind: 'exited', status: 2, stdout: out, stderr: 'e' });
     expect(classifyExecError(Object.assign(new Error('spawn EACCES'), { code: 'EACCES' }), out, err)).toEqual({ kind: 'failed', message: 'spawn EACCES' });
+  });
+});
+
+describe('salida PNG (T-8.3, galería de temas)', () => {
+  const request: CompileRequest = { binary: '/opt/typst', source: '#cv', root: '/tpl', fontsDirectories: ['/fonts'], creationTimestamp: 0, output: { format: 'png', ppi: 96 } };
+  const exited =
+    (stdout: Buffer): ProcessRunner =>
+    () =>
+      Promise.resolve({ kind: 'exited', status: 0, stdout, stderr: '' });
+
+  it('añade --format png, --ppi y --pages 1 al argv fijo y exige la firma PNG en la salida; el formato pdf no cambia nada', async () => {
+    expect(typstArguments(request).slice(-8)).toEqual(['--diagnostic-format', 'short', '--format', 'png', '--ppi', '96', '--pages', '1']);
+    expect(typstArguments({ ...request, output: { format: 'pdf' } })).toEqual(typstArguments({ ...request, output: undefined }));
+    const png = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('imagen falsa', 'latin1')]);
+    expect(await compileTypst(request, exited(png))).toEqual({ ok: true, bytes: png });
+    expect(await compileTypst(request, exited(Buffer.from('%PDF-1.7 falso', 'latin1')))).toEqual({ ok: false, code: 'failed', message: 'La salida de Typst no es un PNG' });
+    expect(await compileTypst({ ...request, output: { format: 'pdf' } }, exited(png))).toEqual({ ok: false, code: 'failed', message: 'La salida de Typst no es un PDF' });
   });
 });

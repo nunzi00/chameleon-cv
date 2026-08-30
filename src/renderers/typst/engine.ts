@@ -129,9 +129,16 @@ export interface CompileRequest {
   readonly creationTimestamp: number;
   readonly timeoutMs?: number | undefined;
   readonly env?: NodeJS.ProcessEnv | undefined;
+  /** Formato de salida: PDF (por defecto) o la primera página como PNG a `ppi` puntos por pulgada (galería de temas, T-8.3). */
+  readonly output?: OutputFormat | undefined;
 }
 
-/** `argv` fijo de la compilación (§3.1): nada del usuario entra aquí salvo rutas ya resueltas. */
+export type OutputFormat = { readonly format: 'pdf' } | { readonly format: 'png'; readonly ppi: number };
+
+const PDF_SIGNATURE = Buffer.from('%PDF-', 'latin1');
+const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
+
+/** `argv` fijo de la compilación (§3.1): nada del usuario entra aquí salvo rutas ya resueltas y, para la galería, el formato PNG. */
 export function typstArguments(request: CompileRequest): string[] {
   return [
     'compile',
@@ -149,13 +156,15 @@ export function typstArguments(request: CompileRequest): string[] {
     String(request.creationTimestamp),
     '--diagnostic-format',
     'short',
+    // PNG por stdout solo cabe una página: la primera. `--pages` limita antes de exportar.
+    ...(request.output?.format === 'png' ? ['--format', 'png', '--ppi', String(request.output.ppi), '--pages', '1'] : []),
   ];
 }
 
 export type CompileErrorCode = 'compile-error' | 'timeout' | 'failed';
 
 export type CompileResult =
-  | { readonly ok: true; readonly pdf: Buffer }
+  | { readonly ok: true; readonly bytes: Buffer }
   | { readonly ok: false; readonly code: CompileErrorCode; readonly message: string };
 
 export async function compileTypst(request: CompileRequest, runner: ProcessRunner = runProcess): Promise<CompileResult> {
@@ -181,10 +190,12 @@ export async function compileTypst(request: CompileRequest, runner: ProcessRunne
           ? { ok: false, code: 'failed', message: `Typst terminó con código ${outcome.status} sin diagnóstico` }
           : { ok: false, code: 'compile-error', message: diagnostics };
       }
-      if (!outcome.stdout.subarray(0, 5).equals(Buffer.from('%PDF-', 'latin1'))) {
-        return { ok: false, code: 'failed', message: 'La salida de Typst no es un PDF' };
+      const png = request.output?.format === 'png';
+      const signature = png ? PNG_SIGNATURE : PDF_SIGNATURE;
+      if (!outcome.stdout.subarray(0, signature.length).equals(signature)) {
+        return { ok: false, code: 'failed', message: `La salida de Typst no es un ${png ? 'PNG' : 'PDF'}` };
       }
-      return { ok: true, pdf: outcome.stdout };
+      return { ok: true, bytes: outcome.stdout };
   }
 }
 

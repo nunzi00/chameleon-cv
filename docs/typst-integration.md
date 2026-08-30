@@ -57,6 +57,7 @@ typst compile - - --root <dir-plantilla> --font-path templates/fonts --ignore-sy
 ```
 
 - `INPUT = -` lee el documento principal de stdin; `OUTPUT = -` escribe el PDF en stdout (ambos documentados en `typst compile --help` y verificados).
+- Galería de temas (T-8.3): el mismo `argv` más `--format png --ppi <n> --pages 1` exporta la **primera página como PNG** por stdout (`renderTypstPreview`, usado solo por `npm run docs:themes`); la salida se comprueba por su firma (`%PDF-` o la de PNG) antes de aceptarla.
 - El documento principal es **generado por nosotros** y mide dos líneas: `#import "/cv.typ": cv` y `#cv(json(bytes("<JSON escapado>")))`. El `CvView` viaja **como literal de cadena Typst** (solo escapes `\\`, `\"` y `\u{..}` para controles): los datos nunca son código, nunca están en `argv` (visible en `ps` para cualquier usuario de la máquina) y nunca tocan el disco. `--input key=value` existe pero pasa por `argv`: descartado para datos personales.
 - Diagnósticos por stderr (`--diagnostic-format short` → `fichero:línea:col: mensaje`) con código de salida 1: se traducen a nuestro código 1 (plantilla o datos) o 2 (binario ausente, tiempo agotado, fallo de proceso).
 

@@ -11,6 +11,7 @@ import { extractPdfText } from '../../../src/pdf';
 import { FONTS_DIRECTORY } from '../../../src/renderers/pdf';
 import { buildStructuredView } from '../../../src/renderers/structured';
 import {
+  DEFAULT_PREVIEW_PPI,
   DEFAULT_TYPST_TEMPLATE,
   NETWORK_KILL_SWITCH,
   TYPST_VERSION,
@@ -18,6 +19,7 @@ import {
   mainDocument,
   notFoundMessage,
   renderTypstCv,
+  renderTypstPreview,
   type ProcessOutcome,
   type ProcessRequest,
   type ProcessRunner,
@@ -236,5 +238,45 @@ describe('renderTypstCv con temas (T-5.1)', () => {
     // Sin tema y sin el default distribuido a mano: error explicado.
     const missing = await renderTypstCv(backend(), { ...FOUND, builtinThemes: { directory: '/vacio', fileSystem: new MemoryFileSystem({}), builtin: true }, runner: fakeRunner(VERSION_OK, VERSION_OK) });
     expect(missing).toEqual({ ok: false, error: { code: 'theme-invalid', message: 'No existe el tema «default» (buscado en /vacio); disponibles: ninguno' } });
+  });
+});
+
+describe('renderTypstPreview (T-8.3): la primera página como PNG', () => {
+  const PNG = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('png falso', 'latin1')]);
+  const PNG_OK: ProcessOutcome = { kind: 'exited', status: 0, stdout: PNG, stderr: '' };
+
+  it('usa el mismo proceso contenido con --format png a 96 ppp por defecto o la resolución pedida; los errores son los del PDF', async () => {
+    const calls: ProcessRequest[] = [];
+    const result = await renderTypstPreview(backend(), { ...FOUND, runner: fakeRunner(VERSION_OK, PNG_OK, calls) });
+    expect(result).toMatchObject({ ok: true, png: PNG, version: TYPST_VERSION });
+    expect(calls[1]?.args.slice(-6)).toEqual(['--format', 'png', '--ppi', String(DEFAULT_PREVIEW_PPI), '--pages', '1']);
+    expect(calls[1]?.input).toContain('#import "/template.typ": cv');
+    const custom: ProcessRequest[] = [];
+    await renderTypstPreview(backend(), { ...FOUND, ppi: 150, runner: fakeRunner(VERSION_OK, PNG_OK, custom) });
+    expect(custom[1]?.args.slice(-6)).toEqual(['--format', 'png', '--ppi', '150', '--pages', '1']);
+    const pdfInstead: ProcessOutcome = { kind: 'exited', status: 0, stdout: PDF, stderr: '' };
+    expect(await renderTypstPreview(backend(), { ...FOUND, runner: fakeRunner(VERSION_OK, pdfInstead) })).toEqual({
+      ok: false,
+      error: { code: 'failed', message: 'La salida de Typst no es un PNG' },
+    });
+    expect(await renderTypstPreview(backend(), { env: {}, platform: 'linux', home: '/h', isExecutable: () => Promise.resolve(false) })).toEqual({
+      ok: false,
+      error: { code: 'not-found', message: notFoundMessage() },
+    });
+  });
+
+  describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('binario real', () => {
+    it('produce un PNG determinista de la primera página (A4 a 96 ppp: 794 × 1123 px) y la resolución cambia el tamaño', async () => {
+      const first = await renderTypstPreview(backend());
+      const second = await renderTypstPreview(backend());
+      if (!first.ok || !second.ok) {
+        throw new Error(JSON.stringify([first, second]));
+      }
+      expect(first.png.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))).toBe(true);
+      expect([first.png.readUInt32BE(16), first.png.readUInt32BE(20)]).toEqual([794, 1123]);
+      expect(first.png.equals(second.png)).toBe(true);
+      const small = await renderTypstPreview(backend(), { ppi: 24 });
+      expect(small.ok && small.png.length < first.png.length).toBe(true);
+    });
   });
 });
