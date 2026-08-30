@@ -1,1 +1,1 @@
-6 temas en <WS>/themes y <BUILTIN_THEMES>; elige uno con --theme <nombre> o con [theme] name en cv.toml
+8 temas en <WS>/themes y <BUILTIN_THEMES>; elige uno con --theme <nombre> o con [theme] name en cv.toml
