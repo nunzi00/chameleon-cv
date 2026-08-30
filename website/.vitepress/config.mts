@@ -53,6 +53,7 @@ export default defineConfig({
             { text: 'Adaptar el CV a una oferta', link: '/guide/offers' },
             { text: 'Typst y temas', link: '/guide/typst-themes' },
             { text: 'Co-piloto de IA', link: '/guide/copilot' },
+            { text: 'Configurar el co-piloto', link: '/guide/copilot-settings' },
             { text: 'La interfaz web', link: '/guide/web' },
             { text: 'Exportar e importar el perfil', link: '/guide/portability' },
             { text: 'La API local (cv serve)', link: '/guide/api' },
