@@ -10,6 +10,8 @@ import { MODEL_LIMITS, ModelDraftSchema, SYSTEM_PROMPT, modelJsonSchema, verifyM
 export interface ModelOutcome {
   readonly ok: true;
   readonly draft: DraftProfile;
+  /** La respuesta del modelo validada por el esquema, antes de la verificación. */
+  readonly raw: unknown;
   readonly dropped: Dropped;
   readonly model: string;
   readonly elapsedMs: number;
@@ -43,5 +45,5 @@ export async function structureWithModel(provider: LlmProvider, text: string, se
     return { ok: false, message: `la respuesta no cumple el esquema: ${parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).slice(0, 5).join('; ')}`, elapsedMs };
   }
   const verified = verifyModelDraft(parsed.data, text);
-  return { ok: true, draft: verified.draft, dropped: verified.dropped, model: completion.model, elapsedMs, promptTokens: completion.usage.promptTokens, completionTokens: completion.usage.completionTokens };
+  return { ok: true, draft: verified.draft, raw: parsed.data, dropped: verified.dropped, model: completion.model, elapsedMs, promptTokens: completion.usage.promptTokens, completionTokens: completion.usage.completionTokens };
 }

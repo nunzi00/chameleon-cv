@@ -1,7 +1,7 @@
 /**
  * Punto de entrada del spike (T-8.4):
  *   npm run spike:pdf-import -- corpus
- *   npm run spike:pdf-import -- measure [--candidate p1|p2|p3] [--only a|b|c] [--limit n]
+ *   npm run spike:pdf-import -- measure [--candidate p1|p2|p3] [--only a|b|c|<grupo>/<nombre…>] [--limit n]
  *   npm run spike:pdf-import -- compare        (mide p1 y p3, y p2 si hay servidor local, y escribe la tabla comparativa)
  *   npm run spike:pdf-import -- all
  * Escribe las tablas en build/spike/pdf-import/results-<candidato>.md; no toca src/ ni el producto.

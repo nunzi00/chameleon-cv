@@ -4,12 +4,13 @@
  * + co-piloto local guiado por el esquema, verificado por código)— la tarjeta frente a la verdad y la tabla Markdown
  * generada. Los PDF sin verdad (grupo C) se registran con el resultado del extractor.
  */
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { parseMasterProfile, type MasterProfile } from '../../../src/core/schema';
 import { selectProvider, type LlmProvider } from '../../../src/llm';
 import { extractPdfText } from '../../../src/pdf';
-import { readCorpus, type CorpusEntry } from './corpus';
+import { CORPUS_ROOT, readCorpus, type CorpusEntry } from './corpus';
 import { extractItems } from './items';
 import { layoutText } from './layout';
 import { markdownTable, score, textCoverage, type Row } from './metrics';
@@ -60,6 +61,13 @@ interface Structured {
   readonly milliseconds: number;
   readonly dropped: { entries: number; achievements: number; fields: number };
   readonly text: string;
+  /** P2: la respuesta del modelo tal cual, antes de la verificación (para el análisis de errores). */
+  readonly raw?: unknown;
+}
+
+/** Borradores por candidato y PDF, para el análisis de errores: `build/spike/pdf-import/drafts/<candidato>/<grupo>-<nombre>.json`. */
+export function draftsPath(candidate: Candidate, entry: CorpusEntry): string {
+  return join(CORPUS_ROOT, '..', 'drafts', candidate, `${entry.group}-${entry.name}.json`);
 }
 
 async function structure(candidate: Candidate, bytes: Uint8Array, text: string, provider: LlmProvider | undefined): Promise<Structured | { readonly error: string }> {
@@ -86,7 +94,7 @@ async function structure(candidate: Candidate, bytes: Uint8Array, text: string, 
   if (!first.ok) {
     return { error: first.message };
   }
-  return { draft: first.draft, again: undefined, milliseconds: first.elapsedMs, dropped: first.dropped, text };
+  return { draft: first.draft, again: undefined, milliseconds: first.elapsedMs, dropped: first.dropped, text, raw: first.raw };
 }
 
 export async function measureEntry(entry: CorpusEntry, candidate: Candidate, provider: LlmProvider | undefined): Promise<{ readonly row: Row | undefined; readonly limit: LimitRow | undefined; readonly deterministic: boolean; readonly dropped: Structured['dropped'] }> {
@@ -107,6 +115,9 @@ export async function measureEntry(entry: CorpusEntry, candidate: Candidate, pro
   if ('error' in structured) {
     return { row: undefined, limit: { name, outcome: `${candidate}: ${structured.error}`, milliseconds: extractionMs }, deterministic: true, dropped: none };
   }
+  const target = draftsPath(candidate, entry);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, JSON.stringify({ text: structured.text, draft: structured.draft, raw: structured.raw }, null, 1));
   return {
     row: { name, candidate, coverage: textCoverage(truth, structured.text), card: score(truth, structured.draft), milliseconds: extractionMs + structured.milliseconds },
     limit: undefined,
@@ -116,7 +127,7 @@ export async function measureEntry(entry: CorpusEntry, candidate: Candidate, pro
 }
 
 export async function measure(candidate: Candidate, entries: readonly CorpusEntry[] = readCorpus(), options: MeasureOptions = {}): Promise<Measurement> {
-  const selected = entries.filter((entry) => options.only === undefined || entry.group === options.only).slice(0, options.limit ?? entries.length);
+  const selected = entries.filter((entry) => options.only === undefined || entry.group === options.only || `${entry.group}/${entry.name}`.startsWith(options.only)).slice(0, options.limit ?? entries.length);
   const provider = candidate === 'p2' ? (options.provider ?? (await localProvider())) : undefined;
   const rows: Row[] = [];
   const limits: LimitRow[] = [];

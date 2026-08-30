@@ -19,13 +19,20 @@ const TEXT = [
   'Español (nativo) · Inglés (C1)',
 ].join('\n');
 
+type Entry = ModelDraft['experience'][number];
+const entry = (partial: Partial<Entry> & { title: string }): Entry => ({ subtitle: null, location: null, start: null, end: null, current: null, date: null, url: null, summary: null, technologies: [], achievements: [], ...partial });
+const blank: ModelDraft = { fullName: null, headline: null, email: null, phone: null, location: null, links: [], summary: null, experience: [], projects: [], education: [], certifications: [], skills: [], achievements: [], languages: [] };
+
 describe('normalizeDate', () => {
-  it('normaliza al formato del esquema y descarta lo que no cuadra', () => {
+  it('normaliza al formato del esquema, entiende meses en letras y descarta lo que no cuadra', () => {
     expect(normalizeDate(undefined)).toBeUndefined();
+    expect(normalizeDate(null)).toBeUndefined();
     expect(normalizeDate('2020')).toBe('2020');
     expect(normalizeDate(' 2020-3 ')).toBe('2020-03');
     expect(normalizeDate('2020-03-07')).toBe('2020-03-07');
-    expect(normalizeDate('marzo 2020')).toBeUndefined();
+    expect(normalizeDate('marzo 2020')).toBe('2020-03');
+    expect(normalizeDate('Mar 2022')).toBe('2022-03');
+    expect(normalizeDate('actualidad')).toBeUndefined();
   });
 });
 
@@ -41,13 +48,14 @@ describe('present', () => {
 });
 
 describe('modelJsonSchema', () => {
-  it('es un objeto cerrado con las secciones del borrador', () => {
+  it('es un objeto cerrado con todas las claves obligatorias (v2)', () => {
     const schema = modelJsonSchema();
     expect(schema['type']).toBe('object');
     expect(schema['additionalProperties']).toBe(false);
-    expect(Object.keys(schema['properties'] as Record<string, unknown>)).toEqual(expect.arrayContaining(['fullName', 'experience', 'education', 'skills', 'languages']));
+    expect(schema['required']).toEqual(expect.arrayContaining(['fullName', 'email', 'experience', 'education', 'skills', 'languages']));
     expect(SYSTEM_PROMPT).toContain('LITERALMENTE');
-    expect(MODEL_PROMPT_VERSION).toBe('structure-cv.v1');
+    expect(SYSTEM_PROMPT).toContain('TODAS las claves');
+    expect(MODEL_PROMPT_VERSION).toBe('structure-cv.v2');
     expect(MODEL_LIMITS.maxTokens).toBe(6000);
   });
 });
@@ -55,13 +63,14 @@ describe('modelJsonSchema', () => {
 describe('verifyModelDraft', () => {
   it('conserva lo que está en el texto, descarta lo inventado y lo cuenta', () => {
     const draft: ModelDraft = {
+      ...blank,
       fullName: 'Lucía Ferrer Montalbán',
       headline: 'Directora de ingeniería',
       email: 'lucia.ferrer@example.org',
       phone: '',
       links: ['github.com/lferrer', 'linkedin.com/in/lferrer'],
       experience: [
-        {
+        entry({
           title: 'Staff Backend Engineer',
           subtitle: 'Nexo Pagos',
           location: 'Madrid',
@@ -72,23 +81,23 @@ describe('verifyModelDraft', () => {
           achievements: [
             { text: 'Diseñé la arquitectura de la nueva pasarela de pagos.', impact: '0 incidentes en 18 meses' },
             { text: 'Reduje la latencia p99 de 480 ms a 210 ms.', impact: '56 %' },
-            { text: 'Lideré la migración a Kubernetes.' },
+            { text: 'Lideré la migración a Kubernetes.', impact: null },
           ],
-        },
-        { title: 'CTO', subtitle: 'Startup', start: '2010' },
+        }),
+        entry({ title: 'CTO', subtitle: 'Startup', start: '2010' }),
       ],
-      education: [{ title: 'Grado en Ingeniería Informática', subtitle: 'Universitat de València', start: '2009', end: '2013' }],
-      certifications: [{ title: 'AWS Solutions Architect', date: '2021-05' }],
+      education: [entry({ title: 'Grado en Ingeniería Informática', subtitle: 'Universitat de València', start: '2009', end: '2013' })],
+      certifications: [entry({ title: 'AWS Solutions Architect', date: '2021-05' })],
       skills: [
         { category: 'Lenguajes', names: ['PHP', 'Python', 'Go'] },
-        { names: ['Haskell'] },
-        { names: [] },
+        { category: null, names: ['Haskell'] },
+        { category: null, names: [] },
       ],
-      achievements: [{ text: 'Premio inventado' }],
+      achievements: [{ text: 'Premio inventado', impact: null }],
       languages: [
         { name: 'Español', level: 'nativo' },
         { name: 'Inglés', level: 'C2' },
-        { name: 'Alemán' },
+        { name: 'Alemán', level: null },
       ],
     };
     const { draft: verified, dropped } = verifyModelDraft(draft, TEXT);
@@ -98,10 +107,10 @@ describe('verifyModelDraft', () => {
     expect(verified.phone).toBeUndefined();
     expect(verified.links).toEqual(['github.com/lferrer']);
     expect(verified.experience).toHaveLength(1);
-    const [entry] = verified.experience;
-    expect(entry).toMatchObject({ title: 'Staff Backend Engineer', subtitle: 'Nexo Pagos', location: undefined, start: '2022-03', end: undefined, current: true, url: undefined, technologies: ['PHP 8.3', 'Kafka'] });
-    expect(entry?.provenance).toEqual({ line: 5, text: 'Staff Backend Engineer · Nexo Pagos · mar 2022 – actualidad' });
-    expect(entry?.achievements.map((achievement) => [achievement.text, achievement.impact, achievement.provenance.line])).toEqual([
+    const [first] = verified.experience;
+    expect(first).toMatchObject({ title: 'Staff Backend Engineer', subtitle: 'Nexo Pagos', location: undefined, start: '2022-03', end: undefined, current: true, url: undefined, technologies: ['PHP 8.3', 'Kafka'] });
+    expect(first?.provenance).toEqual({ line: 5, text: 'Staff Backend Engineer · Nexo Pagos · mar 2022 – actualidad' });
+    expect(first?.achievements.map((achievement) => [achievement.text, achievement.impact, achievement.provenance.line])).toEqual([
       ['Diseñé la arquitectura de la nueva pasarela de pagos.', '0 incidentes en 18 meses', 6],
       ['Reduje la latencia p99 de 480 ms a 210 ms.', undefined, 7],
     ]);
@@ -121,15 +130,16 @@ describe('verifyModelDraft', () => {
     const text = 'Puesto A\nPuesto B\nPuesto C\nDiseñé la\narquitectura';
     const { draft } = verifyModelDraft(
       {
+        ...blank,
         experience: [
-          { title: 'Puesto A', start: '2020', current: false },
-          { title: 'Puesto B', start: '2020', end: '2021' },
-          { title: 'Puesto C', achievements: [{ text: 'Diseñé la arquitectura' }] },
+          entry({ title: 'Puesto A', start: '2020', current: false }),
+          entry({ title: 'Puesto B', start: '2020', end: '2021' }),
+          entry({ title: 'Puesto C', achievements: [{ text: 'Diseñé la arquitectura', impact: null }] }),
         ],
       },
       text,
     );
-    expect(draft.experience.map((entry) => entry.current)).toEqual([false, undefined, undefined]);
+    expect(draft.experience.map((item) => item.current)).toEqual([false, undefined, undefined]);
     expect(draft.experience[2]?.achievements[0]?.provenance).toEqual({ line: 0, text: 'Diseñé la arquitectura' });
   });
 });
