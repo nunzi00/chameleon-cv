@@ -41,13 +41,17 @@ export interface RunnerOptions {
   readonly binary?: string | undefined;
 }
 
-export type Replacement = readonly [from: string, to: string];
+export type Replacement = readonly [from: string | RegExp, to: string];
+
+function sizeOf(from: string | RegExp): number {
+  return typeof from === 'string' ? from.length : from.source.length;
+}
 
 /** Sustituye las rutas volátiles por marcadores estables, las más largas primero. */
 export function normalize(text: string, replacements: readonly Replacement[]): string {
   let result = text;
-  for (const [from, to] of [...replacements].sort((a, b) => b[0].length - a[0].length)) {
-    result = result.split(from).join(to);
+  for (const [from, to] of [...replacements].sort((a, b) => sizeOf(b[0]) - sizeOf(a[0]))) {
+    result = typeof from === 'string' ? result.split(from).join(to) : result.replace(from, to);
   }
   return result;
 }
@@ -264,6 +268,8 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
       [workspace, '<WS>'],
       [root, '<TMP>'],
       [REPO_ROOT, '<REPO>'],
+      // La copia de seguridad de `cv import --replace` lleva la fecha y hora.
+      [/\.\d{8}-\d{6}\.bak/g, '.<STAMP>.bak'],
       ...(typst === undefined ? [] : [[typst, '<TYPST>'] as Replacement]),
     ];
     const target = join(EXPECTED_DIRECTORY, scenario.id);

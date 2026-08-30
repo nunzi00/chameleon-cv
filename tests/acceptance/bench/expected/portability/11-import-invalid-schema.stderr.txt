@@ -1,0 +1,8 @@
+meta.schemaVersion: Versión de esquema no soportada: esta versión de Chameleon CV entiende la 1
+personal.fullName: Demasiado pequeño: se esperaba que texto tuviera >=1 caracteres
+experience[0].id: Identificador inválido: usa minúsculas, dígitos y guiones (p. ej. "exp-acme-2021")
+experience[0].company: Entrada inválida: se esperaba texto, recibido indefinido
+experience[0].role: Entrada inválida: se esperaba texto, recibido indefinido
+experience[0].dates: Entrada inválida: se esperaba objeto, recibido indefinido
+<raíz>: Llave desconocida: "extra"
+7 problemas en el perfil importado

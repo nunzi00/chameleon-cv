@@ -275,6 +275,68 @@
   ]
 }
 
+### GET /export → 200
+{
+  "experience": [
+    "exp-delta-consultores",
+    "exp-freelance",
+    "exp-lumen-analytics",
+    "exp-nexo-pagos",
+    "exp-orbita-cloud"
+  ],
+  "fullName": "Lucía Ferrer Montalbán",
+  "projects": [
+    "proj-api-proyecto",
+    "proj-kafka-guardian",
+    "proj-pipeline-demo",
+    "proj-terraform-modules"
+  ],
+  "specialties": [
+    "backend",
+    "data",
+    "engineering-manager",
+    "platform"
+  ]
+}
+
+### POST /import → 409
+{
+  "error": {
+    "code": "conflict",
+    "message": "El directorio de fuentes «<WS>/data/sources» no está vacío (achievements.md, certifications.csv, education, experience, profile.md, …): use --replace para sustituirlo con copia de seguridad, o --data con otro directorio"
+  }
+}
+
+### POST /import → 422
+{
+  "error": {
+    "code": "invalid-data",
+    "lines": [
+      "personal.fullName: Demasiado pequeño: se esperaba que texto tuviera >=1 caracteres",
+      "experience[0].id: Identificador inválido: usa minúsculas, dígitos y guiones (p. ej. \"exp-acme-2021\")",
+      "experience[0].company: Entrada inválida: se esperaba texto, recibido indefinido",
+      "experience[0].role: Entrada inválida: se esperaba texto, recibido indefinido",
+      "experience[0].dates: Entrada inválida: se esperaba objeto, recibido indefinido",
+      "5 problemas en el perfil importado"
+    ],
+    "message": "5 problemas en el perfil importado"
+  }
+}
+
+### POST /import → 400
+{
+  "error": {
+    "code": "bad-request",
+    "issues": [
+      {
+        "message": "Entrada inválida: se esperaba registro, recibido texto",
+        "path": "profile"
+      }
+    ],
+    "message": "El cuerpo no cumple el esquema"
+  }
+}
+
 ### POST /generate → 200
 {
   "output": {

@@ -1,0 +1,2 @@
+Perfil importado en <WS>/data/minimo: 3 ficheros (0 especialidades, 2 experiencias, 0 proyectos, 0 formaciones, 0 skills, 0 certificaciones, 0 logros transversales, 0 idiomas)
+Ejecuta «cv build» para regenerar el artefacto.

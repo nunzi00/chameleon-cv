@@ -51,6 +51,7 @@ describe('comparadores del arnés de aceptación (T-5.5.2)', () => {
 
   it('normalize sustituye las rutas más largas primero; stepPrefix y summarize dan formato al resumen', () => {
     expect(normalize('/tmp/x/ws/output y /tmp/x', [['/tmp/x', '<TMP>'], ['/tmp/x/ws', '<WS>']])).toBe('<WS>/output y <TMP>');
+    expect(normalize('copia en /w/data/sources.20260830-120102.bak y /w/x.19991231-235959.bak.1', [['/w', '<WS>'], [/\.\d{8}-\d{6}\.bak/g, '.<STAMP>.bak']])).toBe('copia en <WS>/data/sources.<STAMP>.bak y <WS>/x.<STAMP>.bak.1');
     expect(stepPrefix(6, { id: 'build', args: [], exitCode: 0 })).toBe('07-build');
     expect(summarize([
       { id: 'a', status: 'ok', steps: 5, failures: [], elapsedMs: 1500 },

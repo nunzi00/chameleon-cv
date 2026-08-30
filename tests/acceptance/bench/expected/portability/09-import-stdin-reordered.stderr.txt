@@ -1,0 +1,2 @@
+Aviso: El orden de experience pasa a ser el de sus ficheros: exp-alfa, exp-zeta
+Aviso: profile.md contendrá datos de contacto (email, teléfono); las fuentes se escriben con permisos 0600

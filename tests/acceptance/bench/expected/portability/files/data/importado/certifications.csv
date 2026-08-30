@@ -1,0 +1,5 @@
+name,issuer,date,url,tags
+CKA,CNCF,2021-04-20,https://example.org/cert/cka,kubernetes|platform
+HashiCorp Terraform Associate,HashiCorp,2020-10,https://example.org/cert/terraform,terraform|aws
+AWS Solutions Architect Associate,Amazon Web Services,2021-09,,aws|cloud
+Symfony Certified Developer,SensioLabs,2018,,symfony|php

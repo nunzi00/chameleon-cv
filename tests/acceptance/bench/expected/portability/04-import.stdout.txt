@@ -1,0 +1,2 @@
+Perfil importado en <WS>/data/importado: 18 ficheros (4 especialidades, 5 experiencias, 3 proyectos, 2 formaciones, 16 skills, 4 certificaciones, 4 logros transversales, 3 idiomas)
+Ejecuta «cv build» para regenerar el artefacto.

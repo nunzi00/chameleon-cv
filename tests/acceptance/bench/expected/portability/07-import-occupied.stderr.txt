@@ -1,0 +1,1 @@
+El directorio de fuentes «<WS>/data/importado» no está vacío (achievements.md, certifications.csv, education, experience, profile.md, …): use --replace para sustituirlo con copia de seguridad, o --data con otro directorio

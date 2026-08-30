@@ -1,0 +1,1 @@
+Perfil exportado en <WS>/output/perfil.json (4 especialidades, 5 experiencias, 3 proyectos, 2 formaciones, 16 skills, 4 certificaciones, 4 logros transversales, 3 idiomas)

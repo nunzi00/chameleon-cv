@@ -1,0 +1,8 @@
+- Ponente en dos ediciones de la conferencia PHP Valencia con charlas sobre Kafka y observabilidad. #comunidad #kafka #observability
+  - date: 2024-11
+- Mentora de 6 personas en un programa de inserción laboral tecnológica. #mentoria #liderazgo #comunidad
+  - date: 2025-05
+- Organizadora del grupo local de Kubernetes, con encuentros mensuales desde 2021. #comunidad #kubernetes
+  - date: 2021-06
+- Premio interno de Órbita Cloud a la mejor iniciativa de plataforma. #platform #liderazgo
+  - date: 2021-12

@@ -1,0 +1,936 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "locale": "es-ES",
+    "updatedAt": "2026-08-15"
+  },
+  "personal": {
+    "fullName": "Lucía Ferrer Montalbán",
+    "headline": "Ingeniera de software · plataformas de pago y datos",
+    "summary": "Ingeniera de software con **once años** construyendo plataformas de pago, infraestructura en la nube y canalizaciones de datos. Me gusta el trabajo que se puede medir: latencias, costes, tiempos de entrega y personas que crecen.\n\nHe liderado equipos de hasta *ocho* ingenieros sin dejar de escribir código. Trabajo en remoto desde Valencia.",
+    "email": "lucia.ferrer@example.org",
+    "phone": "+34 600 123 456",
+    "location": {
+      "city": "Valencia",
+      "region": "Comunidad Valenciana",
+      "country": "España"
+    },
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/lucia-ferrer-example"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://www.linkedin.com/in/lucia-ferrer-example"
+      },
+      {
+        "label": "Web",
+        "url": "https://lucia.example.org"
+      }
+    ]
+  },
+  "specialties": [
+    {
+      "id": "backend",
+      "title": "Senior Backend Engineer",
+      "summary": "Diseño y operación de APIs y sistemas distribuidos de pago: PHP moderno, Symfony, Kafka y PostgreSQL sobre Kubernetes, con la latencia y la resiliencia como primer requisito.",
+      "tags": [
+        "php",
+        "symfony",
+        "kubernetes",
+        "kafka",
+        "postgresql",
+        "api",
+        "performance"
+      ]
+    },
+    {
+      "id": "data",
+      "title": "Data Engineer",
+      "summary": "Canalizaciones de datos fiables: Python, Spark y Airflow con contratos de datos, pruebas y observabilidad de extremo a extremo.",
+      "tags": [
+        "python",
+        "spark",
+        "airflow",
+        "sql",
+        "kafka",
+        "postgresql"
+      ]
+    },
+    {
+      "id": "engineering-manager",
+      "title": "Engineering Manager",
+      "summary": "Dirección de equipos técnicos con las manos en el código: contratación, desarrollo de carrera, procesos ligeros y resultados de negocio medibles.",
+      "tags": [
+        "liderazgo",
+        "gestion",
+        "agile",
+        "mentoria",
+        "hiring"
+      ]
+    },
+    {
+      "id": "platform",
+      "title": "Platform Engineer",
+      "summary": "Plataformas internas que hacen productivos a otros equipos: Kubernetes, Terraform, AWS, observabilidad y entrega continua con SLO explícitos.",
+      "tags": [
+        "kubernetes",
+        "terraform",
+        "aws",
+        "observability",
+        "ci-cd",
+        "sre",
+        "docker"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-delta-consultores",
+      "company": "Delta Consultores",
+      "role": "Backend Developer",
+      "location": "Valencia",
+      "dates": {
+        "start": "2017-01",
+        "end": "2019-05"
+      },
+      "summary": "Desarrollo de APIs y back-offices para clientes del sector seguros y logística.",
+      "technologies": [
+        "PHP 7",
+        "Symfony 4",
+        "MySQL",
+        "Redis",
+        "Docker"
+      ],
+      "achievements": [
+        {
+          "id": "exp-delta-consultores-1",
+          "text": "Desarrollé la API REST de tarificación de seguros usada por 12 aseguradoras.",
+          "date": "2017-11",
+          "tags": [
+            "php",
+            "symfony",
+            "api"
+          ]
+        },
+        {
+          "id": "exp-delta-consultores-2",
+          "text": "Migré un monolito heredado a Symfony 4 en fases, manteniendo el servicio durante la transición.",
+          "date": "2018-06",
+          "tags": [
+            "symfony",
+            "php",
+            "arquitectura"
+          ]
+        },
+        {
+          "id": "exp-delta-consultores-3",
+          "text": "Introduje Docker en el flujo de desarrollo, unificando los entornos del equipo.",
+          "date": "2018-09",
+          "tags": [
+            "docker",
+            "ci-cd"
+          ]
+        },
+        {
+          "id": "exp-delta-consultores-4",
+          "text": "Optimicé consultas MySQL críticas, bajando el tiempo de respuesta del back-office un **35 %**.",
+          "impact": "-35 % tiempo de respuesta",
+          "date": "2019-02",
+          "tags": [
+            "mysql",
+            "performance"
+          ]
+        }
+      ],
+      "tags": [
+        "php",
+        "symfony",
+        "mysql",
+        "api"
+      ]
+    },
+    {
+      "id": "exp-freelance",
+      "company": "Freelance",
+      "role": "Desarrolladora web",
+      "location": "Valencia",
+      "dates": {
+        "start": "2013-02",
+        "end": "2015-08"
+      },
+      "summary": "Aplicaciones web a medida para pequeñas empresas.",
+      "technologies": [
+        "PHP",
+        "JavaScript",
+        "MySQL"
+      ],
+      "achievements": [
+        {
+          "id": "exp-freelance-1",
+          "text": "Entregué 14 proyectos web a medida con PHP y JavaScript para pymes.",
+          "date": "2015-06",
+          "tags": [
+            "php",
+            "javascript"
+          ]
+        },
+        {
+          "id": "exp-freelance-2",
+          "text": "Diseñé un sistema de reservas en línea que gestionó 20 000 reservas al año.",
+          "impact": "20 000 reservas/año",
+          "date": "2014-10",
+          "tags": [
+            "php",
+            "mysql"
+          ]
+        },
+        {
+          "id": "exp-freelance-3",
+          "text": "Mantuve el 100 % de los proyectos con pruebas automatizadas básicas.",
+          "date": "2015-01",
+          "tags": [
+            "testing"
+          ]
+        }
+      ],
+      "tags": [
+        "php",
+        "javascript"
+      ]
+    },
+    {
+      "id": "exp-lumen-analytics",
+      "company": "Lumen Analytics",
+      "role": "Data Engineer",
+      "location": "Barcelona",
+      "dates": {
+        "start": "2015-09",
+        "end": "2016-12"
+      },
+      "summary": "Canalizaciones de datos para analítica de comercio electrónico.",
+      "technologies": [
+        "Python",
+        "Spark",
+        "Airflow",
+        "PostgreSQL",
+        "Kafka"
+      ],
+      "achievements": [
+        {
+          "id": "exp-lumen-analytics-1",
+          "text": "Construí con Spark la canalización diaria de 2 TB de eventos de navegación.",
+          "impact": "2 TB/día",
+          "date": "2016-03",
+          "tags": [
+            "spark",
+            "python",
+            "kafka"
+          ]
+        },
+        {
+          "id": "exp-lumen-analytics-2",
+          "text": "Orquesté 40 trabajos con Airflow con reintentos y alertas, eliminando las ejecuciones manuales.",
+          "date": "2016-07",
+          "tags": [
+            "airflow",
+            "python",
+            "sql"
+          ]
+        },
+        {
+          "id": "exp-lumen-analytics-3",
+          "text": "Definí contratos de datos y pruebas de calidad que evitaron regresiones en los informes.",
+          "date": "2016-10",
+          "tags": [
+            "sql",
+            "testing"
+          ]
+        },
+        {
+          "id": "exp-lumen-analytics-4",
+          "text": "Documenté el modelo de datos y formé a 3 analistas en su uso.",
+          "date": "2016-11",
+          "tags": [
+            "mentoria",
+            "comunicacion"
+          ]
+        }
+      ],
+      "tags": [
+        "python",
+        "spark",
+        "airflow",
+        "sql",
+        "kafka"
+      ]
+    },
+    {
+      "id": "exp-nexo-pagos",
+      "company": "Nexo Pagos",
+      "role": "Staff Backend Engineer",
+      "location": "Valencia (remoto)",
+      "dates": {
+        "start": "2022-03"
+      },
+      "summary": "Pasarela de pagos B2B con **9 M de transacciones al mes** y disponibilidad comprometida del 99,95 %. Equipo de plataforma de pagos de 8 personas.",
+      "technologies": [
+        "PHP 8.3",
+        "Symfony 7",
+        "Kafka",
+        "PostgreSQL 16",
+        "Kubernetes",
+        "Terraform"
+      ],
+      "achievements": [
+        {
+          "id": "exp-nexo-pasarela",
+          "text": "Diseñé la arquitectura de la nueva pasarela de pagos sobre Kafka y PostgreSQL, procesando **9 M de transacciones al mes** sin pérdida de eventos.",
+          "impact": "0 incidentes de pérdida de datos en 18 meses",
+          "date": "2023-02",
+          "tags": [
+            "kafka",
+            "postgresql",
+            "arquitectura",
+            "pin"
+          ]
+        },
+        {
+          "id": "exp-nexo-pagos-2",
+          "text": "Reduje la latencia `p99` de la API de autorización de 480 ms a 210 ms rediseñando la capa de caché y los índices.",
+          "impact": "-56 % p99",
+          "date": "2023-09",
+          "tags": [
+            "performance",
+            "api",
+            "postgresql"
+          ]
+        },
+        {
+          "id": "exp-nexo-pagos-3",
+          "text": "Lideré la migración de 14 servicios PHP a Kubernetes con despliegues canary y sin ventana de parada.",
+          "impact": "despliegues diarios frente a quincenales",
+          "date": "2024-04",
+          "tags": [
+            "kubernetes",
+            "ci-cd",
+            "liderazgo"
+          ]
+        },
+        {
+          "id": "exp-nexo-pagos-4",
+          "text": "Implanté *contract testing* entre el monolito Symfony y los microservicios de liquidación.",
+          "date": "2024-10",
+          "tags": [
+            "testing",
+            "symfony",
+            "api"
+          ]
+        },
+        {
+          "id": "exp-nexo-pagos-5",
+          "text": "Mentoricé a 4 ingenieros de nivel medio; dos fueron promocionados a senior en un año.",
+          "impact": "2 promociones",
+          "date": "2025-06",
+          "tags": [
+            "mentoria",
+            "liderazgo",
+            "gestion"
+          ]
+        },
+        {
+          "id": "exp-nexo-pagos-6",
+          "text": "Definí los SLO de la pasarela y el proceso de guardia, reduciendo las alertas nocturnas en un **70 %**.",
+          "impact": "-70 % alertas nocturnas",
+          "date": "2025-11",
+          "tags": [
+            "sre",
+            "observability",
+            "gestion"
+          ]
+        }
+      ],
+      "tags": [
+        "php",
+        "symfony",
+        "kubernetes",
+        "kafka",
+        "postgresql",
+        "api"
+      ]
+    },
+    {
+      "id": "exp-orbita-cloud",
+      "company": "Órbita Cloud",
+      "role": "Platform Engineer",
+      "location": "Madrid",
+      "dates": {
+        "start": "2019-06",
+        "end": "2022-02"
+      },
+      "summary": "Plataforma interna para 25 equipos de producto en AWS.",
+      "technologies": [
+        "Kubernetes",
+        "Terraform",
+        "AWS",
+        "Prometheus",
+        "Grafana",
+        "GitLab CI"
+      ],
+      "achievements": [
+        {
+          "id": "exp-orbita-cloud-1",
+          "text": "Construí la plataforma Kubernetes multi-tenant que hoy sirve a 25 equipos y 300 servicios.",
+          "impact": "300 servicios en producción",
+          "date": "2020-05",
+          "tags": [
+            "kubernetes",
+            "aws",
+            "platform",
+            "arquitectura"
+          ]
+        },
+        {
+          "id": "exp-orbita-cloud-2",
+          "text": "Automaticé la infraestructura con Terraform, reduciendo el aprovisionamiento de un entorno de 3 días a 40 minutos.",
+          "impact": "de 3 días a 40 minutos",
+          "date": "2020-11",
+          "tags": [
+            "terraform",
+            "aws",
+            "ci-cd"
+          ]
+        },
+        {
+          "id": "exp-orbita-cloud-3",
+          "text": "Desplegué la observabilidad unificada (Prometheus, Grafana, trazas) con SLO por servicio.",
+          "date": "2021-03",
+          "tags": [
+            "observability",
+            "sre"
+          ]
+        },
+        {
+          "id": "exp-orbita-cloud-4",
+          "text": "Diseñé la canalización de CI/CD con GitLab CI que redujo el tiempo de entrega un **45 %**.",
+          "impact": "-45 % lead time",
+          "date": "2021-09",
+          "tags": [
+            "ci-cd",
+            "gitlab"
+          ]
+        },
+        {
+          "id": "exp-orbita-cloud-5",
+          "text": "Coordiné a 6 ingenieros de plataforma y las prioridades con los equipos cliente.",
+          "date": "2021-12",
+          "tags": [
+            "liderazgo",
+            "gestion",
+            "agile"
+          ]
+        }
+      ],
+      "tags": [
+        "kubernetes",
+        "terraform",
+        "aws",
+        "observability",
+        "ci-cd",
+        "sre"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-kafka-guardian",
+      "name": "Kafka Guardian",
+      "role": "Autora y mantenedora",
+      "url": "https://example.org/kafka-guardian",
+      "dates": {
+        "start": "2023-06"
+      },
+      "summary": "Biblioteca de código abierto para detectar consumidores retrasados y particiones huérfanas en Kafka.",
+      "technologies": [
+        "PHP 8.3",
+        "Kafka",
+        "Prometheus"
+      ],
+      "achievements": [
+        {
+          "id": "proj-kafka-guardian-1",
+          "text": "Publiqué [Kafka Guardian](https://example.org/kafka-guardian), adoptada por 30 organizaciones, con métricas Prometheus listas para usar.",
+          "impact": "30 organizaciones",
+          "date": "2024-01",
+          "tags": [
+            "kafka",
+            "observability",
+            "comunidad"
+          ]
+        },
+        {
+          "id": "proj-kafka-guardian-2",
+          "text": "Mantengo una suite de 400 pruebas y una política de compatibilidad semántica.",
+          "date": "2025-03",
+          "tags": [
+            "testing",
+            "php"
+          ]
+        },
+        {
+          "id": "proj-kafka-guardian-3",
+          "text": "Escribí la guía de operación que redujo las incidencias reportadas un **40 %**.",
+          "impact": "-40 % incidencias reportadas",
+          "date": "2025-09",
+          "tags": [
+            "comunicacion",
+            "observability"
+          ]
+        }
+      ],
+      "tags": [
+        "kafka",
+        "php",
+        "observability"
+      ]
+    },
+    {
+      "id": "proj-pipeline-demo",
+      "name": "Pipeline Demo",
+      "role": "Autora",
+      "dates": {
+        "start": "2016-05",
+        "end": "2016-12"
+      },
+      "summary": "Proyecto didáctico: una canalización de datos completa, de la ingesta al informe.",
+      "technologies": [
+        "Python",
+        "Airflow",
+        "Spark"
+      ],
+      "achievements": [
+        {
+          "id": "proj-pipeline-demo-1",
+          "text": "Construí una canalización de ejemplo con Airflow y Spark usada en 3 talleres internos.",
+          "date": "2016-09",
+          "tags": [
+            "airflow",
+            "spark",
+            "python",
+            "mentoria"
+          ]
+        },
+        {
+          "id": "proj-pipeline-demo-2",
+          "text": "Escribí la documentación paso a paso, reutilizada por 2 equipos.",
+          "date": "2016-12",
+          "tags": [
+            "comunicacion"
+          ]
+        }
+      ],
+      "tags": [
+        "python",
+        "airflow",
+        "spark"
+      ]
+    },
+    {
+      "id": "proj-terraform-modules",
+      "name": "Módulos Terraform para AWS",
+      "role": "Autora",
+      "url": "https://example.org/terraform-modules",
+      "dates": {
+        "start": "2020-09",
+        "end": "2022-01"
+      },
+      "summary": "Colección de módulos Terraform reutilizables (VPC, EKS, RDS) con pruebas automatizadas.",
+      "technologies": [
+        "Terraform",
+        "AWS"
+      ],
+      "achievements": [
+        {
+          "id": "proj-terraform-modules-1",
+          "text": "Diseñé 12 módulos Terraform probados con Terratest y versionados semánticamente.",
+          "date": "2021-05",
+          "tags": [
+            "terraform",
+            "aws",
+            "testing"
+          ]
+        },
+        {
+          "id": "proj-terraform-modules-2",
+          "text": "Reduje el coste de los entornos efímeros un **30 %** con apagado programado.",
+          "impact": "-30 % coste",
+          "date": "2021-11",
+          "tags": [
+            "aws",
+            "ci-cd"
+          ]
+        }
+      ],
+      "tags": [
+        "terraform",
+        "aws",
+        "ci-cd"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-grado-informatica",
+      "institution": "Universitat Politècnica de València",
+      "degree": "Grado en Ingeniería Informática",
+      "field": "Ingeniería del software",
+      "dates": {
+        "start": "2009",
+        "end": "2013"
+      },
+      "tags": []
+    },
+    {
+      "id": "edu-master-datos",
+      "institution": "Universitat de València",
+      "degree": "Máster en Ciencia de Datos",
+      "field": "Ingeniería de datos",
+      "dates": {
+        "start": "2014",
+        "end": "2015"
+      },
+      "tags": [
+        "python",
+        "sql",
+        "spark"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "id": "skill-1",
+      "name": "PHP",
+      "category": "language",
+      "level": "expert",
+      "years": 11,
+      "aliases": [
+        "php8"
+      ],
+      "tags": [
+        "php",
+        "backend"
+      ]
+    },
+    {
+      "id": "skill-2",
+      "name": "Symfony",
+      "category": "framework",
+      "level": "expert",
+      "years": 8,
+      "aliases": [],
+      "tags": [
+        "symfony",
+        "php",
+        "backend"
+      ]
+    },
+    {
+      "id": "skill-3",
+      "name": "Kubernetes",
+      "category": "platform",
+      "level": "expert",
+      "years": 6,
+      "aliases": [
+        "k8s",
+        "kube"
+      ],
+      "tags": [
+        "kubernetes",
+        "platform",
+        "docker"
+      ]
+    },
+    {
+      "id": "skill-4",
+      "name": "Terraform",
+      "category": "tool",
+      "level": "advanced",
+      "years": 5,
+      "aliases": [],
+      "tags": [
+        "terraform",
+        "aws",
+        "ci-cd"
+      ]
+    },
+    {
+      "id": "skill-5",
+      "name": "AWS",
+      "category": "cloud",
+      "level": "advanced",
+      "years": 5,
+      "aliases": [
+        "amazon web services"
+      ],
+      "tags": [
+        "aws",
+        "cloud",
+        "platform"
+      ]
+    },
+    {
+      "id": "skill-6",
+      "name": "Kafka",
+      "category": "platform",
+      "level": "expert",
+      "years": 6,
+      "aliases": [
+        "apache kafka"
+      ],
+      "tags": [
+        "kafka",
+        "backend",
+        "data"
+      ]
+    },
+    {
+      "id": "skill-7",
+      "name": "PostgreSQL",
+      "category": "database",
+      "level": "advanced",
+      "years": 7,
+      "aliases": [
+        "postgres",
+        "psql"
+      ],
+      "tags": [
+        "postgresql",
+        "sql",
+        "backend"
+      ]
+    },
+    {
+      "id": "skill-8",
+      "name": "MySQL",
+      "category": "database",
+      "level": "advanced",
+      "years": 6,
+      "aliases": [],
+      "tags": [
+        "mysql",
+        "sql"
+      ]
+    },
+    {
+      "id": "skill-9",
+      "name": "Python",
+      "category": "language",
+      "level": "advanced",
+      "years": 5,
+      "aliases": [],
+      "tags": [
+        "python",
+        "data"
+      ]
+    },
+    {
+      "id": "skill-10",
+      "name": "Spark",
+      "category": "framework",
+      "level": "intermediate",
+      "years": 2,
+      "aliases": [
+        "apache spark"
+      ],
+      "tags": [
+        "spark",
+        "data"
+      ]
+    },
+    {
+      "id": "skill-11",
+      "name": "Airflow",
+      "category": "tool",
+      "level": "intermediate",
+      "years": 2,
+      "aliases": [
+        "apache airflow"
+      ],
+      "tags": [
+        "airflow",
+        "data"
+      ]
+    },
+    {
+      "id": "skill-12",
+      "name": "Docker",
+      "category": "tool",
+      "level": "expert",
+      "years": 8,
+      "aliases": [],
+      "tags": [
+        "docker",
+        "platform"
+      ]
+    },
+    {
+      "id": "skill-13",
+      "name": "Observabilidad",
+      "category": "domain",
+      "level": "advanced",
+      "years": 6,
+      "aliases": [
+        "prometheus",
+        "grafana",
+        "opentelemetry"
+      ],
+      "tags": [
+        "observability",
+        "sre"
+      ]
+    },
+    {
+      "id": "skill-14",
+      "name": "GitLab CI",
+      "category": "tool",
+      "level": "advanced",
+      "years": 4,
+      "aliases": [
+        "gitlab"
+      ],
+      "tags": [
+        "ci-cd",
+        "gitlab"
+      ]
+    },
+    {
+      "id": "skill-15",
+      "name": "Liderazgo técnico",
+      "category": "soft",
+      "level": "advanced",
+      "aliases": [
+        "tech lead",
+        "team lead",
+        "staff engineer"
+      ],
+      "tags": [
+        "liderazgo",
+        "gestion",
+        "mentoria"
+      ]
+    },
+    {
+      "id": "skill-16",
+      "name": "Scrum",
+      "category": "methodology",
+      "level": "advanced",
+      "aliases": [
+        "agile",
+        "kanban"
+      ],
+      "tags": [
+        "agile",
+        "gestion"
+      ]
+    }
+  ],
+  "achievements": [
+    {
+      "id": "ach-1",
+      "text": "Ponente en dos ediciones de la conferencia PHP Valencia con charlas sobre Kafka y observabilidad.",
+      "date": "2024-11",
+      "tags": [
+        "comunidad",
+        "kafka",
+        "observability"
+      ]
+    },
+    {
+      "id": "ach-2",
+      "text": "Mentora de 6 personas en un programa de inserción laboral tecnológica.",
+      "date": "2025-05",
+      "tags": [
+        "mentoria",
+        "liderazgo",
+        "comunidad"
+      ]
+    },
+    {
+      "id": "ach-3",
+      "text": "Organizadora del grupo local de Kubernetes, con encuentros mensuales desde 2021.",
+      "date": "2021-06",
+      "tags": [
+        "comunidad",
+        "kubernetes"
+      ]
+    },
+    {
+      "id": "ach-4",
+      "text": "Premio interno de Órbita Cloud a la mejor iniciativa de plataforma.",
+      "date": "2021-12",
+      "tags": [
+        "platform",
+        "liderazgo"
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-1",
+      "name": "CKA",
+      "issuer": "CNCF",
+      "date": "2021-04-20",
+      "url": "https://example.org/cert/cka",
+      "tags": [
+        "kubernetes",
+        "platform"
+      ]
+    },
+    {
+      "id": "cert-2",
+      "name": "HashiCorp Terraform Associate",
+      "issuer": "HashiCorp",
+      "date": "2020-10",
+      "url": "https://example.org/cert/terraform",
+      "tags": [
+        "terraform",
+        "aws"
+      ]
+    },
+    {
+      "id": "cert-3",
+      "name": "AWS Solutions Architect Associate",
+      "issuer": "Amazon Web Services",
+      "date": "2021-09",
+      "tags": [
+        "aws",
+        "cloud"
+      ]
+    },
+    {
+      "id": "cert-4",
+      "name": "Symfony Certified Developer",
+      "issuer": "SensioLabs",
+      "date": "2018",
+      "tags": [
+        "symfony",
+        "php"
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "Español",
+      "level": "native"
+    },
+    {
+      "name": "Valenciano",
+      "level": "C1"
+    },
+    {
+      "name": "Inglés",
+      "level": "C1"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+El perfil no es JSON válido: Unexpected token 'S', "Senior Bac"... is not valid JSON
