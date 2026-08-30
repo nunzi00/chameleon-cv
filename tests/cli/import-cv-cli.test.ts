@@ -75,7 +75,7 @@ describe('cv import-cv (T-8.4b)', () => {
     expect(profile?.content).toContain('fullName: Ada Ejemplo');
     expect(profile?.mode).toBe(0o600);
     expect(h.fs.file('/work/import/ada-ejemplo/experience/backend-senior-acme.md')?.content).toContain('company: Acme');
-    expect(h.fs.file('/work/import/ada-ejemplo/README.md')?.content).toContain('# Informe del borrador importado');
+    expect(h.fs.file('/work/import/ada-ejemplo/README.md')?.content).toContain('- Origen: cv.pdf');
   });
 
   it('--name elige la carpeta y --replace permite sustituir; sin él, el borrador existente se respeta', async () => {

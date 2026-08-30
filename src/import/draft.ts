@@ -80,8 +80,8 @@ export function linkLabel(host: string): string {
   return first === '' ? 'Enlace' : first.charAt(0).toUpperCase() + first.slice(1);
 }
 
-/** Construye el `MasterProfile` parcial y los ficheros del borrador. */
-export function draftFiles(draft: DraftProfile, origin: string, importedAt: string): DraftFiles {
+/** Construye el `MasterProfile` parcial y los ficheros del borrador (limpios: la procedencia va en el README). */
+export function draftFiles(draft: DraftProfile): DraftFiles {
   const issues: DraftIssue[] = [];
   const used = new Set<string>();
 
@@ -219,7 +219,7 @@ export function draftFiles(draft: DraftProfile, origin: string, importedAt: stri
   }
 
   const profile = parseMasterProfile({
-    meta: { schemaVersion: 1, locale: 'es-ES', updatedAt: importedAt.slice(0, 10) },
+    meta: { schemaVersion: 1, locale: 'es-ES' },
     personal: personal.success ? personal.data : { fullName: 'Nombre pendiente', links: [] },
     specialties: [],
     experience: entries('experience', draft.experience),
@@ -231,11 +231,9 @@ export function draftFiles(draft: DraftProfile, origin: string, importedAt: stri
     languages,
   });
 
-  const banner = `<!-- BORRADOR importado de ${origin} el ${importedAt}: revísalo antes de moverlo a data/sources/ -->`;
-  const files = planFiles(profile, canonicalOrder(profile).naming).map((file) => ({
-    path: file.path,
-    content: file.path.endsWith('.md') ? file.content.replace(/^(---\n[\s\S]*?\n---\n)/, `$1\n${banner}\n`) : file.content,
-  }));
+  // Sin banner dentro de los .md: el cuerpo tras el frontmatter ES el resumen para el cargador, y un comentario
+  // HTML lo ensuciaría (y puede empujarlo por encima del límite). La procedencia vive en el README del borrador.
+  const files = planFiles(profile, canonicalOrder(profile).naming);
   return { files, profile, issues, unparsed: draft.unparsed };
 }
 

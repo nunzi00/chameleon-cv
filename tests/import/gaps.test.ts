@@ -133,7 +133,7 @@ describe('draft: degradaciones aún sin prueba', () => {
   const PROV = { line: 1, text: 'x' };
 
   it('un nombre imposible reduce los datos personales al marcador y lo avisa', () => {
-    const result = draftFiles({ ...BASE, fullName: 'x'.repeat(200) }, 'cv.pdf', '2026-08-30T21:00:00.000Z');
+    const result = draftFiles({ ...BASE, fullName: 'x'.repeat(200) });
     expect(result.profile.personal.fullName).toBe('Nombre pendiente');
     expect(result.issues.some((issue) => issue.reason.startsWith('datos personales reducidos al nombre'))).toBe(true);
   });
@@ -145,10 +145,7 @@ describe('draft: degradaciones aún sin prueba', () => {
         education: [{ title: 'Grado', subtitle: undefined, location: undefined, start: '2010', end: '2014', current: false, date: undefined, url: undefined, field: undefined, summary: undefined, technologies: [], achievements: [], provenance: PROV }],
         achievements: [{ text: 'x'.repeat(700), impact: undefined, provenance: PROV }],
         languages: [{ name: 'x'.repeat(80), level: 'C1' }],
-      },
-      'cv.pdf',
-      '2026-08-30T21:00:00.000Z',
-    );
+      });
     expect(result.profile.education[0]?.institution).toBe('Centro pendiente');
     expect(result.issues.some((issue) => issue.reason.startsWith('logro descartado'))).toBe(true);
     expect(result.issues.some((issue) => issue.reason.startsWith('idioma descartado'))).toBe(true);
@@ -163,7 +160,7 @@ describe('draft: degradaciones aún sin prueba', () => {
   });
 
   it('dos campos personales rotos se retiran los dos; el resumen del encabezado sobrevive', () => {
-    const result = draftFiles({ ...BASE, summary: 'Perfil breve.', phone: 'x'.repeat(60), email: 'no-es-email' }, 'cv.pdf', '2026-08-30T21:00:00.000Z');
+    const result = draftFiles({ ...BASE, summary: 'Perfil breve.', phone: 'x'.repeat(60), email: 'no-es-email' });
     expect(result.profile.personal.summary).toBe('Perfil breve.');
     expect(result.profile.personal.phone).toBeUndefined();
     expect(result.profile.personal.email).toBeUndefined();
@@ -178,10 +175,7 @@ describe('draft: degradaciones aún sin prueba', () => {
         projects: [minimal],
         education: [{ ...minimal, title: 'Grado', subtitle: 'UV', summary: 'Mención en datos.' }],
         certifications: [{ ...minimal, title: 'CKA' }, { ...minimal, title: 'CKS', subtitle: 'CNCF', date: '2022', url: 'https://cncf.io/cks' }],
-      },
-      'cv.pdf',
-      '2026-08-30T21:00:00.000Z',
-    );
+      });
     expect(result.profile.projects[0]).toMatchObject({ name: 'Guardian' });
     expect(result.profile.projects[0]?.dates).toBeUndefined();
     expect(result.profile.education[0]).toMatchObject({ summary: 'Mención en datos.' });
@@ -199,10 +193,7 @@ describe('draft: degradaciones aún sin prueba', () => {
         skills: [{ category: undefined, names: ['x'.repeat(100)], provenance: PROV }],
         achievements: [{ text: '', impact: undefined, provenance: PROV }],
         languages: [{ name: 'Klingon', level: 'regular' }],
-      },
-      'cv.pdf',
-      '2026-08-30T21:00:00.000Z',
-    );
+      });
     expect(result.profile.projects).toHaveLength(0);
     expect(result.issues.some((issue) => issue.reason.includes('proyecto descartada') || issue.reason.includes('descartada: «Web»'))).toBe(true);
     expect(result.issues.some((issue) => issue.reason.startsWith('habilidad descartada'))).toBe(true);
@@ -213,10 +204,7 @@ describe('draft: degradaciones aún sin prueba', () => {
 
   it('el id de una habilidad sin letras cae al sufijo numérico y el informe cita la línea del degradado', () => {
     const result = draftFiles(
-      { ...BASE, skills: [{ category: undefined, names: ['···'], provenance: PROV }], experience: [{ title: 'Sin fechas', subtitle: 'Acme', location: undefined, start: undefined, end: undefined, current: false, date: undefined, url: undefined, field: undefined, summary: undefined, technologies: [], achievements: [], provenance: { line: 7, text: 'contexto original' } }] },
-      'cv.pdf',
-      '2026-08-30T21:00:00.000Z',
-    );
+      { ...BASE, skills: [{ category: undefined, names: ['···'], provenance: PROV }], experience: [{ title: 'Sin fechas', subtitle: 'Acme', location: undefined, start: undefined, end: undefined, current: false, date: undefined, url: undefined, field: undefined, summary: undefined, technologies: [], achievements: [], provenance: { line: 7, text: 'contexto original' } }] });
     expect(result.profile.skills[0]?.id).toBe('skill-1');
     const report = draftReport(result, 'cv.pdf', '2026-08-30T21:00:00.000Z');
     expect(report).toContain('(línea 7: «contexto original»)');
@@ -227,10 +215,7 @@ describe('draft: degradaciones aún sin prueba', () => {
       {
         ...BASE,
         experience: [{ title: 'Backend', subtitle: 'Acme', location: 'Valencia', start: '2020-01', end: undefined, current: true, date: undefined, url: undefined, field: undefined, summary: 'Equipo de pagos.', technologies: ['PHP'], achievements: [{ text: 'Hice cosas.', impact: '+1', provenance: PROV }], provenance: PROV }],
-      },
-      'cv.pdf',
-      '2026-08-30T21:00:00.000Z',
-    );
+      });
     expect(result.profile.experience[0]).toMatchObject({ company: 'Acme', location: 'Valencia', summary: 'Equipo de pagos.', technologies: ['PHP'] });
     expect(result.profile.experience[0]?.dates).toMatchObject({ start: '2020-01' });
   });

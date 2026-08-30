@@ -214,7 +214,8 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   if (!isRemoteProviderId(requested)) {
     return { ok: false, message: `--provider «${requested}» no es un proveedor conocido (${LLM_PROVIDER_IDS.join(', ')})` };
   }
-  const entry = (options.registry ?? REMOTE_PROVIDERS).find((candidate) => candidate.id === requested) ?? remoteProvider(requested);
+  // `requested` ya pasó `isRemoteProviderId`: el registro (inyectado o real) siempre lo contiene.
+  const entry = (options.registry ?? REMOTE_PROVIDERS).find((candidate) => candidate.id === requested)!;
   if (entry.availability !== 'available') {
     return { ok: false, message: unavailableMessage(entry) };
   }

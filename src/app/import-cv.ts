@@ -63,7 +63,7 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
 
   const draft = structureCv(text);
   const importedAt = (context.now?.() ?? new Date()).toISOString();
-  const result = draftFiles(draft, basename(origin), importedAt);
+  const result = draftFiles(draft);
 
   // slugify reduce a [a-z0-9-]: el nombre no puede contener separadores ni «..», así que siempre queda dentro de import/.
   const name = slugify(options.name ?? result.profile.personal.fullName) || slugify(basename(origin).replace(/\.[a-z0-9]+$/i, '')) || 'cv-importado';
