@@ -1,0 +1,44 @@
+# Tema «default» de Chameleon CV: el diseño tipográfico de referencia (T-3.4) hecho configurable (T-5.1).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto y genera con `--theme mi-tema`.
+
+[theme]
+name = "two-column-icons"
+description = "Maquetación «ajena» del spike de importación desde PDF (T-8.4): two-column-icons"
+version = 1
+
+[colors]
+text = "#1b1b1b"       # cuerpo de texto
+primary = "#1b1b1b"    # nombre y títulos de entrada
+secondary = "#5c5c5c"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#1f4e79"     # enlaces
+rule = "#c9c9c9"       # reglas y filetes
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 24
+headline = 11.5
+contact = 9.3
+section = 9.4
+title = 10.8
+meta = 9.3
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55         # interlineado
+paragraph = 0.7        # separación entre párrafos
+list = 0.45            # separación entre viñetas
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 17
+right = 19
+bottom = 16
+left = 19

@@ -34,6 +34,7 @@
     "docs:generate": "ts-node -T -P tests/tsconfig.json scripts/docs/reference.ts && ts-node -T -P tests/tsconfig.json scripts/docs/api.ts && ts-node -T -P tests/tsconfig.json scripts/docs/sync.ts",
     "docs:tutorials": "ts-node -T -P tests/tsconfig.json scripts/docs/tutorials.ts",
     "docs:themes": "ts-node -T -P tests/tsconfig.json scripts/docs/themes.ts",
+    "spike:pdf-import": "ts-node -T -P tests/tsconfig.json scripts/spike/pdf-import/cli.ts",
     "docs:dev": "npm run docs:generate && npm --prefix website run dev",
     "docs:build": "npm run docs:generate && npm --prefix website run build",
     "docs:check": "npm run docs:build && npm run docs:tutorials",
