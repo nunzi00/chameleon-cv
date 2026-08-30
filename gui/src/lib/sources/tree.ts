@@ -58,3 +58,48 @@ export function buildTree(entries: readonly Entry[]): readonly TreeNode[] {
   }
   return nodesOf(root, '');
 }
+
+/** Filtra el árbol por texto (nombre o ruta, sin distinguir mayúsculas); una carpeta se conserva si conserva algún hijo. */
+export function filterTree(nodes: readonly TreeNode[], query: string): readonly TreeNode[] {
+  const needle = query.trim().toLowerCase();
+  if (needle === '') {
+    return nodes;
+  }
+  const result: TreeNode[] = [];
+  for (const node of nodes) {
+    if (node.kind === 'file') {
+      if (node.path.toLowerCase().includes(needle)) {
+        result.push(node);
+      }
+      continue;
+    }
+    const children = filterTree(node.children, needle);
+    if (children.length > 0) {
+      result.push({ ...node, children });
+    }
+  }
+  return result;
+}
+
+export function countFiles(nodes: readonly TreeNode[]): number {
+  return nodes.reduce((total, node) => total + (node.kind === 'file' ? 1 : countFiles(node.children)), 0);
+}
+
+/** Incidencias por fichero (ruta relativa) a partir de la lista de validación. */
+export function issueCounts(issues: readonly { readonly file: string }[]): ReadonlyMap<string, number> {
+  const counts = new Map<string, number>();
+  for (const issue of issues) {
+    counts.set(issue.file, (counts.get(issue.file) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** `sha256:9c02…41ae`: los cuatro primeros y los cuatro últimos caracteres de la huella. */
+export function shortSha(sha256: string): string {
+  return sha256.length <= 12 ? `sha256:${sha256}` : `sha256:${sha256.slice(0, 4)}…${sha256.slice(-4)}`;
+}
+
+/** Fin de línea del contenido, para el pie del editor. */
+export function lineEnding(content: string): 'LF' | 'CRLF' {
+  return content.includes('\r\n') ? 'CRLF' : 'LF';
+}

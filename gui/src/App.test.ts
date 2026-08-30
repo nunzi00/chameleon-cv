@@ -59,7 +59,9 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText('Remotos: permitidos')).toBeTruthy());
     expect(screen.getByText('Artefacto al día')).toBeTruthy();
     expect(screen.getByLabelText('3 pendientes').textContent).toBe('3');
-    expect(calls.filter((call) => call === 'GET /api/v1/config/llm')).toHaveLength(1);
+    // Las pantallas no consultan /config/llm ni /reviews por su cuenta: solo lo hace el contexto compartido.
+    expect(calls.filter((call) => call === 'GET /api/v1/config/llm').length).toBeGreaterThan(0);
+    expect(calls.filter((call) => call === 'GET /api/v1/reviews').length).toBe(calls.filter((call) => call === 'GET /api/v1/config/llm').length);
   });
 
   it('con un token guardado inválido, el 401 devuelve a la puerta de sesión', async () => {

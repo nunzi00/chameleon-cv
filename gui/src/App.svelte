@@ -13,8 +13,6 @@
   import { forgetToken, rememberToken, startSession } from './lib/session';
   import { browserStorage } from './lib/storage';
   import { applyTheme, readTheme, storeTheme, type ThemeMode } from './lib/theme';
-  import Estado from './pages/Estado.svelte';
-  import Fuentes from './pages/Fuentes.svelte';
 
   interface Props {
     /** Solo para las pruebas: un `fetch` distinto del global. */
@@ -119,9 +117,17 @@
         {:else}
           <div class="cv-page">
             {#if route.page === 'estado'}
-              <Estado {api} onsession={sessionLost} onopen={(file) => navigate({ page: 'fuentes', item: file })} />
+              {#await import('./pages/Estado.svelte')}
+                <p class="cv-loading" aria-live="polite">Cargando…</p>
+              {:then estado}
+                <estado.default {api} onsession={sessionLost} onopen={(file) => navigate({ page: 'fuentes', item: file })} />
+              {/await}
             {:else if route.page === 'fuentes'}
-              <Fuentes {api} item={route.item} onsession={sessionLost} {navigate} />
+              {#await import('./pages/Fuentes.svelte')}
+                <p class="cv-loading" aria-live="polite">Cargando…</p>
+              {:then fuentes}
+                <fuentes.default {api} item={route.item} onsession={sessionLost} {navigate} />
+              {/await}
             {:else if route.page === 'generar'}
               {#await import('./pages/Generar.svelte')}
                 <p class="cv-muted">Cargando…</p>

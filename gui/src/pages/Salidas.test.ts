@@ -22,9 +22,10 @@ describe('Salidas', () => {
     const api = fakeApi();
     const navigate = vi.fn();
     const { rerender } = render(Salidas, { props: { api, item: undefined, onsession: vi.fn(), navigate } });
-    await waitFor(() => expect(screen.getByText('3 ficheros en')).toBeTruthy());
-    const buttons = screen.getAllByRole('button').map((button) => button.textContent?.replace(/\s+/g, ' ').trim());
+    await waitFor(() => expect(screen.getByText(/3 ficheros en/)).toBeTruthy());
+    const buttons = screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'));
     expect(buttons.slice(0, 3)).toEqual(['PDF cv-ada.pdf (2.0 KB)', 'Markdown cv-ada.md (100 B)', 'Revisión revision-improve.md (300 B)']);
+    expect(screen.getByText('MD').className).toContain('cv-filetype');
     await fireEvent.click(screen.getByRole('button', { name: /cv-ada\.md/ }));
     expect(navigate).toHaveBeenCalledWith({ page: 'salidas', item: 'cv-ada.md' });
     await rerender({ api, item: 'cv-ada.md', onsession: vi.fn(), navigate });
@@ -39,9 +40,12 @@ describe('Salidas', () => {
   it('sin salidas lo dice; un fallo al listar se muestra', async () => {
     const api = fakeApi();
     (api.outputs as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ files: [] }).mockRejectedValueOnce(new Error('disco'));
-    render(Salidas, { props: { api, item: undefined, onsession: vi.fn(), navigate: vi.fn() } });
-    await waitFor(() => expect(screen.getByText(/Todavía no hay nada/)).toBeTruthy());
+    const navigate = vi.fn();
+    render(Salidas, { props: { api, item: undefined, onsession: vi.fn(), navigate } });
+    await waitFor(() => expect(screen.getByText(/está vacío/)).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Generar mi primer CV' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
     await waitFor(() => expect(screen.getByText('Error inesperado')).toBeTruthy());
+    expect(navigate).toHaveBeenCalledWith({ page: 'generar' });
   });
 });

@@ -26,6 +26,8 @@ export interface EditorOptions {
   readonly doc: string;
   readonly language: Language;
   readonly onChange: (doc: string) => void;
+  /** Posición del cursor (línea y columna desde 1) para el pie del editor. */
+  readonly onCursor?: ((line: number, column: number) => void) | undefined;
 }
 
 function languageExtension(language: Language): Extension {
@@ -51,6 +53,11 @@ export function createEditor(parent: HTMLElement, options: EditorOptions): Edito
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             options.onChange(update.state.doc.toString());
+          }
+          if (options.onCursor !== undefined && (update.selectionSet || update.docChanged || update.focusChanged)) {
+            const head = update.state.selection.main.head;
+            const line = update.state.doc.lineAt(head);
+            options.onCursor(line.number, head - line.from + 1);
           }
         }),
       ],

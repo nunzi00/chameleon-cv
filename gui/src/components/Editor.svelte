@@ -9,8 +9,9 @@
     onchange: (value: string) => void;
     /** Un <textarea> en lugar de CodeMirror (pruebas y entornos sin DOM completo). */
     plain?: boolean;
+    oncursor?: ((line: number, column: number) => void) | undefined;
   }
-  let { value, path, onchange, plain = false }: Props = $props();
+  let { value, path, onchange, plain = false, oncursor = undefined }: Props = $props();
   let host = $state<HTMLDivElement | undefined>(undefined);
   let handle: EditorHandle | undefined;
   let loading = $state(true);
@@ -25,7 +26,7 @@
       if (cancelled || host === undefined) {
         return;
       }
-      handle = createEditor(host, { doc: value, language: languageFor(path), onChange: onchange });
+      handle = createEditor(host, { doc: value, language: languageFor(path), onChange: onchange, onCursor: oncursor });
       loading = false;
     });
     return () => {

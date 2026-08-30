@@ -46,8 +46,9 @@ describe('Estado', () => {
     render(Estado, { props: { api, onsession: vi.fn(), onopen: vi.fn() } });
     await waitFor(() => expect(screen.getByText('obsoleto: compila para actualizarlo')).toBeTruthy());
     expect(screen.getByText('experience/acme.md')).toBeTruthy();
-    expect(screen.getByText('Especialidades: backend')).toBeTruthy();
+    expect(screen.getByText('backend').className).toContain('cv-chip');
     expect(screen.getByText('utilizable (0.15.1)')).toBeTruthy();
+    expect(screen.getByText('data/sources/')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Validar' }));
     await waitFor(() => expect(screen.getByText('Fuentes válidas: 2 ficheros · 2 experiencias')).toBeTruthy());
     await fireEvent.click(screen.getByRole('button', { name: 'Compilar' }));
@@ -69,11 +70,69 @@ describe('Estado', () => {
     render(Estado, { props: { api, onsession, onopen } });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy());
     await fireEvent.click(screen.getByRole('button', { name: 'Validar' }));
-    await waitFor(() => expect(screen.getByText('1 problema en las fuentes')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/1 problema en las fuentes/)).toBeTruthy());
     await fireEvent.click(screen.getByRole('button', { name: 'experience/acme.md:4' }));
     expect(onopen).toHaveBeenCalledWith('experience/acme.md', 4);
     await fireEvent.click(screen.getByRole('button', { name: 'Compilar' }));
     await waitFor(() => expect(onsession).toHaveBeenCalled());
     expect(screen.getByText('La sesión no es válida')).toBeTruthy();
+  });
+
+  it('sin fuentes ni artefacto muestra el vacío con «cv init» y «Volver a comprobar» vuelve a consultar', async () => {
+    const api = fakeApi({
+      status: vi.fn(async () => ({ ...STATUS, artifact: { status: 'missing' as const, detail: undefined, specialties: [] } })),
+      sources: vi.fn(async () => ({ root: '/work/data/sources', entries: [] })),
+    });
+    render(Estado, { props: { api, onsession: vi.fn(), onopen: vi.fn() } });
+    await waitFor(() => expect(screen.getByText('Sin fuentes todavía')).toBeTruthy());
+    expect(screen.getByText('$ cv init')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Volver a comprobar' }));
+    await waitFor(() => expect(api.status).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('button', { name: 'Importar un perfil JSON…' })).toBeTruthy();
+  });
+
+  it('muestra el recuento de fuentes, la tabla de temas con su origen y comprueba el co-piloto', async () => {
+    const api = fakeApi({
+      status: vi.fn(async () => ({
+        ...STATUS,
+        llm: { ...STATUS.llm, config: { provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b', sources: { provider: 'default' as const, baseUrl: 'default' as const, model: 'default' as const } } },
+        themes: {
+          ...STATUS.themes,
+          entries: [
+            { name: 'default', directory: '/t/default', builtin: true, shadows: false, description: undefined, author: undefined, license: undefined, homepage: undefined, error: undefined },
+            { name: 'nord', directory: '/w/themes/nord', builtin: false, shadows: false, description: undefined, author: undefined, license: undefined, homepage: undefined, error: undefined, origin: { source: 'https://x/nord.zip', kind: 'url' as const, installedAt: '', verified: 'modified' as const } },
+          ] as StatusResponse['themes']['entries'],
+        },
+      })),
+      sources: vi.fn(async () => ({ root: '/work/data/sources', entries: [{ path: 'profile.md', bytes: 1, sha256: 'a' }, { path: 'skills.csv', bytes: 1, sha256: 'b' }] as never })),
+      checkLlm: vi.fn(async () => ({ provider: 'ollama', kind: 'local' as const, ok: true, models: ['qwen2.5:7b'], modelAvailable: true, message: undefined, quota: undefined })),
+    });
+    render(Estado, { props: { api, onsession: vi.fn(), onopen: vi.fn() } });
+    await waitFor(() => expect(screen.getByText('2 ficheros en data/sources/')).toBeTruthy());
+    const table = screen.getByRole('table', { name: 'Temas instalados' });
+    expect(table.textContent).toContain('integrado');
+    expect(table.textContent).toContain('instalado desde URL');
+    expect(table.textContent).toContain('modificado');
+    expect(screen.getByText('http://127.0.0.1:11434')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Comprobar' }));
+    await waitFor(() => expect(api.checkLlm).toHaveBeenCalledWith({}));
+    await waitFor(() => expect(screen.getByText(/Responde: 1 modelo/)).toBeTruthy());
+  });
+
+  it('con problemas de validación ofrece abrir el primero en Fuentes y volver a validar', async () => {
+    const onopen = vi.fn();
+    const api = fakeApi({
+      validate: vi.fn(async () => {
+        throw new ApiError(422, { code: 'invalid-data', message: '2 problemas', issues: [{ file: 'skills.csv', line: 7, message: 'sin id' }, { file: 'profile.md', line: undefined, message: 'falta fullName' }] });
+      }),
+    });
+    render(Estado, { props: { api, onsession: vi.fn(), onopen } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Validar' }));
+    await waitFor(() => expect(screen.getByText('Ninguna fuente se ha modificado.')).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Abrir la primera en Fuentes' }));
+    expect(onopen).toHaveBeenCalledWith('skills.csv', 7);
+    await fireEvent.click(screen.getByRole('button', { name: 'Volver a validar' }));
+    await waitFor(() => expect(api.validate).toHaveBeenCalledTimes(2));
   });
 });
