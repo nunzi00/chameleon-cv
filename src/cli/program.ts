@@ -17,6 +17,7 @@ import { runThemeCreate, runThemeList, runThemePath, type ThemeCreateOptions } f
 import { DEFAULT_THEME } from '../themes';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
+import { runExport, runImport, type ExportOptions, type ImportOptions } from './commands/portability';
 import { parsePort, runServe, type ServeCommandOptions } from './commands/serve';
 import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
@@ -62,6 +63,26 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('-v, --verbose', 'muestra un resumen al terminar', false)
     .action(async (options: BuildOptions) => {
       onExit(await runBuild(context, options));
+    });
+
+  program
+    .command('export')
+    .description('exporta el perfil canónico (el mismo JSON que data/dist/profile.json) desde las fuentes, sin necesitar cv build: por la salida estándar o en un fichero (-o)')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('-o, --output <file>', 'fichero de salida (0600) en lugar de la salida estándar')
+    .action(async (options: ExportOptions) => {
+      onExit(await runExport(context, options));
+    });
+
+  program
+    .command('import')
+    .description('regenera las fuentes Markdown/CSV a partir de un perfil canónico en JSON (la inversa de cv build), comprobando antes que cv build las leería igual; solo en un directorio vacío o con --replace')
+    .argument('<file>', 'perfil en JSON («-» = entrada estándar)')
+    .option('-d, --data <dir>', 'directorio de fuentes de destino', DEFAULT_DATA_DIR)
+    .option('--replace', 'sustituye un directorio con contenido tras renombrarlo entero como copia de seguridad (<dir>.<marca>.bak)', false)
+    .option('--dry-run', 'muestra el plan y el resultado del auto-chequeo sin escribir nada', false)
+    .action(async (file: string, options: ImportOptions) => {
+      onExit(await runImport(context, file, options));
     });
 
   program
