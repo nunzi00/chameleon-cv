@@ -21,13 +21,13 @@ import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { readConfigFile, writeLlmSettings } from '../app/settings';
 import { isRemoteProviderId, type LlmStatus } from '../llm';
 import { profileSummary } from '../app/text';
-import { createTheme, themeInventory } from '../app/themes';
+import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmConfigResponse, type LlmConfigWriteResponse } from './contract';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmConfigResponse, type LlmConfigWriteResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -442,6 +442,58 @@ export function createRouter(): Router<ServerState> {
       }
       const result = await createTheme(state.context, parsed.value.name, parsed.value.from ?? 'default');
       return result.ok ? json(201, result.created satisfies ThemeCreateResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/themes/install`,
+    summary:
+      'Instala un tema de la comunidad en themes/<nombre>/ desde un archivo o directorio del espacio de trabajo, o desde una URL https (T-8.3): con URL exige --allow-remote y consentimiento en dos pasos (409 consent-required con estimateId, host y límite; repetir con consent.estimateId); dryRun devuelve el plan sin escribir (200); instalado, 201; nunca sobrescribe (replace aparta el anterior a una copia .bak).',
+    writes: true,
+    body: ThemeInstallSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, ThemeInstallSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const body = parsed.value;
+      const classified = classifyInstallSource(state.context.cwd, body.source);
+      if (!classified.ok) {
+        return appErrorResponse(classified.error);
+      }
+      if (classified.source.kind === 'url') {
+        if (!state.allowRemote) {
+          return errorResponse('remote-disabled', 'Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para instalar temas desde una URL');
+        }
+        if (body.consent === undefined || !state.consents.redeem(body.consent.estimateId, 'theme-install')) {
+          const { url } = classified.source;
+          return errorResponse('consent-required', `Se descargará «${url.href}» (host ${url.host}, máximo ${THEME_DOWNLOAD_LIMITS.maxBytes} bytes); repite la petición con consent.estimateId para confirmar`, {
+            estimateId: state.consents.issue('theme-install'),
+            source: url.href,
+            host: url.host,
+            limitBytes: THEME_DOWNLOAD_LIMITS.maxBytes,
+          });
+        }
+      }
+      const result = await installTheme(state.context, { source: body.source, as: body.name, sha256: body.sha256, dryRun: body.dryRun, replace: body.replace }, { toolVersion: state.version });
+      return result.ok ? json(result.installed.written ? 201 : 200, result.installed satisfies ThemeInstallResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/themes/{name}/verify`,
+    summary: 'Recalcula las huellas de un tema instalado y las compara con su .origin.json: intacto, modificado localmente (con cada fichero) o sin origen (T-8.3).',
+    writes: false,
+    handler: async (request, state) => {
+      const result = await verifyThemes(state.context, String(request.params['name']));
+      if (!result.ok) {
+        return appErrorResponse(result.error);
+      }
+      // Con nombre, verifyThemes devuelve exactamente la verificación de ese tema.
+      const [verification] = result.verifications;
+      return json(200, verification as ThemeVerifyResponse);
     },
   });
 

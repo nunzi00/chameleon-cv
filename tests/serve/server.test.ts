@@ -7,6 +7,9 @@ import { GUI_CSP, GUI_PREFIX, startServer, urlHost, type ServerHandle } from '..
 import { MemoryAssets } from '../../src/shared/assets';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
+import type { Fetcher } from '../../src/typst';
+import { themeToml } from '../fixtures/theme';
+import { buildZip } from '../helpers/archives';
 
 const PROFILE = '---\nschemaVersion: 1\nlocale: es-ES\nfullName: Ada Ejemplo\nemail: ada@example.com\n---\n\nResumen.\n';
 const BACKEND = '---\ntitle: Senior Backend Engineer\ntags: [php, kubernetes]\n---\n';
@@ -331,5 +334,77 @@ describe('cv serve: la interfaz web desde el almacén de assets (lista cerrada, 
   it('con --api-only no sirve la interfaz', async () => {
     expect((await fetch(apiOnly.url)).status).toBe(404);
     expect((await fetch(`${apiOnly.url}assets/index-abc123.js`)).status).toBe(404);
+  });
+});
+
+describe('cv serve: instalar y verificar temas de la comunidad (T-8.3)', () => {
+  const ZIP = buildZip([
+    { path: 'comunidad/' },
+    { path: 'comunidad/theme.toml', data: themeToml('comunidad') },
+    { path: 'comunidad/template.typ', data: '#let cv(d, theme) = d.fullName\n' },
+  ]);
+  const NOW = new Date('2026-08-30T10:00:00.000Z');
+  let fs: MemoryFileSystem;
+  let local: ServerHandle;
+  let remote: ServerHandle;
+  const calls: string[] = [];
+  async function* once(bytes: Uint8Array): AsyncGenerator<Uint8Array> {
+    yield bytes;
+  }
+  const fetcher: Fetcher = (url) => {
+    calls.push(url);
+    return Promise.resolve({ ok: true, status: 200, url: 'https://cdn.example/comunidad.zip', body: once(ZIP), contentLength: ZIP.length });
+  };
+  const call = (server: ServerHandle, path: string, body?: unknown): Promise<Response> =>
+    fetch(`${server.url}api/v1${path}`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
+
+  beforeAll(async () => {
+    fs = new MemoryFileSystem({ ...tree(), '/work/themes/comunidad.zip': { kind: 'file', content: '', bytes: ZIP } });
+    const options = { host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowedHosts: [], token: TOKEN } as const;
+    local = await startServer({ ...options, context: appContext(fs, { now: () => NOW, fetcher }), allowRemote: false });
+    remote = await startServer({ ...options, context: appContext(fs, { now: () => NOW, fetcher }), allowRemote: true });
+  });
+  afterAll(async () => {
+    await local.close();
+    await remote.close();
+  });
+
+  it('instala desde un archivo del espacio de trabajo: dryRun (200, nada escrito), instalación (201) y verify (200); errores 422, 404 y 400', async () => {
+    const dry = await call(local, '/themes/install', { source: 'themes/comunidad.zip', dryRun: true });
+    expect(dry.status).toBe(200);
+    expect((await dry.json()) as object).toMatchObject({ written: false, plan: { name: 'comunidad', directory: '/work/themes/comunidad', kind: 'archive' } });
+    expect(fs.file('/work/themes/comunidad/theme.toml')).toBeUndefined();
+    const installed = await call(local, '/themes/install', { source: 'themes/comunidad.zip', name: 'comunidad' });
+    expect(installed.status).toBe(201);
+    expect((await installed.json()) as object).toMatchObject({ written: true, plan: { name: 'comunidad', files: [{ path: 'template.typ' }, { path: 'theme.toml' }] } });
+    expect(fs.file('/work/themes/comunidad/.origin.json')?.content).toContain('"tool": "chameleon-cv 9.9.9"');
+    const verified = await call(local, '/themes/comunidad/verify');
+    expect(verified.status).toBe(200);
+    expect((await verified.json()) as object).toMatchObject({ name: 'comunidad', directory: '/work/themes/comunidad', report: { state: 'intact', origin: { installedAt: '2026-08-30T10:00:00.000Z' } } });
+    expect((await call(local, '/themes/install', { source: 'themes/comunidad.zip' })).status).toBe(409);
+    expect((await call(local, '/themes/install', { source: 'themes/nada.zip' })).status).toBe(404);
+    expect((await call(local, '/themes/install', { source: 'http://cdn.example/t.zip' })).status).toBe(422);
+    expect((await call(local, '/themes/install', { fuente: 'x' })).status).toBe(400);
+    expect((await call(local, '/themes/classic/verify')).status).toBe(422);
+    expect((await call(local, '/themes/nada/verify')).status).toBe(404);
+  });
+
+  it('desde una URL: 403 sin --allow-remote; con él, 409 consent-required con estimateId, host y límite, y la repetición con el id descarga e instala', async () => {
+    const forbidden = await call(local, '/themes/install', { source: 'https://cdn.example/descargas/comunidad.zip' });
+    expect(forbidden.status).toBe(403);
+    expect((await forbidden.json()) as object).toMatchObject({ error: { code: 'remote-disabled' } });
+    expect(calls).toEqual([]);
+    const pending = await call(remote, '/themes/install', { source: 'https://cdn.example/descargas/comunidad.zip', name: 'remota' });
+    expect(pending.status).toBe(409);
+    const body = (await pending.json()) as { error: { code: string; estimateId: string; source: string; host: string; limitBytes: number } };
+    expect(body.error).toMatchObject({ code: 'consent-required', source: 'https://cdn.example/descargas/comunidad.zip', host: 'cdn.example', limitBytes: 8 * 1024 * 1024 });
+    expect(calls).toEqual([]);
+    const wrongId = await call(remote, '/themes/install', { source: 'https://cdn.example/descargas/comunidad.zip', name: 'remota', consent: { estimateId: 'otro' } });
+    expect(wrongId.status).toBe(409);
+    const installed = await call(remote, '/themes/install', { source: 'https://cdn.example/descargas/comunidad.zip', name: 'remota', consent: { estimateId: body.error.estimateId } });
+    expect(installed.status).toBe(201);
+    expect((await installed.json()) as object).toMatchObject({ written: true, plan: { name: 'remota', kind: 'url', source: 'https://cdn.example/comunidad.zip' } });
+    expect(calls).toEqual(['https://cdn.example/descargas/comunidad.zip']);
+    expect(fs.file('/work/themes/remota/.origin.json')?.content).toContain('"source": "https://cdn.example/comunidad.zip"');
   });
 });

@@ -13,7 +13,7 @@ import type { AppWarning } from '../app/freshness';
 import type { GenerateReport } from '../app/generate';
 import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../app/review';
 import type { SourceEntry, SourceFile } from '../app/sources';
-import type { CreatedTheme, ThemeInventory } from '../app/themes';
+import type { CreatedTheme, InstalledTheme, ThemeInventory, ThemeVerification } from '../app/themes';
 import type { WorkspaceStatus } from '../app/workspace';
 import type { MasterProfile } from '../core/schema';
 import { SUGGEST_TAGS_LIMITS } from '../llm';
@@ -51,6 +51,16 @@ export const GenerateSchema = z.object({
 export const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1).optional(), build: z.boolean().optional() });
 export const SourceWriteSchema = z.object({ content: z.string() });
 export const ThemeCreateSchema = z.object({ name: z.string().min(1), from: z.string().min(1).optional() });
+/** `cv theme install` por la API (T-8.3): un `source` https exige --allow-remote y el consentimiento en dos pasos. */
+export const ThemeInstallSchema = z.object({
+  source: z.string().min(1),
+  name: z.string().min(1).optional(),
+  sha256: z.string().min(1).optional(),
+  dryRun: z.boolean().optional(),
+  replace: z.boolean().optional(),
+  /** Confirmación de la descarga: el estimateId del 409 anterior. */
+  consent: z.object({ estimateId: z.string().min(1) }).optional(),
+});
 export const EmptySchema = z.object({});
 export const ProviderSchema = {
   /** Proveedor configurado (`cv llm status`); un remoto exige --allow-remote y consentimiento. */
@@ -126,6 +136,7 @@ export type GenerateRequest = z.infer<typeof GenerateSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeSchema>;
 export type SourceWriteRequest = z.infer<typeof SourceWriteSchema>;
 export type ThemeCreateRequest = z.infer<typeof ThemeCreateSchema>;
+export type ThemeInstallRequest = z.infer<typeof ThemeInstallSchema>;
 export type ImproveJobRequest = z.infer<typeof ImproveJobSchema>;
 export type SummarizeJobRequest = z.infer<typeof SummarizeJobSchema>;
 export type SuggestTagsJobRequest = z.infer<typeof SuggestTagsJobSchema>;
@@ -236,6 +247,9 @@ export interface ThemesResponse {
   readonly entries: ThemeInventory['entries'];
 }
 export type ThemeCreateResponse = CreatedTheme;
+/** 200 con `--dry-run` (nada escrito), 201 instalado. */
+export type ThemeInstallResponse = InstalledTheme;
+export type ThemeVerifyResponse = ThemeVerification;
 export interface ShutdownResponse {
   readonly ok: true;
 }

@@ -9,8 +9,11 @@ import type { JobKind } from './jobs';
 
 export const CONSENT_TTL_MS = 10 * 60 * 1000;
 
+/** Qué se confirma: un trabajo del co-piloto con proveedor remoto o la descarga de un tema (T-8.3). */
+export type ConsentKind = JobKind | 'theme-install';
+
 export class ConsentStore {
-  private readonly pending = new Map<string, { readonly kind: JobKind; readonly issuedAt: number }>();
+  private readonly pending = new Map<string, { readonly kind: ConsentKind; readonly issuedAt: number }>();
   private readonly now: () => Date;
   private readonly ttlMs: number;
   private readonly newId: () => string;
@@ -21,14 +24,14 @@ export class ConsentStore {
     this.newId = newId;
   }
 
-  issue(kind: JobKind): string {
+  issue(kind: ConsentKind): string {
     const id = this.newId();
     this.pending.set(id, { kind, issuedAt: this.now().getTime() });
     return id;
   }
 
   /** Consume el id: válido solo una vez, para la misma tarea y dentro del plazo. */
-  redeem(id: string, kind: JobKind): boolean {
+  redeem(id: string, kind: ConsentKind): boolean {
     const entry = this.pending.get(id);
     if (entry === undefined) {
       return false;
