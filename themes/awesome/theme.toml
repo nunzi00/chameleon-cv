@@ -1,0 +1,50 @@
+# Tema «awesome» de Chameleon CV (T-8.7): el aspecto que la comunidad reconoce de Awesome-CV (LaTeX) y de sus
+# portes a Typst —cabecera centrada con contraste de pesos en el nombre, titular en versalitas de color, títulos de
+# sección con las tres primeras letras en acento y filete hasta el margen, entradas en rejilla 2×2—, en una sola
+# columna y sin iconos ni barras: el texto se extrae en orden. Copia este directorio a themes/<mi-tema>/ y genera con
+# `--theme mi-tema`; o anula valores desde cv.toml sin tocar ficheros (p. ej. accent = "#0395de" para el azul).
+
+[theme]
+name = "awesome"
+description = "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2"
+version = 1
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#414141"       # cuerpo de texto (darktext de Awesome-CV)
+primary = "#212121"    # apellidos, puestos y títulos de sección
+secondary = "#7a7a7a"  # nombre de pila, empresas, periodos, impacto
+accent = "#dc3522"     # awesome-red: titular, tres letras de cada sección, ubicación, enlaces (#0395de skyblue, #00a388 emerald, #131a28 darknight)
+rule = "#4a4a4a"       # filete de sección
+
+[fonts]                # Source Sans 3 es la fuente de cuerpo del propio Awesome-CV
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 26
+headline = 10.5
+contact = 9
+section = 13.5
+title = 10.8
+meta = 9.3
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.42
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 14
+right = 16
+bottom = 14
+left = 16

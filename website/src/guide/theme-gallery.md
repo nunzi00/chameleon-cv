@@ -44,6 +44,21 @@ cv generate-cv --format pdf --engine typst --theme academic       # genera con e
 cv theme create mio --from academic                               # parte de él en themes/mio/ de tu proyecto
 ```
 
+## `awesome`
+
+![Primera página del CV del banco de pruebas con el tema awesome](/themes/awesome.png)
+
+Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme awesome        # genera con este tema
+cv theme create mio --from awesome                                # parte de él en themes/mio/ de tu proyecto
+```
+
 ## `classic`
 
 ![Primera página del CV del banco de pruebas con el tema classic](/themes/classic.png)
@@ -56,6 +71,21 @@ Serif tradicional de aire académico: cabecera centrada, doble filete, secciones
 ```bash
 cv generate-cv --format pdf --engine typst --theme classic        # genera con este tema
 cv theme create mio --from classic                                # parte de él en themes/mio/ de tu proyecto
+```
+
+## `executive`
+
+![Primera página del CV del banco de pruebas con el tema executive](/themes/executive.png)
+
+Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro
+
+- **Tipografías**: cuerpo Libertinus Serif · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme executive      # genera con este tema
+cv theme create mio --from executive                              # parte de él en themes/mio/ de tu proyecto
 ```
 
 ## `minimal`

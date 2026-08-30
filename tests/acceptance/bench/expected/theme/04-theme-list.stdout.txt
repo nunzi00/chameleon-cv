@@ -1,7 +1,9 @@
-bench     del proyecto  Tema del banco de pruebas: classic con paleta verde y márgenes anchos · por defecto
-default   del proyecto  Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha · oculta al distribuido del mismo nombre
-mio       del proyecto  Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado
-academic  distribuido   Serif de una columna para trayectorias largas: cabecera centrada, secciones numeradas, fechas al margen y pie con paginación · autor: Chameleon CV · licencia: MIT
-classic   distribuido   Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado
-minimal   distribuido   Monocromo y sin filetes: jerarquía solo por tamaño y peso, listas planas, sin tablas ni columnas; pensado para los ATS · autor: Chameleon CV · licencia: MIT
-modern    distribuido   Contemporáneo: franja de acento en la cabecera, columna lateral con contacto, skills e idiomas, y fechas en pastillas · autor: Chameleon CV · licencia: MIT
+bench      del proyecto  Tema del banco de pruebas: classic con paleta verde y márgenes anchos · por defecto
+default    del proyecto  Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha · oculta al distribuido del mismo nombre
+mio        del proyecto  Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado
+academic   distribuido   Serif de una columna para trayectorias largas: cabecera centrada, secciones numeradas, fechas al margen y pie con paginación · autor: Chameleon CV · licencia: MIT
+awesome    distribuido   Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2 · autor: Chameleon CV · licencia: MIT
+classic    distribuido   Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado
+executive  distribuido   Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro · autor: Chameleon CV · licencia: MIT
+minimal    distribuido   Monocromo y sin filetes: jerarquía solo por tamaño y peso, listas planas, sin tablas ni columnas; pensado para los ATS · autor: Chameleon CV · licencia: MIT
+modern     distribuido   Contemporáneo: franja de acento en la cabecera, columna lateral con contacto, skills e idiomas, y fechas en pastillas · autor: Chameleon CV · licencia: MIT

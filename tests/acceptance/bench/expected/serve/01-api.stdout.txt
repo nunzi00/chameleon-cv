@@ -28,6 +28,16 @@
         "shadows": false
       },
       {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
+        "directory": "<BUILTIN_THEMES>/awesome",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "license": "MIT",
+        "name": "awesome",
+        "shadows": false
+      },
+      {
         "builtin": true,
         "description": "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado",
         "directory": "<BUILTIN_THEMES>/classic",
@@ -39,6 +49,16 @@
         "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
         "directory": "<BUILTIN_THEMES>/default",
         "name": "default",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro",
+        "directory": "<BUILTIN_THEMES>/executive",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "license": "MIT",
+        "name": "executive",
         "shadows": false
       },
       {
@@ -4409,6 +4429,16 @@
       "shadows": false
     },
     {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
+      "directory": "<BUILTIN_THEMES>/awesome",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "awesome",
+      "shadows": false
+    },
+    {
       "builtin": true,
       "description": "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado",
       "directory": "<BUILTIN_THEMES>/classic",
@@ -4420,6 +4450,16 @@
       "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
       "directory": "<BUILTIN_THEMES>/default",
       "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro",
+      "directory": "<BUILTIN_THEMES>/executive",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "executive",
       "shadows": false
     },
     {
@@ -4740,6 +4780,16 @@
       "shadows": false
     },
     {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
+      "directory": "<BUILTIN_THEMES>/awesome",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "awesome",
+      "shadows": false
+    },
+    {
       "builtin": true,
       "description": "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado",
       "directory": "<BUILTIN_THEMES>/classic",
@@ -4751,6 +4801,16 @@
       "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
       "directory": "<BUILTIN_THEMES>/default",
       "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro",
+      "directory": "<BUILTIN_THEMES>/executive",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "executive",
       "shadows": false
     },
     {

@@ -1,0 +1,49 @@
+# Tema «executive» de Chameleon CV (T-8.7): el estilo «banking» de moderncv para dirección, finanzas y consultoría —
+# cabecera centrada en serif, un solo filete, y una estructura que vende trayectoria: resumen, un bloque de logros
+# destacados arriba, una fila de competencias clave y después la experiencia con el impacto de cada logro en negrita.
+# Una sola columna, sin iconos ni barras. Copia este directorio a themes/<mi-tema>/ y genera con `--theme mi-tema`.
+
+[theme]
+name = "executive"
+description = "Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro"
+version = 1
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1e1e1e"       # cuerpo de texto
+primary = "#1f2a44"    # nombre, empresas y títulos de sección (azul marino)
+secondary = "#5a5f6a"  # metadatos, periodos, ubicación
+accent = "#1f3a5f"     # enlaces y filete izquierdo del bloque de logros
+rule = "#b8bcc4"       # filetes y fondo suave del bloque de logros
+
+[fonts]                # serif embebida en Typst para el cuerpo; sans distribuida para los títulos de sección
+body = "Libertinus Serif"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 24
+headline = 11
+contact = 9.3
+section = 9.6
+title = 10.8
+meta = 9.3
+body = 10.2
+footer = 8.5
+code = 9
+
+[spacing]              # en «em» del cuerpo
+leading = 0.6
+paragraph = 0.75
+list = 0.45
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 20
+right = 20
+bottom = 18
+left = 20
