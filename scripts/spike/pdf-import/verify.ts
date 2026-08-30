@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 
-import type { DraftAchievement, DraftEntry, DraftProfile, Provenance } from './structure';
+import { splitImpact, type DraftAchievement, type DraftEntry, type DraftProfile, type Provenance } from './structure';
 import { parsePoint } from './dates';
 import { alphanumeric, normalize } from './text';
 
@@ -140,7 +140,9 @@ export function verifyModelDraft(draft: ModelDraft, text: string): { readonly dr
         dropped.achievements += 1;
         return [];
       }
-      return [{ text: item.text.trim(), impact: keep(item.impact), provenance: provenanceOf(lines, item.text) }];
+      // El modelo suele dejar el impacto «(…)» dentro del texto: se separa por código, como hace P1.
+      const split = item.impact === null ? splitImpact(item.text.trim()) : { text: item.text.trim(), impact: undefined };
+      return [{ text: split.text, impact: keep(item.impact) ?? split.impact, provenance: provenanceOf(lines, item.text) }];
     });
   const entriesOf = (items: ReadonlyArray<z.output<typeof EntrySchema>>): DraftEntry[] =>
     items.flatMap((item) => {

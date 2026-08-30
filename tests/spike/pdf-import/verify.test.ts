@@ -82,6 +82,7 @@ describe('verifyModelDraft', () => {
             { text: 'Diseñé la arquitectura de la nueva pasarela de pagos.', impact: '0 incidentes en 18 meses' },
             { text: 'Reduje la latencia p99 de 480 ms a 210 ms.', impact: '56 %' },
             { text: 'Lideré la migración a Kubernetes.', impact: null },
+            { text: 'Diseñé la arquitectura de la nueva pasarela de pagos. (0 incidentes en 18 meses)', impact: null },
           ],
         }),
         entry({ title: 'CTO', subtitle: 'Startup', start: '2010' }),
@@ -113,6 +114,7 @@ describe('verifyModelDraft', () => {
     expect(first?.achievements.map((achievement) => [achievement.text, achievement.impact, achievement.provenance.line])).toEqual([
       ['Diseñé la arquitectura de la nueva pasarela de pagos.', '0 incidentes en 18 meses', 6],
       ['Reduje la latencia p99 de 480 ms a 210 ms.', undefined, 7],
+      ['Diseñé la arquitectura de la nueva pasarela de pagos.', '0 incidentes en 18 meses', 6],
     ]);
     expect(verified.education[0]).toMatchObject({ start: '2009', end: '2013', current: undefined });
     expect(verified.certifications).toEqual([]);

@@ -133,7 +133,7 @@ function stripBullet(text: string): string {
 }
 
 /** «Texto del logro. (impacto)» → texto e impacto; el impacto es el paréntesis final. */
-function splitImpact(text: string): { readonly text: string; readonly impact: string | undefined } {
+export function splitImpact(text: string): { readonly text: string; readonly impact: string | undefined } {
   const match = /^(.*\S)\s+\(([^()]{3,})\)\.?$/.exec(text);
   return match === null ? { text, impact: undefined } : { text: match[1]!, impact: match[2]! };
 }

@@ -4,7 +4,7 @@
  * + co-piloto local guiado por el esquema, verificado por código)— la tarjeta frente a la verdad y la tabla Markdown
  * generada. Los PDF sin verdad (grupo C) se registran con el resultado del extractor.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { parseMasterProfile, type MasterProfile } from '../../../src/core/schema';
@@ -15,6 +15,7 @@ import { extractItems } from './items';
 import { layoutText } from './layout';
 import { markdownTable, score, textCoverage, type Row } from './metrics';
 import { structureWithModel } from './model';
+import { ModelDraftSchema, verifyModelDraft } from './verify';
 import { structureCv, type DraftProfile } from './structure';
 
 export type Candidate = 'p1' | 'p2' | 'p3';
@@ -186,4 +187,35 @@ export function compareTable(measurements: readonly Measurement[]): string {
     return `| ${name} | ${cells.join(' | ')} |`;
   });
   return [header, separator, ...lines].join('\n');
+}
+
+/**
+ * Vuelve a verificar y puntuar los borradores de P2 guardados (`drafts/p2/*.json`, con la respuesta cruda del modelo)
+ * sin llamar otra vez al modelo: sirve para medir mejoras de la verificación por código sobre las mismas respuestas.
+ */
+export function rescore(entries: readonly CorpusEntry[] = readCorpus()): Measurement {
+  const rows: Row[] = [];
+  const limits: LimitRow[] = [];
+  const dropped = { entries: 0, achievements: 0, fields: 0 };
+  for (const entry of entries) {
+    const name = `${entry.group}/${entry.name}`;
+    const path = draftsPath('p2', entry);
+    if (entry.truth === undefined || !existsSync(path)) {
+      limits.push({ name, outcome: entry.truth === undefined ? 'sin verdad' : 'sin borrador guardado', milliseconds: 0 });
+      continue;
+    }
+    const saved = JSON.parse(readFileSync(path, 'utf8')) as { text: string; raw: unknown };
+    const parsed = ModelDraftSchema.safeParse(saved.raw);
+    if (!parsed.success) {
+      limits.push({ name, outcome: 'la respuesta guardada no cumple el esquema actual', milliseconds: 0 });
+      continue;
+    }
+    const truth: MasterProfile = parseMasterProfile(JSON.parse(readFileSync(entry.truth, 'utf8')));
+    const verified = verifyModelDraft(parsed.data, saved.text);
+    rows.push({ name, candidate: 'p2', coverage: textCoverage(truth, saved.text), card: score(truth, verified.draft), milliseconds: 0 });
+    dropped.entries += verified.dropped.entries;
+    dropped.achievements += verified.dropped.achievements;
+    dropped.fields += verified.dropped.fields;
+  }
+  return { candidate: 'p2', rows, limits, deterministic: true, dropped };
 }

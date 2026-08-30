@@ -3,6 +3,7 @@
  *   npm run spike:pdf-import -- corpus
  *   npm run spike:pdf-import -- measure [--candidate p1|p2|p3] [--only a|b|c|<grupo>/<nombre…>] [--limit n]
  *   npm run spike:pdf-import -- compare        (mide p1 y p3, y p2 si hay servidor local, y escribe la tabla comparativa)
+ *   npm run spike:pdf-import -- rescore      (P2: vuelve a verificar y puntuar las respuestas guardadas del modelo, sin llamarlo)
  *   npm run spike:pdf-import -- all
  * Escribe las tablas en build/spike/pdf-import/results-<candidato>.md; no toca src/ ni el producto.
  */
@@ -12,7 +13,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { CORPUS_ROOT, ROOT, generateCorpus } from './corpus';
-import { CANDIDATES, compareTable, localProvider, measure, report, type Candidate, type Measurement } from './measure';
+import { CANDIDATES, compareTable, localProvider, measure, report, rescore, type Candidate, type Measurement } from './measure';
 
 function option(args: readonly string[], name: string): string | undefined {
   const index = args.indexOf(name);
@@ -60,8 +61,15 @@ async function main(): Promise<void> {
     writeFileSync(join(CORPUS_ROOT, '..', 'compare.md'), `${table}\n`);
     console.log(table);
   }
-  if (!['corpus', 'measure', 'compare', 'all'].includes(command)) {
-    throw new Error(`Orden desconocida «${command}»: corpus | measure [--candidate p1|p2|p3] [--only a|b|c] [--limit n] | compare | all`);
+  if (command === 'rescore') {
+    const measurement = rescore();
+    const target = join(CORPUS_ROOT, '..', 'results-p2-rescored.md');
+    writeFileSync(target, report(measurement));
+    console.log(report(measurement));
+    console.log(`(escrito en ${relative(ROOT, target)})`);
+  }
+  if (!['corpus', 'measure', 'compare', 'rescore', 'all'].includes(command)) {
+    throw new Error(`Orden desconocida «${command}»: corpus | measure [--candidate p1|p2|p3] [--only a|b|c|<grupo>/<nombre…>] [--limit n] | compare | rescore | all`);
   }
 }
 
