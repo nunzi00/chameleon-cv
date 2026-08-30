@@ -60,6 +60,25 @@ top = 17
 
 Una clave desconocida, un color que no sea `#rrggbb` o un tamaño fuera de rango se rechazan con la ruta del error (`colors.primary: …`) antes de arrancar Typst.
 
+## Temas de la comunidad: `cv theme install` y `cv theme verify`
+
+Un tema se comparte como un archivo `.zip` o `.tar.gz` con `theme.toml`, `template.typ` y, si hace falta, `fonts/`, `README.md` y `LICENSE` (opcionalmente dentro de un único directorio raíz con el nombre del tema). Se instala en `themes/<nombre>/` de tu proyecto desde una URL `https://` o desde un archivo o directorio local:
+
+```bash
+cv theme install https://ejemplo.org/temas/comunidad.zip --sha256 <huella>   # 1. pide consentimiento, descarga (máximo 8 MiB), lee el archivo en el propio proceso y contrasta la huella publicada por su autor
+cv theme install ~/Descargas/comunidad.zip --as mi-comunidad --dry-run       # solo el plan: entradas admitidas, tamaños, huellas y nombre; nada se escribe
+cv theme install ../otro-proyecto/themes/mio                                 # un directorio local vale igual (sin red, sin pregunta)
+cv theme verify comunidad                                                    # 2. intacto, modificado localmente (qué fichero) o sin origen; código 1 si hay diferencias
+cv theme list --verify                                                       # el origen de cada tema instalado y su estado
+cv generate-cv --format pdf --engine typst --theme comunidad                 # 3. se ejecuta contenido, como todos los temas
+```
+
+Antes de descargar, `cv` anuncia la URL, el host y el límite, y pide confirmación (`--yes` la da por adelantado; sin terminal y sin `--yes`, cancela sin tocar la red). Solo `https://`, también tras redirecciones. El archivo se lee **sin `tar` ni procesos**, con una política cerrada: un único directorio raíz opcional, solo los ficheros de un tema (`theme.toml`, `template.typ`, `README.md`, `LICENSE`, `fonts/<nombre>.ttf|otf`, con nombres en minúsculas, dígitos y guiones), sin `..`, rutas absolutas, enlaces ni dispositivos, y con límites (2 MiB por fichero, 8 MiB por fuente, 16 MiB en total, 40 entradas); cualquier otra cosa es un error que nombra la entrada. `theme.toml` se valida antes de escribir nada y nunca se sobrescribe un tema: `--replace` aparta el anterior a `themes/<nombre>.<marca>.bak/`.
+
+La instalación deja `themes/<nombre>/.origin.json` con el origen, la huella SHA-256 del archivo y la de cada fichero (confianza en el primer uso: contrasta la huella con la que publica el autor con `--sha256`). `cv theme verify` las recalcula; un tema creado con `cv theme create` o copiado a mano no tiene origen y no es sospechoso: simplemente no lo tiene. Un tema instalado se ejecuta con la misma contención que los distribuidos (sin red, sin paquetes, sin salir de su directorio, con límites de tiempo y memoria); el riesgo residual es de contenido —un tema que maquete mal o engañe visualmente—, y por eso `--dry-run`, el origen y la huella quedan a la vista.
+
+**Publicar un tema**: empaqueta el directorio (`zip -r comunidad.zip comunidad/` o `tar czf comunidad.tar.gz comunidad/`), publica el archivo por https junto a su huella (`sha256sum comunidad.zip`) y explica en `README.md` qué cambia y qué tipografías usa (las que no vengan con Typst o con Chameleon CV van en `fonts/`).
+
 ## `cv.toml`: el centro de configuración del proyecto
 
 Un fichero opcional en la raíz del proyecto cuya sección `[theme]` elige el tema por defecto (`name`; `--theme` prevalece) y **anula** valores del `theme.toml` del tema en uso —con su mismo vocabulario y su misma validación— solo para esa ejecución, sin bifurcar el tema. `--explain` dice qué tema se usa y qué anula.
