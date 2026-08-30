@@ -49,6 +49,8 @@ export interface LlmProvider {
   readonly kind: 'local' | 'remote';
   readonly baseUrl: string;
   readonly model: string;
+  /** Suelo de tokens de salida para modelos que razonan (los techos de las tareas se elevan hasta aquí). */
+  readonly outputTokensFloor?: number | undefined;
   complete(request: LlmRequest): Promise<LlmCompletion>;
   health(): Promise<LlmHealth>;
 }

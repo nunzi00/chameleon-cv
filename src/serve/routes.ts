@@ -26,6 +26,7 @@ import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../ll
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
 import { importCvDraft } from '../app/import-cv';
+import { outputTokensFloorFor } from '../llm/registry';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
@@ -826,7 +827,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
         kind: 'improve',
         planned,
         sending: (plan) => ({ items: plan.fragments.length, words: plan.words, ids: plan.ids }),
-        estimate: (plan) => improveEstimate(state.context, plan),
+        estimate: (plan) => improveEstimate(state.context, plan, outputTokensFloorFor(body.provider, body.model)),
         run: async (plan, options, report) => reviewResult(state.context, await executeImprove(state.context, plan, options), report),
       });
     },
@@ -870,7 +871,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
         kind: 'summarize',
         planned,
         sending: (plan) => ({ experience: plan.fragment.input.experience.length, projects: plan.fragment.input.projects.length, skills: plan.fragment.input.skills.length, words: plan.words }),
-        estimate: (plan) => summarizeEstimate(state.context, plan),
+        estimate: (plan) => summarizeEstimate(state.context, plan, outputTokensFloorFor(body.provider, body.model)),
         run: async (plan, options, report) => reviewResult(state.context, await executeSummarize(state.context, plan, options), report),
       });
     },
@@ -905,7 +906,7 @@ function addCopilotRoutes(router: Router<ServerState>): void {
         kind: 'suggest-tags',
         planned,
         sending: (plan) => ({ items: plan.fragments.length, words: plan.words, scope: plan.scope }),
-        estimate: (plan) => suggestTagsEstimate(state.context, plan),
+        estimate: (plan) => suggestTagsEstimate(state.context, plan, outputTokensFloorFor(body.provider, body.model)),
         run: async (plan, options) => {
           const outcome = await executeSuggestTags(state.context, plan, options);
           return {

@@ -79,7 +79,7 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
     context.stderr('Ejecución en seco: no se ha enviado nada\n');
     return EXIT_OK;
   }
-  const ready = await ensureProviderReady(context, provider, () => summarizeEstimate(context, plan), options.yes, false);
+  const ready = await ensureProviderReady(context, provider, () => summarizeEstimate(context, plan, provider.outputTokensFloor ?? 0), options.yes, false);
   if (ready !== EXIT_OK) {
     return ready;
   }

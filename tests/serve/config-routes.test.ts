@@ -96,7 +96,7 @@ describe('cv serve: GET/PUT /config/llm y POST /config/llm/check', () => {
     expect(((await forbidden.json()) as { error: { code: string } }).error.code).toBe('remote-disabled');
     const pending = await post(remoteServer, '/config/llm/check', { provider: 'groq' });
     expect(pending.status).toBe(200);
-    expect(await pending.json()).toMatchObject({ provider: 'groq', kind: 'remote', ok: false, message: 'El proveedor «groq» está registrado pero pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces' });
+    expect(await pending.json()).toMatchObject({ provider: 'groq', kind: 'remote', ok: false, message: expect.stringContaining('No hay clave para «groq»') as string });
     const noKey = await post(remoteServer, '/config/llm/check', { provider: 'openai' });
     expect(noKey.status).toBe(200);
     expect(await noKey.json()).toMatchObject({ provider: 'openai', kind: 'remote', ok: false, message: expect.stringContaining('No hay clave para «openai»') as string });

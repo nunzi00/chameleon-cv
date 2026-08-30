@@ -29,6 +29,8 @@ export interface OpenAiCompatibleOptions {
   readonly kind?: 'local' | 'remote' | undefined;
   /** Cabeceras de autenticación (`Authorization: Bearer …`); nunca se registran. */
   readonly headers?: Readonly<Record<string, string>> | undefined;
+  /** Suelo de tokens de salida del modelo (registro), para modelos que razonan. */
+  readonly outputTokensFloor?: number | undefined;
 }
 
 export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions = {}): LlmProvider {
@@ -42,6 +44,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
     kind: options.kind ?? 'local',
     baseUrl,
     model,
+    ...(options.outputTokensFloor === undefined ? {} : { outputTokensFloor: options.outputTokensFloor }),
     async complete(request: LlmRequest): Promise<LlmCompletion> {
       const started = Date.now();
       const result = await http({

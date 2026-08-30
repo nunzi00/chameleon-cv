@@ -712,8 +712,7 @@
         "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
       },
       {
-        "availability": "pending-verification",
-        "availabilityNote": "pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces",
+        "availability": "available",
         "baseUrl": "https://api.groq.com/openai",
         "c7": {
           "quote": "Groq is not permitted to use Inputs or Outputs for training or fine-tuning any AI Model Services or other models, unless explicitly granted permission or instructed by Customer.",
@@ -727,7 +726,8 @@
         "models": [
           {
             "id": "openai/gpt-oss-120b",
-            "note": "calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta",
+            "note": "calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta. Razona: con techos pequeños devolvía la generación vacía (json_validate_failed, verificación del 30-ago-2026), de ahí el suelo de 4000 tokens de salida",
+            "outputTokensFloor": 4000,
             "recommendedFor": [
               "improve",
               "summarize"
@@ -907,8 +907,7 @@
         "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
       },
       {
-        "availability": "pending-verification",
-        "availabilityNote": "pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces",
+        "availability": "available",
         "baseUrl": "https://api.groq.com/openai",
         "c7": {
           "quote": "Groq is not permitted to use Inputs or Outputs for training or fine-tuning any AI Model Services or other models, unless explicitly granted permission or instructed by Customer.",
@@ -922,7 +921,8 @@
         "models": [
           {
             "id": "openai/gpt-oss-120b",
-            "note": "calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta",
+            "note": "calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta. Razona: con techos pequeños devolvía la generación vacía (json_validate_failed, verificación del 30-ago-2026), de ahí el suelo de 4000 tokens de salida",
+            "outputTokensFloor": 4000,
             "recommendedFor": [
               "improve",
               "summarize"

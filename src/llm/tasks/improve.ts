@@ -178,7 +178,8 @@ export async function runImprove(provider: LlmProvider, fragment: ImproveFragmen
     ],
     schema: improveJsonSchema(),
     schemaName: 'improve',
-    maxTokens: IMPROVE_LIMITS.maxTokens,
+    // Modelos que razonan (p. ej. gpt-oss en Groq): el suelo del registro evita la generación vacía.
+    maxTokens: Math.max(IMPROVE_LIMITS.maxTokens, provider.outputTokensFloor ?? 0),
     timeoutMs,
     signal,
   });

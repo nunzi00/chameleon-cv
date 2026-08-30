@@ -159,7 +159,8 @@ export async function runSuggestTags(provider: LlmProvider, fragment: SuggestTag
     messages: suggestTagsMessages(fragment, prompt),
     schema: suggestTagsJsonSchema(fragment.input.dictionary),
     schemaName: 'suggest-tags',
-    maxTokens: SUGGEST_TAGS_LIMITS.maxTokens,
+    // Modelos que razonan (p. ej. gpt-oss en Groq): el suelo del registro evita la generación vacía.
+    maxTokens: Math.max(SUGGEST_TAGS_LIMITS.maxTokens, provider.outputTokensFloor ?? 0),
     timeoutMs,
     signal,
   });

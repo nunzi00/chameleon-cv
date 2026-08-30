@@ -197,7 +197,8 @@ export async function runSummarize(provider: LlmProvider, fragment: SummarizeFra
     ],
     schema: summarizeJsonSchema(),
     schemaName: 'summarize',
-    maxTokens: SUMMARIZE_LIMITS.maxTokens,
+    // Modelos que razonan (p. ej. gpt-oss en Groq): el suelo del registro evita la generación vacía.
+    maxTokens: Math.max(SUMMARIZE_LIMITS.maxTokens, provider.outputTokensFloor ?? 0),
     timeoutMs,
     signal,
   });

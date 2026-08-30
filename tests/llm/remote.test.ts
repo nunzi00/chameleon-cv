@@ -185,14 +185,15 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
     expect(await selectProvider({ provider: 'gemini' }, { env: {}, http })).toEqual({ ok: false, message: '--provider «gemini» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic, groq)' });
   });
 
-  it('un remoto pendiente de verificación humana se rechaza antes de mirar la clave (T-8.2, docs/copilot-providers.md §9)', async () => {
-    expect(AVAILABLE_REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic']);
+  it('un remoto pendiente de verificación humana se rechaza antes de mirar la clave (T-8.2 §9; Groq quedó verificado el 30-ago-2026)', async () => {
+    expect(AVAILABLE_REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
     expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
-    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk-1' } })).toEqual({
+    const pendingRegistry = [{ ...remoteProvider('groq'), availability: 'pending-verification' as const, availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces' }];
+    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk-1' }, registry: pendingRegistry })).toEqual({
       ok: false,
       message: 'El proveedor «groq» está registrado pero pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
     });
-    expect(unavailableMessage({ ...remoteProvider('groq'), availabilityNote: undefined })).toBe('El proveedor «groq» está registrado pero no está disponible');
+    expect(unavailableMessage({ ...remoteProvider('groq'), availability: 'pending-verification', availabilityNote: undefined })).toBe('El proveedor «groq» está registrado pero no está disponible');
   });
 
   it('un remoto exige clave, respeta la lista blanca y construye el proveedor con su cabecera de autenticación', async () => {

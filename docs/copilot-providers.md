@@ -107,6 +107,12 @@ Y: «Do not submit sensitive, confidential, or personal information to the Unpai
 **Registro de la verificación**
 
 - 2026-08-30: el protocolo **no se ha ejecutado**: no hay cuenta ni clave de Groq en la máquina del Director Técnico y ninguno de los dos asistentes puede abrirla. Por decisión del Director de Ingeniería y Producto (misma fecha), Groq queda en el registro con `availability: 'pending-verification'` —visible en `cv llm status` y en Ajustes, rechazado por `--provider`, `POST /config/llm/check` y el selector del Co-piloto— y la 1.5.0 se publica sin proveedor gratuito seleccionable. Cuando una persona complete los pasos 1–4, se anota aquí y un cambio de datos (`availability: 'available'`) lo activa en una versión menor.
+- **2026-08-30/31: VERIFICADO** (alta del Director de Ingeniería; ejecución de los pasos 2–4 por el Director Técnico con su clave, registrada en la sesión):
+  1. Alta en el plan Free realizada por el Director; no constó exigencia de método de pago (pendiente de su confirmación expresa en este documento).
+  2. `cv llm key set groq` sin eco → `llm key list`: «groq: fichero de claves» (0600) ✓.
+  3. `cv llm status --provider groq`: clave, cuota publicada y los dos modelos del registro ✓.
+  4. Prueba funcional con el banco (`~/.cache/chameleon-cv-verify/groq-bench`, cero datos reales): **qwen/qwen3.8-27b** → 2 propuestas, 0 fallos, 641 ms, `json_schema` estricto ✓; **cabeceras de cuota reales** («quedan 999/1000 peticiones (se renueva en 86 s) · 6946/8000 tokens») ✓. **openai/gpt-oss-120b** falló con el techo de la tarea (600): HTTP 400 `json_validate_failed` con `failed_generation` VACÍA — razona y agota el presupuesto antes de emitir; con 4000 tokens de techo devuelve JSON perfecto (437 de salida). → Hallazgo corregido en el producto: `outputTokensFloor: 4000` en el registro para gpt-oss-120b; tareas y estimadores elevan el techo hasta el suelo (el consentimiento muestra el coste real).
+  - Activación: `availability: 'available'` en este mismo cambio; la rama «pendiente» sigue cubierta con un registro inyectable en las pruebas (volverá a usarse cuando Gemini entre como pendiente).
 
 ## 10. Revisión de modelos de Groq para el co-piloto (análisis de escritorio, 2026-08-30)
 

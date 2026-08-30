@@ -12,7 +12,7 @@ import { createAnthropicProvider } from './anthropic';
 import { allowsHosts, createRemoteHttp, isLoopbackUrl, type JsonHttp, type QuotaObserver } from './http';
 import { KEY_ENV_VARIABLES, resolveApiKey, type KeyLookupOptions, type KeySource } from './keys';
 import { QuotaLedger, defaultQuotaLedger } from './quota';
-import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, isRemoteProviderId, registryHosts, remoteProvider, unavailableMessage, type RemoteProviderId } from './registry';
+import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, isRemoteProviderId, registryHosts, remoteProvider, unavailableMessage, type RemoteProviderEntry, type RemoteProviderId } from './registry';
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_CONTEXT, OLLAMA_DEFAULT_MODEL, createOllamaProvider } from './ollama';
 import { OPENAI_COMPATIBLE_DEFAULT_BASE_URL, OPENAI_COMPATIBLE_DEFAULT_MODEL, createOpenAiCompatibleProvider } from './openai-compatible';
 import type { LlmProvider, LlmProviderId, LocalProviderId } from './provider';
@@ -180,6 +180,8 @@ export interface SelectProviderOptions extends KeyLookupOptions {
   readonly remoteHttp?: ((allowed: readonly string[], fetchImpl?: typeof fetch, observe?: QuotaObserver) => JsonHttp) | undefined;
   /** Libro de cuotas donde anotar las cabeceras de cada respuesta remota (por defecto, el del proceso). */
   readonly quotaLedger?: QuotaLedger | undefined;
+  /** Registro de remotos (pruebas): por defecto, `REMOTE_PROVIDERS`. */
+  readonly registry?: readonly RemoteProviderEntry[] | undefined;
   readonly now?: (() => Date) | undefined;
 }
 
@@ -212,7 +214,7 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   if (!isRemoteProviderId(requested)) {
     return { ok: false, message: `--provider «${requested}» no es un proveedor conocido (${LLM_PROVIDER_IDS.join(', ')})` };
   }
-  const entry = remoteProvider(requested);
+  const entry = (options.registry ?? REMOTE_PROVIDERS).find((candidate) => candidate.id === requested) ?? remoteProvider(requested);
   if (entry.availability !== 'available') {
     return { ok: false, message: unavailableMessage(entry) };
   }
@@ -236,6 +238,6 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   const provider =
     entry.api === 'anthropic-messages'
       ? createAnthropicProvider({ apiKey: key.key, http, baseUrl, model })
-      : createOpenAiCompatibleProvider({ id: entry.id, kind: 'remote', baseUrl, model, http, headers: { authorization: `Bearer ${key.key}` } });
+      : createOpenAiCompatibleProvider({ id: entry.id, kind: 'remote', baseUrl, model, http, headers: { authorization: `Bearer ${key.key}` }, outputTokensFloor: entry.models.find((candidate) => candidate.id === model)?.outputTokensFloor });
   return { ok: true, provider, keySource: key.source };
 }

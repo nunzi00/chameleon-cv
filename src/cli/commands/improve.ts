@@ -90,7 +90,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
     context.stderr('Ejecución en seco: no se ha enviado nada\n');
     return EXIT_OK;
   }
-  const ready = await ensureProviderReady(context, provider, () => improveEstimate(context, plan), options.yes, true);
+  const ready = await ensureProviderReady(context, provider, () => improveEstimate(context, plan, provider.outputTokensFloor ?? 0), options.yes, true);
   if (ready !== EXIT_OK) {
     return ready;
   }

@@ -10,8 +10,13 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 - Importar un CV existente (T-8.4b, núcleo): `cv import-cv <fichero.pdf|docx>` convierte un CV ya maquetado en un **borrador de fuentes** en `import/<nombre>/` —nunca sobre `data/sources/`— con el orden de lectura reconstruido desde la maquetación del PDF (columnas laterales, tablas con fechas al margen; worker contenido con límites) o el texto de `word/document.xml` (DOCX, zip contenido), estructurado determinista con procedencia por línea y validación entidad a entidad: lo que no cumple el esquema se degrada al `README.md` del borrador con su motivo (nunca se inventa). `--name` y `--replace`; el borrador se valida con `cv build --data import/<nombre>`. En la interfaz web, la pantalla **Importar CV** (grupo Perfil) sube el fichero a `POST /import-cv` (cuerpo binario, hasta 10 MiB) y muestra el resumen, los avisos y el informe; un borrador existente pide confirmación para sustituirse (409).
 
+### Cambiado
+
+- **Groq disponible**: verificado al alta el 30/31-ago-2026 (protocolo §9 de `docs/copilot-providers.md`: clave sin eco, estado con cuota publicada, tanda real con el banco y cabeceras de cuota correctas) y activado en el registro; se selecciona por orden con `--provider groq` (canon C3).
+
 ### Arreglado
 
+- Modelos remotos que razonan (gpt-oss-120b en Groq): con el techo de salida de la tarea (600 tokens) el razonamiento agotaba el presupuesto y la generación llegaba vacía (HTTP 400 `json_validate_failed`). El registro declara ahora un **suelo de tokens de salida** (4000 para gpt-oss-120b) y las tareas y los estimadores del consentimiento elevan el techo hasta él: lo que se acepta es lo que se envía.
 - Portada del portal: la captura de la interfaz se solapaba con el título (la imagen del hero vivía en un contenedor absoluto de altura fija del tema, con márgenes negativos al apilarse): ahora fluye bajo el texto con su anchura contenida, en todos los anchos.
 - Co-piloto local: con `[llm] think = true`, las tareas con esquema JSON estricto (todas) fallaban con «el modelo no devolvió JSON válido»: el razonamiento consumía todo el presupuesto de tokens y el contenido llegaba vacío. Las peticiones con esquema ya no piden razonamiento nunca (el conmutador queda para futuras tareas de texto libre); la casilla de Ajustes y la guía lo explican.
 - Co-piloto local: las peticiones a Ollama piden una ventana de contexto de 16384 tokens (`options.num_ctx`); sin ella Ollama carga el modelo con su defecto (4096) y las propuestas con fuentes largas fallaban con «HTTP 400 … exceeds the available context size». Configurable con `[llm] context` en `cv.toml` o `CHAMELEON_LLM_CONTEXT` (entero en [1024, 131072]); «Ajustes» conserva la clave al guardar.

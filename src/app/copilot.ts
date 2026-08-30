@@ -265,14 +265,14 @@ export function improvePayload(plan: ImprovePlan): readonly unknown[] {
   return plan.fragments.map((fragment) => fragment.input);
 }
 
-export async function improveEstimate(context: AppContext, plan: ImprovePlan): Promise<CostEstimate> {
+export async function improveEstimate(context: AppContext, plan: ImprovePlan, outputTokensFloor = 0): Promise<CostEstimate> {
   const prompt = await loadPrompt(IMPROVE_PROMPT_VERSION, context.assets);
   return estimateBatch(
     plan.fragments.map((fragment) => [
       { role: 'system' as const, content: prompt },
       { role: 'user' as const, content: JSON.stringify(fragment.input) },
     ]),
-    IMPROVE_LIMITS.maxTokens,
+    Math.max(IMPROVE_LIMITS.maxTokens, outputTokensFloor),
   );
 }
 
@@ -356,9 +356,9 @@ export function summarizePayload(plan: SummarizePlan): unknown {
   return plan.fragment.input;
 }
 
-export async function summarizeEstimate(context: AppContext, plan: SummarizePlan): Promise<CostEstimate> {
+export async function summarizeEstimate(context: AppContext, plan: SummarizePlan, outputTokensFloor = 0): Promise<CostEstimate> {
   const prompt = await loadSummarizePrompt(context.assets);
-  return estimateBatch([[{ role: 'system', content: prompt }, { role: 'user', content: JSON.stringify(plan.fragment.input) }]], SUMMARIZE_LIMITS.maxTokens);
+  return estimateBatch([[{ role: 'system', content: prompt }, { role: 'user', content: JSON.stringify(plan.fragment.input) }]], Math.max(SUMMARIZE_LIMITS.maxTokens, outputTokensFloor));
 }
 
 export interface SummarizeOutcome extends ReviewOutcome {
@@ -497,11 +497,11 @@ export function suggestTagsPayload(plan: SuggestTagsPlan): readonly unknown[] {
   return plan.fragments.map((fragment) => fragment.input);
 }
 
-export async function suggestTagsEstimate(context: AppContext, plan: SuggestTagsPlan): Promise<CostEstimate> {
+export async function suggestTagsEstimate(context: AppContext, plan: SuggestTagsPlan, outputTokensFloor = 0): Promise<CostEstimate> {
   const prompt = await loadSuggestTagsPrompt(context.assets);
   return estimateBatch(
     plan.fragments.map((fragment) => suggestTagsMessages(fragment, prompt)),
-    SUGGEST_TAGS_LIMITS.maxTokens,
+    Math.max(SUGGEST_TAGS_LIMITS.maxTokens, outputTokensFloor),
   );
 }
 

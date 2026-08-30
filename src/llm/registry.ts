@@ -52,6 +52,8 @@ export interface RemoteModelOption {
   readonly note: string;
   readonly sourceUrl: string;
   readonly verifiedAt: string;
+  /** Modelos que razonan: suelo de tokens de salida (el techo de la tarea se eleva hasta aquí) para que el razonamiento no vacíe la respuesta. */
+  readonly outputTokensFloor?: number;
 }
 
 export interface RemoteProviderEntry {
@@ -141,8 +143,7 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
   },
   {
     id: 'groq',
-    availability: 'pending-verification',
-    availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
+    availability: 'available',
     api: 'openai-chat',
     host: 'api.groq.com',
     baseUrl: 'https://api.groq.com/openai',
@@ -152,7 +153,8 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
         id: 'openai/gpt-oss-120b',
         status: 'production',
         recommendedFor: ['improve', 'summarize'],
-        note: 'calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta',
+        note: 'calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta. Razona: con techos pequeños devolvía la generación vacía (json_validate_failed, verificación del 30-ago-2026), de ahí el suelo de 4000 tokens de salida',
+        outputTokensFloor: 4000,
         sourceUrl: 'https://console.groq.com/docs/model/openai/gpt-oss-120b',
         verifiedAt: '2026-08-30',
       },
@@ -193,6 +195,16 @@ export const REMOTE_PROVIDER_IDS: readonly RemoteProviderId[] = REMOTE_PROVIDERS
 export const AVAILABLE_REMOTE_PROVIDER_IDS: readonly RemoteProviderId[] = REMOTE_PROVIDERS.filter((entry) => entry.availability === 'available').map((entry) => entry.id);
 
 /** Mensaje de rechazo de un remoto registrado pero no disponible. */
+/** Suelo de tokens de salida del modelo elegido de un remoto (datos del registro; 0 si no aplica o no es remoto). */
+export function outputTokensFloorFor(provider: string | undefined, model: string | undefined): number {
+  const entry = REMOTE_PROVIDERS.find((candidate) => candidate.id === provider);
+  if (entry === undefined) {
+    return 0;
+  }
+  const chosen = entry.models.find((candidate) => candidate.id === (model === undefined || model.trim() === '' ? entry.defaultModel : model.trim()));
+  return chosen?.outputTokensFloor ?? 0;
+}
+
 export function unavailableMessage(entry: RemoteProviderEntry): string {
   return `El proveedor «${entry.id}» está registrado pero ${entry.availabilityNote ?? 'no está disponible'}`;
 }
