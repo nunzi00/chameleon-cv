@@ -12,7 +12,10 @@ cv improve -f oferta.pdf --compact              # … para los que sobreviven a 
 cv improve --only exp-acme-1 --show-payload --dry-run   # muestra exactamente qué saldría (seudonimizado) sin enviar nada
 cv summarize -s backend                         # propone el resumen profesional a partir del perfil filtrado
 cv suggest tags "Migré la plataforma a Kubernetes sin parada"   # etiquetas para un texto, solo del diccionario cerrado
-cv improve apply output/revision-improve-2026-08-29.md   # aplica lo marcado [x]: copia .bak previa y huella comprobada
+cv improve apply output/revision-improve-2026-08-29.md   # aplica lo marcado [x]: versión anterior al histórico y huella comprobada
+cv history                                               # el histórico de versiones de las fuentes (output/historial-fuentes/)
+cv history show latest experience/acme.md                # la última versión guardada de una fuente
+cv history restore latest experience/acme.md             # la vuelve a escribir (la actual también queda en el histórico)
 cv llm cache clear                              # vacía la caché local de respuestas
 ```
 

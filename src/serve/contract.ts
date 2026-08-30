@@ -23,6 +23,9 @@ import { SUGGEST_TAGS_LIMITS } from '../llm';
 import type { PlanDescription } from '../app/portability';
 import type { LlmStatus, QuotaSnapshot } from '../llm';
 import type { RuntimeState } from '../llm/runtime';
+import type { SourceHistoryEntry, SourceHistoryFile } from '../app/source-history';
+
+export type { SourceHistoryEntry, SourceHistoryFile };
 
 export type { RuntimeState };
 import { LlmSettingsSchema, type LlmSettings } from '../llm/settings';
@@ -321,6 +324,26 @@ export interface ReviewDeleteResponse {
   readonly deleted: string;
 }
 export type ApplyResponse = ApplyOutcome;
+/** Histórico de versiones de las fuentes (T-8.10). */
+export const HistoryVersionSchema = z.object({
+  /** Id de la entrada o `latest` (la más reciente que guarde la ruta). */
+  entry: z.string().trim().min(1).max(200),
+  /** Ruta relativa al directorio de fuentes. */
+  path: z.string().trim().min(1).max(300),
+});
+export type HistoryVersionRequest = z.infer<typeof HistoryVersionSchema>;
+export interface SourceHistoryResponse {
+  readonly entries: readonly SourceHistoryEntry[];
+}
+export interface SourceVersionResponse {
+  readonly entry: SourceHistoryEntry;
+  readonly file: SourceHistoryFile;
+  readonly content: string;
+}
+export interface SourceRestoreResponse {
+  readonly path: string;
+  readonly entry: SourceHistoryEntry;
+}
 export type ApplyErrorDetails = { readonly written: readonly WrittenFile[] };
 /** Toda respuesta de error: `{ error: { code, message, lines?, … } }`. */
 export interface ErrorResponse {

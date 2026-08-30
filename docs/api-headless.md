@@ -81,7 +81,7 @@ Prefijo `/api/v1`. JSON UTF-8; errores siempre `{ "error": { "code", "message", 
 | `DELETE /jobs/{id}` | Cancela: en cola termina ya; en marcha, la `AbortSignal` aborta la petición en curso y el lote para; no se escribe la revisión. |
 | `GET /reviews` · `GET /reviews/{name}` | Revisiones de `output/`: el fichero y su estructura (`parseReview`: cabecera, ítems, propuestas, veredictos, marcas). |
 | `PUT /reviews/{name}` ✎ · `DELETE /reviews/{name}` ✎ | Guarda la revisión editada por el usuario (marcas `[x]`, retoques de texto) con `If-Match`; elimina una revisión. |
-| `POST /reviews/{name}/apply` ✎ | `{ dryRun?, deleteReview? }` → lo mismo que `cv improve apply`: por defecto solo el plan (`dryRun: true`); con `dryRun: false`, ficheros escritos con su `.bak`; 422 con las líneas si no hay marcas o la huella cambió. |
+| `POST /reviews/{name}/apply` ✎ | `{ dryRun?, deleteReview? }` → lo mismo que `cv improve apply`: por defecto solo el plan (`dryRun: true`); con `dryRun: false`, ficheros escritos con la ruta de su versión anterior en el histórico (`output/historial-fuentes/<entrada>/<ruta>`, T-8.10) y la entrada creada (`history`); 422 con las líneas si no hay marcas o la huella cambió. |
 | `GET /themes` · `POST /themes` ✎ | Inventario (origen, validez, por defecto) y creación (`{ name, from }`). |
 | `POST /shutdown` | Detiene el servidor (la GUI lo usa al cerrar). |
 

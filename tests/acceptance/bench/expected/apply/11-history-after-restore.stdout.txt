@@ -1,0 +1,55 @@
+{
+  "entries": [
+    {
+      "id": "<STAMP>-revision-improve-marcada",
+      "at": "<ISO>",
+      "action": "restore",
+      "origin": "<STAMP>-revision-improve-marcada",
+      "root": "<WS>/data/sources",
+      "files": [
+        {
+          "path": "experience/nexo-pagos.md",
+          "sha256Before": "2c06c6e97d90cb29e41a2a63b8c27088ae68967471b780db5cb16b894d3de64a",
+          "sha256After": "f8c4040dbf479d4b132f506d74b1dbd04aacc7d1de564535d43480614b756a3d",
+          "ids": [
+            "<STAMP>-revision-improve-marcada"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "<STAMP>-revision-summarize-backend-marcada",
+      "at": "<ISO>",
+      "action": "apply",
+      "origin": "revision-summarize-backend-marcada.md",
+      "root": "<WS>/data/sources",
+      "files": [
+        {
+          "path": "specialties/backend.md",
+          "sha256Before": "332700a51c1c2aa6b28865e88581197bad3e67cb16e2cd1b17a82ebaf3f3f9a3",
+          "sha256After": "9f14212c67e22b0910c274df0fa306d05056a9783d669204478938762176a93b",
+          "ids": [
+            "summary"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "<STAMP>-revision-improve-marcada",
+      "at": "<ISO>",
+      "action": "apply",
+      "origin": "revision-improve-marcada.md",
+      "root": "<WS>/data/sources",
+      "files": [
+        {
+          "path": "experience/nexo-pagos.md",
+          "sha256Before": "f8c4040dbf479d4b132f506d74b1dbd04aacc7d1de564535d43480614b756a3d",
+          "sha256After": "2c06c6e97d90cb29e41a2a63b8c27088ae68967471b780db5cb16b894d3de64a",
+          "ids": [
+            "exp-nexo-pagos-2"
+          ]
+        }
+      ]
+    }
+  ]
+}

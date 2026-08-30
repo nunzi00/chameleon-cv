@@ -292,6 +292,8 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
       [REPO_ROOT, '<REPO>'],
       // La copia de seguridad de `cv import --replace` lleva la fecha y hora.
       [/\.\d{8}-\d{6}\.bak/g, '.<STAMP>.bak'],
+      // Las entradas del histórico de fuentes llevan una marca compacta (T-8.10).
+      [/\d{8}T\d{9}Z/g, '<STAMP>'],
       // `.origin.json` y `cv theme verify` llevan la fecha de instalación (T-8.3).
       [/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '<ISO>'],
       ...(typst === undefined ? [] : [[typst, '<TYPST>'] as Replacement]),

@@ -149,7 +149,7 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
 
     const before = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
     expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
-    expect(h.stdout()).toBe(`Aplicado en ${SOURCES}/experience/acme.md (copia de seguridad: ${SOURCES}/experience/acme.md.bak): exp-acme-1, exp-acme-k8s\n`);
+    expect(h.stdout()).toBe(`Aplicado en ${SOURCES}/experience/acme.md (versión anterior guardada en /work/output/historial-fuentes/20260829T100000000Z-revision-improve-2026-08-29/experience/acme.md): exp-acme-1, exp-acme-k8s\n`);
     expect(h.stderr()).toBe('2 cambios aplicados en 1 fichero · recompila el artefacto con «cv build»\n');
     const after = h.fs.file(`${SOURCES}/experience/acme.md`);
     expect(after?.mode).toBe(0o600);
@@ -159,13 +159,15 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
         .replace(ORIGINAL_K8S, 'Logré: Lideré la migración a Kubernetes sin ventana de parada.'),
     );
     expect(after?.content).toContain('- Logré: Reduje la latencia p95 del checkout un 40 % rediseñando la capa de caché. #performance #php\n  - impact: -40 % p95\n  - date: 2023-05\n- Logré: Lideré la migración a Kubernetes sin ventana de parada. #kubernetes #devops\n  - id: exp-acme-k8s\n- Introduje contract testing');
-    const backup = h.fs.file(`${SOURCES}/experience/acme.md.bak`);
+    const backup = h.fs.file('/work/output/historial-fuentes/20260829T100000000Z-revision-improve-2026-08-29/experience/acme.md');
     expect(backup?.content).toBe(before);
     expect(backup?.mode).toBe(0o600);
+    expect(h.fs.file(`${SOURCES}/experience/acme.md.bak`)).toBeUndefined();
+    expect(h.fs.file('/work/output/historial-fuentes/index.json')?.content).toContain('"origin": "revision-improve-2026-08-29.md"');
     expect(h.fs.file(REVIEW)).toBeDefined();
     expect(h.fs.file(`${SOURCES}/experience/startup.md`)?.content).toBe(fixtureText.get(`${SOURCES}/experience/startup.md`));
 
-    // La copia de seguridad no molesta al compilador y el artefacto recoge el cambio.
+    // El histórico vive en output/: no molesta al compilador y el artefacto recoge el cambio.
     h.reset();
     expect(await runCli(['build'], h.context)).toBe(EXIT_OK);
     expect(h.fs.file('/work/data/dist/profile.json')?.content).toContain('Logré: Reduje la latencia p95');
@@ -174,23 +176,23 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
     h.reset();
     expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_DATA_ERROR);
     expect(h.stderr()).toBe('«exp-acme-1»: el logro original no está tal cual en experience/acme.md (¿editado a mano?)\n«exp-acme-k8s»: el logro original no está tal cual en experience/acme.md (¿editado a mano?)\nNo se ha modificado ningún fichero\n');
-    expect(h.fs.file(`${SOURCES}/experience/acme.md.bak.1`)).toBeUndefined();
+    expect(h.fs.file(`${SOURCES}/experience/acme.md.bak`)).toBeUndefined();
   });
 
-  it('en la raíz del dataset la copia .bak se ignora al compilar y nunca se sobrescribe una copia anterior', async () => {
+  it('en la raíz del dataset una copia .bak antigua se respeta y la versión anterior va al histórico; --delete-review borra la revisión', async () => {
     const h = await harness('improve', { [`${SOURCES}/achievements.md.bak`]: 'copia antigua' });
     expect(await runCli(['improve', '--only', 'ach-1'], h.context)).toBe(EXIT_OK);
     await mark(h, REVIEW, 'ach-1', 1);
     h.reset();
     expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md', '--delete-review'], h.context)).toBe(EXIT_OK);
-    expect(h.stdout()).toBe(`Aplicado en ${SOURCES}/achievements.md (copia de seguridad: ${SOURCES}/achievements.md.bak.1): ach-1\nRevisión eliminada: ${REVIEW}\n`);
+    expect(h.stdout()).toBe(`Aplicado en ${SOURCES}/achievements.md (versión anterior guardada en /work/output/historial-fuentes/20260829T100000000Z-revision-improve-2026-08-29/achievements.md): ach-1\nRevisión eliminada: ${REVIEW}\n`);
     expect(h.fs.file(`${SOURCES}/achievements.md.bak`)?.content).toBe('copia antigua');
     expect(h.fs.file(`${SOURCES}/achievements.md`)?.content).toContain('- Logré: Ponente en una conferencia de ejemplo sobre sistemas distribuidos. #comunidad\n');
     expect(h.fs.file(REVIEW)).toBeUndefined();
     h.reset();
     expect(await runCli(['build'], h.context)).toBe(EXIT_OK);
     expect(h.stderr()).toBe('');
-    expect(await backupPath(h.context, `${SOURCES}/achievements.md`)).toBe(`${SOURCES}/achievements.md.bak.2`);
+    expect(await backupPath(h.context, `${SOURCES}/achievements.md`)).toBe(`${SOURCES}/achievements.md.bak.1`);
   });
 
   it('--dry-run muestra el plan sin tocar nada y -d permite otro directorio de fuentes', async () => {
@@ -278,8 +280,30 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
     h.fs.failures.add('writeFile');
     h.reset();
     expect(await runCli(['improve', 'apply', 'output/ok.md'], h.context)).toBe(EXIT_FAILURE);
-    expect(h.stderr()).toBe(`No se pudo escribir ${SOURCES}/experience/acme.md: fallo simulado en writeFile\n`);
+    expect(h.stderr()).toMatch(/^No se pudo guardar el histórico en \/work\/output\/historial-fuentes\/[^:]+: fallo simulado en writeFile\n$/);
     expect(h.fs.file(`${SOURCES}/experience/acme.md`)?.content).toContain(ORIGINAL_1);
+    // Si el histórico se guarda pero la fuente no se puede escribir, se dice y la fuente queda intacta.
+    h.fs.failures.delete('writeFile');
+    h.reset();
+    const sourceFails: CliContext = {
+      ...h.context,
+      artifactFileSystem: {
+        ...h.context.artifactFileSystem,
+        mkdir: (path: string) => h.context.artifactFileSystem.mkdir(path),
+        readFile: (path: string) => h.context.artifactFileSystem.readFile(path),
+        remove: (path: string) => h.context.artifactFileSystem.remove(path),
+        writeFile: async (path: string, content: string, mode: number) => {
+          if (path.startsWith(`${SOURCES}/`)) {
+            throw new Error('fuente de solo lectura');
+          }
+          await h.context.artifactFileSystem.writeFile(path, content, mode);
+        },
+      } as CliContext['artifactFileSystem'],
+    };
+    expect(await runCli(['improve', 'apply', 'output/ok.md'], sourceFails)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toBe(`No se pudo escribir ${SOURCES}/experience/acme.md: fuente de solo lectura\n`);
+    expect(h.fs.file(`${SOURCES}/experience/acme.md`)?.content).toContain(ORIGINAL_1);
+    expect(h.fs.file('/work/output/historial-fuentes/index.json')).toBeDefined();
   });
 });
 
@@ -292,9 +316,9 @@ describe('cv improve apply con revisiones de cv summarize', () => {
     await mark(h, path, 'summary', 1);
     h.reset();
     expect(await runCli(['improve', 'apply', path], h.context)).toBe(EXIT_OK);
-    expect(h.stdout()).toBe(`Aplicado en ${SOURCES}/specialties/backend.md (copia de seguridad: ${SOURCES}/specialties/backend.md.bak): summary\n`);
+    expect(h.stdout()).toMatch(/^Aplicado en \/work\/data\/sources\/specialties\/backend\.md \(versión anterior guardada en \/work\/output\/historial-fuentes\/20260829T100000000Z-revision-summarize[^)]*\/specialties\/backend\.md\): summary\n$/);
     expect(h.fs.file(`${SOURCES}/specialties/backend.md`)?.content).toBe(`---\ntitle: Senior Backend Engineer\ntags: [php, symfony, kubernetes, kafka]\n---\n\n${FAITHFUL_SUMMARY}\n`);
-    expect(h.fs.file(`${SOURCES}/specialties/backend.md.bak`)?.content).toBe(fixtureText.get(`${SOURCES}/specialties/backend.md`));
+    expect(h.fs.file('/work/output/historial-fuentes/20260829T100000000Z-revision-summarize-2026-08-29-backend/specialties/backend.md')?.content).toBe(fixtureText.get(`${SOURCES}/specialties/backend.md`));
 
     const profileSummary = 'Ingeniera de software con **10 años** construyendo plataformas de pago.\n\nResumen por defecto en dos párrafos.';
     await handmade(h, '/work/output/p.md', HEADER, [item('summary', profileSummary, 'Perfil nuevo.\n\nCon dos párrafos.', { file: 'profile.md', line: 23, hash: fingerprint(profileSummary) })]);
@@ -375,3 +399,39 @@ describe('cv improve apply con revisiones de cv summarize', () => {
     expect(full.summaries.get('specialty:engineering-manager')).toEqual({ file: 'specialties/engineering-manager.md', line: 1, text: '' });
   });
 });
+
+describe('cv history (T-8.10)', () => {
+  it('lista las entradas, muestra la versión guardada («latest») y restaura dejando la actual en el histórico', async () => {
+    const h = await harness();
+    expect(await runCli(['history'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('Histórico de fuentes vacío');
+    h.reset();
+    expect(await runCli(['improve', '--only', 'exp-acme-1'], h.context)).toBe(EXIT_OK);
+    await mark(h, REVIEW, 'exp-acme-1', 1);
+    h.reset();
+    const before = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    h.reset();
+    expect(await runCli(['history'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe('2026-08-29T10:00:00.000Z · apply revision-improve-2026-08-29.md · experience/acme.md (exp-acme-1) · 20260829T100000000Z-revision-improve-2026-08-29\n');
+    h.reset();
+    expect(await runCli(['history', '--json'], h.context)).toBe(EXIT_OK);
+    expect((JSON.parse(h.stdout()) as { entries: { id: string }[] }).entries[0]?.id).toBe('20260829T100000000Z-revision-improve-2026-08-29');
+    h.reset();
+    expect(await runCli(['history', 'show', 'latest', 'experience/acme.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe(before);
+    h.reset();
+    expect(await runCli(['history', 'show', 'no-existe', 'experience/acme.md'], h.context)).toBe(EXIT_DATA_ERROR);
+    expect(h.stderr()).toContain('No hay ninguna entrada «no-existe»');
+    h.reset();
+    expect(await runCli(['history', 'restore', 'latest', 'experience/acme.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain(`Restaurado ${SOURCES}/experience/acme.md desde la entrada latest`);
+    expect(h.fs.file(`${SOURCES}/experience/acme.md`)?.content).toBe(before);
+    h.reset();
+    expect(await runCli(['history'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout().split('\n')[0]).toContain('· restore 20260829T100000000Z-revision-improve-2026-08-29 · experience/acme.md');
+    h.reset();
+    expect(await runCli(['history', 'restore', 'latest', 'otra.md'], h.context)).toBe(EXIT_DATA_ERROR);
+  });
+});
+

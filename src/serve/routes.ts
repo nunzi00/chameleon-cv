@@ -13,6 +13,7 @@ import type { AppContext } from '../app/context';
 import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
 import { buildProfile, loadProfile, loadSources } from '../app/dataset';
 import { environmentError, notFoundError, unsafePathError, type AppError, type AppErrorCode } from '../app/errors';
+import { readSourceHistory, readSourceVersion, restoreSourceVersion } from '../app/source-history';
 import { generateCv, writeCvFile } from '../app/generate';
 import type { AppWarning } from '../app/freshness';
 import { readOffer, type OfferInput } from '../app/offer';
@@ -29,7 +30,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -336,6 +337,46 @@ export function createRouter(): Router<ServerState> {
       });
       const sending = { destination: 'ninguno: solo la descarga del modelo desde el registro público de Ollama, sin datos del usuario' };
       return json(202, { job, sending, warnings: [] } satisfies JobCreatedResponse, { Location: `${API_PREFIX}/jobs/${job.id}` });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/history`,
+    summary: 'El histórico de versiones de las fuentes (T-8.10): una entrada por aplicación de revisión o restauración, de la más reciente a la más antigua, con los ficheros guardados enteros y sus huellas.',
+    writes: false,
+    handler: async (_request, state) => json(200, { entries: await readSourceHistory(state.context) } satisfies SourceHistoryResponse),
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/history/version`,
+    summary: 'Lee una versión guardada de una fuente: `{ entry, path }` (entry = id o «latest»). Solo lectura.',
+    writes: false,
+    body: HistoryVersionSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, HistoryVersionSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const version = await readSourceVersion(state.context, parsed.value.entry, parsed.value.path);
+      return version.ok ? json(200, { entry: version.entry, file: version.file, content: version.content } satisfies SourceVersionResponse) : appErrorResponse(version.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/history/restore`,
+    summary: 'Escribe la versión guardada sobre la fuente (`{ entry, path }`); la versión actual queda a su vez en el histórico. Escribe en data/sources (C9: acción explícita).',
+    writes: true,
+    body: HistoryVersionSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, HistoryVersionSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const restored = await restoreSourceVersion(state.context, parsed.value.entry, parsed.value.path, state.context.now?.());
+      return restored.ok ? json(200, { path: restored.path, entry: restored.entry } satisfies SourceRestoreResponse) : appErrorResponse(restored.error);
     },
   });
 

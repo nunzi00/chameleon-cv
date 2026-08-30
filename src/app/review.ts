@@ -4,7 +4,7 @@
  * cuatro garantías (solo lo marcado; cambio mínimo; copia `.bak` nunca sobrescrita; huella comprobada), y
  * listar y leer las revisiones de `output/` para los clientes.
  */
-import { resolve } from 'node:path';
+import { basename, relative, resolve } from 'node:path';
 
 import { fingerprint, parseReview, type ParsedReview, type ParsedReviewItem, type ReviewSource, type ReviewTask } from '../llm';
 import { locateAchievementText, locateSummary, replaceRange, replaceSummary } from '../parsers';
@@ -15,6 +15,7 @@ import { dataError, environmentError, unsafePathError, type AppError } from './e
 import { isSafeSourcePath } from './paths';
 import { isMissingFile } from '../artifact';
 import { contentHash } from './sources';
+import { historyVersionPath, recordSourceVersions, type SourceHistoryEntry } from './source-history';
 
 /** Los ficheros de fuentes contienen datos personales: solo el propietario puede leerlos. */
 export const SOURCE_MODE = 0o600;
@@ -105,6 +106,7 @@ export interface PlannedFileSummary {
 
 export interface WrittenFile {
   readonly path: string;
+  /** Versión anterior completa, guardada en el histórico (`output/historial-fuentes/<entrada>/<ruta>`). */
   readonly backup: string;
   readonly ids: readonly string[];
 }
@@ -115,6 +117,8 @@ export interface ApplyOutcome {
   readonly written: readonly WrittenFile[];
   readonly deleted: boolean;
   readonly changes: number;
+  /** La entrada del histórico de fuentes creada al escribir (T-8.10); ausente en seco. */
+  readonly history: SourceHistoryEntry | undefined;
 }
 
 export type ApplyResult = { readonly ok: true; readonly outcome: ApplyOutcome } | { readonly ok: false; readonly error: AppError; readonly written: readonly WrittenFile[] };
@@ -194,30 +198,33 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
     after: applyEdits(planned),
   }));
   if (request.dryRun) {
-    return { ok: true, outcome: { reviewPath, plan, written: [], deleted: false, changes: 0 } };
+    return { ok: true, outcome: { reviewPath, plan, written: [], deleted: false, changes: 0, history: undefined } };
   }
 
-  // 3. Copia de seguridad y escritura, fichero a fichero (los tramos se sustituyen de atrás hacia delante).
+  // 3. Histórico de las versiones anteriores (fichero completo) y escritura (los tramos se sustituyen de atrás hacia delante).
+  const versions = [...files.values()].map((planned) => ({ path: planned.path, before: planned.content, after: applyEdits(planned), ids: planned.edits.map((edit) => edit.id) }));
+  const recorded = await recordSourceVersions(context, { action: 'apply', origin: basename(reviewPath), root, versions, at: context.now?.() });
+  if (!recorded.ok) {
+    return { ok: false, error: recorded.error, written: [] };
+  }
   const written: WrittenFile[] = [];
   let changes = 0;
-  for (const planned of files.values()) {
-    const backup = await backupPath(context, planned.path);
-    const content = applyEdits(planned);
+  for (const version of versions) {
+    const backup = historyVersionPath(context.cwd, recorded.entry.id, relative(root, version.path));
     try {
-      await context.artifactFileSystem.writeFile(backup, planned.content, SOURCE_MODE);
-      await context.artifactFileSystem.writeFile(planned.path, content, SOURCE_MODE);
+      await context.artifactFileSystem.writeFile(version.path, version.after, SOURCE_MODE);
     } catch (error) {
-      return { ok: false, error: environmentError(`No se pudo escribir ${planned.path}: ${describeError(error)}`), written };
+      return { ok: false, error: environmentError(`No se pudo escribir ${version.path}: ${describeError(error)}`), written };
     }
-    changes += planned.edits.length;
-    written.push({ path: planned.path, backup, ids: planned.edits.map((edit) => edit.id) });
+    changes += version.ids.length;
+    written.push({ path: version.path, backup, ids: version.ids });
   }
   let deleted = false;
   if (request.deleteReview) {
     await context.artifactFileSystem.remove(reviewPath);
     deleted = true;
   }
-  return { ok: true, outcome: { reviewPath, plan, written, deleted, changes } };
+  return { ok: true, outcome: { reviewPath, plan, written, deleted, changes, history: recorded.entry } };
 }
 
 /* ---------- Listado y lectura de revisiones (clientes) ---------- */

@@ -80,7 +80,7 @@ cv summarize [-s <esp>] [-f <oferta>] [--lines 4] [mismas opciones de proveedor 
 cv suggest tags [-s <esp>] [--only <id,…>] [ídem]
 cv llm status            # proveedor y modelo que se usarían, si el local responde, qué claves hay definidas (nunca su valor)
 cv llm cache clear       # vacía la caché local de respuestas
-cv improve apply <revisión.md>   # (T-4.7) aplica solo los ítems marcados [x]: fuente y huella de la cabecera, copia .bak, --dry-run
+cv improve apply <revisión.md>   # (T-4.7) aplica solo los ítems marcados [x]: fuente y huella de la cabecera, versión anterior al histórico (T-8.10), --dry-run
 ```
 
 El **fichero de revisión** (`output/revision-<tarea>-<fecha>.md`, 0600) es Markdown legible y a la vez parseable:

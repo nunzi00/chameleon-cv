@@ -9,8 +9,10 @@
   import Notice from '../components/Notice.svelte';
   import Tree from '../components/Tree.svelte';
   import type { ApiClient } from '../lib/api/client';
+  import type { SourceHistoryEntry } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { formatBytes, plural } from '../lib/format';
+  import { diffSummary, lineDiff } from '../lib/reviews/diff';
   import type { Route } from '../lib/router';
   import { buildTree, countFiles, filterTree, issueCounts, lineEnding, shortSha, type TreeNode } from '../lib/sources/tree';
   import { issuesOf, type Issue } from '../lib/validation';
@@ -43,6 +45,10 @@
   let creating = $state(false);
   let newPath = $state('');
   let editorKey = $state(0);
+  /** Histórico de versiones de la fuente abierta (T-8.10). */
+  let history = $state<readonly SourceHistoryEntry[]>([]);
+  let comparing = $state<{ readonly entry: SourceHistoryEntry; readonly content: string } | undefined>(undefined);
+  let restoring = $state<SourceHistoryEntry | undefined>(undefined);
   const dirty = $derived(sha !== undefined && content !== saved);
   const visible = $derived(filterTree(tree, query));
   const counts = $derived(issueCounts(issues));
@@ -78,6 +84,45 @@
     }
   }
 
+  async function loadHistory(path: string): Promise<void> {
+    try {
+      history = (await api.sourceHistory()).entries.filter((entry) => entry.files.some((file) => file.path === path));
+    } catch {
+      history = [];
+    }
+    comparing = undefined;
+  }
+
+  async function compare(entry: SourceHistoryEntry): Promise<void> {
+    if (item === undefined) {
+      return;
+    }
+    error = undefined;
+    try {
+      const version = await api.sourceVersion({ entry: entry.id, path: item });
+      comparing = { entry, content: version.content };
+    } catch (caught) {
+      fail(caught);
+    }
+  }
+
+  async function restore(): Promise<void> {
+    const entry = restoring;
+    restoring = undefined;
+    if (item === undefined || entry === undefined) {
+      return;
+    }
+    error = undefined;
+    try {
+      const restored = await api.restoreSourceVersion({ entry: entry.id, path: item });
+      await open(item);
+      await loadTree();
+      message = `Restaurada la versión de ${entry.at} sobre ${item}; la que había queda en el histórico (${restored.entry.id}).`;
+    } catch (caught) {
+      fail(caught);
+    }
+  }
+
   async function open(path: string): Promise<void> {
     error = undefined;
     message = undefined;
@@ -89,6 +134,7 @@
       bytes = new TextEncoder().encode(file.content).byteLength;
       cursor = { line: 1, column: 1 };
       editorKey += 1;
+      await loadHistory(path);
     } catch (caught) {
       sha = undefined;
       fail(caught);
@@ -241,6 +287,40 @@
       {#key editorKey}
         <Editor value={content} path={item} onchange={(value) => (content = value)} oncursor={(line, column) => (cursor = { line, column })} plain={plainEditor} />
       {/key}
+      <details class="cv-collapse cv-history">
+        <summary><strong>Historial de esta fuente</strong><span class="cv-muted">· {history.length === 0 ? 'sin versiones guardadas' : plural(history.length, 'versión guardada', 'versiones guardadas')}</span></summary>
+        {#if history.length === 0}
+          <p class="cv-muted">Cada vez que apliques una revisión (o restaures una versión) la versión anterior completa queda en <code>output/historial-fuentes/</code>.</p>
+        {:else}
+          <ul class="cv-history-list">
+            {#each history as entry (entry.id)}
+              {@const file = entry.files.find((candidate) => candidate.path === item)}
+              <li class="cv-history-entry">
+                <span class="cv-mono">{entry.at}</span>
+                <span>{entry.action === 'apply' ? 'aplicación de' : 'restauración de'} <code>{entry.origin}</code>{file === undefined || file.ids.length === 0 ? '' : ` · ${file.ids.join(', ')}`}</span>
+                <span class="cv-header-spacer"></span>
+                <button class="cv-button small" type="button" onclick={() => compare(entry)}>Ver diferencias</button>
+                <button class="cv-button danger-quiet small" type="button" onclick={() => (restoring = entry)}>Restaurar esta versión</button>
+              </li>
+            {/each}
+          </ul>
+          {#if comparing !== undefined}
+            {@const rows = lineDiff(comparing.content, content)}
+            {@const summary = rows === undefined ? undefined : diffSummary(rows)}
+            <p class="cv-muted">Versión guardada de {comparing.entry.at} frente al editor{summary === undefined ? '' : ` · −${summary.removed} +${summary.added} líneas`}</p>
+            <div class="cv-diff-grid">
+              <div>
+                <h4 class="cv-eyebrow">Versión guardada</h4>
+                <pre class="cv-diff" aria-label={`Versión guardada: ${comparing.entry.id}`}>{#if rows === undefined}{comparing.content}{:else}{#each rows as row, index (index)}{#if row.kind !== 'added'}<span class={`cv-diff-line ${row.kind}`}><span class="cv-diff-no">{row.line}</span>{row.text}</span>{'\n'}{/if}{/each}{/if}</pre>
+              </div>
+              <div>
+                <h4 class="cv-eyebrow">Editor (actual)</h4>
+                <pre class="cv-diff" aria-label="Editor (actual)">{#if rows === undefined}{content}{:else}{#each rows as row, index (index)}{#if row.kind !== 'removed'}<span class={`cv-diff-line ${row.kind}`}><span class="cv-diff-no">{row.line}</span>{row.text}</span>{'\n'}{/if}{/each}{/if}</pre>
+              </div>
+            </div>
+          {/if}
+        {/if}
+      </details>
       <div class="cv-editor-status">
         <span>{LANGUAGE_LABELS[languageFor(item)]} · UTF-8 · {lineEnding(content)}</span>
         <span>Línea {cursor.line}, columna {cursor.column}</span>
@@ -260,6 +340,13 @@
     <div class="cv-dialog-actions">
       <button class="cv-button" type="button" onclick={reloadDiscarding}>Recargar del disco (descarta mis cambios)</button>
       <button class="cv-button danger" type="button" onclick={overwrite}>Sobrescribir con mi versión</button>
+    </div>
+  </Dialog>
+  <Dialog open={restoring !== undefined} title="¿Restaurar esta versión?" onclose={() => (restoring = undefined)}>
+    <p>Se escribe la versión de <strong>{restoring?.at}</strong> sobre <code>{item}</code>. La versión actual no se pierde: queda a su vez en el histórico. Después conviene recompilar el artefacto en Estado.</p>
+    <div class="cv-dialog-actions">
+      <button class="cv-button" type="button" onclick={() => (restoring = undefined)}>Cancelar</button>
+      <button class="cv-button danger" type="button" onclick={restore}>Restaurar</button>
     </div>
   </Dialog>
   <Dialog open={creating} title="Nuevo fichero de fuentes" onclose={() => (creating = false)}>

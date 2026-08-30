@@ -608,3 +608,8 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 .cv-gate-card h1 { margin: 0 0 8px; font-size: 20px; font-weight: 600; }
 .cv-gate-card .cv-command { margin: 10px 0 14px; }
 .cv-gate-note { margin: 10px 0 0; font-size: var(--cv-size-xs); }
+/* Historial de una fuente (T-8.10) */
+.cv-editor-pane .cv-history { margin: 0 18px 10px; }
+.cv-history-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.cv-history-entry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--cv-border); border-radius: var(--cv-radius); font-size: 13px; }
+.cv-history-entry .cv-mono { font-size: var(--cv-size-xs); color: var(--cv-muted); }

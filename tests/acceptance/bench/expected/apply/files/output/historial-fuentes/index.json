@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "<STAMP>-revision-improve-marcada",
+      "at": "<ISO>",
+      "action": "apply",
+      "origin": "revision-improve-marcada.md",
+      "root": "<WS>/data/sources",
+      "files": [
+        {
+          "path": "experience/nexo-pagos.md",
+          "sha256Before": "f8c4040dbf479d4b132f506d74b1dbd04aacc7d1de564535d43480614b756a3d",
+          "sha256After": "2c06c6e97d90cb29e41a2a63b8c27088ae68967471b780db5cb16b894d3de64a",
+          "ids": [
+            "exp-nexo-pagos-2"
+          ]
+        }
+      ]
+    }
+  ]
+}

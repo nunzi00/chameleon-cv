@@ -325,6 +325,7 @@
         {#if applied !== undefined}
           <div class="cv-card cv-card-tight">
             <h2>Aplicado</h2>
+            {#if applied.history !== undefined}<p class="cv-muted">Las versiones anteriores completas quedan en el histórico de fuentes (entrada <code>{applied.history.id}</code>): en Fuentes, «Historial de esta fuente».</p>{/if}
             <ul>
               {#each applied.written as entry (entry.path)}
                 <li><code>{entry.path}</code> (copia de seguridad: <code>{entry.backup}</code>): {entry.ids.join(', ')}</li>

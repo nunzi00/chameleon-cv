@@ -93,7 +93,7 @@ curl -s -H "Authorization: Bearer $TOKEN" $API/reviews/revision-improve-2026-08-
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}' \
   $API/reviews/revision-improve-2026-08-29-backend.md/apply                    # solo el plan (dryRun por defecto)
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"dryRun":false}' \
-  $API/reviews/revision-improve-2026-08-29-backend.md/apply                    # escribe con copia .bak y huella comprobada
+  $API/reviews/revision-improve-2026-08-29-backend.md/apply                    # escribe con la versión anterior en el histórico y huella comprobada
 ```
 
 `apply` es `cv improve apply`: solo lo marcado, cambio mínimo, copia de seguridad previa y, si el original ya no está tal cual en la fuente, no escribe nada (`422` con el detalle). Por defecto solo devuelve el plan; escribir exige `"dryRun": false`.

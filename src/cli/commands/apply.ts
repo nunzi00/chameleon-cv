@@ -2,8 +2,9 @@
  * `cv improve apply <revisión>` (T-4.7): cliente del caso de uso `applyReview`. Aplica a las fuentes las
  * propuestas marcadas `[x]` en un fichero de revisión de `improve` o `summarize`: la única orden que escribe
  * en `data/sources` (canon C9: acción explícita y deliberada del usuario), con cuatro garantías: solo lo
- * marcado; cambio mínimo y localizado; copia de seguridad previa (`<fichero>.bak`, nunca sobrescrita); y
- * comprobación por huella: si el original ya no está tal cual en la fuente, no se escribe nada.
+ * marcado; cambio mínimo y localizado; la versión anterior completa guardada en el histórico de fuentes
+ * (`output/historial-fuentes/<entrada>/<ruta>`, T-8.10); y comprobación por huella: si el original ya no está tal
+ * cual en la fuente, no se escribe nada.
  */
 import { applyReview } from '../../app/review';
 import type { CliContext } from '../context';
@@ -23,7 +24,7 @@ export interface ApplyOptions {
 export async function runApplyCommand(context: CliContext, options: ApplyOptions): Promise<number> {
   const result = await applyReview(context, { review: options.review, data: options.data, dryRun: options.dryRun, deleteReview: options.deleteReview });
   for (const file of result.ok ? result.outcome.written : result.written) {
-    context.stdout(`Aplicado en ${file.path} (copia de seguridad: ${file.backup}): ${file.ids.join(', ')}\n`);
+    context.stdout(`Aplicado en ${file.path} (versión anterior guardada en ${file.backup}): ${file.ids.join(', ')}\n`);
   }
   if (!result.ok) {
     return reportError(context, result.error);

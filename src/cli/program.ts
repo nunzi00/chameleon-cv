@@ -10,6 +10,7 @@ import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, type ApplyOptions } from './commands/apply';
+import { runHistoryList, runHistoryRestore, runHistoryShow, type HistoryOptions } from './commands/history';
 import { type LlmRuntimeCommandOptions, type LlmStatusCommandOptions, runLlmDown, runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmStatus, runLlmUp } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
@@ -298,6 +299,29 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--allow-remote', 'permite proveedores remotos en los trabajos del co-piloto (cada uno exige confirmar el coste estimado)', false)
     .action(async (options: ServeCommandOptions) => {
       onExit(await runServe(context, options));
+    });
+
+  const history = program.command('history').description('histórico de versiones de las fuentes (output/historial-fuentes): lo que cv improve apply y cv history restore dejaron antes de escribir');
+  history
+    .option('--json', 'las entradas en JSON')
+    .action(async (options: HistoryOptions) => {
+      onExit(await runHistoryList(context, options));
+    });
+  history
+    .command('show')
+    .description('imprime la versión guardada de una fuente en una entrada del histórico')
+    .argument('<entrada>', 'id de la entrada (cv history)')
+    .argument('<ruta>', 'ruta relativa al directorio de fuentes (experience/acme.md)')
+    .action(async (entry: string, path: string) => {
+      onExit(await runHistoryShow(context, entry, path));
+    });
+  history
+    .command('restore')
+    .description('escribe la versión guardada sobre la fuente; la versión actual queda a su vez en el histórico')
+    .argument('<entrada>', 'id de la entrada (cv history)')
+    .argument('<ruta>', 'ruta relativa al directorio de fuentes')
+    .action(async (entry: string, path: string) => {
+      onExit(await runHistoryRestore(context, entry, path));
     });
 
   const llm = program.command('llm').description('co-piloto de IA (Hito 4): estado del proveedor local; nunca envía datos sin una orden explícita');

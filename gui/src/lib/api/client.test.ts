@@ -202,3 +202,14 @@ describe('runtime de Ollama (T-8.8)', () => {
     expect(calls[1]?.body).toBe(JSON.stringify({ action: 'up', model: 'llama3:8b', pull: true }));
   });
 });
+
+describe('histórico de versiones de las fuentes (T-8.10)', () => {
+  it('lista, lee y restaura versiones contra el servidor', async () => {
+    const { fetch: f, calls } = fakeFetch((call) => json(200, call.method === 'GET' ? { entries: [] } : { path: '/w/a.md' }));
+    const api = createApiClient({ fetch: f, token: () => 'tok-1234567890abcdef' });
+    expect(await api.sourceHistory()).toEqual({ entries: [] });
+    await api.sourceVersion({ entry: 'latest', path: 'a.md' });
+    await api.restoreSourceVersion({ entry: 'x', path: 'a.md' });
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/history', 'POST /api/v1/history/version', 'POST /api/v1/history/restore']);
+  });
+});

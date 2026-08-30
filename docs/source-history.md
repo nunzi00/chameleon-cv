@@ -1,6 +1,12 @@
 # Histórico de versiones de las fuentes (T-8.10) — PROPUESTA v1
 
-Estado: PROPUESTA (2026-08-30) · Encargo del Director · Pendiente de aprobación del PO
+Estado: **APROBADA por el PO (D1–D4) e IMPLEMENTADA el 2026-08-30** · Encargo del Director
+
+Implementación: `src/app/source-history.ts` (entradas `<marca compacta>-<origen>`, `cambio.json`, `index.json` de 500 entradas, `latest`,
+restaurar crea entrada), `applyReview` guarda antes de escribir (sin `.bak`), `cv history [--json]` / `show` / `restore`,
+`GET /history`, `POST /history/version`, `POST /history/restore`, GUI (Fuentes → «Historial de esta fuente» con «Ver
+diferencias» y «Restaurar esta versión»; Revisiones enlaza la entrada). Arnés `apply` con `history`, `show latest` y
+`restore latest` (marca compacta normalizada como `<STAMP>`).
 
 ## §0 Encargo
 

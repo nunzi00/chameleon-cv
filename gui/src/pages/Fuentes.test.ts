@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError, type ApiClient } from '../lib/api/client';
+import type { SourceHistoryEntry, SourceHistoryFile } from '../lib/api/types';
 import Fuentes from './Fuentes.svelte';
 
 const ENTRIES = [
@@ -30,7 +31,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     startJob: vi.fn(),
     cancelJob: vi.fn(),
     jobEvents: vi.fn(),
-    exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmRuntimeAction: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
+    exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
     ...overrides,
   };
 }
@@ -114,3 +115,38 @@ describe('Fuentes', () => {
     await waitFor(() => expect(onsession).toHaveBeenCalled());
   });
 });
+
+describe('Fuentes · historial de versiones (T-8.10)', () => {
+  const FILE: SourceHistoryFile = { path: 'experience/acme.md', sha256Before: 'a', sha256After: 'b', ids: ['exp-acme-1'] };
+  const ENTRY: SourceHistoryEntry = { id: '20260830T100000000Z-r', at: '2026-08-30T10:00:00.000Z', action: 'apply', origin: 'revision-improve.md', root: '/work/data/sources', files: [FILE] };
+
+  it('lista las versiones de la fuente abierta, compara con el editor y restaura tras confirmar', async () => {
+    const api = fakeApi({
+      sourceHistory: vi.fn(async () => ({ entries: [ENTRY, { ...ENTRY, id: 'otra', files: [{ ...FILE, path: 'profile.md' }] }] })),
+      sourceVersion: vi.fn(async () => ({ entry: ENTRY, file: FILE, content: '# experience/acme.md\nlínea vieja\n' })),
+      restoreSourceVersion: vi.fn(async () => ({ path: '/work/data/sources/experience/acme.md', entry: { ...ENTRY, id: 'nueva', action: 'restore' as const } })),
+    });
+    render(Fuentes, { props: { api, item: 'experience/acme.md', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await waitFor(() => expect(screen.getByText('· 1 versión guardada')).toBeTruthy());
+    expect(screen.getByText(/aplicación de/).textContent).toContain('exp-acme-1');
+    await fireEvent.click(screen.getByRole('button', { name: 'Ver diferencias' }));
+    await waitFor(() => expect(screen.getByLabelText('Versión guardada: 20260830T100000000Z-r')).toBeTruthy());
+    expect(api.sourceVersion).toHaveBeenCalledWith({ entry: '20260830T100000000Z-r', path: 'experience/acme.md' });
+    expect(screen.getByText(/−1 \+0 líneas/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Restaurar esta versión' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(api.restoreSourceVersion).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Restaurar esta versión' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Restaurar' }));
+    await waitFor(() => expect(screen.getByText(/queda en el histórico \(nueva\)/)).toBeTruthy());
+    expect(api.restoreSourceVersion).toHaveBeenCalledWith({ entry: '20260830T100000000Z-r', path: 'experience/acme.md' });
+    expect(api.source).toHaveBeenCalledTimes(2);
+  });
+
+  it('sin historial lo dice; un fallo al listarlo no rompe la pantalla', async () => {
+    const api = fakeApi({ sourceHistory: vi.fn(async () => { throw new Error('sin índice'); }) });
+    render(Fuentes, { props: { api, item: 'experience/acme.md', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await waitFor(() => expect(screen.getByText('· sin versiones guardadas')).toBeTruthy());
+  });
+});
+

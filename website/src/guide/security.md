@@ -21,7 +21,7 @@ Lo que sale hacia un modelo está **minimizado y seudonimizado**: el texto del l
 
 - `data/dist/profile.json` y los CV de `output/` contienen datos personales: se escriben con permisos **0600** (solo tu usuario) y ambos directorios están en el `.gitignore` que crea `cv init`. Si versionas tu espacio de trabajo, recuerda que `data/sources/` también contiene tus datos: mantenlo en un repositorio privado o exclúyelo.
 - Los ficheros de revisión del co-piloto (`output/revision-*.md`) y la caché de respuestas (en tu caché de usuario) son 0600.
-- `cv improve apply` es la única orden que escribe en `data/sources/`: solo con tu marca `[x]`, tras crear `<fichero>.bak` (0600) y comprobar por huella que el original no cambió; una revisión manipulada no puede apuntar fuera del directorio de fuentes.
+- `cv improve apply` (y `cv history restore`) son las únicas órdenes que escriben en `data/sources/`: solo con tu marca `[x]`, tras guardar la versión anterior entera en `output/historial-fuentes/` (0600) y comprobar por huella que el original no cambió; una revisión manipulada no puede apuntar fuera del directorio de fuentes.
 - Las claves de proveedores remotos se leen de variables de entorno o de un fichero con permisos 0600; nunca se preguntan, imprimen ni guardan.
 
 ## Cómo se trata la entrada

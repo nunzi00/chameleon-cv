@@ -127,7 +127,9 @@ test('Revisiones abre la revisión del co-piloto, guarda una marca, muestra el p
   const sources = join(state.workspace, 'data', 'sources');
   const changed = readdirSync(join(sources, 'experience')).some((name) => name.endsWith('.md') && readFileSync(join(sources, 'experience', name), 'utf8').includes('Logré: '));
   expect(changed).toBe(true);
-  expect(readdirSync(join(sources, 'experience')).some((name) => name.endsWith('.bak'))).toBe(true);
+  // La versión anterior completa queda en el histórico de fuentes (T-8.10), no en una copia .bak junto a la fuente.
+  expect(readdirSync(join(sources, 'experience')).some((name) => name.endsWith('.bak'))).toBe(false);
+  expect(existsSync(join(state.workspace, 'output', 'historial-fuentes', 'index.json'))).toBe(true);
 });
 
 test('Estado exporta el perfil como descarga y lo importa sustituyendo las fuentes con copia; después compila', async ({ page }) => {

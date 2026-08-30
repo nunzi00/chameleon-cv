@@ -24,6 +24,10 @@ import type {
   LlmRuntimeActionRequest,
   LlmRuntimeActionResponse,
   LlmRuntimeResponse,
+  HistoryVersionRequest,
+  SourceHistoryResponse,
+  SourceRestoreResponse,
+  SourceVersionResponse,
   LlmCheckResponse,
   LlmConfigResponse,
   LlmConfigWriteResponse,
@@ -144,6 +148,12 @@ export interface ApiClient {
   llmRuntime(): Promise<LlmRuntimeResponse>;
   /** «up» devuelve el trabajo `ollama-up` (202); «down» para lo que arrancó cv y devuelve el estado. */
   llmRuntimeAction(body: LlmRuntimeActionRequest): Promise<LlmRuntimeActionResponse>;
+  /** El histórico de versiones de las fuentes (T-8.10), de la más reciente a la más antigua. */
+  sourceHistory(): Promise<SourceHistoryResponse>;
+  /** Una versión guardada (`entry` = id o «latest»). */
+  sourceVersion(body: HistoryVersionRequest): Promise<SourceVersionResponse>;
+  /** Escribe la versión guardada sobre la fuente; la actual queda en el histórico (C9: acción explícita). */
+  restoreSourceVersion(body: HistoryVersionRequest): Promise<SourceRestoreResponse>;
   shutdown(): Promise<ShutdownResponse>;
 }
 
@@ -272,6 +282,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     checkLlm: (body) => request('POST', '/config/llm/check', { body }),
     llmRuntime: () => request('GET', '/llm/runtime'),
     llmRuntimeAction: (body) => request('POST', '/llm/runtime', { body }),
+    sourceHistory: () => request('GET', '/history'),
+    sourceVersion: (body) => request('POST', '/history/version', { body }),
+    restoreSourceVersion: (body) => request('POST', '/history/restore', { body }),
     shutdown: () => request('POST', '/shutdown', { body: {} }),
   };
 }

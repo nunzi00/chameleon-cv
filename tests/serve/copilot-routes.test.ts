@@ -131,7 +131,7 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     expect((await (await api(`/jobs/${body.job.id}`)).json()) as object).toMatchObject({ job: { id: body.job.id, status: 'done', lines: expect.any(Array) } });
   });
 
-  it('las revisiones se listan, leen (ETag), editan con If-Match, aplican (plan y escritura con copia .bak) y eliminan', async () => {
+  it('las revisiones se listan, leen (ETag), editan con If-Match, aplican (plan y escritura con la versión anterior en el histórico) y eliminan', async () => {
     const list = (await (await api('/reviews')).json()) as { reviews: Array<{ name: string; task: string; items: number; marked: number; sha256: string }> };
     expect(list.reviews.map((review) => review.name)).toEqual([reviewName]);
     expect(list.reviews[0]).toMatchObject({ task: 'improve', marked: 0 });
@@ -160,7 +160,7 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     const outcome = (await applied.json()) as { written: Array<{ path: string; backup: string; ids: string[] }>; changes: number; deleted: boolean };
     expect(outcome.changes).toBe(1);
     expect(outcome.deleted).toBe(false);
-    expect(outcome.written[0]?.backup).toBe(`${outcome.written[0]?.path ?? ''}.bak`);
+    expect(outcome.written[0]?.backup).toMatch(/^\/work\/output\/historial-fuentes\/[^/]+\/experience\/acme\.md$/);
     expect(fs.file(outcome.written[0]?.backup ?? '')?.content).toBe(before);
     expect(fs.file(outcome.written[0]?.path ?? '')?.content).toContain('Logré: ');
     // Repetir sin cambios en la fuente: la huella ya no coincide → 422 con las líneas.
