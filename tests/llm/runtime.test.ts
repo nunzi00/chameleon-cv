@@ -229,7 +229,7 @@ describe('utilidades del runtime', () => {
   });
 
   it('formatRuntimeState distingue disponible y deshabilitado', () => {
-    const base = { runner: 'none' as const, managed: false, running: false, model: { name: 'm', present: false }, log: '', detail: 'Ollama parado · x' };
+    const base = { runner: 'none' as const, candidates: { native: { available: false, reason: 'a' }, docker: { available: false, reason: 'b' } }, plan: { runner: 'none' as const, note: 'x' }, managed: false, running: false, model: { name: 'm', present: false }, log: '', detail: 'Ollama parado · x' };
     expect(formatRuntimeState({ ...base, disabled: undefined })).toBe('runtime: Ollama parado · x');
     expect(formatRuntimeState({ ...base, disabled: 'motivo' })).toBe('runtime: no disponible · motivo');
   });
@@ -255,8 +255,8 @@ describe('runtime deshabilitado', () => {
 
 describe('status', () => {
   it('parado: informa del runner disponible (native, docker o ninguno)', async () => {
-    expect(await fakeSystem(world({ ollamaBinary: true })).runtime.status()).toMatchObject({ runner: 'native', running: false, managed: false, detail: 'Ollama parado · runner native disponible' });
-    expect(await fakeSystem(world({ ollamaBinary: false, dockerBinary: true })).runtime.status()).toMatchObject({ runner: 'docker', detail: 'Ollama parado · runner docker disponible' });
+    expect(await fakeSystem(world({ ollamaBinary: true })).runtime.status()).toMatchObject({ runner: 'native', running: false, managed: false, detail: 'Ollama parado · se usará native: binario «ollama» (ollama)' });
+    expect(await fakeSystem(world({ ollamaBinary: false, dockerBinary: true })).runtime.status()).toMatchObject({ runner: 'docker', detail: 'Ollama parado · se usará docker: sin binario ollama (no se encontró el binario «ollama»); se usa Docker: Docker disponible' });
     const none = await fakeSystem(world({ ollamaBinary: false, dockerBinary: false })).runtime.status();
     expect(none.runner).toBe('none');
     expect(none.detail).toContain('instala Ollama o Docker');
@@ -292,9 +292,12 @@ describe('up', () => {
     const none = await fakeSystem(world({ ollamaBinary: false })).runtime.up();
     expect(none).toMatchObject({ ok: false, code: 'no-runner' });
     expect(none.ok || none.message).toContain('ni Docker');
-    expect(await fakeSystem(world({ ollamaBinary: false, dockerBinary: true })).runtime.up({ runner: 'native' })).toMatchObject({ ok: false, code: 'no-runner', message: 'no se encontró el binario «ollama»' });
-    expect(await fakeSystem(world({ ollamaBinary: true })).runtime.up({ runner: 'docker' })).toMatchObject({ ok: false, code: 'no-runner', message: 'Docker no responde (docker)' });
-    expect(await fakeSystem(world({ ollamaBinary: true }), { [RUNTIME_ENV.runner]: 'docker' }).runtime.up()).toMatchObject({ ok: false, code: 'no-runner' });
+    expect(await fakeSystem(world({ ollamaBinary: false, dockerBinary: true })).runtime.up({ runner: 'native' })).toMatchObject({ ok: false, code: 'no-runner', message: 'el runner native pedido en la orden no está disponible: no se encontró el binario «ollama»' });
+    expect(await fakeSystem(world({ ollamaBinary: true })).runtime.up({ runner: 'docker' })).toMatchObject({ ok: false, code: 'no-runner', message: 'el runner docker pedido en la orden no está disponible: Docker no responde («docker»)' });
+    // La preferencia del entorno no disponible cae a la otra vía con aviso (T-8.14).
+    const preferred = await fakeSystem(world({ ollamaBinary: true }), { [RUNTIME_ENV.runner]: 'docker' }).runtime.up();
+    expect(preferred.ok).toBe(true);
+    expect(preferred.lines[0]).toBe('vía de arranque: native (preferencia docker (CHAMELEON_LLM_RUNNER) no disponible (Docker no responde («docker»)); se usa native: binario «ollama» (ollama))');
     // Un valor desconocido en el entorno se ignora: se detecta.
     expect((await fakeSystem(world({ ollamaBinary: true }), { [RUNTIME_ENV.runner]: 'podman' }).runtime.up()).ok).toBe(true);
     // Forzado y disponible: se usa el pedido aunque el otro también esté.
@@ -317,6 +320,7 @@ describe('up', () => {
     expect(calls).toContain('spawn ollama serve OLLAMA_HOST=127.0.0.1:11434');
     expect(calls).toContain('ollama pull qwen2.5:7b');
     expect(progress).toEqual([
+      'vía de arranque: native (binario «ollama» (ollama))',
       `Ollama arrancado (native) · registro en ${LOG_PATH}`,
       'Ollama responde en http://127.0.0.1:11434',
       'descargando el modelo «qwen2.5:7b» (native, registro de Ollama)…',
@@ -342,12 +346,12 @@ describe('up', () => {
     expect(result.ok && result.state).toMatchObject({ runner: 'docker', managed: true, model: { name: 'llama3:8b', present: true } });
     expect(created.calls).toContain(`docker run -d --name ${OLLAMA_CONTAINER} -p 127.0.0.1:11434:11434 -v chameleon-ollama:/root/.ollama ${OLLAMA_IMAGE}`);
     expect(created.calls).toContain(`docker exec ${OLLAMA_CONTAINER} ollama pull llama3:8b`);
-    expect(result.ok && result.lines[0]).toBe(`contenedor ${OLLAMA_CONTAINER} creado (docker, imagen ${OLLAMA_IMAGE})`);
+    expect(result.ok && result.lines[1]).toBe(`contenedor ${OLLAMA_CONTAINER} creado (docker, imagen ${OLLAMA_IMAGE})`);
 
     const resumed = fakeSystem(world({ ollamaBinary: false, dockerBinary: true, container: 'stopped' }), { [RUNTIME_ENV.image]: 'ollama/ollama:latest' });
     const again = await resumed.runtime.up({ pull: false });
     expect(resumed.calls).toContain(`docker start ${OLLAMA_CONTAINER}`);
-    expect(again.ok && again.lines).toEqual([`contenedor ${OLLAMA_CONTAINER} reanudado (docker)`, 'Ollama responde en http://127.0.0.1:11434', 'el modelo «qwen2.5:7b» no está descargado (--no-pull)']);
+    expect(again.ok && again.lines).toEqual(['vía de arranque: docker (sin binario ollama (no se encontró el binario «ollama»); se usa Docker: Docker disponible)', `contenedor ${OLLAMA_CONTAINER} reanudado (docker)`, 'Ollama responde en http://127.0.0.1:11434', 'el modelo «qwen2.5:7b» no está descargado (--no-pull)']);
   });
 
   it('docker: fallo al crear el contenedor y contenedor que no responde', async () => {
@@ -541,5 +545,83 @@ describe('espejo de Hugging Face y catálogo (T-8.13)', () => {
     expect(disabled[0]).toMatch(/^Ollama no disponible \(dentro del contenedor de Compose/);
     expect(isModelSource('huggingface')).toBe(true);
     expect(isModelSource('github')).toBe(false);
+  });
+});
+
+describe('runtime adaptativo (T-8.14): candidatos, preferencias con respaldo y respaldo al fallar el arranque', () => {
+  it('el estado expone las dos vías con su motivo y el plan: binario si lo hay, Docker si no, ninguno con ambos motivos', async () => {
+    const native = await fakeSystem(world({ ollamaBinary: true, dockerBinary: true })).runtime.status();
+    expect(native.candidates).toEqual({ native: { available: true, reason: 'binario «ollama» (ollama)' }, docker: { available: true, reason: 'Docker disponible' } });
+    expect(native.plan).toEqual({ runner: 'native', note: 'binario «ollama» (ollama)' });
+    const docker = await fakeSystem(world({ ollamaBinary: false, dockerBinary: true })).runtime.status();
+    expect(docker.plan).toEqual({ runner: 'docker', note: 'sin binario ollama (no se encontró el binario «ollama»); se usa Docker: Docker disponible' });
+    expect(docker.detail).toBe('Ollama parado · se usará docker: sin binario ollama (no se encontró el binario «ollama»); se usa Docker: Docker disponible');
+    const none = await fakeSystem(world({ ollamaBinary: false, dockerBinary: false })).runtime.status();
+    expect(none.plan).toEqual({ runner: 'none', note: 'no hay «ollama» (no se encontró el binario «ollama») ni Docker (Docker no responde («docker»)): instala Ollama o Docker' });
+    const disabled = await fakeSystem(world(), { [RUNTIME_ENV.container]: '1' }).runtime.status();
+    expect(disabled.candidates.native.reason).toBe('no comprobado');
+    expect(disabled.plan.runner).toBe('none');
+  });
+
+  it('la preferencia (entorno o cv.toml) se atiende si está disponible y, si no, se cae a la otra vía con aviso; la opción explícita es estricta', async () => {
+    const env = fakeSystem(world({ ollamaBinary: false, dockerBinary: true }), { [RUNTIME_ENV.runner]: 'native' });
+    const state = await env.runtime.status();
+    expect(state.plan).toEqual({ runner: 'docker', note: 'preferencia native (CHAMELEON_LLM_RUNNER) no disponible (no se encontró el binario «ollama»); se usa docker: Docker disponible' });
+    const result = await env.runtime.up();
+    expect(result.ok).toBe(true);
+    expect(result.lines[0]).toBe('vía de arranque: docker (preferencia native (CHAMELEON_LLM_RUNNER) no disponible (no se encontró el binario «ollama»); se usa docker: Docker disponible)');
+    const file = fakeSystem(world({ ollamaBinary: true, dockerBinary: false }));
+    file.preferences.runner = 'docker';
+    await file.runtime.status();
+    expect((await file.runtime.status()).plan.note).toBe('preferencia docker (cv.toml [llm.runtime].runner) no disponible (Docker no responde («docker»)); se usa native: binario «ollama» (ollama)');
+    const honoured = fakeSystem(world({ ollamaBinary: true, dockerBinary: true }), { [RUNTIME_ENV.runner]: 'docker' });
+    expect((await honoured.runtime.status()).plan).toEqual({ runner: 'docker', note: 'preferencia docker (CHAMELEON_LLM_RUNNER): Docker disponible' });
+    const explicit = await fakeSystem(world({ ollamaBinary: false, dockerBinary: true })).runtime.up({ runner: 'native' });
+    expect(explicit).toMatchObject({ ok: false, code: 'no-runner', message: 'el runner native pedido en la orden no está disponible: no se encontró el binario «ollama»' });
+    const neither = await fakeSystem(world({ ollamaBinary: false, dockerBinary: false }), { [RUNTIME_ENV.runner]: 'native' }).runtime.up();
+    expect(neither).toMatchObject({ ok: false, code: 'no-runner', message: 'no hay «ollama» (no se encontró el binario «ollama») ni Docker (Docker no responde («docker»)): instala Ollama o Docker' });
+  });
+
+  it('si el arranque falla y la otra vía está disponible, se intenta con ella (native → docker y docker → native); si ambas fallan, el error lista los dos motivos', async () => {
+    // native no responde a tiempo → docker arranca.
+    const w = world({ ollamaBinary: true, dockerBinary: true, startsResponding: false });
+    const sys = fakeSystem(w);
+    // El doble: spawn nativo no deja a Ollama respondiendo; el contenedor sí (startsResponding se enciende para docker).
+    const originalExec = sys.system.exec;
+    (sys.system as { exec: typeof originalExec }).exec = async (command, args, options) => {
+      if (command.endsWith('docker') && (args[0] === 'run' || args[0] === 'start')) {
+        w.startsResponding = true;
+      }
+      return originalExec(command, args, options);
+    };
+    const result = await sys.runtime.up();
+    expect(result.ok).toBe(true);
+    expect(result.lines.some((line) => line.startsWith('el arranque con native falló (Ollama no respondió en http://127.0.0.1:11434 tras'))).toBe(true);
+    expect(result.lines.some((line) => line.includes('se intenta docker: Docker disponible'))).toBe(true);
+    expect(result.ok && result.state.runner).toBe('docker');
+    expect(sys.files.has(PID_PATH)).toBe(false);
+    // docker falla al crear el contenedor → native arranca.
+    const w2 = world({ ollamaBinary: true, dockerBinary: true, startsResponding: false });
+    const sys2 = fakeSystem(w2, { DOCKER_FAILS: '1', [RUNTIME_ENV.runner]: 'docker' });
+    const originalExec2 = sys2.system.exec;
+    (sys2.system as { exec: typeof originalExec2 }).exec = async (command, args, options) => {
+      const result2 = await originalExec2(command, args, options);
+      if (command.endsWith('docker') && args[0] === 'run') {
+        w2.startsResponding = true;
+      }
+      return result2;
+    };
+    const second = await sys2.runtime.up();
+    expect(second.ok).toBe(true);
+    expect(second.lines.some((line) => line.startsWith('el arranque con docker falló (no se pudo arrancar el contenedor chameleon-ollama: docker: port is already allocated); se intenta native'))).toBe(true);
+    expect(second.ok && second.state.runner).toBe('native');
+    // ambas fallan → un solo error con los dos motivos.
+    const both = await fakeSystem(world({ ollamaBinary: true, dockerBinary: true, startsResponding: false }), { DOCKER_FAILS: '1' }).runtime.up();
+    expect(both).toMatchObject({ ok: false, code: 'start-failed' });
+    expect(both.ok ? '' : both.message).toMatch(/^native: Ollama no respondió .* · docker: no se pudo arrancar el contenedor chameleon-ollama: docker: port is already allocated$/);
+    // con --runner explícito no hay respaldo.
+    const strict = await fakeSystem(world({ ollamaBinary: true, dockerBinary: true, startsResponding: false })).runtime.up({ runner: 'native' });
+    expect(strict).toMatchObject({ ok: false, code: 'start-failed' });
+    expect(strict.ok ? '' : strict.message).toMatch(/^Ollama no respondió/);
   });
 });

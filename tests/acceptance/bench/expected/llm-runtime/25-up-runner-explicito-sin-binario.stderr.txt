@@ -1,0 +1,1 @@
+el runner native pedido en la orden no está disponible: no se encontró el binario «<WS>/tools/no-ollama»

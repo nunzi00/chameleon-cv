@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LlmConfigResponse } from './api/types';
-import { OTHER_MODEL, buildSettings, describeCheck, describeDownload, describeLocalModel, describeModelOptions, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields, modelChoice, quotaMeter } from './settings';
+import { OTHER_MODEL, buildSettings, describeCheck, describeDownload, describeLocalModel, describeModelOptions, describePlan, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields, modelChoice, quotaMeter } from './settings';
 
 const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
@@ -113,7 +113,7 @@ describe('describeModelOptions', () => {
 });
 
 describe('describeRuntime (T-8.8)', () => {
-  const base = { runner: 'native' as const, managed: false, running: false, model: { name: 'qwen2.5:7b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
+  const base = { runner: 'native' as const, candidates: { native: { available: true, reason: 'binario «ollama» (0.33.2)' }, docker: { available: false, reason: 'Docker no responde («docker»)' } }, plan: { runner: 'native' as const, note: 'binario «ollama» (0.33.2)' }, managed: false, running: false, model: { name: 'qwen2.5:7b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
 
   it('deshabilitado: ni arrancar ni parar, con el motivo como pista', () => {
     const view = describeRuntime({ ...base, runner: 'none', disabled: 'dentro del contenedor de Compose…', detail: 'dentro del contenedor de Compose…' });
@@ -123,7 +123,8 @@ describe('describeRuntime (T-8.8)', () => {
   it('parado: se puede arrancar si hay runner (descargando el modelo si falta); sin runner, la pista lo explica', () => {
     expect(describeRuntime(base)).toMatchObject({ tone: 'warn', badge: 'parado', canStart: true, canStop: false, startLabel: 'Arrancar Ollama con «qwen2.5:7b»', startHint: undefined, needsPull: true });
     expect(describeRuntime({ ...base, model: { name: 'qwen2.5:7b', present: true } }).needsPull).toBe(false);
-    expect(describeRuntime({ ...base, runner: 'none' })).toMatchObject({ canStart: false, startHint: 'No hay ollama ni Docker en esta máquina' });
+    const none = { runner: 'none' as const, note: 'no hay «ollama» (no se encontró el binario «ollama») ni Docker (Docker no responde («docker»)): instala Ollama o Docker' };
+    expect(describeRuntime({ ...base, runner: 'none', plan: none })).toMatchObject({ canStart: false, startHint: none.note, plan: `No hay con qué arrancar: ${none.note}. Instala Ollama (binario) o Docker; cv detectará el que haya.` });
   });
 
   it('en marcha: parar solo si lo arrancó cv; arrancar solo si falta el modelo (entonces es descargar)', () => {
@@ -131,6 +132,20 @@ describe('describeRuntime (T-8.8)', () => {
     expect(ready).toMatchObject({ tone: 'ok', badge: 'en marcha (native, lo arrancó cv)', canStart: false, canStop: true, startHint: 'Ollama ya está en marcha con el modelo', needsPull: false });
     const foreign = describeRuntime({ ...base, running: true, managed: false, runner: 'none', detail: 'Ollama en marcha (no lo arrancó cv)' });
     expect(foreign).toMatchObject({ tone: 'warn', badge: 'en marcha (no lo arrancó cv)', canStart: true, canStop: false, startLabel: 'Descargar «qwen2.5:7b»', needsPull: true });
+  });
+});
+
+describe('describePlan (T-8.14): la vía de arranque para humanos', () => {
+  const base = { runner: 'native' as const, candidates: { native: { available: false, reason: 'no se encontró el binario «ollama»' }, docker: { available: true, reason: 'Docker 27.1' } }, plan: { runner: 'docker' as const, note: 'sin binario ollama (no se encontró el binario «ollama»); se usa Docker: Docker 27.1' }, managed: false, running: false, model: { name: 'qwen3:8b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · se usará docker: …' };
+
+  it('parado: dice con qué arrancará y por qué; en marcha, quién lo arrancó; deshabilitado, nada', () => {
+    expect(describePlan(base)).toBe('Se usará Docker (contenedor chameleon-ollama): sin binario ollama (no se encontró el binario «ollama»); se usa Docker: Docker 27.1.');
+    expect(describePlan({ ...base, plan: { runner: 'native', note: 'binario «ollama» (0.33.2)' } })).toBe('Se usará el binario ollama: binario «ollama» (0.33.2).');
+    expect(describePlan({ ...base, running: true, managed: true, runner: 'docker' })).toBe('Arrancado por cv con Docker (contenedor chameleon-ollama).');
+    expect(describePlan({ ...base, running: true, managed: true, runner: 'native' })).toBe('Arrancado por cv con el binario ollama.');
+    expect(describePlan({ ...base, running: true, managed: false, runner: 'none' })).toBe('Arrancado fuera de cv.');
+    expect(describePlan({ ...base, disabled: 'Compose' })).toBe('');
+    expect(describeRuntime(base).plan).toContain('Se usará Docker');
   });
 });
 

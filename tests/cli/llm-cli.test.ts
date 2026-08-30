@@ -82,6 +82,7 @@ import { LOCAL_MODELS, type LlmRuntime, type LocalModelsState, type RuntimeResul
 
 const RUNNING: RuntimeState = {
   runner: 'native',
+  candidates: { native: { available: true, reason: 'binario «ollama» (0.33.2)' }, docker: { available: false, reason: 'Docker no responde («docker»)' } }, plan: { runner: 'native' as const, note: 'binario «ollama» (0.33.2)' },
   managed: true,
   running: true,
   model: { name: 'qwen2.5:7b-instruct', present: true },

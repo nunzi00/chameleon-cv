@@ -2,6 +2,20 @@
   "ok": true,
   "state": {
     "runner": "native",
+    "candidates": {
+      "native": {
+        "available": true,
+        "reason": "binario «<WS>/tools/ollama» (ollama version is 0.33.2-fake)"
+      },
+      "docker": {
+        "available": false,
+        "reason": "Docker no responde («<WS>/tools/no-docker»)"
+      }
+    },
+    "plan": {
+      "runner": "native",
+      "note": "binario «<WS>/tools/ollama» (ollama version is 0.33.2-fake)"
+    },
     "managed": true,
     "running": true,
     "model": {

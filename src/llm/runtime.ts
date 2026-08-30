@@ -102,9 +102,27 @@ export interface RuntimeSystem {
 }
 
 // ── Estado y resultados ────────────────────────────────────────────────────────────────────────────
-export interface RuntimeState {
-  /** El runner que gestiona Ollama (si lo arrancó cv) o el disponible para arrancarlo; `none` si no hay ninguno. */
+/** Una vía de arranque y por qué está (o no) disponible en esta máquina (T-8.14). */
+export interface RuntimeCandidate {
+  readonly available: boolean;
+  readonly reason: string;
+}
+export interface RuntimeCandidates {
+  readonly native: RuntimeCandidate;
+  readonly docker: RuntimeCandidate;
+}
+/** Qué vía se usará para arrancar y por qué (preferencia atendida, respaldo o ninguna). */
+export interface RuntimePlan {
   readonly runner: RuntimeRunner | 'none';
+  readonly note: string;
+}
+
+export interface RuntimeState {
+  /** El runner que gestiona Ollama (si lo arrancó cv) o el que se usaría para arrancarlo; `none` si no hay ninguno. */
+  readonly runner: RuntimeRunner | 'none';
+  /** Las dos vías con su motivo y el plan de arranque (T-8.14). */
+  readonly candidates: RuntimeCandidates;
+  readonly plan: RuntimePlan;
   /** Lo arrancó cv (pid propio vivo o contenedor propio). */
   readonly managed: boolean;
   readonly running: boolean;
@@ -232,27 +250,55 @@ export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>,
     return (await system.exec(docker(), ['version', '--format', '{{.Server.Version}}'], quick)).ok;
   }
 
-  /** El runner pedido (opción o entorno) si está disponible, o el primero disponible: native, luego docker. */
-  async function detect(forced: RuntimeRunner | undefined): Promise<{ readonly runner: RuntimeRunner } | { readonly runner: 'none'; readonly reason: string }> {
-    if (forced !== undefined) {
-      const available = forced === 'native' ? await nativeAvailable() : await dockerAvailable();
-      return available ? { runner: forced } : { runner: 'none', reason: forced === 'native' ? `no se encontró el binario «${ollama()}»` : `Docker no responde (${docker()})` };
-    }
-    if (await nativeAvailable()) {
-      return { runner: 'native' };
-    }
-    if (await dockerAvailable()) {
-      return { runner: 'docker' };
-    }
-    return { runner: 'none', reason: `no hay «${ollama()}» ni Docker («${docker()}»): instala Ollama o Docker` };
+  /** Las dos vías con su motivo (T-8.14): el binario «ollama» y el demonio de Docker. */
+  async function candidates(): Promise<RuntimeCandidates> {
+    const native = await system.exec(ollama(), ['--version'], quick);
+    const daemon = await system.exec(docker(), ['version', '--format', '{{.Server.Version}}'], quick);
+    return {
+      native: native.ok ? { available: true, reason: `binario «${ollama()}» (${native.stdout.trim() || 'ollama'})` } : { available: false, reason: `no se encontró el binario «${ollama()}»` },
+      docker: daemon.ok ? { available: true, reason: `Docker ${daemon.stdout.trim() || 'disponible'}` } : { available: false, reason: `Docker no responde («${docker()}»)` },
+    };
   }
 
-  function forcedRunner(option: RuntimeRunner | undefined): RuntimeRunner | undefined {
-    if (option !== undefined) {
-      return option;
-    }
+  /** La preferencia de runner (entorno o `[llm.runtime]`), con su origen; `undefined` = detectar. */
+  function preference(): { readonly runner: RuntimeRunner; readonly origin: string } | undefined {
     const fromEnv = system.env[RUNTIME_ENV.runner]?.trim().toLowerCase();
-    return fromEnv !== undefined && isRuntimeRunner(fromEnv) ? fromEnv : preferred.runner;
+    if (fromEnv !== undefined && isRuntimeRunner(fromEnv)) {
+      return { runner: fromEnv, origin: RUNTIME_ENV.runner };
+    }
+    return preferred.runner === undefined ? undefined : { runner: preferred.runner, origin: 'cv.toml [llm.runtime].runner' };
+  }
+
+  const other = (runner: RuntimeRunner): RuntimeRunner => (runner === 'native' ? 'docker' : 'native');
+  const NEITHER = (found: RuntimeCandidates): string => `no hay «${ollama()}» (${found.native.reason}) ni Docker (${found.docker.reason}): instala Ollama o Docker`;
+
+  /**
+   * Qué vía se usará (T-8.14): la opción explícita de la orden es estricta; la preferencia del entorno o de cv.toml se
+   * atiende si está disponible y, si no, se cae a la otra vía con aviso; sin preferencia, el binario y después Docker.
+   */
+  async function plan(explicit: RuntimeRunner | undefined, known: RuntimeCandidates): Promise<RuntimePlan> {
+    if (explicit !== undefined) {
+      return known[explicit].available
+        ? { runner: explicit, note: `runner ${explicit} pedido en la orden (${known[explicit].reason})` }
+        : { runner: 'none', note: `el runner ${explicit} pedido en la orden no está disponible: ${known[explicit].reason}` };
+    }
+    const wanted = preference();
+    if (wanted !== undefined) {
+      if (known[wanted.runner].available) {
+        return { runner: wanted.runner, note: `preferencia ${wanted.runner} (${wanted.origin}): ${known[wanted.runner].reason}` };
+      }
+      const fallback = other(wanted.runner);
+      return known[fallback].available
+        ? { runner: fallback, note: `preferencia ${wanted.runner} (${wanted.origin}) no disponible (${known[wanted.runner].reason}); se usa ${fallback}: ${known[fallback].reason}` }
+        : { runner: 'none', note: NEITHER(known) };
+    }
+    if (known.native.available) {
+      return { runner: 'native', note: known.native.reason };
+    }
+    if (known.docker.available) {
+      return { runner: 'docker', note: `sin binario ollama (${known.native.reason}); se usa Docker: ${known.docker.reason}` };
+    }
+    return { runner: 'none', note: NEITHER(known) };
   }
 
   /** ¿Hay un Ollama arrancado por cv? Un pid guardado que ya no vive se olvida. */
@@ -287,10 +333,14 @@ export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>,
 
   async function describe(config: LlmConfig, health: LlmHealth, current: Managed | undefined): Promise<RuntimeState> {
     const present = health.ok && health.modelAvailable;
+    const found = await candidates();
+    const planned = await plan(undefined, found);
     if (health.ok) {
       const who = current === undefined ? 'no lo arrancó cv' : `${current.runner}, lo arrancó cv`;
       return {
         runner: current?.runner ?? 'none',
+        candidates: found,
+        plan: planned,
         managed: current !== undefined,
         running: true,
         model: { name: config.model, present },
@@ -299,15 +349,16 @@ export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>,
         detail: `Ollama en marcha (${who}) · modelo «${config.model}» ${present ? 'presente' : 'no descargado'}`,
       };
     }
-    const available = await detect(forcedRunner(undefined));
-    const how = available.runner === 'none' ? available.reason : `runner ${available.runner} disponible`;
-    return { runner: available.runner, managed: false, running: false, model: { name: config.model, present: false }, log: logPath, disabled: undefined, detail: `Ollama parado · ${how}` };
+    const how = planned.runner === 'none' ? planned.note : `se usará ${planned.runner}: ${planned.note}`;
+    return { runner: planned.runner, candidates: found, plan: planned, managed: false, running: false, model: { name: config.model, present: false }, log: logPath, disabled: undefined, detail: `Ollama parado · ${how}` };
   }
+
+  const UNKNOWN: RuntimeCandidates = { native: { available: false, reason: 'no comprobado' }, docker: { available: false, reason: 'no comprobado' } };
 
   async function status(): Promise<RuntimeState> {
     const gate = await disabledReason();
     if (gate.reason !== undefined) {
-      return { runner: 'none', managed: false, running: false, model: { name: gate.model, present: false }, log: logPath, disabled: gate.reason, detail: gate.reason };
+      return { runner: 'none', candidates: UNKNOWN, plan: { runner: 'none', note: gate.reason }, managed: false, running: false, model: { name: gate.model, present: false }, log: logPath, disabled: gate.reason, detail: gate.reason };
     }
     return describe(gate.config, await system.health(gate.config), await managed());
   }
@@ -430,13 +481,26 @@ export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>,
     let health = await system.health(config);
     let current = await managed();
     if (!health.ok) {
-      const detected = await detect(forcedRunner(options.runner));
-      if (detected.runner === 'none') {
-        return { ok: false, code: 'no-runner', message: detected.reason, lines };
+      const found = await candidates();
+      const planned = await plan(options.runner, found);
+      if (planned.runner === 'none') {
+        return { ok: false, code: 'no-runner', message: planned.note, lines };
       }
-      const failure = await start(config, detected.runner, say);
+      say(`vía de arranque: ${planned.runner} (${planned.note})`);
+      let failure = await start(config, planned.runner, say);
       if (failure !== undefined) {
-        return { ok: false, code: 'start-failed', message: failure, lines };
+        // Respaldo (T-8.14 D3): si la orden no fijó el runner y la otra vía está disponible, se intenta con ella.
+        const fallback = other(planned.runner);
+        if (options.runner === undefined && found[fallback].available) {
+          say(`el arranque con ${planned.runner} falló (${failure}); se intenta ${fallback}: ${found[fallback].reason}`);
+          const second = await start(config, fallback, say);
+          if (second !== undefined) {
+            return { ok: false, code: 'start-failed', message: `${planned.runner}: ${failure} · ${fallback}: ${second}`, lines };
+          }
+          failure = undefined;
+        } else {
+          return { ok: false, code: 'start-failed', message: failure, lines };
+        }
       }
       current = await managed();
       health = await system.health(config);

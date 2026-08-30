@@ -130,7 +130,7 @@ describe('Ajustes: remotos pendientes de verificación humana', () => {
 });
 
 describe('Ajustes · Ollama local (T-8.8)', () => {
-  const STOPPED = { runner: 'native' as const, managed: false, running: false, model: { name: 'qwen2.5:7b', present: false }, log: '/h/.cache/chameleon-cv/ollama/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
+  const STOPPED = { runner: 'native' as const, candidates: { native: { available: true, reason: 'binario «ollama» (0.33.2)' }, docker: { available: false, reason: 'Docker no responde («docker»)' } }, plan: { runner: 'native' as const, note: 'binario «ollama» (0.33.2)' }, managed: false, running: false, model: { name: 'qwen2.5:7b', present: false }, log: '/h/.cache/chameleon-cv/ollama/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
   const RUNNING = { ...STOPPED, managed: true, running: true, model: { name: 'qwen2.5:7b', present: true }, detail: 'Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b» presente' };
 
   it('arrancar con el modelo sin descargar pide consentimiento, lanza el trabajo, lo sigue y refresca el estado', async () => {
@@ -146,9 +146,12 @@ describe('Ajustes · Ollama local (T-8.8)', () => {
     render(Ajustes, { props: { api, onsession: vi.fn() } });
     await waitFor(() => expect(screen.getByText('Ollama parado · runner native disponible')).toBeTruthy());
     expect(screen.getByText('parado')).toBeTruthy();
+    // T-8.14: la vía de arranque y su motivo, en el panel y en el consentimiento.
+    expect(screen.getByTestId('runtime-plan').textContent).toBe('Se usará el binario ollama: binario «ollama» (0.33.2).');
     expect((screen.getByRole('button', { name: 'Parar Ollama' }) as HTMLButtonElement).disabled).toBe(true);
     await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen2.5:7b»' }));
     expect(screen.getByRole('dialog').textContent).toContain('registro público de Ollama');
+    expect(screen.getByRole('dialog').textContent).toContain('Se usará el binario ollama');
     await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(api.llmRuntimeAction).not.toHaveBeenCalled();
     await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen2.5:7b»' }));
@@ -256,7 +259,7 @@ describe('Ajustes · catálogo de modelos locales (T-8.13)', () => {
     const api = fakeApi({ llmConfig: vi.fn(async () => OLLAMA), llmModels: vi.fn(async () => Promise.reject(new ApiError(503, { code: 'environment', message: 'sin runtime' }))) });
     render(Ajustes, { props: { api, onsession: vi.fn() } });
     await waitFor(() => expect((screen.getByLabelText('Modelo') as HTMLInputElement).tagName).toBe('INPUT'));
-    const STOPPED = { runner: 'native' as const, managed: false, running: false, model: { name: 'qwen3:8b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
+    const STOPPED = { runner: 'native' as const, candidates: { native: { available: true, reason: 'binario «ollama» (0.33.2)' }, docker: { available: false, reason: 'Docker no responde («docker»)' } }, plan: { runner: 'native' as const, note: 'binario «ollama» (0.33.2)' }, managed: false, running: false, model: { name: 'qwen3:8b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
     const withModels = fakeApi({ llmConfig: vi.fn(async () => OLLAMA), llmModels: vi.fn(async () => MODELS), llmRuntime: vi.fn(async () => ({ runtime: STOPPED })) });
     render(Ajustes, { props: { api: withModels, onsession: vi.fn() } });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen3:8b»' })).toBeTruthy());

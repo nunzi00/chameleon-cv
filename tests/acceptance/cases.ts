@@ -311,6 +311,10 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'up-source-sin-espejo', args: ['llm', 'up', '--model', 'gpt-oss:20b', '--source', 'huggingface'], env: FAKE_OLLAMA, exitCode: 2 },
       { id: 'up-source-invalido', args: ['llm', 'up', '--source', 'github'], env: FAKE_OLLAMA, exitCode: 1 },
       { id: 'down-tras-espejo', args: ['llm', 'down'], env: FAKE_OLLAMA, exitCode: 0 },
+      // T-8.14: la preferencia native sin binario cae a Docker (aquí ausente) y el error lista ambos motivos; el estado explica la vía.
+      { id: 'status-plan', args: ['llm', 'status'], env: FAKE_OLLAMA, exitCode: 2 },
+      { id: 'up-preferencia-native-sin-binario', args: ['llm', 'up', '--json'], env: { ...FAKE_OLLAMA, CHAMELEON_LLM_RUNNER: 'native', CHAMELEON_OLLAMA_BIN: 'tools/no-ollama' }, exitCode: 2 },
+      { id: 'up-runner-explicito-sin-binario', args: ['llm', 'up', '--runner', 'native'], env: { ...FAKE_OLLAMA, CHAMELEON_OLLAMA_BIN: 'tools/no-ollama' }, exitCode: 2 },
     ],
   },
 ];

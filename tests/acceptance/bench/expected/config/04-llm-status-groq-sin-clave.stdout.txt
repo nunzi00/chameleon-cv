@@ -10,4 +10,4 @@ Proveedores remotos (solo con --provider explícito):
 Fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
 Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com
 Remoto: El proveedor «groq» está registrado pero pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces
-runtime: Ollama parado · no hay «ollama» ni Docker («docker»): instala Ollama o Docker
+runtime: Ollama parado · no hay «ollama» (no se encontró el binario «ollama») ni Docker (Docker no responde («docker»)): instala Ollama o Docker

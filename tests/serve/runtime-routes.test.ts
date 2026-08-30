@@ -9,6 +9,7 @@ const TOKEN = 'token-de-pruebas-fijo';
 
 const STOPPED: RuntimeState = {
   runner: 'native',
+  candidates: { native: { available: true, reason: 'binario «ollama» (0.33.2)' }, docker: { available: false, reason: 'Docker no responde («docker»)' } }, plan: { runner: 'native' as const, note: 'binario «ollama» (0.33.2)' },
   managed: false,
   running: false,
   model: { name: 'qwen2.5:7b-instruct', present: false },

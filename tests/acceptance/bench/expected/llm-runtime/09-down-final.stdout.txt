@@ -1,2 +1,2 @@
 Ollama detenido (native)
-runtime: Ollama parado · runner native disponible
+runtime: Ollama parado · se usará native: binario «<WS>/tools/ollama» (ollama version is 0.33.2-fake)

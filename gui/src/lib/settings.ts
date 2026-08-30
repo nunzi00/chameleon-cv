@@ -184,12 +184,29 @@ export interface RuntimeView {
   readonly startHint: string | undefined;
   /** Arrancar implica descargar el modelo (consentimiento previo). */
   readonly needsPull: boolean;
+  /** Con qué vía arrancará y por qué (T-8.14): «Se usará Docker: …», o cómo instalar una vía si no hay ninguna. */
+  readonly plan: string;
+}
+
+/** La vía de arranque para humanos: binario ollama, Docker (contenedor chameleon-ollama) o ninguna, con el motivo del plan. */
+export function describePlan(state: RuntimeState): string {
+  if (state.disabled !== undefined) {
+    return '';
+  }
+  if (state.running) {
+    return state.managed ? `Arrancado por cv con ${state.runner === 'docker' ? 'Docker (contenedor chameleon-ollama)' : 'el binario ollama'}.` : 'Arrancado fuera de cv.';
+  }
+  if (state.plan.runner === 'none') {
+    return `No hay con qué arrancar: ${state.plan.note}. Instala Ollama (binario) o Docker; cv detectará el que haya.`;
+  }
+  return `Se usará ${state.plan.runner === 'docker' ? 'Docker (contenedor chameleon-ollama)' : 'el binario ollama'}: ${state.plan.note}.`;
 }
 
 export function describeRuntime(state: RuntimeState): RuntimeView {
   const start = `Arrancar Ollama con «${state.model.name}»`;
+  const plan = describePlan(state);
   if (state.disabled !== undefined) {
-    return { tone: 'warn', badge: 'no disponible', detail: state.disabled, canStart: false, canStop: false, startLabel: start, startHint: state.disabled, needsPull: false };
+    return { tone: 'warn', badge: 'no disponible', detail: state.disabled, canStart: false, canStop: false, startLabel: start, startHint: state.disabled, needsPull: false, plan };
   }
   if (state.running) {
     const present = state.model.present;
@@ -202,6 +219,7 @@ export function describeRuntime(state: RuntimeState): RuntimeView {
       startLabel: present ? start : `Descargar «${state.model.name}»`,
       startHint: present ? 'Ollama ya está en marcha con el modelo' : undefined,
       needsPull: !present,
+      plan,
     };
   }
   const canStart = state.runner !== 'none';
@@ -212,8 +230,9 @@ export function describeRuntime(state: RuntimeState): RuntimeView {
     canStart,
     canStop: false,
     startLabel: start,
-    startHint: canStart ? undefined : 'No hay ollama ni Docker en esta máquina',
+    startHint: canStart ? undefined : state.plan.note,
     needsPull: !state.model.present,
+    plan,
   };
 }
 

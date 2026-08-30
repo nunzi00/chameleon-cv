@@ -10,4 +10,4 @@ Proveedores remotos (solo con --provider explícito):
 Fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
 Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com
 Remoto: No hay clave para «openai»: define CHAMELEON_OPENAI_API_KEY o añádela a <TMP>/home/.config/chameleon-cv/keys.json (permisos 0600, {"openai": "…"})
-runtime: Ollama parado · no hay «ollama» ni Docker («docker»): instala Ollama o Docker
+runtime: Ollama parado · no hay «ollama» (no se encontró el binario «ollama») ni Docker (Docker no responde («docker»)): instala Ollama o Docker

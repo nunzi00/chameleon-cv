@@ -1,1 +1,1 @@
-Docker no responde (<WS>/tools/no-docker)
+el runner docker pedido en la orden no está disponible: Docker no responde («<WS>/tools/no-docker»)

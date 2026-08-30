@@ -136,3 +136,10 @@ en Compose), referencia de la CLI generada, `README.md`, `CHANGELOG.md`.
 
 - `cv llm models [--json]` (y `GET /api/v1/llm/models`) lista el catálogo `LOCAL_MODELS` con lo descargado; `cv llm up --model <id>` descarga del registro de Ollama y, si falla y el modelo tiene espejo (`hf.co/<repositorio>:<cuantización>`), descarga el espejo y crea el alias corto con `ollama cp`; `--source huggingface` va directo al espejo. Solo cambia el host al que se conecta el propio Ollama (`registry.ollama.ai` o `huggingface.co`); cv sigue sin descargar nada por su cuenta.
 - El modelo por defecto es `qwen3:8b` (docs/qwen3-evaluation.md §4); `[llm] think = true` pide razonamiento a los modelos que lo conmutan.
+
+## Ampliación T-8.14: runtime adaptativo (binario si lo hay, Docker si no, respaldo al fallar)
+
+- El estado (`cv llm status`, `GET /api/v1/llm/runtime`, Ajustes) expone `candidates` (binario «ollama» y demonio de Docker, cada uno con su motivo) y `plan` (qué vía se usará y por qué). Parado, la línea dice «se usará native: binario «ollama» (0.33.2)» o «se usará docker: sin binario ollama (…); se usa Docker: Docker 27.x».
+- `[llm.runtime] runner` y `CHAMELEON_LLM_RUNNER` son preferencias: si la vía preferida no está disponible se usa la otra con aviso. `cv llm up --runner` y `runner` en `POST /llm/runtime` siguen siendo estrictos.
+- Si el arranque falla (el binario no responde a tiempo, el contenedor no levanta) y la otra vía está disponible, `cv llm up` la intenta a continuación (líneas «el arranque con X falló (…); se intenta Y: …»); con ambas fallidas, un solo error con los dos motivos. El intento fallido nativo limpia su pid.
+- Ajustes muestra la vía y el motivo bajo el estado y en el consentimiento de descarga; sin ninguna vía, explica que hay que instalar Ollama o Docker.

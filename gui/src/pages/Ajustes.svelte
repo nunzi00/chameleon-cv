@@ -272,6 +272,7 @@
           <p class="cv-muted">{runtimeMessage}</p>
         {:else if runtime !== undefined && runtimeView !== undefined}
           <p>{runtimeView.detail}</p>
+          {#if runtimeView.plan !== ''}<p class="cv-muted" data-testid="runtime-plan">{runtimeView.plan}</p>{/if}
           <div class="cv-actions">
             <button class="cv-button primary" type="button" disabled={busy !== undefined || !runtimeView.canStart} title={runtimeView.startHint} onclick={startOllama}>{runtimeView.startLabel}</button>
             <button class="cv-button danger-quiet" type="button" disabled={busy !== undefined || !runtimeView.canStop} onclick={() => (confirmStop = true)}>Parar Ollama</button>
@@ -285,6 +286,7 @@
     </div>
     <Dialog open={consentPull} title="Descargar el modelo" onclose={() => (consentPull = false)}>
       <p>{describeDownload(runtime?.model.name ?? '', models?.catalogue)}</p>
+      {#if runtimeView !== undefined && runtimeView.plan !== ''}<p class="cv-muted">{runtimeView.plan}</p>{/if}
       <div class="cv-dialog-actions">
         <button class="cv-button" type="button" onclick={() => (consentPull = false)}>Cancelar</button>
         <button class="cv-button primary" type="button" onclick={runtimeUp}>Descargar y arrancar</button>
