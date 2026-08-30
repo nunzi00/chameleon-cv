@@ -1,0 +1,1 @@
+Una oferta por URL exige --allow-remote (y confirma la descarga, o usa --yes); también puedes pegar el texto o guardar la página y pasar el fichero

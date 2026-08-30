@@ -10,12 +10,18 @@ import type { CliContext } from '../context';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
 import type { CvEngine, CvFormat } from '../format';
 import { hasLimits, type LimitOptions } from '../limits';
-import { offerInput } from '../offer';
+import type { OfferInput } from '../../app/offer';
+import { isUrlSource, offerInput, resolveOfferSource } from '../offer';
 import { EXIT_FAILURE, EXIT_OK, reportError, reportWarnings } from '../output';
 
 export { OUTPUT_MODE, defaultOutputPath, typstExitCode } from '../../app/generate';
 
 export interface GenerateCvOptions extends LimitOptions {
+  /** T-8.5: URL como origen de la oferta (§4.3). */
+  readonly allowRemote?: boolean | undefined;
+  readonly yes?: boolean | undefined;
+  readonly saveOffer?: string | boolean | undefined;
+  readonly replace?: boolean | undefined;
   readonly profile: string;
   readonly data: string;
   readonly specialty?: string | undefined;
@@ -74,6 +80,20 @@ function explain(context: CliContext, report: GenerateReport): void {
 }
 
 export async function runGenerateCv(context: CliContext, options: GenerateCvOptions): Promise<number> {
+  let offerFromUrl: OfferInput | undefined;
+  if (options.fromJobOffer !== undefined && isUrlSource(options.fromJobOffer)) {
+    const resolved = await resolveOfferSource(context, options.fromJobOffer, {
+      allowRemote: options.allowRemote === true,
+      yes: options.yes === true,
+      saveOffer: options.saveOffer,
+      replace: options.replace === true,
+    });
+    if (!resolved.ok) {
+      context.stderr(`${resolved.message}\n`);
+      return resolved.exit;
+    }
+    offerFromUrl = resolved.input;
+  }
   const conflict = formatConflict(options);
   if (conflict !== undefined) {
     context.stderr(`${conflict}\n`);
@@ -83,7 +103,7 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     profile: options.profile,
     data: options.data,
     specialty: options.specialty,
-    offer: options.fromJobOffer === undefined ? undefined : offerInput(context, options.fromJobOffer),
+    offer: options.fromJobOffer === undefined ? undefined : (offerFromUrl ?? offerInput(context, options.fromJobOffer)),
     output: options.output,
     templatePath: options.template,
     locale: options.locale,

@@ -317,4 +317,18 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'up-runner-explicito-sin-binario', args: ['llm', 'up', '--runner', 'native'], env: { ...FAKE_OLLAMA, CHAMELEON_OLLAMA_BIN: 'tools/no-ollama' }, exitCode: 2 },
     ],
   },
+  {
+    id: 'offer-url',
+    description: 'ofertas por URL (T-8.5 S1) sin red: la URL exige --allow-remote y confirmación, http se rechaza, y el listado de offers/ sale sin argumento o con --list',
+    workspace: 'bench',
+    steps: [
+      { id: 'build', args: ['build'], exitCode: 0 },
+      { id: 'url-sin-allow-remote', args: ['analyze-offer', 'https://ofertas.example/backend'], exitCode: 2 },
+      { id: 'url-sin-terminal', args: ['analyze-offer', 'https://ofertas.example/backend', '--allow-remote'], exitCode: 2 },
+      { id: 'url-http', args: ['analyze-offer', 'http://ofertas.example/backend', '--allow-remote', '--yes'], exitCode: 1 },
+      { id: 'generate-url-sin-allow-remote', args: ['generate-cv', '-f', 'https://ofertas.example/backend'], exitCode: 2 },
+      { id: 'listado-sin-argumento', args: ['analyze-offer'], exitCode: 2 },
+      { id: 'listado-explicito', args: ['analyze-offer', '--list'], exitCode: 0 },
+    ],
+  },
 ];

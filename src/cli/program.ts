@@ -91,7 +91,11 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .command('generate-cv')
     .description(`genera el CV en Markdown a partir del artefacto (por defecto en ${DEFAULT_OUTPUT_DIR}/cv-<nombre>[-<especialidad>][-<oferta>].md)`)
     .option('-s, --specialty <id>', 'especialidad: elige la versión del CV (titular, resumen y filtro); sin ella, el CV completo')
-    .option('-f, --from-job-offer <file>', 'oferta de empleo en texto plano o PDF («-» = entrada estándar, solo texto): afina el CV puntuando y reordenando')
+    .option('-f, --from-job-offer <file>', 'oferta en texto, PDF, «-» (entrada estándar) o URL https (exige --allow-remote): afina el CV puntuando y reordenando')
+    .option('--allow-remote', 'permite descargar la oferta cuando -f es una URL https (una petición, con confirmación)', false)
+    .option('--yes', 'no pregunta antes de descargar la URL', false)
+    .option('--save-offer [ruta]', 'guarda el texto descargado en offers/ con cabecera de origen')
+    .option('--replace', 'con --save-offer, sustituye el fichero si ya existe', false)
     .option('-n, --top-n <n>', 'logros por experiencia/proyecto y logros transversales', parseLimit)
     .option('--max-skills <n>', 'skills como máximo', parseLimit)
     .option('--max-projects <n>', 'proyectos como máximo', parseLimit)
@@ -119,15 +123,20 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
 
   program
     .command('analyze-offer')
-    .description('analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias')
-    .argument('<offer>', 'fichero de texto de la oferta, o «-» para la entrada estándar')
+    .description('analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias; sin argumento, lista offers/')
+    .argument('[offer]', 'fichero de texto o PDF, «-» para la entrada estándar, o una URL https (exige --allow-remote)')
     .option('-s, --specialty <id>', 'especialidad real con la que analizar; sin ella, la virtual de la oferta')
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
     .option('--explain', 'añade la auditoría por ítem', false)
     .option('--json', 'salida estructurada para scripts', false)
     .option('--build', 'recompila el artefacto desde las fuentes antes de analizar (equivale a un «cv build» previo)', false)
-    .action(async (offer: string, options: AnalyzeOfferOptions) => {
+    .option('--allow-remote', 'permite descargar la oferta cuando el origen es una URL https (una petición, con confirmación)', false)
+    .option('--yes', 'no pregunta antes de descargar la URL (para scripts y sin terminal)', false)
+    .option('--save-offer [ruta]', 'guarda el texto descargado en offers/ (nombre automático, o la ruta indicada) con cabecera de origen')
+    .option('--replace', 'con --save-offer, sustituye el fichero si ya existe', false)
+    .option('--list', 'lista offers/ y sale con código 0', false)
+    .action(async (offer: string | undefined, options: AnalyzeOfferOptions) => {
       onExit(await runAnalyzeOffer(context, offer, options));
     });
 

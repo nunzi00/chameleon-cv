@@ -21,6 +21,8 @@ export interface FetchedResponse {
   readonly url: string;
   readonly body: AsyncIterable<Uint8Array> | null;
   readonly contentLength: number | undefined;
+  /** Cabecera `content-type` de la respuesta, si la hay (T-8.5: enruta HTML/PDF/texto). */
+  readonly contentType?: string | undefined;
 }
 
 export type Fetcher = (url: string, timeoutMs?: number) => Promise<FetchedResponse>;
@@ -35,6 +37,7 @@ export async function fetchWithNode(url: string, timeoutMs: number = DOWNLOAD_LI
     url: response.url,
     body: response.body as unknown as AsyncIterable<Uint8Array> | null,
     contentLength: length === null ? undefined : Number(length),
+    contentType: response.headers.get('content-type') ?? undefined,
   };
 }
 
@@ -145,6 +148,7 @@ export interface BufferDownloadResult extends DownloadResult {
   readonly content: Uint8Array;
   /** URL final tras redirecciones (https). */
   readonly url: string;
+  readonly contentType?: string | undefined;
 }
 
 /** Descarga pequeña en memoria (archivos de temas, T-8.3): mismas comprobaciones, sin fichero temporal. */
@@ -155,5 +159,5 @@ export async function downloadToBuffer(url: string, options: BufferDownloadOptio
     chunks.push(chunk);
     return Promise.resolve();
   });
-  return { ...result, content: Buffer.concat(chunks), url: response.url };
+  return { ...result, content: Buffer.concat(chunks), url: response.url, contentType: response.contentType };
 }

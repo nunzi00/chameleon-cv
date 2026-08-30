@@ -1,0 +1,6 @@
+offers/acme-engineering-manager-en.txt        574 B  <ISO>
+offers/lumen-data-engineer.txt                347 B  <ISO>
+offers/nexo-senior-backend.txt                654 B  <ISO>
+offers/orbita-platform-engineer.txt           518 B  <ISO>
+offers/pdf/nexo-senior-backend.pdf          18802 B  <ISO>
+offers/pdf/orbita-platform-engineer.pdf     17615 B  <ISO>

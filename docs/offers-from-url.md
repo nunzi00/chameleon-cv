@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-8.5 [OFERTAS] Ingesta desde URL (Hito 8, `ROADMAP.md`) |
-| **Estado** | PROPUESTA v1 (2026-08-30) **APROBADA** por el Director de Ingeniería y Producto el 2026-08-30 (ocho decisiones de §10 aprobadas; T-8.5 tiene prioridad sobre T-8.4b; versión 1.7.0); S0 pendiente de las seis páginas reales que aporta Lucas |
+| **Estado** | PROPUESTA v1 (2026-08-30) **APROBADA** por el Director de Ingeniería y Producto el 2026-08-30 (ocho decisiones de §10 aprobadas; T-8.5 tiene prioridad sobre T-8.4b; versión 1.7.0); S0 hecho (siete URL del Director, seis descargadas); **S1 (núcleo) implementado y verificado en vivo el 2026-08-30** (§11); quedan S2 (API+GUI) y S3 |
 | **Origen** | Requisitos del Director del 2026-08-30 durante las pruebas con datos reales: «la oferta debe aceptar también URL» y «en Analizar oferta del espacio de trabajo debería salir un selector de las opciones disponibles» |
 | **Versión prevista** | 1.9.0 (menor; la 1.8.0 del 2026-08-30 recoge T-8.6 S1–S3, T-8.8 a T-8.13 y el catálogo de 27 temas sin esperar a las seis páginas reales de ofertas; decisión original del PO del 2026-08-30: la 1.7.0 recoge lo entregado ese día —temas, selección explícita, historial de ofertas, modelos de Groq—) |
 
@@ -152,3 +152,25 @@ Conclusiones para S1:
    tamaño como ya hace la instalación de temas.
 5. LinkedIn sirve la vista pública sin sesión con un `User-Agent` de navegador; sin él devuelve otra página. La cabecera se fija
    en el extractor y se documenta.
+
+## S1 · Plan concreto (2026-08-30, para la puerta del PO) — APROBADO; núcleo implementado el 2026-08-30 (extractor + descarga + CLI; véase §11)
+
+Sobre las ocho decisiones aprobadas de §10 y las conclusiones de §S0:
+
+1. **Cerrar §4.6 primero** (resto del S0): corpus versionado en `tests/offers/corpus/` con 6 páginas sintéticas (JSON-LD completo; JSON-LD con descripción corta tipo Manfred; `main`/`article` sin JSON-LD; sin semántica; entidades y `charset`; SPA vacía) y 3 réplicas anonimizadas de las familias reales (LinkedIn/Jobgether/Manfred: misma estructura, texto inventado), más el arnés de calidad con umbrales fijados antes de medir (título y empresa exactos donde la página los declara; ≥ 95 % de las palabras del cuerpo de la oferta presentes en el texto extraído; 0 palabras de navegación/pie en las sintéticas).
+2. **Cascada fijada por la evidencia de §S0**: (1) JSON-LD `JobPosting` (título, empresa, lugar, fecha; `description` HTML → texto); (2) si la descripción queda por debajo de ~250 palabras, se completa con el bloque principal del cuerpo (`htmlToText` + selección del bloque más largo excluyendo `nav`/`header`/`footer`/`aside` y listas de ofertas relacionadas), marcado con su procedencia; (3) `og:title`/`og:description`/`<title>` como reserva. `source` visible en `--explain` y en la API.
+3. **`src/offers/extract.ts` + `fetch.ts`** según §4.1–§4.2 (https solo, UA de navegador documentado —la vista pública de LinkedIn lo exige, §S0.5—, `accept-language` del perfil, 2 MB / 15 s, SSRF con resolutor inyectado, redirecciones ≤ 5 a https).
+4. **CLI** según §4.3: URL en `analyze-offer` y `generate-cv -f` con `--allow-remote` + confirmación por petición, `--save-offer` con cabecera de origen, listado de `offers/**`, `--explain` con procedencia; arnés `offer-url-*` con `Fetcher` doble (sin red).
+5. **Pruebas**: 100 % de `src/offers/**`; el arnés de calidad del corpus como prueba (umbrales = asserts); verificación en vivo final con tres de las URL reales de §S0 anotada en §11.
+6. S2 (API + GUI) y S3 (guías, tutorial, release 1.9.0) quedan como en §9, con las tres rutas de §4.4 y el selector/modo URL de §4.5.
+
+Petición al PO: conformidad con este plan de S1 (incluido cerrar §4.6 dentro de S1 y el umbral de 250 palabras para completar la descripción del JSON-LD).
+
+### S1 · Estado (2026-08-30, noche)
+
+- Hecho: corpus `tests/offers/corpus/` (6 sintéticas + 3 réplicas) con el arnés de calidad §4.6 (umbrales como asserts); `src/offers/extract.ts` (tokenizador, JSON-LD también en listas/`@graph`, cascada con la regla ×1,5 sobre el umbral de 250 palabras, `og:*`/`<title>`, avisos) y `fetch.ts` (https, SSRF con resolutor inyectable y salto de DNS para IP literales, 2 MB/15 s, redirecciones re-validadas, UA de navegador exportado y probado contra un servidor local, HTML/PDF/texto); CLI: URL en `analyze-offer` y `generate-cv -f` con `--allow-remote` + confirmación (o `--yes`), `--save-offer [ruta]` con cabecera de origen y `--replace`, listado de `offers/**` sin argumento o con `--list`; 100 % de `src/offers/**` y pruebas de la CLI con el doble de red; escenario `offer-url` en el arnés (rutas de negativa y listado, sin red).
+- **Verificación en vivo (2026-08-30, una persona + registro íntegro en la sesión; §5)**, desde una copia del banco fuera del repositorio, `--allow-remote --yes`:
+  1. `es.linkedin.com` (Backend Software Engineer – Golang, BETWEEN Group): 345.094 bytes, HTML, **procedencia json-ld**; 7 requisitos reconocidos, adecuación 7/7 (100 %), imprescindibles 7/7.
+  2. `jobgether.com` (Senior QA Engineer, Trading 212): 210.896 bytes, HTML, **procedencia json-ld**; 6 requisitos, adecuación 6/6 (100 %).
+  3. `getmanfred.com` (Product Manager, Valsea Technologies): 287.133 bytes, HTML, **procedencia json-ld+cuerpo** con el aviso esperado («la descripción del JSON-LD tiene 106 palabras; el cuerpo se toma del contenido de la página (1703)»); 9 requisitos, adecuación 8/9 (89 %), imprescindibles 1/1.
+- Pendiente: S2 (API + GUI) y S3 según §9.

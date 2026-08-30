@@ -14,7 +14,7 @@
 import { spawnSync } from 'node:child_process';
 
 import { runApiClient } from './api-client';
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 
@@ -48,6 +48,9 @@ function sizeOf(from: string | RegExp): number {
 }
 
 /** Sustituye las rutas volátiles por marcadores estables, las más largas primero. */
+/** Instante fijo para los mtimes de la copia del banco (ver la copia del espacio de trabajo). */
+const BENCH_MTIME = new Date('2026-01-01T00:00:00Z');
+
 export function normalize(text: string, replacements: readonly Replacement[]): string {
   let result = text;
   for (const [from, to] of [...replacements].sort((a, b) => sizeOf(b[0]) - sizeOf(a[0]))) {
@@ -269,6 +272,13 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
     await mkdir(home, { recursive: true });
     if (scenario.workspace === 'bench') {
       await cp(BENCH_WORKSPACE, workspace, { recursive: true });
+      // Mtime fijo en toda la copia: las salidas que ordenan por fecha (p. ej. el listado de offers/) quedan
+      // deterministas en cualquier máquina (empate + desempate por ruta), en vez de heredar el azar de la copia.
+      for (const entry of await readdir(workspace, { recursive: true, withFileTypes: true })) {
+        if (entry.isFile()) {
+          await utimes(join(entry.parentPath, entry.name), BENCH_MTIME, BENCH_MTIME);
+        }
+      }
     } else {
       await mkdir(workspace, { recursive: true });
     }

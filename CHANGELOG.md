@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- Ofertas desde URL (T-8.5 S1): `cv analyze-offer <url>` y `cv generate-cv -f <url>` aceptan una URL `https` con `--allow-remote` y confirmación por petición (`--yes` para scripts): una sola descarga sin cookies (máximo 2 MB, 15 s, guardia SSRF, redirecciones re-validadas), extracción con procedencia —JSON-LD `JobPosting` (también en listas y `@graph`), contenido principal cuando la descripción es un resumen, `og:*` como reserva— y avisos de páginas que se pintan con JavaScript; `--save-offer [ruta]` guarda el texto en `offers/` con cabecera de origen (`--replace` para sustituir) y `cv analyze-offer` sin argumento (o con `--list`) lista `offers/**`. Calidad medida con un corpus versionado de nueve páginas (seis sintéticas y tres réplicas de LinkedIn/Jobgether/Manfred) con umbrales fijados antes de medir.
+
 ## [1.8.1] - 2026-08-30
 
 ### Cambiado
