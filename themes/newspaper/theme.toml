@@ -1,0 +1,48 @@
+# Tema «newspaper» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from newspaper`) y genera con `--theme mio`.
+
+[theme]
+name = "newspaper"
+description = "Aire de periódico: mancheta centrada con doble filete, serif Libertinus y experiencia y proyectos a dos columnas con títulos en versalitas; para comunicación, edición o investigación"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1a1a1a"       # cuerpo de texto
+primary = "#1a1a1a"    # nombre y títulos
+secondary = "#5a5a5a"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#8b1e1e"     # enlaces y acentos
+rule = "#c9c9c9"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Libertinus Serif"
+heading = "Libertinus Serif"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 26
+headline = 11.5
+contact = 9.3
+section = 9.6
+title = 10.6
+meta = 9.3
+body = 9.8
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 17
+right = 19
+bottom = 16
+left = 19

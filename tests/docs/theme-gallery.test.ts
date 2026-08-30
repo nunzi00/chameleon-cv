@@ -15,12 +15,15 @@ describe('galería de temas (T-8.3)', () => {
   it('la página contiene exactamente las fichas generadas desde los theme.toml y una imagen PNG por tema', async () => {
     const themes = await galleryThemes();
     expect(themes.map((theme) => theme.name)).toEqual([
+      'achievements-first',
       'chronological',
+      'education-first',
       'functional',
       'hybrid',
       'one-page',
       'project-portfolio',
       'skills-first',
+      'unified-timeline',
       'default',
       'academic',
       'awesome',
@@ -33,6 +36,9 @@ describe('galería de temas (T-8.3)', () => {
       'minimal',
       'modern',
       'monochrome',
+      'newspaper',
+      'pastel',
+      'swiss',
       'tech',
       'timeline',
       'warm',
@@ -41,9 +47,9 @@ describe('galería de temas (T-8.3)', () => {
     const cards = galleryCards(themes);
     expect(page).toContain(cards);
     // Dos apartados (T-8.12): las organizaciones y los estilos, cada uno con su cuenta y sus fichas.
-    expect(cards.indexOf('## Organizaciones (6)')).toBeLessThan(cards.indexOf('### `chronological`'));
-    expect(cards.indexOf('### `skills-first`')).toBeLessThan(cards.indexOf('## Estilos (15)'));
-    expect(cards.indexOf('## Estilos (15)')).toBeLessThan(cards.indexOf('### `default` (por defecto)'));
+    expect(cards.indexOf('## Organizaciones (9)')).toBeLessThan(cards.indexOf('### `chronological`'));
+    expect(cards.indexOf('### `unified-timeline`')).toBeLessThan(cards.indexOf('## Estilos (18)'));
+    expect(cards.indexOf('## Estilos (18)')).toBeLessThan(cards.indexOf('### `default` (por defecto)'));
     expect(replaceGallery(page, cards)).toBe(page);
     for (const theme of themes) {
       const image = join(GALLERY_IMAGES, `${theme.name}.png`);

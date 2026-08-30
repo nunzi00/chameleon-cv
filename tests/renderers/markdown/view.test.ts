@@ -28,6 +28,8 @@ describe('buildCvView', () => {
         company: 'ACME Corp',
         location: 'Madrid (remoto)',
         period: 'mar 2021 – jun 2024',
+        start: '2021-03',
+        end: '2024-06',
         summary: 'Plataforma de pagos con 2 M de transacciones/mes.',
         achievements: [
           { id: 'exp-acme-1', text: 'Reduje la latencia p95 un 40 %.', impact: '-40 % p95' },
@@ -40,9 +42,9 @@ describe('buildCvView', () => {
     expect(view.projects).toEqual([]);
     expect(view.skillGroups.map((group) => `${group.label}: ${group.names}`)).toEqual(['Lenguajes: PHP', 'Plataformas: Kubernetes', 'Competencias: Comunicación']);
     expect(view.education).toEqual([
-      { id: 'edu-uni', degree: 'Grado en Ingeniería Informática', field: 'Software', institution: 'Universidad Ejemplo', period: '2010 – 2014' },
+      { id: 'edu-uni', degree: 'Grado en Ingeniería Informática', field: 'Software', institution: 'Universidad Ejemplo', period: '2010 – 2014', start: '2010', end: '2014' },
     ]);
-    expect(view.certifications).toEqual([{ id: 'cert-cka', name: 'CKA', issuer: 'CNCF', date: 'may 2022', url: 'https://example.com/cert/cka' }]);
+    expect(view.certifications).toEqual([{ id: 'cert-cka', name: 'CKA', issuer: 'CNCF', date: 'may 2022', dateIso: '2022-05', url: 'https://example.com/cert/cka' }]);
     expect(view.languages).toEqual([
       { name: 'Español', level: 'nativo' },
       { name: 'Inglés', level: 'C1' },

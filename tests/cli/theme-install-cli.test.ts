@@ -172,8 +172,8 @@ describe('cv theme verify y cv theme list --verify', () => {
     expect(intact.stdout()).toBe('comunidad: intacto (origen /work/themes/comunidad.zip, instalado el 2026-08-30T10:00:00.000Z)\nmio: sin origen registrado (tema creado o copiado a mano)\n');
     const listed = harness({}, { datasetFileSystem: h.fs, artifactFileSystem: h.fs });
     expect(await runCli(['theme', 'list', '--verify'], listed.context)).toBe(EXIT_OK);
-    expect(listed.stdout()).toContain('comunidad          del proyecto  Tema de la comunidad · autor: Ada · licencia: MIT · origen: /work/themes/comunidad.zip, intacto\n');
-    expect(listed.stdout()).toContain('mio                del proyecto  sin descripción\n');
+    expect(listed.stdout()).toContain('comunidad           del proyecto  Tema de la comunidad · autor: Ada · licencia: MIT · origen: /work/themes/comunidad.zip, intacto\n');
+    expect(listed.stdout()).toContain('mio                 del proyecto  sin descripción\n');
     await h.fs.writeFile('/work/themes/comunidad/template.typ', '#let cv(d, theme) = [cambiado]', 0o644);
     await h.fs.writeFile('/work/themes/comunidad/README.md', 'nuevo', 0o644);
     const modified = harness({}, { datasetFileSystem: h.fs, artifactFileSystem: h.fs });

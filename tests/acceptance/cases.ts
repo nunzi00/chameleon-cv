@@ -150,6 +150,12 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'generate-full-typst-monochrome', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'monochrome', '-o', 'output/cv-full.typst-monochrome.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-monochrome.pdf', kind: 'pdf' }] },
       { id: 'generate-full-typst-warm', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'warm', '-o', 'output/cv-full.typst-warm.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-warm.pdf', kind: 'pdf' }] },
       { id: 'generate-full-typst-europass-like', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'europass-like', '-o', 'output/cv-full.typst-europass-like.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-europass-like.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-education-first', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'education-first', '-o', 'output/cv-full.typst-education-first.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-education-first.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-achievements-first', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'achievements-first', '-o', 'output/cv-full.typst-achievements-first.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-achievements-first.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-unified-timeline', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'unified-timeline', '-o', 'output/cv-full.typst-unified-timeline.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-unified-timeline.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-swiss', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'swiss', '-o', 'output/cv-full.typst-swiss.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-swiss.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-newspaper', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'newspaper', '-o', 'output/cv-full.typst-newspaper.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-newspaper.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-pastel', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'pastel', '-o', 'output/cv-full.typst-pastel.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-pastel.pdf', kind: 'pdf' }] },
     ],
   },
   {

@@ -1,1 +1,1 @@
-24 temas (6 organizaciones, 16 estilos, 2 sin clasificar) en <WS>/themes y <BUILTIN_THEMES>; elige uno con --theme <nombre> o con [theme] name en cv.toml
+30 temas (9 organizaciones, 19 estilos, 2 sin clasificar) en <WS>/themes y <BUILTIN_THEMES>; elige uno con --theme <nombre> o con [theme] name en cv.toml

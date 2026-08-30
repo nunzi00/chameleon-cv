@@ -1,0 +1,48 @@
+# Tema «unified-timeline» de Chameleon CV (T-8.12): organización del contenido (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from unified-timeline`) y genera con `--theme mio`.
+
+[theme]
+name = "unified-timeline"
+description = "Un solo eje temporal: puestos, formación, certificaciones y proyectos ordenados juntos de más reciente a más antiguo, con la etiqueta del apartado bajo el periodo; después habilidades y logros"
+version = 1
+kind = "organization"   # orden y agrupación de las secciones (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1d2a35"       # cuerpo de texto
+primary = "#1b4965"    # nombre y títulos
+secondary = "#5c7080"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#c2571a"     # enlaces y acentos
+rule = "#cdd9e2"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 24
+headline = 11.5
+contact = 9.3
+section = 9.4
+title = 10.8
+meta = 9.3
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 17
+right = 19
+bottom = 16
+left = 19

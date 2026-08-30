@@ -30,6 +30,9 @@ export interface ExperienceView {
   readonly company: string;
   readonly location: string | undefined;
   readonly period: string;
+  /** Fechas ISO del perfil (`YYYY`, `YYYY-MM` o `YYYY-MM-DD`) para ordenar cronologías (T-8.12); `end` ausente = actualidad. */
+  readonly start: string;
+  readonly end: string | undefined;
   readonly summary: string | undefined;
   readonly achievements: readonly AchievementView[];
   /** Tecnologías unidas por «, »; cadena vacía si no hay. */
@@ -42,6 +45,8 @@ export interface ProjectView {
   readonly role: string | undefined;
   /** Periodo y URL unidos por « · »; cadena vacía si no hay. */
   readonly meta: string;
+  readonly start: string | undefined;
+  readonly end: string | undefined;
   readonly summary: string | undefined;
   readonly achievements: readonly AchievementView[];
   readonly technologies: string;
@@ -68,6 +73,8 @@ export interface EducationView {
   readonly field: string | undefined;
   readonly institution: string;
   readonly period: string;
+  readonly start: string | undefined;
+  readonly end: string | undefined;
 }
 
 export interface CertificationView {
@@ -75,6 +82,8 @@ export interface CertificationView {
   readonly name: string;
   readonly issuer: string | undefined;
   readonly date: string;
+  /** La fecha ISO tal como está en el perfil, si la hay. */
+  readonly dateIso: string | undefined;
   readonly url: string | undefined;
 }
 
@@ -116,6 +125,8 @@ function experienceView(experience: Experience, locale: string, labels: Labels):
     company: experience.company,
     location: experience.location,
     period: formatPeriod(experience.dates, locale, labels.present),
+    start: experience.dates.start,
+    end: experience.dates.end,
     summary: experience.summary,
     achievements: experience.achievements.map(achievementView),
     technologies: experience.technologies.join(', '),
@@ -128,6 +139,8 @@ function projectView(project: Project, locale: string, labels: Labels): ProjectV
     name: project.name,
     role: project.role,
     meta: joinParts([project.dates === undefined ? undefined : formatPeriod(project.dates, locale, labels.present), project.url]),
+    start: project.dates?.start,
+    end: project.dates?.end,
     summary: project.summary,
     achievements: project.achievements.map(achievementView),
     technologies: project.technologies.join(', '),
@@ -158,6 +171,8 @@ function educationView(education: Education, locale: string, labels: Labels): Ed
     field: education.field,
     institution: education.institution,
     period: education.dates === undefined ? '' : formatPeriod(education.dates, locale, labels.present),
+    start: education.dates?.start,
+    end: education.dates?.end,
   };
 }
 
@@ -167,6 +182,7 @@ function certificationView(certification: Certification, locale: string): Certif
     name: certification.name,
     issuer: certification.issuer,
     date: certification.date === undefined ? '' : formatDate(certification.date, locale),
+    dateIso: certification.date,
     url: certification.url,
   };
 }

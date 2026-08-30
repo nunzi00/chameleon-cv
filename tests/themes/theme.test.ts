@@ -79,7 +79,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     // Si el proyecto es el propio repositorio, no se busca dos veces en el mismo directorio.
     expect(themeRoots(join(BUILTIN_THEMES_DIRECTORY, '..'), new MemoryFileSystem({}))).toHaveLength(1);
-    expect(await listThemes([builtinThemeRoot()])).toEqual(['academic', 'awesome', 'bold', 'chronological', 'classic', 'compact-grid', 'default', 'elegant', 'europass-like', 'executive', 'functional', 'hybrid', 'minimal', 'modern', 'monochrome', 'one-page', 'project-portfolio', 'skills-first', 'tech', 'timeline', 'warm']);
+    expect(await listThemes([builtinThemeRoot()])).toEqual(['academic', 'achievements-first', 'awesome', 'bold', 'chronological', 'classic', 'compact-grid', 'default', 'education-first', 'elegant', 'europass-like', 'executive', 'functional', 'hybrid', 'minimal', 'modern', 'monochrome', 'newspaper', 'one-page', 'pastel', 'project-portfolio', 'skills-first', 'swiss', 'tech', 'timeline', 'unified-timeline', 'warm']);
     const classic = await loadTheme('classic', [builtinThemeRoot()]);
     expect(classic).toMatchObject({ ok: true, theme: { name: 'classic', builtin: true, config: { theme: { name: 'classic', version: 1 }, fonts: { body: 'Libertinus Serif' }, page: { paper: 'a4' } } } });
   });
@@ -96,7 +96,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
       '/work/themes/suelto.txt': '',
     });
     const roots = [project, builtinThemeRoot()];
-    expect(await listThemes(roots)).toEqual(['default', 'mio', 'academic', 'awesome', 'bold', 'chronological', 'classic', 'compact-grid', 'elegant', 'europass-like', 'executive', 'functional', 'hybrid', 'minimal', 'modern', 'monochrome', 'one-page', 'project-portfolio', 'skills-first', 'tech', 'timeline', 'warm']);
+    expect(await listThemes(roots)).toEqual(['default', 'mio', 'academic', 'achievements-first', 'awesome', 'bold', 'chronological', 'classic', 'compact-grid', 'education-first', 'elegant', 'europass-like', 'executive', 'functional', 'hybrid', 'minimal', 'modern', 'monochrome', 'newspaper', 'one-page', 'pastel', 'project-portfolio', 'skills-first', 'swiss', 'tech', 'timeline', 'unified-timeline', 'warm']);
     const mio = await loadTheme('mio', roots);
     expect(mio).toMatchObject({ ok: true, theme: { name: 'mio', directory: '/work/themes/mio', fontsDirectory: '/work/themes/mio/fonts', builtin: false, config: { page: { paper: 'us-letter' } } } });
     const shadowed = await loadTheme('default', roots);
@@ -117,7 +117,7 @@ describe('cargador de temas: themes/ del proyecto y después los distribuidos', 
     });
     const roots = [project, builtinThemeRoot()];
     expect(await loadTheme('../default', roots)).toEqual({ ok: false, message: 'Nombre de tema inválido «../default»: minúsculas, dígitos y guiones (p. ej. «default»)' });
-    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, academic, awesome, bold, chronological, classic, compact-grid, default, elegant, europass-like, executive, functional, hybrid, minimal, modern, monochrome, one-page, project-portfolio, skills-first, tech, timeline, warm` });
+    expect(await loadTheme('nada', roots)).toEqual({ ok: false, message: `No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: feo, otro, roto, sin-plantilla, academic, achievements-first, awesome, bold, chronological, classic, compact-grid, default, education-first, elegant, europass-like, executive, functional, hybrid, minimal, modern, monochrome, newspaper, one-page, pastel, project-portfolio, skills-first, swiss, tech, timeline, unified-timeline, warm` });
     expect(await loadTheme('nada', [memoryRoot({})])).toEqual({ ok: false, message: 'No existe el tema «nada» (buscado en /work/themes); disponibles: ninguno' });
     expect(await loadTheme('sin-config', roots)).toEqual({ ok: false, message: 'El tema «sin-config» (/work/themes/sin-config) no tiene theme.toml' });
     expect(await loadTheme('sin-plantilla', roots)).toEqual({ ok: false, message: 'El tema «sin-plantilla» (/work/themes/sin-plantilla) no tiene template.typ' });
@@ -142,11 +142,13 @@ describe('localización e inventario (T-5.3)', () => {
       ['default', false, true, false],
       ['mio', false, false, true],
       ['academic', true, false, true],
+      ['achievements-first', true, false, true],
       ['awesome', true, false, true],
       ['bold', true, false, true],
       ['chronological', true, false, true],
       ['classic', true, false, true],
       ['compact-grid', true, false, true],
+      ['education-first', true, false, true],
       ['elegant', true, false, true],
       ['europass-like', true, false, true],
       ['executive', true, false, true],
@@ -155,19 +157,52 @@ describe('localización e inventario (T-5.3)', () => {
       ['minimal', true, false, true],
       ['modern', true, false, true],
       ['monochrome', true, false, true],
+      ['newspaper', true, false, true],
       ['one-page', true, false, true],
+      ['pastel', true, false, true],
       ['project-portfolio', true, false, true],
       ['skills-first', true, false, true],
+      ['swiss', true, false, true],
       ['tech', true, false, true],
       ['timeline', true, false, true],
+      ['unified-timeline', true, false, true],
       ['warm', true, false, true],
     ]);
     expect(inventory[0]?.error).toMatch(/^Tema «default» inválido/);
-    expect(inventory[5]?.description).toContain('Cronológica inversa');
-    expect(inventory.map((entry) => entry.kind)).toEqual([undefined, undefined, 'style', 'style', 'style', 'organization', 'style', 'style', 'style', 'style', 'style', 'organization', 'organization', 'style', 'style', 'style', 'organization', 'organization', 'organization', 'style', 'style', 'style']);
+    expect(inventory[6]?.description).toContain('Cronológica inversa');
+    expect(inventory.map((entry) => entry.kind)).toEqual([
+      undefined,
+      undefined,
+      'style',
+      'organization',
+      'style',
+      'style',
+      'organization',
+      'style',
+      'style',
+      'organization',
+      'style',
+      'style',
+      'style',
+      'organization',
+      'organization',
+      'style',
+      'style',
+      'style',
+      'style',
+      'organization',
+      'style',
+      'organization',
+      'organization',
+      'style',
+      'style',
+      'style',
+      'organization',
+      'style',
+    ]);
     // Metadatos de autoría (T-8.3): los temas nuevos los declaran; los anteriores no los necesitan.
     expect(inventory[2]).toMatchObject({ author: 'Chameleon CV', license: 'MIT', homepage: 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery' });
-    expect([inventory[6]?.name, inventory[6]?.author, inventory[6]?.license, inventory[6]?.homepage, inventory[1]?.author]).toEqual(['classic', undefined, undefined, undefined, undefined]);
+    expect([inventory[7]?.name, inventory[7]?.author, inventory[7]?.license, inventory[7]?.homepage, inventory[1]?.author]).toEqual(['classic', undefined, undefined, undefined, undefined]);
     expect((await loadTheme('mio', roots)).ok && (await loadTheme('mio', roots))).toMatchObject({ theme: { root: project } });
   });
 });

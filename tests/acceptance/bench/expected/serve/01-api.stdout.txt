@@ -31,6 +31,17 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "El impacto primero: logros destacados y el primer logro de cada puesto (con la empresa) en un panel inicial; después la cronología corta, proyectos en una línea, habilidades y formación",
+        "directory": "<BUILTIN_THEMES>/achievements-first",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "achievements-first",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
         "directory": "<BUILTIN_THEMES>/awesome",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -86,6 +97,17 @@
         "directory": "<BUILTIN_THEMES>/default",
         "kind": "style",
         "name": "default",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "La formación primero: formación y certificaciones abren el CV, después habilidades y proyectos y al final la experiencia completa; para recién titulados, prácticas y cambios de carrera",
+        "directory": "<BUILTIN_THEMES>/education-first",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "education-first",
         "shadows": false
       },
       {
@@ -179,12 +201,34 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Aire de periódico: mancheta centrada con doble filete, serif Libertinus y experiencia y proyectos a dos columnas con títulos en versalitas; para comunicación, edición o investigación",
+        "directory": "<BUILTIN_THEMES>/newspaper",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "newspaper",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)",
         "directory": "<BUILTIN_THEMES>/one-page",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
         "kind": "organization",
         "license": "MIT",
         "name": "one-page",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Paleta pastel (lavanda, menta y crema): cabecera sobre un panel lavanda, títulos en cajas de color suave y periodos en pastilla menta; amable y actual",
+        "directory": "<BUILTIN_THEMES>/pastel",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "pastel",
         "shadows": false
       },
       {
@@ -212,6 +256,17 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Estilo tipográfico internacional: rejilla estricta con los títulos en una columna izquierda en mayúsculas, contenido a la izquierda, mucho aire y un único acento rojo en el nombre",
+        "directory": "<BUILTIN_THEMES>/swiss",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "swiss",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas",
         "directory": "<BUILTIN_THEMES>/tech",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -229,6 +284,17 @@
         "kind": "style",
         "license": "MIT",
         "name": "timeline",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Un solo eje temporal: puestos, formación, certificaciones y proyectos ordenados juntos de más reciente a más antiguo, con la etiqueta del apartado bajo el periodo; después habilidades y logros",
+        "directory": "<BUILTIN_THEMES>/unified-timeline",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "unified-timeline",
         "shadows": false
       },
       {
@@ -4671,6 +4737,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "El impacto primero: logros destacados y el primer logro de cada puesto (con la empresa) en un panel inicial; después la cronología corta, proyectos en una línea, habilidades y formación",
+      "directory": "<BUILTIN_THEMES>/achievements-first",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "achievements-first",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
       "directory": "<BUILTIN_THEMES>/awesome",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -4726,6 +4803,17 @@
       "directory": "<BUILTIN_THEMES>/default",
       "kind": "style",
       "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "La formación primero: formación y certificaciones abren el CV, después habilidades y proyectos y al final la experiencia completa; para recién titulados, prácticas y cambios de carrera",
+      "directory": "<BUILTIN_THEMES>/education-first",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "education-first",
       "shadows": false
     },
     {
@@ -4819,12 +4907,34 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Aire de periódico: mancheta centrada con doble filete, serif Libertinus y experiencia y proyectos a dos columnas con títulos en versalitas; para comunicación, edición o investigación",
+      "directory": "<BUILTIN_THEMES>/newspaper",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "newspaper",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)",
       "directory": "<BUILTIN_THEMES>/one-page",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "organization",
       "license": "MIT",
       "name": "one-page",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Paleta pastel (lavanda, menta y crema): cabecera sobre un panel lavanda, títulos en cajas de color suave y periodos en pastilla menta; amable y actual",
+      "directory": "<BUILTIN_THEMES>/pastel",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "pastel",
       "shadows": false
     },
     {
@@ -4852,6 +4962,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Estilo tipográfico internacional: rejilla estricta con los títulos en una columna izquierda en mayúsculas, contenido a la izquierda, mucho aire y un único acento rojo en el nombre",
+      "directory": "<BUILTIN_THEMES>/swiss",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "swiss",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas",
       "directory": "<BUILTIN_THEMES>/tech",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -4869,6 +4990,17 @@
       "kind": "style",
       "license": "MIT",
       "name": "timeline",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Un solo eje temporal: puestos, formación, certificaciones y proyectos ordenados juntos de más reciente a más antiguo, con la etiqueta del apartado bajo el periodo; después habilidades y logros",
+      "directory": "<BUILTIN_THEMES>/unified-timeline",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "unified-timeline",
       "shadows": false
     },
     {
@@ -5184,6 +5316,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "El impacto primero: logros destacados y el primer logro de cada puesto (con la empresa) en un panel inicial; después la cronología corta, proyectos en una línea, habilidades y formación",
+      "directory": "<BUILTIN_THEMES>/achievements-first",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "achievements-first",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
       "directory": "<BUILTIN_THEMES>/awesome",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -5239,6 +5382,17 @@
       "directory": "<BUILTIN_THEMES>/default",
       "kind": "style",
       "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "La formación primero: formación y certificaciones abren el CV, después habilidades y proyectos y al final la experiencia completa; para recién titulados, prácticas y cambios de carrera",
+      "directory": "<BUILTIN_THEMES>/education-first",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "education-first",
       "shadows": false
     },
     {
@@ -5332,12 +5486,34 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Aire de periódico: mancheta centrada con doble filete, serif Libertinus y experiencia y proyectos a dos columnas con títulos en versalitas; para comunicación, edición o investigación",
+      "directory": "<BUILTIN_THEMES>/newspaper",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "newspaper",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)",
       "directory": "<BUILTIN_THEMES>/one-page",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "organization",
       "license": "MIT",
       "name": "one-page",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Paleta pastel (lavanda, menta y crema): cabecera sobre un panel lavanda, títulos en cajas de color suave y periodos en pastilla menta; amable y actual",
+      "directory": "<BUILTIN_THEMES>/pastel",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "pastel",
       "shadows": false
     },
     {
@@ -5365,6 +5541,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Estilo tipográfico internacional: rejilla estricta con los títulos en una columna izquierda en mayúsculas, contenido a la izquierda, mucho aire y un único acento rojo en el nombre",
+      "directory": "<BUILTIN_THEMES>/swiss",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "swiss",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas",
       "directory": "<BUILTIN_THEMES>/tech",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -5382,6 +5569,17 @@
       "kind": "style",
       "license": "MIT",
       "name": "timeline",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Un solo eje temporal: puestos, formación, certificaciones y proyectos ordenados juntos de más reciente a más antiguo, con la etiqueta del apartado bajo el periodo; después habilidades y logros",
+      "directory": "<BUILTIN_THEMES>/unified-timeline",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "unified-timeline",
       "shadows": false
     },
     {

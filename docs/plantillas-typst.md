@@ -35,12 +35,12 @@ Claves siempre presentes salvo las marcadas como opcionales (ausentes, no `null`
 | `headline` | str, opcional | Titular (el de la especialidad, si la hay). |
 | `contact` | runs | Línea de contacto ya compuesta (`Madrid · ada@…`) con enlaces como runs con `link`. |
 | `summary` | blocks | Resumen (párrafos y listas). |
-| `experience[]` | `role`, `company`, `period`, `location?`, `summary` (blocks), `achievements[]`, `technologies` (str, puede ser `""`) | Experiencias en el orden del perfil. |
-| `projects[]` | `name`, `role?`, `meta` (periodo · URL, puede ser `""`), `summary`, `achievements[]`, `technologies` | Proyectos. |
+| `experience[]` | `role`, `company`, `period`, `start`, `end?`, `location?`, `summary` (blocks), `achievements[]`, `technologies` (str, puede ser `""`) | Experiencias en el orden del perfil; `start`/`end` son las fechas ISO del perfil (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`; sin `end` = actualidad) para cronologías unificadas (T-8.12). |
+| `projects[]` | `name`, `role?`, `meta` (periodo · URL, puede ser `""`), `start?`, `end?`, `summary`, `achievements[]`, `technologies` | Proyectos. |
 | `skillGroups[]` | `label`, `names`, `items[]` (`name`, `level?`, `years?`) | Skills agrupadas por categoría, ya ordenadas (con oferta: por puntuación; ancladas primero). `items` trae cada skill con la clave de su nivel (`beginner` … `expert`; el nombre traducido está en `labels.levels`) y sus años, si constan (matrices de skills, T-8.12). |
 | `achievements[]` | `runs`, `impact?` | Logros transversales. |
-| `education[]` | `degree`, `field?`, `institution`, `period` | Formación. |
-| `certifications[]` | `name`, `issuer?`, `date` (puede ser `""`), `url?` | Certificaciones. |
+| `education[]` | `degree`, `field?`, `institution`, `period`, `start?`, `end?` | Formación. |
+| `certifications[]` | `name`, `issuer?`, `date` (puede ser `""`), `dateIso?`, `url?` | Certificaciones. |
 | `languages[]` | `name`, `level` | Idiomas (nivel ya traducido). |
 
 Tipos compuestos:

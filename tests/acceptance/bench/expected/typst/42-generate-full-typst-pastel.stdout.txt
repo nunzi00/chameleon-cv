@@ -1,0 +1,1 @@
+CV escrito en <WS>/output/cv-full.typst-pastel.pdf

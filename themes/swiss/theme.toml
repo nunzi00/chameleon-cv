@@ -1,0 +1,48 @@
+# Tema «swiss» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from swiss`) y genera con `--theme mio`.
+
+[theme]
+name = "swiss"
+description = "Estilo tipográfico internacional: rejilla estricta con los títulos en una columna izquierda en mayúsculas, contenido a la izquierda, mucho aire y un único acento rojo en el nombre"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#111111"       # cuerpo de texto
+primary = "#111111"    # nombre y títulos
+secondary = "#6b6b6b"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#e2001a"     # enlaces y acentos
+rule = "#d9d9d9"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 27
+headline = 11.5
+contact = 9.3
+section = 8.6
+title = 10.8
+meta = 9.3
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 17
+right = 19
+bottom = 16
+left = 19

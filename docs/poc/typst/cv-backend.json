@@ -75,6 +75,8 @@
       "role": "Senior Backend Engineer",
       "company": "ACME Corp",
       "period": "mar 2021 – jun 2024",
+      "start": "2021-03",
+      "end": "2024-06",
       "location": "Madrid (remoto)",
       "summary": [
         {
@@ -162,7 +164,9 @@
       "degree": "Grado en Ingeniería Informática",
       "field": "Software",
       "institution": "Universidad Ejemplo",
-      "period": "2010 – 2014"
+      "period": "2010 – 2014",
+      "start": "2010",
+      "end": "2014"
     }
   ],
   "certifications": [
@@ -170,6 +174,7 @@
       "name": "CKA",
       "issuer": "CNCF",
       "date": "may 2022",
+      "dateIso": "2022-05",
       "url": "https://example.com/cert/cka"
     }
   ],

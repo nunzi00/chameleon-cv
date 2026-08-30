@@ -17,9 +17,24 @@ Hay dos clases de tema (T-8.12), declaradas con `kind` en su `theme.toml`: las *
 
 <!-- galería:inicio (bloque generado por npm run docs:themes desde los theme.toml; no editar a mano) -->
 
-## Organizaciones (6)
+## Organizaciones (9)
 
 Cambian el orden y la agrupación de las secciones: qué se lee primero. Elige una por el tipo de proceso al que te presentas.
+
+### `achievements-first`
+
+![Primera página del CV del banco de pruebas con el tema achievements-first](/themes/achievements-first.png)
+
+El impacto primero: logros destacados y el primer logro de cada puesto (con la empresa) en un panel inicial; después la cronología corta, proyectos en una línea, habilidades y formación
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme achievements-first# genera con este tema
+cv theme create mio --from achievements-first                     # parte de él en themes/mio/ de tu proyecto
+```
 
 ### `chronological`
 
@@ -34,6 +49,21 @@ Cronológica inversa con la fecha como eje: el periodo en una columna fija a la 
 ```bash
 cv generate-cv --format pdf --engine typst --theme chronological  # genera con este tema
 cv theme create mio --from chronological                          # parte de él en themes/mio/ de tu proyecto
+```
+
+### `education-first`
+
+![Primera página del CV del banco de pruebas con el tema education-first](/themes/education-first.png)
+
+La formación primero: formación y certificaciones abren el CV, después habilidades y proyectos y al final la experiencia completa; para recién titulados, prácticas y cambios de carrera
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme education-first# genera con este tema
+cv theme create mio --from education-first                        # parte de él en themes/mio/ de tu proyecto
 ```
 
 ### `functional`
@@ -111,7 +141,22 @@ cv generate-cv --format pdf --engine typst --theme skills-first   # genera con e
 cv theme create mio --from skills-first                           # parte de él en themes/mio/ de tu proyecto
 ```
 
-## Estilos (15)
+### `unified-timeline`
+
+![Primera página del CV del banco de pruebas con el tema unified-timeline](/themes/unified-timeline.png)
+
+Un solo eje temporal: puestos, formación, certificaciones y proyectos ordenados juntos de más reciente a más antiguo, con la etiqueta del apartado bajo el periodo; después habilidades y logros
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme unified-timeline# genera con este tema
+cv theme create mio --from unified-timeline                       # parte de él en themes/mio/ de tu proyecto
+```
+
+## Estilos (18)
 
 Mantienen la organización cronológica inversa (experiencia → proyectos → habilidades → logros → formación → certificaciones → idiomas) y cambian la maquetación.
 
@@ -291,6 +336,51 @@ Monocromo para imprimir: solo negro y grises, reglas gruesas bajo cada sección,
 ```bash
 cv generate-cv --format pdf --engine typst --theme monochrome     # genera con este tema
 cv theme create mio --from monochrome                             # parte de él en themes/mio/ de tu proyecto
+```
+
+### `newspaper`
+
+![Primera página del CV del banco de pruebas con el tema newspaper](/themes/newspaper.png)
+
+Aire de periódico: mancheta centrada con doble filete, serif Libertinus y experiencia y proyectos a dos columnas con títulos en versalitas; para comunicación, edición o investigación
+
+- **Tipografías**: cuerpo Libertinus Serif · títulos Libertinus Serif · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme newspaper      # genera con este tema
+cv theme create mio --from newspaper                              # parte de él en themes/mio/ de tu proyecto
+```
+
+### `pastel`
+
+![Primera página del CV del banco de pruebas con el tema pastel](/themes/pastel.png)
+
+Paleta pastel (lavanda, menta y crema): cabecera sobre un panel lavanda, títulos en cajas de color suave y periodos en pastilla menta; amable y actual
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme pastel         # genera con este tema
+cv theme create mio --from pastel                                 # parte de él en themes/mio/ de tu proyecto
+```
+
+### `swiss`
+
+![Primera página del CV del banco de pruebas con el tema swiss](/themes/swiss.png)
+
+Estilo tipográfico internacional: rejilla estricta con los títulos en una columna izquierda en mayúsculas, contenido a la izquierda, mucho aire y un único acento rojo en el nombre
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme swiss          # genera con este tema
+cv theme create mio --from swiss                                  # parte de él en themes/mio/ de tu proyecto
 ```
 
 ### `tech`

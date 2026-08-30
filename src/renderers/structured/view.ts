@@ -24,6 +24,9 @@ export interface StructuredExperience extends StructuredContainer {
   readonly role: string;
   readonly company: string;
   readonly period: string;
+  /** Fechas ISO (`YYYY`, `YYYY-MM` o `YYYY-MM-DD`) para cronologías unificadas (T-8.12); sin `end` = actualidad. */
+  readonly start: string;
+  readonly end?: string;
   readonly location?: string;
 }
 
@@ -32,6 +35,8 @@ export interface StructuredProject extends StructuredContainer {
   readonly name: string;
   readonly role?: string;
   readonly meta: string;
+  readonly start?: string;
+  readonly end?: string;
 }
 
 export interface StructuredSkillItem {
@@ -53,12 +58,16 @@ export interface StructuredEducation {
   readonly field?: string;
   readonly institution: string;
   readonly period: string;
+  readonly start?: string;
+  readonly end?: string;
 }
 
 export interface StructuredCertification {
   readonly name: string;
   readonly issuer?: string;
   readonly date: string;
+  /** Fecha ISO del perfil, si la hay. */
+  readonly dateIso?: string;
   readonly url?: string;
 }
 
@@ -127,6 +136,8 @@ export function buildStructuredView(profile: MasterProfile, locale: string): Str
       role: item.role,
       company: item.company,
       period: item.period,
+      start: item.start,
+      ...optional('end', item.end),
       ...optional('location', item.location),
       summary: blocksOf(item.summary),
       achievements: item.achievements.map(achievement),
@@ -137,6 +148,8 @@ export function buildStructuredView(profile: MasterProfile, locale: string): Str
       name: item.name,
       ...optional('role', item.role),
       meta: item.meta,
+      ...optional('start', item.start),
+      ...optional('end', item.end),
       summary: blocksOf(item.summary),
       achievements: item.achievements.map(achievement),
       technologies: item.technologies,
@@ -152,11 +165,14 @@ export function buildStructuredView(profile: MasterProfile, locale: string): Str
       ...optional('field', item.field),
       institution: item.institution,
       period: item.period,
+      ...optional('start', item.start),
+      ...optional('end', item.end),
     })),
     certifications: view.certifications.map((item) => ({
       name: item.name,
       ...optional('issuer', item.issuer),
       date: item.date,
+      ...optional('dateIso', item.dateIso),
       ...optional('url', item.url),
     })),
     languages: view.languages.map((language) => ({ name: language.name, level: language.level })),

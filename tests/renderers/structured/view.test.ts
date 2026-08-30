@@ -37,10 +37,13 @@ describe('buildStructuredView', () => {
       impact: '-40 % p95',
     });
     const startup = view.experience.find((item) => item.company === 'Startup');
-    expect(startup).toEqual({ id: 'exp-current', role: 'Tech Lead', company: 'Startup', period: 'Jul 2024 – present', summary: [], achievements: [], technologies: '' });
+    expect(startup).toEqual({ id: 'exp-current', role: 'Tech Lead', company: 'Startup', period: 'Jul 2024 – present', start: '2024-07', summary: [], achievements: [], technologies: '' });
     expect(view.projects[0]).toMatchObject({ name: 'Chameleon CLI', role: 'Autora', meta: 'Aug 2026 – present · https://example.com/chameleon' });
-    expect(view.certifications[0]).toEqual({ name: 'CKA', issuer: 'CNCF', date: 'May 10, 2022', url: 'https://example.com/cert' });
-    expect(view.education[0]).toEqual({ degree: 'Grado en Ingeniería Informática', field: 'Software', institution: 'Universidad Ejemplo', period: '2010 – 2014' });
+    expect(view.certifications[0]).toEqual({ name: 'CKA', issuer: 'CNCF', date: 'May 10, 2022', dateIso: '2022-05-10', url: 'https://example.com/cert' });
+    expect(view.education[0]).toEqual({ degree: 'Grado en Ingeniería Informática', field: 'Software', institution: 'Universidad Ejemplo', period: '2010 – 2014', start: '2010', end: '2014' });
+    // Fechas ISO para cronologías unificadas (T-8.12): el proyecto del fixture tiene inicio sin fin.
+    expect(view.projects[0]).toMatchObject({ start: '2026-08' });
+    expect('end' in (view.projects[0] as object)).toBe(false);
     expect(view.languages).toEqual([
       { name: 'Español', level: 'native' },
       { name: 'Inglés', level: 'C1' },

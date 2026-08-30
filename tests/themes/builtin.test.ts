@@ -17,7 +17,7 @@ import { NodeFileSystem, loadDataset } from '../../src/parsers/dataset';
 import type { MasterProfile } from '../../src/core/schema';
 
 /** Las seis organizaciones (T-8.12, docs/theme-catalog.md D1), por orden alfabético como las lista la CLI. */
-const ORGANIZATIONS: readonly string[] = ['chronological', 'functional', 'hybrid', 'one-page', 'project-portfolio', 'skills-first'];
+const ORGANIZATIONS: readonly string[] = ['achievements-first', 'chronological', 'education-first', 'functional', 'hybrid', 'one-page', 'project-portfolio', 'skills-first', 'unified-timeline'];
 const BENCH_SOURCES = 'tests/acceptance/bench/workspace/data/sources';
 
 /** El perfil del banco de pruebas: cinco puestos con hasta seis logros, tres proyectos y dieciséis skills con nivel y años. */
@@ -30,9 +30,9 @@ async function benchProfile(): Promise<MasterProfile> {
 }
 
 /** Los temas de la galería (T-8.3) y las organizaciones (T-8.12) declaran autoría; los de T-5.1 no la necesitan. */
-const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS, 'bold', 'compact-grid', 'elegant', 'europass-like', 'monochrome', 'warm'];
+const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS, 'bold', 'compact-grid', 'elegant', 'europass-like', 'monochrome', 'warm', 'newspaper', 'pastel', 'swiss'];
 const HOMEPAGE = 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery';
-const STYLES: readonly string[] = ['academic', 'awesome', 'bold', 'classic', 'compact-grid', 'default', 'elegant', 'europass-like', 'executive', 'minimal', 'modern', 'monochrome', 'tech', 'timeline', 'warm'];
+const STYLES: readonly string[] = ['academic', 'awesome', 'bold', 'classic', 'compact-grid', 'default', 'elegant', 'europass-like', 'executive', 'minimal', 'modern', 'monochrome', 'newspaper', 'pastel', 'swiss', 'tech', 'timeline', 'warm'];
 
 async function builtinThemes(): Promise<LoadedTheme[]> {
   const themes: LoadedTheme[] = [];
@@ -63,7 +63,7 @@ async function textOf(pdf: Buffer): Promise<{ text: string; pages: number }> {
 }
 
 describe('temas distribuidos (T-8.3): contrato común', () => {
-  it('los veintiún temas cargan, validan, se describen, declaran su clase y los de la galería llevan autor, licencia y página', async () => {
+  it('los veintisiete temas cargan, validan, se describen, declaran su clase y los de la galería llevan autor, licencia y página', async () => {
     const themes = await builtinThemes();
     expect(themes.map((theme) => theme.name)).toEqual([...ORGANIZATIONS, ...STYLES].sort());
     for (const theme of themes) {
@@ -165,6 +165,19 @@ describe.skipIf(process.env['CHAMELEON_TYPST'] === undefined)('temas distribuido
       expect(onePage.pages).toBe(1);
       expect(onePage.text).toMatch(/\(\+\d+\)/);
       expect(onePage.text).not.toContain('(Valencia (remoto))');
+      // education-first: formación y certificaciones antes que la experiencia.
+      const educationFirst = (await textOf(await pdfOf(theme('education-first'), locale, profile))).text;
+      expect(at(educationFirst, locale === 'es-ES' ? 'Formación' : 'Education')).toBeLessThan(at(educationFirst, labels.experience));
+      expect(at(educationFirst, locale === 'es-ES' ? 'Certificaciones' : 'Certifications')).toBeLessThan(at(educationFirst, labels.experience));
+      // achievements-first: los logros (con la empresa del primero de cada puesto) abren el documento.
+      const achievementsFirst = (await textOf(await pdfOf(theme('achievements-first'), locale, profile))).text;
+      expect(at(achievementsFirst, labels.achievements)).toBeLessThan(at(achievementsFirst, labels.experience));
+      expect(achievementsFirst).toContain('— Nexo Pagos');
+      // unified-timeline: un solo eje por fechas ISO: el máster (2014–2015) queda entre Data Engineer (2015) y la etapa freelance (2013).
+      const unified = (await textOf(await pdfOf(theme('unified-timeline'), locale, profile))).text;
+      expect(at(unified, 'Máster')).toBeGreaterThan(at(unified, 'Data Engineer'));
+      expect(at(unified, 'Máster')).toBeLessThan(at(unified, 'Desarrolladora web'));
+      expect(at(unified, 'Kafka Guardian')).toBeLessThan(at(unified, 'Staff Backend Engineer'));
     }
   }, 180_000);
 });
