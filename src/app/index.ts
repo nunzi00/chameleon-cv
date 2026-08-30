@@ -19,6 +19,7 @@ export * from './paths';
 export * from './portability';
 export * from './provenance';
 export * from './review';
+export * from './settings';
 export * from './slug';
 export * from './sources';
 export * from './tailor';

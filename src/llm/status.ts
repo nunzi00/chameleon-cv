@@ -3,7 +3,7 @@
  * procedencia de las claves remotas (solo entorno/fichero/ninguna, nunca valores) y lista blanca.
  * Con `--provider <remoto>` explícito, también comprueba ese proveedor (única llamada de red aquí).
  */
-import { DEFAULT_ALLOWED_HOSTS, allowedHosts, createProvider, resolveLlmConfig, selectProvider, type LlmConfig, type SelectProviderOptions } from './config';
+import { DEFAULT_ALLOWED_HOSTS, allowedHosts, createProvider, isLocalProviderId, resolveLlmConfig, selectProvider, type ConfigSource, type LlmConfig, type SelectProviderOptions } from './config';
 import type { JsonHttp } from './http';
 import { KEY_ENV_VARIABLES, describeKeys, keysFilePath, type KeySource, type RemoteProviderId } from './keys';
 import type { LlmHealth } from './provider';
@@ -18,6 +18,15 @@ export interface RemoteStatus {
   readonly health: LlmHealth;
 }
 
+export interface SettingsStatus {
+  /** Ruta de `cv.toml` (exista o no). */
+  readonly path: string | undefined;
+  readonly present: boolean;
+  /** Hay tabla `[llm]`. */
+  readonly configured: boolean;
+  readonly error: string | undefined;
+}
+
 export interface LlmStatus {
   readonly config: LlmConfig | undefined;
   readonly configError: string | undefined;
@@ -29,10 +38,15 @@ export interface LlmStatus {
   readonly remote: RemoteStatus | { readonly error: string } | undefined;
   /** Hay proveedor local válido, responde y sirve el modelo configurado. */
   readonly usable: boolean;
+  /** `cv.toml` y su tabla `[llm]` (T-8.2). */
+  readonly settings: SettingsStatus;
 }
 
 export interface LlmStatusOptions extends SelectProviderOptions {
   readonly http?: JsonHttp | undefined;
+  /** Ruta de `cv.toml`, para explicarla. */
+  readonly settingsPath?: string | undefined;
+  readonly settingsPresent?: boolean | undefined;
   /** `--provider` explícito: si es remoto, se comprueba de verdad. */
   readonly provider?: string | undefined;
   readonly model?: string | undefined;
@@ -41,7 +55,8 @@ export interface LlmStatusOptions extends SelectProviderOptions {
 export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStatus> {
   const env = options.env ?? process.env;
   const keys = await describeKeys(options);
-  const base = { keys, keysFile: keysFilePath(env, options.platform ?? process.platform, options.home), allowedHosts: allowedHosts(env) };
+  const settings: SettingsStatus = { path: options.settingsPath, present: options.settingsPresent ?? false, configured: options.settings !== undefined, error: options.settingsError };
+  const base = { keys, keysFile: keysFilePath(env, options.platform ?? process.platform, options.home), allowedHosts: allowedHosts(env), settings };
   let remote: LlmStatus['remote'];
   if (options.provider !== undefined && options.provider !== '') {
     const selected = await selectProvider({ provider: options.provider, model: options.model }, options);
@@ -51,7 +66,12 @@ export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStat
       remote = { id: selected.provider.id as RemoteProviderId, baseUrl: selected.provider.baseUrl, model: selected.provider.model, keySource: selected.keySource, health: await selected.provider.health() };
     }
   }
-  const resolved = resolveLlmConfig(env);
+  if (options.settingsError !== undefined) {
+    return { ...base, config: undefined, configError: options.settingsError, health: undefined, remote, usable: false };
+  }
+  const requested = options.provider?.trim().toLowerCase();
+  const localFlag = requested !== undefined && isLocalProviderId(requested) ? requested : undefined;
+  const resolved = resolveLlmConfig(env, { provider: localFlag, model: localFlag === undefined ? undefined : options.model, settings: options.settings });
   if (!resolved.ok) {
     return { ...base, config: undefined, configError: resolved.message, health: undefined, remote, usable: false };
   }
@@ -91,7 +111,7 @@ export function formatLlmStatus(status: LlmStatus): string {
     lines.push(`Configuración inválida: ${status.configError}`);
   } else {
     const { config } = status;
-    const origin = (source: 'env' | 'default'): string => (source === 'env' ? 'entorno' : 'por defecto');
+    const origin = (source: ConfigSource): string => ({ flag: 'orden', env: 'entorno', file: 'cv.toml', default: 'por defecto' })[source];
     lines.push(`Proveedor local: ${config.provider} (${config.baseUrl}; ${origin(config.sources.provider)}) · modelo: ${config.model} (${origin(config.sources.model)})`);
     const health = status.health;
     if (health === undefined || !health.ok) {
@@ -100,6 +120,10 @@ export function formatLlmStatus(status: LlmStatus): string {
     } else {
       lines.push(`Estado: ${describeHealth(health, config.model)}`);
     }
+  }
+  const { settings } = status;
+  if (settings.path !== undefined) {
+    lines.push(`Configuración del proyecto: ${settings.path} ${settings.error !== undefined ? '(inválida)' : settings.present ? (settings.configured ? '(tabla [llm] presente)' : '(sin tabla [llm])') : '(no existe)'}`);
   }
   lines.push(
     `Proveedores remotos (solo con --provider explícito): openai → clave ${describeKey(status.keys.openai, KEY_ENV_VARIABLES.openai)} · anthropic → clave ${describeKey(status.keys.anthropic, KEY_ENV_VARIABLES.anthropic)} · fichero de claves: ${status.keysFile}`,

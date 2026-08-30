@@ -14,6 +14,7 @@ export * from './ollama';
 export * from './openai-compatible';
 export * from './provider';
 export * from './review';
+export * from './settings';
 export * from './status';
 export * from './suggest-tags-run';
 export * from './summarize-run';

@@ -14,7 +14,7 @@ describe('resolveLlmConfig (solo CHAMELEON_*, solo loopback, solo locales por de
     });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: 'openai-compatible', [LLM_ENV.baseUrl]: '', [LLM_ENV.model]: '' })).toMatchObject({ ok: true, config: { baseUrl: 'http://127.0.0.1:8080', model: 'default' } });
     expect(resolveLlmConfig({ [LLM_ENV.provider]: '' })).toMatchObject({ ok: true, config: { provider: 'ollama', sources: { provider: 'default' } } });
-    expect(resolveLlmConfig({ [LLM_ENV.provider]: 'ollama' }, 'openai-compatible')).toMatchObject({ ok: true, config: { provider: 'openai-compatible', sources: { provider: 'env' } } });
+    expect(resolveLlmConfig({ [LLM_ENV.provider]: 'ollama' }, 'openai-compatible')).toMatchObject({ ok: true, config: { provider: 'openai-compatible', sources: { provider: 'flag' } } });
   });
 
   it('rechaza proveedores desconocidos, remotos como valor por defecto y URLs que no sean locales', () => {

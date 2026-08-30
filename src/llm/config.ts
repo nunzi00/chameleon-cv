@@ -14,6 +14,7 @@ import { KEY_ENV_VARIABLES, resolveApiKey, type KeyLookupOptions, type KeySource
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL, createOllamaProvider } from './ollama';
 import { OPENAI_COMPATIBLE_DEFAULT_BASE_URL, OPENAI_COMPATIBLE_DEFAULT_MODEL, createOpenAiCompatibleProvider } from './openai-compatible';
 import type { LlmProvider, LlmProviderId, LocalProviderId } from './provider';
+import type { LlmSettings } from './settings';
 
 export const LLM_ENV = {
   provider: 'CHAMELEON_LLM_PROVIDER',
@@ -55,8 +56,26 @@ export interface LlmConfig {
   readonly provider: LocalProviderId;
   readonly baseUrl: string;
   readonly model: string;
-  /** Qué vino del entorno y qué es valor por defecto, para explicarlo en `status`. */
-  readonly sources: { readonly provider: 'env' | 'default'; readonly baseUrl: 'env' | 'default'; readonly model: 'env' | 'default' };
+  /** Qué vino de dónde, para explicarlo en `status` y en «Ajustes». */
+  readonly sources: { readonly provider: ConfigSource; readonly baseUrl: ConfigSource; readonly model: ConfigSource };
+}
+
+/** De dónde sale cada valor efectivo: la orden (`--provider`/`--model`), el entorno, `cv.toml` o el valor por defecto. */
+export type ConfigSource = 'flag' | 'env' | 'file' | 'default';
+
+/** Un valor con su origen, según la precedencia orden > entorno > `cv.toml` > defecto. */
+function pick(flag: string | undefined, env: string | undefined, file: string | undefined, fallback: string): { readonly value: string; readonly source: ConfigSource } {
+  const present = (value: string | undefined): value is string => value !== undefined && value.trim() !== '';
+  if (present(flag)) {
+    return { value: flag.trim(), source: 'flag' };
+  }
+  if (present(env)) {
+    return { value: env.trim(), source: 'env' };
+  }
+  if (present(file)) {
+    return { value: file.trim(), source: 'file' };
+  }
+  return { value: fallback, source: 'default' };
 }
 
 export type LlmConfigResult = { readonly ok: true; readonly config: LlmConfig } | { readonly ok: false; readonly message: string };
@@ -65,36 +84,40 @@ function localDefaults(provider: LocalProviderId): { readonly baseUrl: string; r
   return provider === 'ollama' ? { baseUrl: OLLAMA_DEFAULT_BASE_URL, model: OLLAMA_DEFAULT_MODEL } : { baseUrl: OPENAI_COMPATIBLE_DEFAULT_BASE_URL, model: OPENAI_COMPATIBLE_DEFAULT_MODEL };
 }
 
-/** Configuración local desde el entorno; `providerOverride` = `--provider` con un proveedor local. */
-export function resolveLlmConfig(env: NodeJS.ProcessEnv = process.env, providerOverride?: LocalProviderId): LlmConfigResult {
-  const providerValue = providerOverride ?? env[LLM_ENV.provider];
-  const provider = providerValue === undefined || providerValue === '' ? 'ollama' : providerValue.trim().toLowerCase();
+export interface ResolveOptions {
+  /** `--provider` con un proveedor local. */
+  readonly provider?: LocalProviderId | undefined;
+  /** `--model`. */
+  readonly model?: string | undefined;
+  /** La tabla `[llm]` de `cv.toml`, si la hay. */
+  readonly settings?: LlmSettings | undefined;
+}
+
+const SOURCE_LABELS: Readonly<Record<ConfigSource, string>> = { flag: '--provider', env: LLM_ENV.provider, file: 'cv.toml [llm].provider', default: 'valor por defecto' };
+
+/** Configuración local: orden > entorno > `cv.toml` > defecto, campo a campo y con su origen. */
+export function resolveLlmConfig(env: NodeJS.ProcessEnv = process.env, options: ResolveOptions | LocalProviderId = {}): LlmConfigResult {
+  const resolved = typeof options === 'string' ? { provider: options } : options;
+  const settings = resolved.settings;
+  const chosen = pick(resolved.provider, env[LLM_ENV.provider], settings?.provider, 'ollama');
+  const provider = chosen.value.toLowerCase();
+  const label = SOURCE_LABELS[chosen.source];
   if (isRemoteProviderId(provider)) {
-    return { ok: false, message: `${LLM_ENV.provider}=«${provider}» es un proveedor remoto: los remotos exigen --provider explícito en cada orden y nunca son el valor por defecto` };
+    return { ok: false, message: `${label}=«${provider}» es un proveedor remoto: los remotos exigen --provider explícito en cada orden y nunca son el valor por defecto` };
   }
   if (!isLocalProviderId(provider)) {
-    return { ok: false, message: `${LLM_ENV.provider}=«${provider}» no es un proveedor conocido (${LLM_PROVIDER_IDS.join(', ')})` };
+    return { ok: false, message: `${label}=«${provider}» no es un proveedor conocido (${LLM_PROVIDER_IDS.join(', ')})` };
   }
   const defaults = localDefaults(provider);
-  const baseUrlValue = env[LLM_ENV.baseUrl];
-  const baseUrl = baseUrlValue === undefined || baseUrlValue === '' ? defaults.baseUrl : baseUrlValue.trim();
-  if (!isLoopbackUrl(baseUrl)) {
-    return { ok: false, message: `${LLM_ENV.baseUrl}=«${baseUrl}» no es una dirección local (loopback): los proveedores remotos exigen --provider explícito` };
+  const baseUrl = pick(undefined, env[LLM_ENV.baseUrl], settings?.base_url, defaults.baseUrl);
+  if (!isLoopbackUrl(baseUrl.value)) {
+    const origin = baseUrl.source === 'file' ? 'cv.toml [llm].base_url' : LLM_ENV.baseUrl;
+    return { ok: false, message: `${origin}=«${baseUrl.value}» no es una dirección local (loopback): los proveedores remotos exigen --provider explícito` };
   }
-  const modelValue = env[LLM_ENV.model];
-  const model = modelValue === undefined || modelValue === '' ? defaults.model : modelValue.trim();
+  const model = pick(resolved.model, env[LLM_ENV.model], settings?.model, defaults.model);
   return {
     ok: true,
-    config: {
-      provider,
-      baseUrl,
-      model,
-      sources: {
-        provider: providerValue === undefined || providerValue === '' ? 'default' : 'env',
-        baseUrl: baseUrlValue === undefined || baseUrlValue === '' ? 'default' : 'env',
-        model: modelValue === undefined || modelValue === '' ? 'default' : 'env',
-      },
-    },
+    config: { provider, baseUrl: baseUrl.value, model: model.value, sources: { provider: chosen.source, baseUrl: baseUrl.source, model: model.source } },
   };
 }
 
@@ -119,6 +142,10 @@ export interface ProviderSelection {
 }
 
 export interface SelectProviderOptions extends KeyLookupOptions {
+  /** La tabla `[llm]` de `cv.toml`, si la hay (la carga la capa de aplicación). */
+  readonly settings?: LlmSettings | undefined;
+  /** `cv.toml` existe pero no es válido: ninguna selección puede ignorarlo. */
+  readonly settingsError?: string | undefined;
   /** Cliente local inyectable (pruebas). */
   readonly http?: JsonHttp | undefined;
   /** Constructor del cliente remoto inyectable (pruebas); por defecto https + lista blanca. */
@@ -138,15 +165,17 @@ export function remoteBaseUrl(provider: RemoteProviderId, env: NodeJS.ProcessEnv
 
 export async function selectProvider(selection: ProviderSelection = {}, options: SelectProviderOptions = {}): Promise<ProviderSelectionResult> {
   const env = options.env ?? process.env;
+  if (options.settingsError !== undefined) {
+    return { ok: false, message: options.settingsError };
+  }
   const requested = selection.provider?.trim().toLowerCase();
 
   if (requested === undefined || requested === '' || isLocalProviderId(requested)) {
-    const config = resolveLlmConfig(env, requested === undefined || requested === '' ? undefined : requested);
+    const config = resolveLlmConfig(env, { provider: requested === undefined || requested === '' ? undefined : requested, model: selection.model, settings: options.settings });
     if (!config.ok) {
       return { ok: false, message: config.message };
     }
-    const model = selection.model === undefined || selection.model.trim() === '' ? config.config.model : selection.model.trim();
-    return { ok: true, provider: createProvider({ ...config.config, model }, options.http) };
+    return { ok: true, provider: createProvider(config.config, options.http) };
   }
   if (!isRemoteProviderId(requested)) {
     return { ok: false, message: `--provider «${requested}» no es un proveedor conocido (${LLM_PROVIDER_IDS.join(', ')})` };
@@ -162,7 +191,8 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
     return { ok: false, message: `La URL base de «${requested}» (${baseUrl}) no es https o su host no está en la lista blanca (${hosts.join(', ')}); amplíala con ${LLM_ENV.allowedHosts}` };
   }
   const http = (options.remoteHttp ?? createRemoteHttp)(hosts);
-  const model = selection.model === undefined || selection.model.trim() === '' ? undefined : selection.model.trim();
+  const flagModel = selection.model === undefined || selection.model.trim() === '' ? undefined : selection.model.trim();
+  const model = flagModel ?? options.settings?.models?.[requested];
   const provider =
     requested === 'openai'
       ? createOpenAiCompatibleProvider({ id: 'openai', kind: 'remote', baseUrl, model: model ?? OPENAI_DEFAULT_MODEL, http, headers: { authorization: `Bearer ${key.key}` } })

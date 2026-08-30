@@ -4,9 +4,9 @@
  * Nunca se piden de forma interactiva, nunca se escriben, nunca se imprimen (ni enmascaradas en
  * logs: solo su procedencia). Una clave en un fichero con permisos abiertos se rechaza.
  */
-import { readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { z } from 'zod';
 
@@ -77,6 +77,80 @@ export async function resolveApiKey(provider: RemoteProviderId, options: KeyLook
   }
   const key = parsed[provider];
   return key === undefined ? missing(provider, file) : { ok: true, key: key.trim(), source: 'file' };
+}
+
+export type KeyWriteResult = { readonly ok: true; readonly file: string } | { readonly ok: false; readonly message: string };
+
+type KeysFile = z.infer<typeof KeysFileSchema>;
+
+/** El contenido actual del fichero de claves, o `{}` si no existe; un fichero inseguro o inválido no se toca. */
+async function readKeysFile(file: string, platform: NodeJS.Platform): Promise<{ readonly ok: true; readonly keys: KeysFile } | { readonly ok: false; readonly message: string }> {
+  let mode: number;
+  try {
+    mode = (await stat(file)).mode;
+  } catch {
+    return { ok: true, keys: {} };
+  }
+  if (platform !== 'win32' && (mode & 0o077) !== 0) {
+    return { ok: false, message: `El fichero de claves ${file} es legible por otros usuarios (permisos ${(mode & 0o777).toString(8)}); corrígelo con chmod 600 antes de modificarlo` };
+  }
+  try {
+    return { ok: true, keys: KeysFileSchema.parse(JSON.parse(await readFile(file, 'utf8'))) };
+  } catch (error) {
+    return { ok: false, message: `El fichero de claves ${file} no es válido: ${describeError(error)}` };
+  }
+}
+
+async function saveKeysFile(file: string, keys: KeysFile): Promise<KeyWriteResult> {
+  const temporary = `${file}.${process.pid}.tmp`;
+  try {
+    await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+    await writeFile(temporary, `${JSON.stringify(keys, null, 2)}\n`, { mode: 0o600 });
+    await rename(temporary, file);
+  } catch (error) {
+    return { ok: false, message: `No se pudo escribir el fichero de claves ${file}: ${describeError(error)}` };
+  }
+  return { ok: true, file };
+}
+
+function keysFileFor(options: KeyLookupOptions): { readonly file: string; readonly platform: NodeJS.Platform } {
+  const platform = options.platform ?? process.platform;
+  return { platform, file: options.keysFile ?? keysFilePath(options.env ?? process.env, platform, options.home ?? homedir()) };
+}
+
+/** Guarda (o sustituye) la clave de un proveedor en el fichero de claves (0600, directorio 0700). Nunca la imprime. */
+export async function writeApiKey(provider: RemoteProviderId, key: string, options: KeyLookupOptions = {}): Promise<KeyWriteResult> {
+  const trimmed = key.trim();
+  if (trimmed === '') {
+    return { ok: false, message: 'La clave está vacía' };
+  }
+  if (/[\r\n]/.test(trimmed)) {
+    return { ok: false, message: 'La clave no puede contener saltos de línea' };
+  }
+  const { file, platform } = keysFileFor(options);
+  const current = await readKeysFile(file, platform);
+  if (!current.ok) {
+    return current;
+  }
+  return saveKeysFile(file, { ...current.keys, [provider]: trimmed });
+}
+
+export type KeyRemoveResult = { readonly ok: true; readonly file: string; readonly removed: boolean } | { readonly ok: false; readonly message: string };
+
+/** Elimina la clave de un proveedor del fichero de claves; si no estaba, lo dice. */
+export async function removeApiKey(provider: RemoteProviderId, options: KeyLookupOptions = {}): Promise<KeyRemoveResult> {
+  const { file, platform } = keysFileFor(options);
+  const current = await readKeysFile(file, platform);
+  if (!current.ok) {
+    return current;
+  }
+  if (current.keys[provider] === undefined) {
+    return { ok: true, file, removed: false };
+  }
+  const rest: KeysFile = { ...current.keys };
+  delete rest[provider];
+  const saved = await saveKeysFile(file, rest);
+  return saved.ok ? { ok: true, file, removed: true } : saved;
 }
 
 /** Procedencia de las claves definidas, sin valores (para `cv llm status`). */

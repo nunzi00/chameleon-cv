@@ -10,8 +10,10 @@ import { fullProfileInput } from '../fixtures/master-profile';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 
+const NO_SETTINGS = { path: undefined, present: false, configured: false, error: undefined } as const;
+
 const TYPST: TypstStatus = { required: '0.15.1', candidates: [], selected: undefined, usable: false };
-const LLM: LlmStatus = { config: undefined, configError: undefined, health: undefined, keys: { openai: 'none', anthropic: 'none' }, keysFile: '/home/x/.config/chameleon-cv/keys.json', allowedHosts: [], remote: undefined, usable: false };
+const LLM: LlmStatus = { config: undefined, configError: undefined, health: undefined, keys: { openai: 'none', anthropic: 'none' }, keysFile: '/home/x/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, allowedHosts: [], remote: undefined, usable: false };
 const OPTIONS = { profile: 'data/dist/profile.json', data: 'data/sources' };
 
 function inspect(tree: Record<string, string | MemoryEntry>, failures: readonly ('readFile')[] = []) {
