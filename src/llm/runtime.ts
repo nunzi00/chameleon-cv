@@ -520,7 +520,7 @@ export function formatLocalModels(state: LocalModelsState): string[] {
     const thinking = entry.thinking === 'none' ? 'sin razonamiento' : entry.thinking === 'switchable' ? 'razonamiento conmutable' : 'razona siempre';
     const notes = [entry.configured ? 'configurado' : '', entry.mirror === undefined ? 'sin espejo' : ''].filter((note) => note !== '');
     lines.push(
-      `${entry.id.padEnd(width)}  ${presence.padEnd(21)}  ${thinking.padEnd(23)}  ${entry.downloadGiB} GiB · RAM ≥ ${entry.minRamGiB} GiB · ${entry.license} · ${entry.recommendedFor.join(', ')}${notes.length === 0 ? '' : ` · ${notes.join(' · ')}`}`,
+      `${entry.id.padEnd(width)}  ${presence.padEnd(21)}  ${thinking.padEnd(23)}  ${entry.downloadGiB} GiB · RAM ≥ ${entry.minRamGiB} GiB · ${entry.license} · ${entry.recommendedFor.length === 0 ? 'sin tareas recomendadas' : entry.recommendedFor.join(', ')}${notes.length === 0 ? '' : ` · ${notes.join(' · ')}`}`,
     );
   }
   if (state.others.length > 0) {

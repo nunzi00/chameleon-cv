@@ -28,7 +28,7 @@ ejemplo deepseek».
    licencia, tareas recomendadas, `mirror` (repositorio GGUF en Hugging Face y cuantización) y evidencia (URL y fecha).
    Entradas iniciales: `qwen2.5:7b-instruct` (Apache-2.0, 4,7 GB, 8 GB RAM, sin pensamiento; por defecto),
    `qwen3:8b` (Apache-2.0, 5,2 GB, pensamiento conmutable), `deepseek-r1:8b` (MIT, 5,2 GB, destilado de
-   DeepSeek-R1-0528 sobre Qwen3-8B, pensamiento siempre), `gpt-oss:20b` (Apache-2.0, 14 GB, 16 GB RAM, pensamiento con
+   DeepSeek-R1-0528 sobre Qwen3-8B, pensamiento siempre; tras la evaluación de §6 queda sin tareas recomendadas), `gpt-oss:20b` (Apache-2.0, 14 GB, 16 GB RAM, pensamiento con
    niveles) y `qwen3:4b` (2,6 GB, para máquinas con 8 GB). Los tamaños se verifican al descargar (los publica Ollama).
 2. **`cv llm up --model <id> [--source ollama|huggingface]`**: si el modelo está en el catálogo y la descarga del registro
    falla, reintenta con el espejo de Hugging Face (aviso explícito de a qué host se conecta, dentro del mismo
@@ -73,5 +73,6 @@ recogida en `docs/qwen3-evaluation.md`, que pasa a ser la evaluación de modelos
 - `src/llm/runtime.ts`: `pull` con la reserva del espejo (registro → `hf.co/…` → `ollama cp` alias), `--source` (`ModelSource`), `models()` (catálogo + `present`/`sizeBytes`/`configured` + otros modelos), `formatLocalModels`; `isValidModelName` admite `hf.co/<usuario>/<repositorio>:<cuantización>`.
 - CLI `cv llm models [--json]` y `cv llm up --source`; API `GET /api/v1/llm/models` y `source` en `POST /llm/runtime`; GUI Ajustes: selector con el catálogo (o «Otro» libre), casilla `[llm] think`, consentimiento de descarga que cita el espejo.
 - Pruebas: `tests/llm/local-models.test.ts`, `runtime.test.ts` (espejo native/docker, `--source`, fallos del espejo y del alias, `models()`, formato), `providers.test.ts` (`think`, tamaños), `settings*.test.ts`, `llm-cli.test.ts`, `runtime-routes.test.ts`, GUI (`settings.test.ts`, `Ajustes.test.ts`); arnés `llm-runtime` con el doble de Ollama ampliado (`cp`, `FAKE_OLLAMA_REGISTRY=down`) y nueve pasos nuevos.
+- `deepseek-r1:8b` evaluado con el arnés de IA (docs/qwen3-evaluation.md §4): 10/16, 3,5× más lento y JSON inválido en improve y suggest tags → en el catálogo sin tareas recomendadas (`recommendedFor: []`, «sin tareas recomendadas» en `cv llm models`).
 - Verificación real: el espejo funcionó a mano el 2026-08-30 (`docker exec chameleon-ollama ollama pull hf.co/unsloth/…` + `ollama cp`) con Qwen3-8B y DeepSeek-R1-0528-Qwen3-8B; la evaluación de `deepseek-r1:8b` con el arnés de IA se recoge en `docs/qwen3-evaluation.md` §4.
 - Desviación respecto a §2.4: `cv llm models` no exige Ollama en marcha (parado, la columna «descargado» queda «sin comprobar»); el selector de Ajustes solo aparece con el proveedor `ollama` (con `openai-compatible` el campo sigue libre).

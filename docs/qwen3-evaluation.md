@@ -35,7 +35,7 @@ Director, 2026-08-30: «¿por qué usamos qwen2.5 sobre qwen3.8? Entiendo que el
 
 ## §4 Resultados
 
-Estado: PARCIAL (2026-08-30) · pendiente la fila de `deepseek-r1:8b` (T-8.13) y la decisión del PO sobre el defecto.
+Estado: COMPLETA (2026-08-30) · cambio de defecto a `qwen3:8b` CONFIRMADO por el PO (D3) y aplicado en T-8.13.
 
 Condiciones: máquina del Director (CPU, sin GPU; 30 GiB de RAM), Ollama 0.33.2 en Docker (`chameleon-ollama`, runner
 de T-8.8), arnés `npm run test:acceptance:ai` (16 comprobaciones: improve, summarize y suggest tags sobre el banco de
@@ -48,7 +48,7 @@ con alias creados con `ollama cp` (el mecanismo que T-8.13 automatiza). Registro
 |---|---|---|---|---|---|---|
 | `qwen2.5:7b-instruct` (defecto actual) | 16/16 | 224 s | 89 s · 6 propuestas, **0 aceptadas**, 6 rechazadas por C2 | 69 s · 2 propuestas, 1 aceptada | 63 s · 6 etiquetas (1 nueva) | Las seis reescrituras inventaron o alteraron cifras y C2 las rechazó todas |
 | `qwen3:8b` (`think: false`) | 16/16 | 289 s (**1,29×**) | 95 s · 6 propuestas, **5 aceptadas**, 1 rechazada | 95 s · 2 propuestas, 2 aceptadas | 97 s · 9 etiquetas (2 nuevas) | Reescrituras fieles a los datos; más lento en summarize y suggest |
-| `deepseek-r1:8b` (razona siempre) | pendiente | | | | | |
+| `deepseek-r1:8b` (razona siempre; GGUF de Hugging Face) | **10/16** (6 fallos) | 783 s (3,5×) | 341 s · 3 logros, **3 fallidos** (`invalid-json`) | 121 s · revisión sin propuestas | 321 s · 3 fragmentos, **3 fallidos** (`invalid-json`) | El razonamiento se descarta, pero la respuesta final no respeta el JSON estricto pedido con `format`; inutilizable para el co-piloto tal cual |
 
 Lectura frente a D2 (16/16 y tiempo ≤ 1,5× el de qwen2.5): `qwen3:8b` **cumple ambos criterios** (16/16; 1,29× en
 total, 1,07× en improve, 1,38× en summarize, 1,54× en suggest tags —solo esta tarea supera el 1,5× por poco—) y,
@@ -57,5 +57,9 @@ acaba viendo. Con `think: false` el JSON estricto llegó limpio en las 16 compro
 
 Propuesta derivada (D3): `qwen3:8b` pasa a ser el modelo local por defecto en la versión 1.8.0, con la reserva de
 Hugging Face de T-8.13 para que la descarga no dependa del registro de Ollama; `qwen2.5:7b-instruct` sigue en el
-catálogo como el más rápido. La fila de `deepseek-r1:8b` se añade cuando termine su ejecución (solo informativa: el
-modelo razona siempre y no se propone como defecto).
+catálogo como el más rápido. `deepseek-r1:8b` (DeepSeek-R1-0528 destilado sobre Qwen3-8B, importado de Hugging Face) queda en el catálogo por
+petición del Director, pero **sin tareas recomendadas**: en esta ejecución el modelo, con el razonamiento descartado,
+devolvió respuestas que no cumplían el esquema JSON en las seis peticiones de `improve` y `suggest tags` (el arnés las
+tipifica como `invalid-json`) y un `summarize` sin propuestas, además de tardar 3,5× más que qwen2.5. Antes de
+recomendarlo habría que verificar si la etiqueta oficial `deepseek-r1:8b` del registro de Ollama (con plantilla y
+`think` conmutable) se comporta mejor que el GGUF; el registro no fue alcanzable en esta red.

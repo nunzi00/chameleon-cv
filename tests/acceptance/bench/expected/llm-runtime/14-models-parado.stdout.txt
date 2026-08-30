@@ -1,6 +1,6 @@
 Ollama parado: no se puede comprobar qué modelos están descargados (cv llm up)
 qwen3:8b             sin comprobar          razonamiento conmutable  5.2 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags · configurado
 qwen2.5:7b-instruct  sin comprobar          sin razonamiento         4.7 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags
-deepseek-r1:8b       sin comprobar          razona siempre           5.2 GiB · RAM ≥ 8 GiB · MIT · improve, summarize
+deepseek-r1:8b       sin comprobar          razona siempre           5.2 GiB · RAM ≥ 8 GiB · MIT · sin tareas recomendadas
 gpt-oss:20b          sin comprobar          razonamiento conmutable  14 GiB · RAM ≥ 16 GiB · Apache-2.0 · improve, summarize, suggest-tags · sin espejo
 qwen3:4b             sin comprobar          razonamiento conmutable  2.6 GiB · RAM ≥ 6 GiB · Apache-2.0 · suggest-tags, summarize

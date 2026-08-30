@@ -17,7 +17,8 @@ describe('catálogo de modelos locales (T-8.13)', () => {
       expect(entry.downloadGiB, entry.id).toBeGreaterThan(0);
       expect(entry.minRamGiB, entry.id).toBeGreaterThanOrEqual(entry.downloadGiB);
       expect(entry.license, entry.id).toMatch(/^(Apache-2\.0|MIT)$/);
-      expect(entry.recommendedFor.length, entry.id).toBeGreaterThan(0);
+      // Sin tareas recomendadas solo con la evidencia en la nota (deepseek-r1:8b, docs/qwen3-evaluation.md §4).
+      expect(entry.recommendedFor.length > 0 || entry.note.includes('sin tareas recomendadas'), entry.id).toBe(true);
       expect(entry.note, entry.id).toMatch(/\S/);
       expect(entry.sourceUrl, entry.id).toMatch(/^https:\/\/ollama\.com\/library\//);
       expect(entry.verifiedAt, entry.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);

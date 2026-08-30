@@ -528,6 +528,7 @@ describe('espejo de Hugging Face y catálogo (T-8.13)', () => {
     const lines = formatLocalModels(await running.runtime.models());
     expect(lines[0]).toBe('qwen3:8b             descargado (5.0 GiB)   razonamiento conmutable  5.2 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags · configurado');
     expect(lines[1]).toBe('qwen2.5:7b-instruct  no descargado          sin razonamiento         4.7 GiB · RAM ≥ 8 GiB · Apache-2.0 · improve, summarize, suggest-tags');
+    expect(lines[2]).toBe('deepseek-r1:8b       no descargado          razona siempre           5.2 GiB · RAM ≥ 8 GiB · MIT · sin tareas recomendadas');
     expect(lines[3]).toContain('gpt-oss:20b          no descargado          razonamiento conmutable  14 GiB · RAM ≥ 16 GiB · Apache-2.0 · improve, summarize, suggest-tags · sin espejo');
     expect(lines[5]).toBe('Otros modelos presentes: llama3:8b');
     // Ollama sin tamaños en /api/tags: «descargado» a secas.
