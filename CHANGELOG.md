@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Cambiado
+
+- Portal, sprint S4 del rediseño (T-8.6, `docs/gui-design/pantallas.md` §8–§9): tema de VitePress sin la fuente descargada (solo fuentes del sistema) y con los tokens del sistema visual de la aplicación en claro y oscuro; portada nueva compuesta con las ranuras del tema —chip «Local y soberano», los tres comandos, captura real de la interfaz, bloques «Qué hace / Qué no hace», «Tres caminos» y «Temas» con miniaturas reales de la galería—, pie «MIT · sin telemetría · es-ES» y la versión en la navegación; páginas interiores con avisos, títulos y navegación anterior/siguiente pulidos. Pruebas: contraste AA de los tokens (`tests/docs/portal-tokens.test.ts`) y E2E sobre el sitio construido (`npm run docs:e2e`: la portada responde sin desplazarse en 1440×900, modo oscuro AA y ninguna petición fuera del sitio), también en el flujo de Pages.
+
 ## [1.8.0] - 2026-08-30
 
 ### Añadido

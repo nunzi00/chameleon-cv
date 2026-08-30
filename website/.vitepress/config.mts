@@ -8,7 +8,7 @@ import { defineConfig, type DefaultTheme } from 'vitepress';
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** Única fuente de verdad del repositorio: package.json de la raíz (repository.url). */
-const manifest = JSON.parse(readFileSync(join(here, '..', '..', 'package.json'), 'utf8')) as { repository: { url: string } };
+const manifest = JSON.parse(readFileSync(join(here, '..', '..', 'package.json'), 'utf8')) as { repository: { url: string }; version: string };
 const REPO = manifest.repository.url.replace(/^git\+/, '').replace(/\.git$/, '');
 
 function generated(name: string): DefaultTheme.SidebarItem[] {
@@ -39,6 +39,7 @@ export default defineConfig({
       { text: 'Tutoriales', link: '/tutorials/', activeMatch: '/tutorials/' },
       { text: 'Desarrolladores', link: '/developers/architecture', activeMatch: '/developers/|/design/' },
       { text: 'Cambios', link: '/changelog' },
+      { text: `v${manifest.version} · MIT`, link: `${REPO}/releases/tag/v${manifest.version}` },
     ],
     sidebar: {
       '/guide/': [
@@ -113,7 +114,7 @@ export default defineConfig({
     },
     socialLinks: [{ icon: 'github', link: REPO }],
     editLink: { pattern: `${REPO}/edit/main/website/src/:path`, text: 'Editar esta página en GitHub' },
-    footer: { message: 'Publicado bajo la licencia MIT.', copyright: '© 2026 Lucas Nunzi' },
+    footer: { message: 'MIT · sin telemetría · es-ES', copyright: '© 2026 Lucas Nunzi' },
     outline: { label: 'En esta página', level: [2, 3] },
     docFooter: { prev: 'Anterior', next: 'Siguiente' },
     lastUpdated: { text: 'Actualizado' },

@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:portal": "playwright test -c playwright.portal.config.ts",
     "screenshots": "CV_SCREENSHOTS=1 playwright test e2e/screenshots.spec.ts"
   },
   "devDependencies": {

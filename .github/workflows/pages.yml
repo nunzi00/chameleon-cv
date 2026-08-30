@@ -41,6 +41,7 @@ jobs:
             website/package-lock.json
       - run: npm ci
       - run: npm ci --prefix website
+      - run: npm ci --prefix gui
       - run: npm run build
       - name: Caché del binario de Typst (los tutoriales generan PDF de calidad editorial)
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -53,6 +54,10 @@ jobs:
         run: echo "DOCS_BASE=/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_ENV"
       - name: Generación, build (falla con enlaces muertos) y tutoriales contra el binario
         run: npm run docs:check
+      - name: Chromium de Playwright (E2E del portal construido)
+        run: npx --prefix gui playwright install --with-deps chromium
+      - name: E2E del portal construido (portada sin desplazamiento, modo oscuro AA, sin recursos externos)
+        run: DOCS_BASE=/ npm run docs:build && npm run docs:e2e
       - name: Configuración de Pages (solo al desplegar)
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
