@@ -148,3 +148,29 @@ export function skillGroups(profile: ProfileResponse | undefined): SkillGroup[] 
 export function projectOptions(profile: ProfileResponse | undefined): Array<{ readonly id: string; readonly name: string }> {
   return (profile?.projects ?? []).map((project) => ({ id: project.id, name: project.name }));
 }
+
+export interface SpecialtyPreview {
+  readonly headline: string;
+  /** «14 logros etiquetados · 22 skills · 5 proyectos». */
+  readonly summary: string;
+}
+
+/** Vista previa del paso 1: titular de la especialidad y qué parte del perfil la reconoce (por sus tags). */
+export function specialtyPreview(profile: ProfileResponse | undefined, specialty: string): SpecialtyPreview | undefined {
+  if (profile === undefined) {
+    return undefined;
+  }
+  const skills = profile.skills.length;
+  const projects = profile.projects.length;
+  const achievements = [...profile.experience.flatMap((entry) => entry.achievements), ...profile.projects.flatMap((project) => project.achievements)];
+  if (specialty === '') {
+    return { headline: 'Todo el perfil, sin recortar', summary: `${achievements.length} logros · ${skills} skills · ${projects} proyectos` };
+  }
+  const found = profile.specialties.find((entry) => entry.id === specialty);
+  if (found === undefined) {
+    return undefined;
+  }
+  const tags = new Set(found.tags);
+  const tagged = achievements.filter((achievement) => achievement.tags.some((tag) => tags.has(tag))).length;
+  return { headline: found.title, summary: `${tagged} logros etiquetados · ${skills} skills · ${projects} proyectos` };
+}

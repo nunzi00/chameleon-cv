@@ -20,34 +20,43 @@ Ctrl-C para parar (o POST /api/v1/shutdown)
 
 La URL lleva el **token de sesión** en el fragmento (`#token=…`): el navegador nunca lo envía al servidor. Al cargar, la interfaz lo guarda en la pestaña (vive lo que ella) y lo retira de la URL, así no queda en el historial ni en capturas. Si abres `http://127.0.0.1:4310/` a secas, te pedirá pegarlo. Cada arranque de `cv serve` genera un token nuevo.
 
-## Estado
+## La interfaz
 
-![Pantalla Estado: artefacto, Typst, co-piloto y temas, con los botones de validar, compilar y apagar](/gui/estado.png)
+Una barra lateral con tres grupos —**Perfil** (Fuentes, Estado del artefacto), **Producir** (Generar, Salidas) y
+**Co-piloto** (Trabajos, Revisiones, Ajustes)— más los enlaces al portal; se pliega a iconos (y se recuerda) y por
+debajo de 1024 px va siempre plegada. La cabecera de contexto, presente en todas las pantallas, muestra el espacio
+de trabajo y cuatro chips que responden sin navegar: si el artefacto está al día, si Typst está, si el co-piloto
+responde y si el servidor permite remotos; a la derecha, el conmutador de tema (claro, oscuro o el del sistema, sin
+destello al cargar) y **Apagar**, que detiene `cv serve` tras confirmar.
+
+## Estado del artefacto
+
+![Pantalla Estado: la tarjeta del artefacto con badge, fuentes, especialidades y temas; Typst y co-piloto a su lado; la tabla de temas instalados y la portabilidad](/gui/estado.png)
 
 Lo mismo que `cv build --check`, `cv typst status` y `cv llm status` de un vistazo: si el artefacto está al día, obsoleto o sin compilar (con sus especialidades), si Typst es utilizable, si hay un proveedor de IA local listo y qué temas hay. **Validar** y **Compilar** hacen lo que sus órdenes; **Exportar perfil (JSON)** e **Importar perfil…** son `cv export` y `cv import` (ver [Exportar e importar el perfil](/guide/portability)); la pantalla **Ajustes** configura el co-piloto (ver [Configurar el co-piloto](/guide/copilot-settings)); los problemas de las fuentes salen con fichero y línea, y cada uno enlaza con el editor. **Apagar el servidor** pide confirmación.
 
 ## Fuentes
 
-![Pantalla Fuentes: el árbol de ficheros y el editor con un fichero de experiencia abierto](/gui/fuentes.png)
+![Pantalla Fuentes: el árbol de ficheros con filtro y badges de incidencias y el editor con un fichero de experiencia abierto, su huella y el pie de estado](/gui/fuentes.png)
 
-El árbol de `data/sources` a la izquierda y un editor con resaltado (Markdown y YAML) a la derecha. Nada se escribe hasta que pulsas **Guardar**: la interfaz envía el fichero con la huella que leyó y, si alguien lo cambió entre medias (otra pestaña, tu editor de texto), el servidor lo rechaza y un diálogo te deja **recargar** (descartando tus cambios) o **sobrescribir** con tu versión. Tras guardar se validan las fuentes y se avisa si el artefacto queda obsoleto. **Nuevo fichero** crea uno vacío en la ruta que indiques (`experience/acme.md`).
+El árbol de `data/sources` a la izquierda —con filtro, botón «+» para crear un fichero y un badge rojo con las incidencias de validación de cada fichero— y un editor con resaltado (Markdown y YAML) a la derecha, con la ruta, la huella del fichero, «cambios sin guardar» y un pie con el lenguaje, el fin de línea y la posición del cursor. El editor no reformatea nada. Nada se escribe hasta que pulsas **Guardar**: la interfaz envía el fichero con la huella que leyó y, si alguien lo cambió entre medias (otra pestaña, tu editor de texto), el servidor lo rechaza y un diálogo te deja **recargar** (descartando tus cambios) o **sobrescribir** con tu versión. Tras guardar se validan las fuentes y se avisa si el artefacto queda obsoleto. **Nuevo fichero** crea uno vacío en la ruta que indiques (`experience/acme.md`).
 
 ## Generar
 
-![Pantalla Generar: formulario, análisis de adecuación a la oferta, CV en Markdown e informe de decisiones](/gui/generar.png)
+![Pantalla Generar: el formulario en tres pasos a la izquierda y, a la derecha, el CV generado, la adecuación a la oferta con su porcentaje y el informe de decisiones](/gui/generar.png)
 
-Las mismas opciones que `cv generate-cv` —incluidos dos selectores de etiquetas para elegir a mano qué skills y qué proyectos entran, alimentados por tu perfil— y, al añadir una oferta, el aviso de si ya se procesó, cuándo y con qué CV (historial de `output/historial-ofertas.json`): especialidad, oferta (pegada como texto, subida como **PDF** —el texto se extrae en local— o un fichero del espacio de trabajo), formato, motor (Typst si está disponible), tema, límites (`Top N`, skills, proyectos, certificaciones), idioma, nombre del fichero, compacto y recompilar antes.
+Un formulario en tres pasos —**Especialidad** (con la vista previa del titular y de cuánto perfil la reconoce), **Oferta** (opcional: texto pegado, PDF subido o fichero del espacio de trabajo, por pestañas) y **Salida** (formato, motor, tema, límites y más opciones)— y una barra de acciones fija con **Generar CV** y **Analizar oferta**. Las mismas opciones que `cv generate-cv` —incluidos dos selectores de etiquetas para elegir a mano qué skills y qué proyectos entran, alimentados por tu perfil— y, al añadir una oferta, el aviso de si ya se procesó, cuándo y con qué CV (historial de `output/historial-ofertas.json`): especialidad, oferta (pegada como texto, subida como **PDF** —el texto se extrae en local— o un fichero del espacio de trabajo), formato, motor (Typst si está disponible), tema, límites (`Top N`, skills, proyectos, certificaciones), idioma, nombre del fichero, compacto y recompilar antes.
 
-- **Analizar oferta** es `cv analyze-offer`: cuántos requisitos reconoce, cuáles demuestra tu perfil (y con qué logros), cuáles no, las carencias y las mejores evidencias.
+- **Analizar oferta** es `cv analyze-offer`: el porcentaje de requisitos demostrados con su barra, cuáles demuestra tu perfil (y con qué logros), cuáles no, las carencias y las mejores evidencias.
 - **Generar CV** escribe el fichero en `output/`. El Markdown se muestra como texto con descarga; el **PDF** se abre en el visor del navegador (se descarga con tu token y se muestra desde la memoria de la pestaña) con su botón de descarga.
 - **Informe de decisiones** es `--explain`: la selección por especialidad, la cobertura de la oferta, los recortes y el tema, con las mismas palabras que la CLI.
 - **Temas de Typst** (plegable): crea un tema en `themes/<nombre>/` de tu proyecto a partir de otro, como `cv theme create`; e **Instalar tema…**, como `cv theme install`: desde un archivo o directorio del espacio de trabajo, o desde una URL `https://` (el servidor debe arrancar con `--allow-remote` y un diálogo pide confirmar la descarga con el host y el límite). «Ver el plan» es `--dry-run`. El selector de tema muestra la autoría y marca los instalados.
 
 ## Salidas
 
-![Pantalla Salidas: los ficheros de output/ y la vista previa de un CV en Markdown](/gui/salidas.png)
+![Pantalla Salidas: la tabla de ficheros de output/ con su tipo y tamaño y la vista previa de un CV en Markdown](/gui/salidas.png)
 
-Los ficheros de `output/` —CV en PDF y Markdown, revisiones del co-piloto— con su tamaño; cada uno se ve (texto o visor de PDF) y se descarga.
+Los ficheros de `output/` —CV en PDF y Markdown, revisiones del co-piloto— en una tabla con su tipo y tamaño; cada uno se ve (texto o visor de PDF) y se descarga. Si no hay nada, la pantalla lleva a Generar.
 
 ## Co-piloto
 

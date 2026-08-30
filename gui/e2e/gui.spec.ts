@@ -52,7 +52,7 @@ test('Fuentes abre un fichero en CodeMirror, guarda con If-Match y el cambio lle
 test('Generar analiza una oferta del espacio de trabajo y genera el CV en Markdown y en PDF', async ({ page }) => {
   await openWithToken(page, state, '#/generar');
   await page.getByLabel('Especialidad').selectOption('backend');
-  await page.getByLabel('Oferta').selectOption('file');
+  await page.getByRole('tab', { name: 'Del espacio' }).click();
   await page.getByLabel(/Fichero \(relativo/).fill('ofertas/nexo.txt');
   await page.getByRole('button', { name: 'Analizar oferta' }).click();
   await expect(page.getByRole('heading', { name: 'Adecuación a la oferta' })).toBeVisible();

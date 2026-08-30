@@ -509,3 +509,40 @@ pre.cv-progress { max-height: 12rem; }
 .cv-editor-pane .cv-editor .cm-editor { min-height: 100%; }
 .cv-editor-pane textarea.cv-plain { min-height: 100%; height: 100%; padding: 12px 18px; }
 .cv-editor-pane .cv-empty { flex: 1; }
+/* Generar (T-8.6 S2): formulario por pasos a la izquierda, resultado a la derecha. */
+.cv-split-generar { display: grid; grid-template-columns: minmax(420px, 480px) 1fr; flex: 1; min-height: 0; }
+@media (max-width: 1280px) { .cv-split-generar { grid-template-columns: minmax(380px, 44%) 1fr; } }
+.cv-generar-form { display: flex; flex-direction: column; min-height: 0; background: var(--cv-surface); border-right: 1px solid var(--cv-border); }
+.cv-generar-scroll { flex: 1; overflow: auto; padding: 18px 18px 8px; display: grid; gap: 12px; align-content: start; }
+.cv-generar-title { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.cv-step-head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.cv-step-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.cv-step .cv-field { margin-bottom: 10px; }
+.cv-step-note { margin: 4px 0 0; font-size: var(--cv-size-sm); }
+.cv-preview { display: grid; gap: 2px; margin-top: 4px; background: var(--cv-surface-2); font-size: 13px; }
+.cv-preview .cv-muted { font-size: var(--cv-size-sm); }
+.cv-tabs { margin-bottom: 10px; }
+.cv-form.cv-form-2 { grid-template-columns: repeat(2, 1fr); }
+.cv-checks { display: grid; gap: 6px; margin: 6px 0 12px; }
+details.cv-collapse > summary .cv-muted { margin-left: 6px; }
+details.cv-collapse > .cv-form, details.cv-collapse > .cv-stack, details.cv-collapse > h3, details.cv-collapse > pre { margin-top: 12px; }
+.cv-generar-actions { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--cv-border);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--cv-surface) 60%, transparent), var(--cv-surface) 40%); }
+.cv-generar-result { min-width: 0; overflow: auto; padding: 18px 22px 40px; background: var(--cv-bg); display: grid; gap: 12px; align-content: start; }
+.cv-generar-result > .cv-empty { min-height: 60vh; }
+.cv-result-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 14px; align-items: start; }
+@media (max-width: 1280px) { .cv-result-grid { grid-template-columns: 1fr; } }
+.cv-result-doc pre.cv-text { max-height: 70vh; }
+.cv-adequacy { display: grid; gap: 6px; margin: 8px 0 10px; }
+.cv-adequacy-figure { font-size: var(--cv-size-2xl); font-weight: 600; letter-spacing: -.01em; }
+.cv-adequacy-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cv-border); }
+.cv-adequacy-columns h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.cv-adequacy-columns ul, .cv-adequacy-columns ol { margin: 0; padding-left: 16px; font-size: var(--cv-size-sm); }
+.cv-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cv-muted); }
+.cv-dot.ok { background: var(--cv-ok); }
+.cv-dot.warn { background: var(--cv-warn); }
+.cv-dot.error { background: var(--cv-error); }
+.cv-report h3 { margin: 12px 0 6px; font-size: 13px; font-weight: 600; }
+/* Los campos de una rejilla no deben desbordar su columna. */
+.cv-form .cv-field, .cv-step .cv-field { min-width: 0; }
+.cv-field input, .cv-field select, .cv-field textarea { width: 100%; min-width: 0; box-sizing: border-box; }

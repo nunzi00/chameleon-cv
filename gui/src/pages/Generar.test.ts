@@ -87,10 +87,11 @@ describe('Generar', () => {
     const api = fakeApi();
     render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
     await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
-    await fireEvent.change(screen.getByLabelText('Oferta'), { target: { value: 'text' } });
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
     expect(screen.getByText('Falta algo')).toBeTruthy();
     expect(api.analyze).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('tab', { name: 'PDF' }));
     const upload = screen.getByLabelText(/sube su PDF/) as HTMLInputElement;
     const file = new File(['%PDF-1.7'], 'oferta.pdf', { type: 'application/pdf' });
     Object.defineProperty(upload, 'files', { value: [file] });
@@ -121,7 +122,7 @@ describe('Generar', () => {
 
 describe('Generar · selección explícita de skills y proyectos', () => {
   it('con perfil, ofrece selectores múltiples y envía las listas elegidas', async () => {
-    const profile = { skills: [{ name: 'PHP', category: 'language' }, { name: 'Kubernetes', category: 'platform' }], projects: [{ id: 'proj-a', name: 'Proyecto A' }, { id: 'proj-b', name: 'Proyecto B' }] } as never;
+    const profile = { specialties: [], experience: [], skills: [{ name: 'PHP', category: 'language' }, { name: 'Kubernetes', category: 'platform' }], projects: [{ id: 'proj-a', name: 'Proyecto A', achievements: [] }, { id: 'proj-b', name: 'Proyecto B', achievements: [] }] } as never;
     const api = fakeApi({ profile: vi.fn(async () => profile) });
     render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
     await waitFor(() => expect(screen.getByRole('group', { name: 'Solo estas skills' })).toBeTruthy());
@@ -144,7 +145,7 @@ describe('Generar · historial de la oferta', () => {
     const api = fakeApi({ offerHistory: vi.fn(async () => ({ entries })) as never });
     render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
     await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
-    await fireEvent.change(screen.getByLabelText('Oferta'), { target: { value: 'text' } });
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
     await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos Kubernetes' } });
     await waitFor(() => expect(screen.getByText('Esta oferta ya se procesó una vez')).toBeTruthy(), { timeout: 3000 });
     expect(api.offerHistory).toHaveBeenCalledWith({ offer: { text: 'Buscamos Kubernetes' } });

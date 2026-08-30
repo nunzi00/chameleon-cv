@@ -101,6 +101,9 @@ export interface TermView {
 export interface AnalysisView {
   readonly headline: string;
   readonly adequacy: string;
+  /** Porcentaje de requisitos demostrados (sin requisitos reconocidos, `undefined`). */
+  readonly percent: number | undefined;
+  readonly counts: { readonly demonstrated: number; readonly recognized: number };
   readonly demonstrated: readonly TermView[];
   readonly missing: readonly TermView[];
   readonly gaps: readonly string[];
@@ -119,6 +122,8 @@ export function analysisView(response: AnalyzeResponse): AnalysisView {
   return {
     headline: `Oferta ${offer.source} · ${summary.recognized} requisitos reconocidos${years}`,
     adequacy,
+    percent: summary.recognized === 0 ? undefined : Math.round(summary.ratio * 100),
+    counts: { demonstrated: summary.demonstrated, recognized: summary.recognized },
     demonstrated: terms.filter((term) => term.evidence.length > 0),
     missing: terms.filter((term) => term.evidence.length === 0),
     gaps: offer.gaps,

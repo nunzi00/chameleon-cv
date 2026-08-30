@@ -64,6 +64,8 @@ describe('analysisView', () => {
     const view = analysisView(base);
     expect(view.headline).toBe('Oferta acme · 2 requisitos reconocidos · 5 años de experiencia exigidos');
     expect(view.adequacy).toBe('1 de 2 requisitos demostrados (50 %) · imprescindibles: 1 de 1');
+    expect(view.percent).toBe(50);
+    expect(view.counts).toEqual({ demonstrated: 1, recognized: 2 });
     expect(view.demonstrated).toEqual([{ term: 'kubernetes', detail: 'required ×2 · 1.50', evidence: ['exp-acme'] }]);
     expect(view.missing).toEqual([{ term: 'go', detail: 'nice · 0.50', evidence: [] }]);
     expect(view.gaps).toEqual(['go']);
@@ -71,6 +73,7 @@ describe('analysisView', () => {
     const nothing = analysisView({ ...base, offer: { source: 'x', terms: [], gaps: [], experienceYears: undefined } as never, summary: { ...base.summary, recognized: 0 }, coverage: {}, ranking: [] });
     expect(nothing.headline).toBe('Oferta x · 0 requisitos reconocidos');
     expect(nothing.adequacy).toContain('no menciona nada');
+    expect(nothing.percent).toBeUndefined();
     expect(analysisView({ ...base, coverage: {} }).missing).toHaveLength(2);
   });
 });

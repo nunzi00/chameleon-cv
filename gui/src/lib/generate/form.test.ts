@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, projectOptions, skillGroups } from './form';
+import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, projectOptions, skillGroups, specialtyPreview } from './form';
 
 describe('formulario de Generar', () => {
   it('construye el cuerpo mínimo y el completo, sin campos vacíos ni opciones que no aplican', () => {
@@ -62,5 +62,21 @@ describe('selectores de skills y proyectos', () => {
 
   it('las listas seleccionadas viajan en el cuerpo y las vacías no', () => {
     expect(buildGenerateRequest({ ...EMPTY_FORM, skills: ['PHP'], projects: [] })).toEqual({ ok: true, body: { format: 'pdf', engine: 'pdfkit', skills: ['PHP'] } });
+  });
+});
+
+describe('specialtyPreview (T-8.6 S2)', () => {
+  const profile = {
+    specialties: [{ id: 'backend', title: 'Staff Backend Engineer', tags: ['go', 'kafka'] }],
+    skills: [{ name: 'Go', category: 'language' }, { name: 'Kafka', category: 'platform' }],
+    projects: [{ id: 'p1', name: 'P1', achievements: [{ id: 'a3', text: 'x', tags: ['kafka'] }] }],
+    experience: [{ id: 'e1', achievements: [{ id: 'a1', text: 'x', tags: ['go'] }, { id: 'a2', text: 'y', tags: ['php'] }] }],
+  } as never;
+
+  it('sin perfil no hay vista previa; sin especialidad resume todo el perfil; con ella cuenta los logros que la reconocen', () => {
+    expect(specialtyPreview(undefined, 'backend')).toBeUndefined();
+    expect(specialtyPreview(profile, '')).toEqual({ headline: 'Todo el perfil, sin recortar', summary: '3 logros · 2 skills · 1 proyectos' });
+    expect(specialtyPreview(profile, 'backend')).toEqual({ headline: 'Staff Backend Engineer', summary: '2 logros etiquetados · 2 skills · 1 proyectos' });
+    expect(specialtyPreview(profile, 'nube')).toBeUndefined();
   });
 });
