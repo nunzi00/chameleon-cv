@@ -248,7 +248,8 @@
       "specialty": "backend",
       "output": {
         "path": "output/cv-backend-nexo.md",
-        "format": "md"
+        "format": "md",
+        "engine": "pdfkit"
       }
     }
   ],
