@@ -4,6 +4,8 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-30
+
 ### Añadido
 
 - Cuatro temas Typst nuevos en la galería (T-8.7): `awesome` (estilo Awesome-CV: nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento, rejilla 2×2), `executive` (banking: logros destacados arriba, fila de competencias clave, impacto en negrita), `tech` (skills-first: habilidades y tecnologías como etiquetas monoespaciadas, contacto con URL visibles) y `timeline` (línea de tiempo con raíl y puntos); todos en una columna, sin iconos ni barras y sin fuentes nuevas.

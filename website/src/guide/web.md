@@ -12,7 +12,7 @@ cv serve --open      # arranca el servidor y abre el navegador con la URL y el t
 ```
 
 ```text
-Chameleon CV 1.6.1 · espacio de trabajo /home/ada/mi-cv
+Chameleon CV 1.7.0 · espacio de trabajo /home/ada/mi-cv
 API: http://127.0.0.1:4310/api/v1/ (Authorization: Bearer <token>)
 Interfaz: http://127.0.0.1:4310/#token=4f6c…e2
 Ctrl-C para parar (o POST /api/v1/shutdown)

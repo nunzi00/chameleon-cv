@@ -110,7 +110,7 @@
   "typst": {
     "usable": false
   },
-  "version": "1.6.1",
+  "version": "1.7.0",
   "workspace": "<WS>"
 }
 
@@ -4746,7 +4746,7 @@
       "installedAt": "<ISO>",
       "kind": "archive",
       "source": "<WS>/themes/comunidad.zip",
-      "tool": "chameleon-cv 1.6.1"
+      "tool": "chameleon-cv 1.7.0"
     },
     "state": "intact"
   }
