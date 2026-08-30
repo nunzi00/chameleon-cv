@@ -24,6 +24,8 @@
 
   let form = $state<CopilotForm>({ ...EMPTY_COPILOT_FORM });
   let remoteOptions = $state<readonly RemoteOption[]>([]);
+  /** `[llm] think` de cv.toml: se muestra en el plan (las tareas con esquema lo ignoran). */
+  let thinkRequested = $state(false);
   const modelPlaceholder = $derived(remoteOptions.find((option) => option.id === form.provider)?.defaultModel ?? 'el configurado');
   let status = $state<StatusView | undefined>(undefined);
   let specialties = $state<readonly string[]>([]);
@@ -79,7 +81,9 @@
 
   async function load(): Promise<void> {
     try {
-      remoteOptions = remoteProviderOptions(await api.llmConfig());
+      const llmConfig = await api.llmConfig();
+      remoteOptions = remoteProviderOptions(llmConfig);
+      thinkRequested = llmConfig.llm.settings.values?.think === true;
     } catch {
       remoteOptions = [];
     }
@@ -262,6 +266,8 @@
         <span class="cv-eyebrow">Qué sale y a dónde</span>
         <dl class="cv-kv cv-kv-rows">
           <dt>Destino</dt><dd>{plan.destination}</dd>
+          <dt>Modelo</dt><dd>{form.model !== '' ? form.model : form.provider === '' ? (status?.llm.model ?? 'el configurado') : (remoteOptions.find((option) => option.id === form.provider)?.defaultModel ?? 'el del proveedor')}</dd>
+          <dt>Razonamiento</dt><dd>{form.provider === '' && thinkRequested ? 'pedido en cv.toml — las tareas con esquema JSON lo ignoran' : 'desactivado'}</dd>
           <dt>Se envía</dt><dd>{plan.sends}</dd>
           <dt>Se escribe</dt><dd class="cv-mono">{plan.writes}</dd>
         </dl>

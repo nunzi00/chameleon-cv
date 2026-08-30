@@ -123,35 +123,5 @@ export async function resolveOfferSource(context: CliContext, source: string, fl
   return { ok: true, input: { kind: 'text', text: offer.text, name } };
 }
 
-const OFFER_EXTENSIONS = /\.(txt|md|markdown|pdf)$/i;
+export { listOffers } from '../app/offer';
 
-/** Lista `offers/**` (profundidad ≤ 3, ≤ 500 entradas) ordenada por fecha de cambio descendente. */
-export async function listOffers(context: CliContext): Promise<readonly { readonly path: string; readonly bytes: number; readonly modifiedAt: string }[]> {
-  const root = resolve(context.cwd, 'offers');
-  const found: { path: string; bytes: number; modifiedAt: string }[] = [];
-  async function walk(directory: string, depth: number): Promise<void> {
-    if (depth > 3 || found.length >= 500) {
-      return;
-    }
-    let entries;
-    try {
-      entries = await context.datasetFileSystem.readDirectory(directory);
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      if (found.length >= 500) {
-        return;
-      }
-      const path = resolve(directory, entry.name);
-      if (entry.kind === 'directory') {
-        await walk(path, depth + 1);
-      } else if (entry.kind === 'file' && OFFER_EXTENSIONS.test(entry.name)) {
-        const info = await context.datasetFileSystem.stat(path);
-        found.push({ path: relative(context.cwd, path), bytes: info.size, modifiedAt: new Date(info.mtimeMs).toISOString() });
-      }
-    }
-  }
-  await walk(root, 1);
-  return found.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt) || a.path.localeCompare(b.path));
-}

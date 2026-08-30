@@ -61,6 +61,16 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/
 curl -s -X POST -H "Authorization: Bearer $TOKEN" $API/themes/comunidad/verify                      # intacto, modificado o sin origen
 ```
 
+Las **ofertas** (T-8.5) siguen el mismo patrón: `GET /offers` lista `offers/**` con tipo y fecha; `POST /offers/fetch` descarga una oferta por URL `https` —exige `--allow-remote` y el consentimiento en dos pasos con `estimateId` (una sola petición, sin cookies, 2 MiB)— y devuelve el texto extraído con su procedencia (`json-ld`, `json-ld+cuerpo`, `contenido` o `página`) y avisos; `POST /offers` guarda el texto saneado en `offers/` con cabecera de origen (`409` si existe, salvo `replace: true`). Y la **importación de un CV** (T-8.4b) es `POST /import-cv` con el fichero binario como cuerpo (PDF o DOCX, hasta 10 MiB; cabeceras opcionales `x-cv-import-name` y `x-cv-import-replace: 1`): responde `201` con el resumen del borrador y su `README.md`.
+
+```bash
+curl -s -H "$AUTH" $API/offers                                      # el listado para el selector de Generar
+curl -s -H "$AUTH" -H 'Content-Type: application/json' \
+  -d '{"url":"https://empresa.com/oferta"}' $API/offers/fetch        # 409 con estimateId → repetir con {"consent":{"estimateId":"…"}}
+curl -s -H "$AUTH" -H 'Content-Type: application/pdf' \
+  --data-binary @cv-antiguo.pdf $API/import-cv                       # 201: borrador en import/<nombre>/
+```
+
 ## El co-piloto como trabajos
 
 `cv improve`, `cv summarize` y `cv suggest tags` tardan lo que tarde el modelo, así que la API los convierte en **trabajos**: `POST /jobs/improve` (o `/jobs/summarize`, `/jobs/suggest-tags`) responde `202` al instante con el identificador del trabajo, la cabecera `Location` y, como hace la CLI antes de enviar nada, **qué va a salir y a dónde** (`sending`: número de fragmentos, palabras, destino). Los trabajos se ejecutan de uno en uno (un solo modelo local) y se siguen de dos maneras:

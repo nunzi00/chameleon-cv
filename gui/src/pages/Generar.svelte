@@ -6,7 +6,8 @@
   import Notice from '../components/Notice.svelte';
   import PdfViewer from '../components/PdfViewer.svelte';
   import TagPicker from '../components/TagPicker.svelte';
-  import type { ApiClient, OutputFile } from '../lib/api/client';
+  import { ApiError } from '../lib/api/client';
+import type { ApiClient, OutputFile } from '../lib/api/client';
   import type { GenerateResponse, HistoryEntry, ProfileResponse, ThemesResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, offerOf, projectOptions, skillGroups, specialtyPreview, type GenerateForm } from '../lib/generate/form';
@@ -23,12 +24,13 @@
   let { api, onsession, navigate }: Props = $props();
 
   /** Origen de la oferta en pantalla: la pestaña «PDF» desemboca en el modo «texto» al extraerlo. */
-  type OfferSource = 'none' | 'text' | 'pdf' | 'file';
+  type OfferSource = 'none' | 'text' | 'pdf' | 'file' | 'url';
   const OFFER_TABS: readonly { readonly id: OfferSource; readonly label: string }[] = [
     { id: 'none', label: 'Ninguna' },
     { id: 'text', label: 'Texto' },
     { id: 'pdf', label: 'PDF' },
     { id: 'file', label: 'Del espacio' },
+    { id: 'url', label: 'URL' },
   ];
 
   let form = $state<GenerateForm>({ ...EMPTY_FORM });
@@ -61,6 +63,77 @@
         });
     }, 400);
   });
+  /* ── T-8.5 S2: selector de offers/ y oferta por URL con consentimiento ── */
+  let offersList = $state<readonly { path: string; kind: string }[]>([]);
+  let offersLoaded = $state(false);
+  let offerUrl = $state('');
+  let urlBusy = $state(false);
+  let urlNotice = $state<string | undefined>(undefined);
+  let urlWarnings = $state<readonly string[]>([]);
+  let fetchConsent = $state<{ estimateId: string; host: string; limitBytes: number } | undefined>(undefined);
+  let fetchedOrigin = $state<string | undefined>(undefined);
+  let saveOfferName = $state('');
+  let saveOfferBusy = $state(false);
+
+  async function loadOffers(): Promise<void> {
+    try {
+      offersList = (await api.offers()).files.filter((file) => file.kind !== 'pdf');
+      offersLoaded = true;
+    } catch {
+      offersList = [];
+      offersLoaded = true;
+    }
+  }
+
+  async function downloadOffer(estimateId?: string): Promise<void> {
+    if (offerUrl.trim() === '' || urlBusy) {
+      return;
+    }
+    urlBusy = true;
+    urlNotice = undefined;
+    error = undefined;
+    fetchConsent = undefined;
+    try {
+      const result = await api.offerFetch({ url: offerUrl.trim(), ...(estimateId === undefined ? {} : { consent: { estimateId } }) });
+      form = { ...form, offerMode: 'text', offerText: result.text };
+      offerSource = 'text';
+      urlWarnings = result.warnings;
+      fetchedOrigin = result.origin.url;
+      urlNotice = `Oferta descargada (${result.origin.bytes} bytes, ${result.origin.kind}; procedencia: ${result.source}). Revisa el texto y guarda si quieres.`;
+      if (saveOfferName.trim() === '') {
+        saveOfferName = `${offerUrl.trim().replace(/^https:\/\//, '').split('/').filter((piece) => piece !== '').pop() ?? 'oferta'}.txt`.replace(/[^a-z0-9./_-]+/gi, '-').toLowerCase();
+      }
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'consent-required') {
+        fetchConsent = { estimateId: String(caught.details['estimateId']), host: String(caught.details['host']), limitBytes: Number(caught.details['limitBytes']) };
+      } else {
+        fail(caught);
+      }
+    } finally {
+      urlBusy = false;
+    }
+  }
+
+  async function saveFetchedOffer(replace: boolean): Promise<void> {
+    if (saveOfferBusy || form.offerText.trim() === '' || saveOfferName.trim() === '') {
+      return;
+    }
+    saveOfferBusy = true;
+    try {
+      const saved = await api.offerSave({ path: saveOfferName.trim(), text: form.offerText, ...(fetchedOrigin === undefined ? {} : { origin: { url: fetchedOrigin } }), ...(replace ? { replace: true } : {}) });
+      urlNotice = `Guardada en ${saved.path}.`;
+      void loadOffers();
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'conflict') {
+        urlNotice = `Ya existe ${saveOfferName.trim()}: pulsa «Sustituir» para reemplazarla.`;
+      } else {
+        fail(caught);
+      }
+    } finally {
+      saveOfferBusy = false;
+    }
+  }
+
   let error = $state<ExplainedError | undefined>(undefined);
   let notice = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
@@ -75,7 +148,7 @@
 
   function chooseOffer(source: OfferSource): void {
     offerSource = source;
-    form = { ...form, offerMode: source === 'none' ? 'none' : source === 'file' ? 'file' : 'text' };
+    form = { ...form, offerMode: source === 'none' || source === 'url' ? 'none' : source === 'file' ? 'file' : 'text' };
   }
 
   function fail(caught: unknown): void {
@@ -283,11 +356,44 @@
             <input name="offerPdf" type="file" accept="application/pdf" onchange={extract} />
           </label>
           <p class="cv-muted cv-step-note">El PDF se lee en un proceso aparte y solo se conserva su texto, que revisarás en la pestaña «Texto».</p>
+        {:else if offerSource === 'file'}
+          <label class="cv-field">
+            <span>Oferta guardada en offers/</span>
+            <select name="offerSaved" bind:value={form.offerFile} onfocus={() => { if (!offersLoaded) void loadOffers(); }}>
+              <option value="">(escribir la ruta a mano)</option>
+              {#each offersList as offer (offer.path)}
+                <option value={offer.path}>{offer.path}</option>
+              {/each}
+            </select>
+          </label>
+          <div class="cv-field-row">
+            <label class="cv-field">
+              <span>Fichero (relativo al espacio de trabajo)</span>
+              <input name="offerFile" class="mono" bind:value={form.offerFile} placeholder="offers/acme.txt" />
+            </label>
+            <button class="cv-button" type="button" onclick={() => void loadOffers()}>Recargar</button>
+          </div>
         {:else}
           <label class="cv-field">
-            <span>Fichero (relativo al espacio de trabajo)</span>
-            <input name="offerFile" class="mono" bind:value={form.offerFile} placeholder="offers/acme.txt" />
+            <span>URL de la oferta (https)</span>
+            <input name="offerUrl" class="mono" bind:value={offerUrl} placeholder="https://empresa.com/ofertas/backend" />
           </label>
+          <button class="cv-button" type="button" disabled={urlBusy || offerUrl.trim() === ''} onclick={() => void downloadOffer()}>
+            {urlBusy ? 'Descargando…' : 'Descargar'}
+          </button>
+          <p class="cv-muted cv-step-note">Una sola petición https sin cookies (máximo 2 MB); pide confirmación antes de salir a la red. El texto extraído aparecerá en la pestaña «Texto».</p>
+        {/if}
+        {#if urlNotice !== undefined}
+          <Notice kind="ok" title={urlNotice}>
+            {#if urlWarnings.length > 0}<p>{urlWarnings.join(' · ')}</p>{/if}
+            {#if fetchedOrigin !== undefined && form.offerText.trim() !== ''}
+              <div class="cv-field-row">
+                <label class="cv-field"><span>Guardar en offers/ como</span><input class="mono" bind:value={saveOfferName} /></label>
+                <button class="cv-button" type="button" disabled={saveOfferBusy} onclick={() => void saveFetchedOffer(false)}>Guardar</button>
+                {#if urlNotice.startsWith('Ya existe')}<button class="cv-button" type="button" disabled={saveOfferBusy} onclick={() => void saveFetchedOffer(true)}>Sustituir</button>{/if}
+              </div>
+            {/if}
+          </Notice>
         {/if}
       </div>
 
@@ -385,6 +491,19 @@
       <span class="cv-muted">→ <code>output/</code></span>
     </div>
   </form>
+
+  <Dialog open={fetchConsent !== undefined} title="Descargar la oferta: confirma la salida a la red" onclose={() => (fetchConsent = undefined)}>
+    {#if fetchConsent !== undefined}
+      <dl class="cv-consent">
+        <dt>Host</dt><dd class="cv-mono">{fetchConsent.host}</dd>
+        <dt>Límite</dt><dd>{Math.round(fetchConsent.limitBytes / 1024 / 1024)} MB · una sola petición · sin cookies ni datos tuyos</dd>
+      </dl>
+      <div class="cv-dialog-actions">
+        <button class="cv-button" type="button" onclick={() => (fetchConsent = undefined)}>Cancelar</button>
+        <button class="cv-button primary" type="button" onclick={() => { const id = fetchConsent?.estimateId; fetchConsent = undefined; void downloadOffer(id); }}>Descargar</button>
+      </div>
+    {/if}
+  </Dialog>
 
   <div class="cv-generar-result">
     {#if error !== undefined}

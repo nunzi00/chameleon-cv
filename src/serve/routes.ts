@@ -3,7 +3,7 @@
  * nunca acepta rutas del sistema de ficheros del cliente: solo identificadores relativos y saneados
  * dentro del espacio de trabajo. Los metadatos del registro alimentan la referencia generada.
  */
-import { basename, extname, resolve } from 'node:path';
+import { basename, dirname, extname, resolve, sep } from 'node:path';
 
 import { z } from 'zod';
 
@@ -12,7 +12,7 @@ import { lookupHistory, offerFingerprint, readHistory, recordHistory } from '../
 import type { AppContext } from '../app/context';
 import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
 import { buildProfile, loadProfile, loadSources } from '../app/dataset';
-import { environmentError, notFoundError, unsafePathError, type AppError, type AppErrorCode } from '../app/errors';
+import { environmentError, notFoundError, unsafePathError, type AppError, type AppErrorCode, conflictError, dataError } from '../app/errors';
 import { readSourceHistory, readSourceVersion, restoreSourceVersion } from '../app/source-history';
 import { generateCv, writeCvFile } from '../app/generate';
 import type { AppWarning } from '../app/freshness';
@@ -26,13 +26,15 @@ import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../ll
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
 import { importCvDraft } from '../app/import-cv';
+import { listOffers } from '../app/offer';
+import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
 import { outputTokensFloorFor } from '../llm/registry';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse } from './contract';
+import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -559,6 +561,101 @@ export function createRouter(): Router<ServerState> {
       }
       const extracted = await state.context.pdfExtractor(request.body);
       return extracted.ok ? json(200, { text: extracted.text } satisfies ExtractResponse) : appErrorResponse(extracted.code === 'timeout' || extracted.code === 'failed' ? environmentError(extracted.message) : { code: 'invalid-data', message: extracted.message, exitCode: 1 });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/offers`,
+    summary: 'Lista offers/ del espacio de trabajo (≤ 3 niveles, ≤ 500 entradas), de la más reciente a la más antigua, con tipo (text | markdown | pdf).',
+    writes: false,
+    handler: async (_request, state) => json(200, { files: await listOffers(state.context) } satisfies OffersListResponse),
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/offers/fetch`,
+    summary: 'Descarga una oferta por URL https (T-8.5 S2): 403 remote-disabled sin --allow-remote; 409 consent-required con estimateId (un solo uso, 10 min); con consent.estimateId, UNA petición sin cookies (2 MiB, 15 s, guardia SSRF) y el texto extraído con su procedencia. Sin efectos en disco.',
+    writes: false,
+    body: OfferFetchSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, OfferFetchSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      if (!state.allowRemote) {
+        return errorResponse('remote-disabled', 'Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para traer ofertas desde una URL');
+      }
+      let host: string;
+      try {
+        host = new URL(parsed.value.url).host;
+      } catch {
+        return appErrorResponse(dataError(`«${parsed.value.url}» no es una URL válida`));
+      }
+      if (parsed.value.consent === undefined || !state.consents.redeem(parsed.value.consent.estimateId, 'offer-fetch')) {
+        return errorResponse('consent-required', `Se descargará «${parsed.value.url}» (host ${host}, máximo ${Math.round(OFFER_URL_LIMITS.maxBytes / 1024 / 1024)} MB, sin cookies ni datos tuyos); repite la petición con consent.estimateId para confirmar`, {
+          estimateId: state.consents.issue('offer-fetch'),
+          host,
+          limitBytes: OFFER_URL_LIMITS.maxBytes,
+        });
+      }
+      const result = await fetchOffer(parsed.value.url, {
+        fetcher: state.context.fetcher ?? offerFetcher('es, en;q=0.8'),
+        pdfExtractor: async (content) => {
+          const extracted = await state.context.pdfExtractor(content);
+          return extracted.ok ? { ok: true, text: extracted.text } : { ok: false, message: extracted.message };
+        },
+      });
+      if (!result.ok) {
+        return appErrorResponse(dataError(result.message));
+      }
+      const { offer } = result;
+      return json(200, {
+        text: offer.text,
+        title: offer.title,
+        company: offer.company,
+        location: offer.location,
+        source: offer.source,
+        warnings: offer.warnings,
+        origin: { url: offer.url, fetchedAt: (state.context.now?.() ?? new Date()).toISOString(), kind: offer.kind, bytes: offer.bytes },
+      } satisfies OfferFetchResponse);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/offers`,
+    summary: 'Guarda el texto de una oferta en offers/ (ruta saneada, .txt o .md; cabecera de origen si se da origin.url); 409 si existe salvo replace: true. Escribe en offers/ (C9: acción explícita).',
+    writes: true,
+    body: OfferSaveSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, OfferSaveSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const raw = parsed.value.path.replace(/^offers\//, '');
+      // El charset lo vigila la expresión; contra «a/../..» la barrera real es el resolve de abajo.
+      if (!/^[a-z0-9][a-z0-9/_.-]*\.(txt|md)$/i.test(raw)) {
+        return appErrorResponse(dataError(`La ruta «${parsed.value.path}» no vale: minúsculas/dígitos/guiones dentro de offers/, con extensión .txt o .md`));
+      }
+      const target = resolve(state.context.cwd, 'offers', raw);
+      if (!target.startsWith(resolve(state.context.cwd, 'offers') + sep)) {
+        return appErrorResponse(dataError(`La ruta «${parsed.value.path}» sale de offers/`));
+      }
+      let exists = false;
+      try {
+        await state.context.datasetFileSystem.stat(target);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+      if (exists && parsed.value.replace !== true) {
+        return appErrorResponse(conflictError(`Ya existe offers/${raw}; repite con replace: true para sustituirla`));
+      }
+      const header = parsed.value.origin === undefined ? '' : `# Origen: ${parsed.value.origin.url}\n# Descargada: ${(state.context.now?.() ?? new Date()).toISOString()}\n\n`;
+      await state.context.artifactFileSystem.mkdir(dirname(target));
+      await state.context.artifactFileSystem.writeFile(target, header + parsed.value.text + '\n', 0o600);
+      return json(201, { path: `offers/${raw}` } satisfies OfferSaveResponse);
     },
   });
 

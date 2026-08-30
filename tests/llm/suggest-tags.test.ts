@@ -56,6 +56,24 @@ function fakeProvider(calls: LlmRequest[], suggestions: unknown = [{ tag: 'php',
 }
 
 describe('fragmento de suggest tags (canon C4: mínimo y seudonimizado)', () => {
+  it('la cuota agotada detiene el lote sin reintentos (C11) y conserva el mensaje del proveedor', async () => {
+    const calls: LlmRequest[] = [];
+    const quota: LlmProvider = {
+      id: 'ollama', kind: 'local', baseUrl: 'http://127.0.0.1:11434', model: 'fake',
+      complete: (request) => { calls.push(request); return Promise.resolve({ ok: false, code: 'quota-exceeded', message: 'cuota agotada, HTTP 429 (el proveedor pide esperar 42 s); no se reintenta' }); },
+      health: () => Promise.resolve({ ok: false, code: 'unreachable', message: 'x' }),
+    };
+    const progress: string[] = [];
+    const lote = [buildSuggestTagsFragment(profile, { id: 'exp-acme-1' }, dictionary), buildSuggestTagsFragment(profile, { text: 'algo suelto' }, dictionary)].filter((fragment) => fragment !== undefined);
+    expect(lote).toHaveLength(2);
+    const items = await runSuggestTagsBatch({ profile, fragments: lote, provider: quota, prompt: 'p', progress: (line) => progress.push(line) });
+    expect(calls).toHaveLength(1);
+    expect(items).toHaveLength(1);
+    expect(items[0]?.error).toContain('quota-exceeded');
+    expect(progress.at(-1)).toContain('cuota agotada; el lote se detiene');
+    expect(progress.at(-1)).toContain('esperar 42 s');
+  });
+
   it('de un logro del perfil: texto, tags actuales, contexto del contenedor, especialidades y diccionario', () => {
     const fragment = buildSuggestTagsFragment(profile, { id: 'exp-acme-1' }, dictionary, { redactCompanies: true, maxTags: 3, locale: 'en' });
     expect(fragment?.input).toEqual({

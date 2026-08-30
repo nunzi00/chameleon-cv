@@ -27,7 +27,7 @@ async function* events(list: SseEvent[]): AsyncGenerator<SseEvent, void, undefin
 const LLM_CONFIG = {
   llm: {
     config: undefined, configError: undefined, health: undefined, keys: { openai: 'env' as const, anthropic: 'none' as const, groq: 'none' as const }, keysFile: '', allowedHosts: [], remote: undefined, usable: true,
-    settings: { path: undefined, present: false, configured: false, error: undefined },
+    settings: { path: undefined, present: false, configured: false, error: undefined, values: { think: true } },
     providers: [{ id: 'openai' as const, plan: 'paid' as const, availability: 'available' as const, availabilityNote: undefined, host: 'api.openai.com', baseUrl: 'https://api.openai.com', defaultModel: 'gpt-4o-mini', models: [], keyPresence: 'env' as const, quota: undefined, rateLimitsUrl: 'https://x', c7: { sourceUrl: 'https://x', verifiedAt: '2026-08-30', quote: 'q' }, live: undefined }],
   },
   file: { path: '/work/cv.toml', present: false, sha256: undefined },
@@ -43,7 +43,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     startJob: vi.fn(async () => ({ job: running, sending: { destination: 'ollama (local)', items: 1, words: 9, redactCompanies: false }, warnings: [] })),
     cancelJob: vi.fn(async () => ({ job: { ...running, status: 'cancelled' as const } })),
     jobEvents: vi.fn(() => events([{ event: 'line', data: { line: '[1/1] exp-acme-1: 1/1 aceptadas · 30 ms' }, raw: '' }, { event: 'status', data: { ...running, status: 'done', lines: ['[1/1] exp-acme-1: 1/1 aceptadas · 30 ms'], result: { review: { name: 'revision-improve-2026-08-30.md', path: 'output/revision-improve-2026-08-30.md', sha256: 'h' }, stats: { items: 1, proposals: 1, accepted: 1, rejected: 0, failed: 0, fromCache: 0 } } }, raw: '' }])),
-    validate: vi.fn(), build: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), importCv: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(async () => LLM_CONFIG), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
+    validate: vi.fn(), build: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(async () => LLM_CONFIG), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
     ...overrides,
   };
 }
@@ -54,6 +54,9 @@ describe('Co-piloto', () => {
     const navigate = vi.fn();
     render(Copiloto, { props: { api, onsession: vi.fn(), navigate } });
     await waitFor(() => expect(screen.getByText('proveedor local listo')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Razonamiento')).toBeTruthy());
+    expect(screen.getByText(/pedido en cv\.toml — las tareas con esquema JSON lo ignoran/)).toBeTruthy();
+    expect(screen.getAllByText('Modelo').length).toBeGreaterThanOrEqual(1);
     await fireEvent.input(screen.getByLabelText(/Solo estos logros/), { target: { value: 'exp-acme-1' } });
     await fireEvent.input(screen.getByLabelText(/Propuestas por logro/), { target: { value: '1' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Lanzar trabajo' }));

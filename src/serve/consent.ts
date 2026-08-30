@@ -9,8 +9,8 @@ import type { JobKind } from './jobs';
 
 export const CONSENT_TTL_MS = 10 * 60 * 1000;
 
-/** Qué se confirma: un trabajo del co-piloto con proveedor remoto o la descarga de un tema (T-8.3). */
-export type ConsentKind = JobKind | 'theme-install';
+/** Qué se confirma: un trabajo del co-piloto con proveedor remoto o la descarga de un tema (T-8.3) o de una oferta por URL (T-8.5 S2). */
+export type ConsentKind = JobKind | 'theme-install' | 'offer-fetch';
 
 export class ConsentStore {
   private readonly pending = new Map<string, { readonly kind: ConsentKind; readonly issuedAt: number }>();

@@ -16,6 +16,7 @@ export type { HistoryEntry } from '../app/history';
 import type { GenerateReport } from '../app/generate';
 import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../app/review';
 import type { SourceEntry, SourceFile } from '../app/sources';
+import type { OfferListEntry } from '../app/offer';
 import type { CreatedTheme, InstalledTheme, ThemeInventory, ThemeVerification } from '../app/themes';
 import type { WorkspaceStatus } from '../app/workspace';
 import type { MasterProfile } from '../core/schema';
@@ -269,6 +270,40 @@ export interface GenerateResponse {
   readonly history: readonly HistoryEntry[];
   readonly warnings: readonly AppWarning[];
 }
+/** `GET /offers` (T-8.5 S2): el listado de offers/ (≤ 3 niveles, ≤ 500), de la más reciente a la más antigua. */
+export interface OffersListResponse {
+  readonly files: readonly OfferListEntry[];
+}
+
+/** `POST /offers/fetch` (T-8.5 S2): sin consent, 409 consent-required con estimateId; con él, la descarga única. */
+export const OfferFetchSchema = z.object({
+  url: z.string().trim().min(1),
+  consent: z.object({ estimateId: z.string() }).optional(),
+});
+export type OfferFetchRequest = z.infer<typeof OfferFetchSchema>;
+export interface OfferFetchResponse {
+  readonly text: string;
+  readonly title?: string | undefined;
+  readonly company?: string | undefined;
+  readonly location?: string | undefined;
+  /** Procedencia de la extracción: json-ld, json-ld+cuerpo, contenido o página. */
+  readonly source: string;
+  readonly warnings: readonly string[];
+  readonly origin: { readonly url: string; readonly fetchedAt: string; readonly kind: 'html' | 'pdf' | 'texto'; readonly bytes: number };
+}
+
+/** `POST /offers` (T-8.5 S2): guarda el texto en offers/ (ruta saneada); 409 si existe salvo replace. */
+export const OfferSaveSchema = z.object({
+  path: z.string().trim().min(1),
+  text: z.string().min(1),
+  origin: z.object({ url: z.string().trim().min(1) }).optional(),
+  replace: z.boolean().optional(),
+});
+export type OfferSaveRequest = z.infer<typeof OfferSaveSchema>;
+export interface OfferSaveResponse {
+  readonly path: string;
+}
+
 /** `POST /import-cv` (T-8.4b): el CV maquetado (cuerpo binario PDF/DOCX) importado como borrador en import/<nombre>/. */
 export interface ImportCvResponse {
   /** Carpeta del borrador (`import/<nombre>`). */

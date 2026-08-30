@@ -1,7 +1,7 @@
 /**
  * Orquestación de `cv suggest tags` (T-4.6): para cada fragmento, caché o proveedor → validación
  * zod → verificación del diccionario cerrado y evidencia (C10) → ítem con las etiquetas
- * aceptadas y las rechazadas. Un fallo en un ítem no aborta el lote. Sin I/O de ficheros.
+ * aceptadas y las rechazadas. Un fallo en un ítem no aborta el lote, salvo la cuota agotada (quota-exceeded): sin reintentos (C11), el resto de la tanda se detiene y el mensaje conserva el «reintenta en Xs» del proveedor. Sin I/O de ficheros.
  */
 import { formatHashtags, verifyTagSuggestions, type AcceptedTag, type RejectedTag } from '../core/llm/tags';
 import { buildVocabulary } from '../core/keywords';
@@ -80,6 +80,10 @@ export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Pro
     }
     if (!result.ok) {
       items.push({ ...base, accepted: [], rejected: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} });
+      if (result.code === 'quota-exceeded') {
+        options.progress?.(`${label}: cuota agotada; el lote se detiene (${result.message})`);
+        break;
+      }
       options.progress?.(`${label}: fallo (${result.code})`);
       continue;
     }

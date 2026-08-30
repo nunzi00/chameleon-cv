@@ -3,7 +3,7 @@
  * en memoria, un lector diferido (la entrada estándar de la CLI) o un fichero de texto o PDF (texto
  * extraído en un worker contenido), con límites de tamaño; vacía es error de datos.
  */
-import { basename, extname, resolve } from 'node:path';
+import { basename, extname, relative, resolve } from 'node:path';
 
 import { normalizeInput } from '../core/keywords';
 import { DEFAULT_PDF_LIMITS, type PdfErrorCode } from '../pdf';
@@ -29,6 +29,55 @@ export interface OfferText {
 }
 
 export type OfferResult = { readonly ok: true; readonly offer: OfferText } | { readonly ok: false; readonly error: AppError };
+
+/* ───────────────────── Listado de offers/ (T-8.5 S2, docs/offers-from-url.md §4.4) ───────────────────── */
+
+const OFFER_LIST_EXTENSIONS = /\.(txt|md|markdown|pdf)$/i;
+
+export type OfferFileKind = 'text' | 'markdown' | 'pdf';
+
+export interface OfferListEntry {
+  readonly path: string;
+  readonly bytes: number;
+  readonly modifiedAt: string;
+  readonly kind: OfferFileKind;
+}
+
+function offerKindOf(name: string): OfferFileKind {
+  const lower = name.toLowerCase();
+  return lower.endsWith('.pdf') ? 'pdf' : lower.endsWith('.txt') ? 'text' : 'markdown';
+}
+
+/** Lista `offers/**` (profundidad ≤ 3, ≤ 500 entradas) ordenada por fecha de cambio descendente y ruta. */
+export async function listOffers(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>): Promise<readonly OfferListEntry[]> {
+  const root = resolve(context.cwd, 'offers');
+  const found: OfferListEntry[] = [];
+  async function walk(directory: string, depth: number): Promise<void> {
+    if (depth > 3 || found.length >= 500) {
+      return;
+    }
+    let entries;
+    try {
+      entries = await context.datasetFileSystem.readDirectory(directory);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (found.length >= 500) {
+        return;
+      }
+      const path = resolve(directory, entry.name);
+      if (entry.kind === 'directory') {
+        await walk(path, depth + 1);
+      } else if (entry.kind === 'file' && OFFER_LIST_EXTENSIONS.test(entry.name)) {
+        const info = await context.datasetFileSystem.stat(path);
+        found.push({ path: relative(context.cwd, path), bytes: info.size, modifiedAt: new Date(info.mtimeMs).toISOString(), kind: offerKindOf(entry.name) });
+      }
+    }
+  }
+  await walk(root, 1);
+  return found.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt) || a.path.localeCompare(b.path));
+}
 
 /** Nombre corto de una oferta a partir de la ruta de su fichero. */
 export function offerNameOf(path: string): string {

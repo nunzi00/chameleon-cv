@@ -63,7 +63,7 @@ Fuera (esta tarea): páginas que solo pintan la oferta con JavaScript (se detect
 | Ruta | Comportamiento |
 |---|---|
 | `GET /api/v1/offers` | Lista `offers/**` (profundidad ≤ 3, ≤ 500 entradas): `{ path, bytes, modifiedAt, kind: 'text' \| 'markdown' \| 'pdf' }`; ignora enlaces simbólicos que salgan del espacio de trabajo |
-| `POST /api/v1/offers/fetch` `{ url }` | `403 remote-disabled` sin `--allow-remote`; `409 consent-required` con `{ estimateId, host, limitBytes }`; con `{ url, consent: { estimateId } }` → `200 { text, title?, company?, location?, source, warnings, origin: { url, fetchedAt, contentType, bytes } }`. Sin efectos secundarios; el `estimateId` es de un solo uso y caduca |
+| `POST /api/v1/offers/fetch` `{ url }` | `403 remote-disabled` sin `--allow-remote`; `409 consent-required` con `{ estimateId, host, limitBytes }`; con `{ url, consent: { estimateId } }` → `200 { text, title?, company?, location?, source, warnings, origin: { url, fetchedAt, kind, bytes } }`. Sin efectos secundarios; el `estimateId` es de un solo uso y caduca |
 | `POST /api/v1/offers` `{ path, text, origin? }` | Guarda en `offers/` (ruta saneada, sin `..`, extensión `.txt` o `.md`); `409` si existe salvo `replace: true`; `201 { path }` |
 
 `OfferSchema` de `POST /analyze` y `POST /generate` **no cambia**: la URL pasa antes por `/offers/fetch` (única frontera de consentimiento) y después se envía como `{ text }` o, si se guardó, como `{ workspaceFile }`.
@@ -173,4 +173,5 @@ Petición al PO: conformidad con este plan de S1 (incluido cerrar §4.6 dentro d
   1. `es.linkedin.com` (Backend Software Engineer – Golang, BETWEEN Group): 345.094 bytes, HTML, **procedencia json-ld**; 7 requisitos reconocidos, adecuación 7/7 (100 %), imprescindibles 7/7.
   2. `jobgether.com` (Senior QA Engineer, Trading 212): 210.896 bytes, HTML, **procedencia json-ld**; 6 requisitos, adecuación 6/6 (100 %).
   3. `getmanfred.com` (Product Manager, Valsea Technologies): 287.133 bytes, HTML, **procedencia json-ld+cuerpo** con el aviso esperado («la descripción del JSON-LD tiene 106 palabras; el cuerpo se toma del contenido de la página (1703)»); 9 requisitos, adecuación 8/9 (89 %), imprescindibles 1/1.
-- Pendiente: S2 (API + GUI) y S3 según §9.
+- **S2 IMPLEMENTADO (31-ago)**: las tres rutas de §4.4 (`GET /offers` con tipo y orden; `POST /offers/fetch` con 403/409-consentimiento de un solo uso —`ConsentStore`, 10 min— y descarga única con procedencia; `POST /offers` saneado con cabecera de origen y 409 salvo `replace`) con pruebas contra servidor real; en Generar, selector de `offers/` con «Recargar» y pestaña «URL» → diálogo de consentimiento (host, límite, «sin cookies ni datos tuyos») → texto editable en «Texto» con procedencia/avisos → «Guardar en offers/…» con «Sustituir» ante conflicto. `origin.kind` en vez de `contentType` (el vocabulario real del extractor: html | texto | pdf). El listado se movió a `src/app/offer.ts` (mismo límite ≤3 niveles/≤500).
+- Pendiente: S3 según §9.

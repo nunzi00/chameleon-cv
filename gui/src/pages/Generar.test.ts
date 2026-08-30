@@ -45,6 +45,9 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     offerHistory: vi.fn(async () => ({ entries: [] })),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
     importCv: vi.fn(),
+    offers: vi.fn(),
+    offerFetch: vi.fn(),
+    offerSave: vi.fn(),
     createTheme: vi.fn(async () => ({ name: 'mio', directory: '/work/themes/mio', from: 'classic' } as never)),
     installTheme: vi.fn(),
     verifyTheme: vi.fn(),
@@ -82,6 +85,44 @@ describe('Generar', () => {
     expect(api.generate).toHaveBeenCalledWith({ format: 'pdf', engine: 'typst', theme: 'classic', topN: 3, compact: true });
     expect(api.output).toHaveBeenCalledWith('cv.pdf');
     expect(screen.getByText('Avisos')).toBeTruthy();
+  });
+
+  it('S2: el selector lista offers/, la URL pasa por consentimiento y el texto llega con procedencia; guardar llama a offerSave', async () => {
+    const api = fakeApi({
+      offers: vi.fn(async () => ({ files: [{ path: 'offers/acme.txt', bytes: 10, modifiedAt: '2026-08-31T00:00:00.000Z', kind: 'text' as const }] })),
+      offerFetch: vi.fn()
+        .mockRejectedValueOnce(new ApiError(409, { code: 'consent-required', message: 'confirma', estimateId: 'e-1', host: 'empresa.com', limitBytes: 2 * 1024 * 1024 } as never))
+        .mockResolvedValueOnce({ text: 'Título: Backend Senior\n\nCuerpo de la oferta', title: 'Backend Senior', source: 'json-ld', warnings: ['aviso de prueba'], origin: { url: 'https://empresa.com/oferta', fetchedAt: 'x', kind: 'html' as const, bytes: 345 } }),
+      offerSave: vi.fn(async () => ({ path: 'offers/backend.txt' })),
+    });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Del espacio' }));
+    await fireEvent.focus(screen.getByLabelText('Oferta guardada en offers/'));
+    await waitFor(() => expect(screen.getByRole('option', { name: 'offers/acme.txt' })).toBeTruthy());
+    await fireEvent.change(screen.getByLabelText('Oferta guardada en offers/'), { target: { value: 'offers/acme.txt' } });
+    expect((screen.getByPlaceholderText('offers/acme.txt') as HTMLInputElement).value).toBe('offers/acme.txt');
+    await fireEvent.click(screen.getByRole('tab', { name: 'URL' }));
+    await fireEvent.input(screen.getByLabelText('URL de la oferta (https)'), { target: { value: 'https://empresa.com/oferta' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Descargar' }));
+    await waitFor(() => expect(screen.getByText('empresa.com')).toBeTruthy());
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Descargar' }).at(-1)!);
+    await waitFor(() => expect(screen.getByText(/procedencia: json-ld/)).toBeTruthy());
+    expect(api.offerFetch).toHaveBeenLastCalledWith({ url: 'https://empresa.com/oferta', consent: { estimateId: 'e-1' } });
+    expect((screen.getByLabelText('Texto de la oferta') as HTMLTextAreaElement).value).toContain('Backend Senior');
+    expect(screen.getByText('aviso de prueba')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(api.offerSave).toHaveBeenCalledWith(expect.objectContaining({ text: expect.stringContaining('Backend Senior') as string, origin: { url: 'https://empresa.com/oferta' } })));
+  });
+
+  it('S2: sin --allow-remote, el 403 explica cómo arrancar el servidor', async () => {
+    const api = fakeApi({ offerFetch: vi.fn(async () => { throw new ApiError(403, { code: 'remote-disabled', message: 'arráncalo con «cv serve --allow-remote»' }); }) });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'URL' }));
+    await fireEvent.input(screen.getByLabelText('URL de la oferta (https)'), { target: { value: 'https://x.com/y' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Descargar' }));
+    await waitFor(() => expect(screen.getByText(/--allow-remote/)).toBeTruthy());
   });
 
   it('analiza una oferta pegada, extrae el texto de un PDF y rechaza lo incompleto sin llamar a la API', async () => {

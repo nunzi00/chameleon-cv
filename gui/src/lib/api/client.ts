@@ -5,6 +5,11 @@
  */
 import type {
   ImportCvResponse,
+  OffersListResponse,
+  OfferFetchRequest,
+  OfferFetchResponse,
+  OfferSaveRequest,
+  OfferSaveResponse,
   AnalyzeRequest,
   AnalyzeResponse,
   ApplyRequest,
@@ -116,6 +121,12 @@ export interface ApiClient {
   extractOffer(pdf: Blob): Promise<ExtractResponse>;
   /** POST /import-cv (T-8.4b): el CV (PDF/DOCX) como borrador en import/<nombre>/; 409 conflict si ya existe sin replace. */
   importCv(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
+  /** GET /offers (T-8.5 S2): el listado de offers/ para el selector de Generar. */
+  offers(): Promise<OffersListResponse>;
+  /** POST /offers/fetch: 409 consent-required con estimateId la primera vez; repetir con consent para descargar. */
+  offerFetch(body: OfferFetchRequest): Promise<OfferFetchResponse>;
+  /** POST /offers: guarda el texto en offers/ (201). */
+  offerSave(body: OfferSaveRequest): Promise<OfferSaveResponse>;
   themes(): Promise<ThemesResponse>;
   createTheme(body: ThemeCreateRequest): Promise<ThemeCreateResponse>;
   /** 200 plan (dryRun) o 201 instalado; 403 remote-disabled y 409 consent-required llegan como ApiError con sus detalles. */
@@ -258,6 +269,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });
       return parseJson(await response.text()) as ExtractResponse;
     },
+    offers: () => request('GET', '/offers'),
+    offerFetch: (body) => request('POST', '/offers/fetch', { body }),
+    offerSave: (body) => request('POST', '/offers', { body }),
     importCv: async (file, options = {}) => {
       const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
       const response = await raw('POST', '/import-cv', { body: file, contentType: 'application/pdf', headers });
