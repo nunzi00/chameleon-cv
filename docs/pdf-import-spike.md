@@ -133,4 +133,5 @@ Este documento (evidencia y decisión, §11), una entrada en el ROADMAP con el v
 
 ## 11. Estado de la implementación
 
-- 2026-08-30: PROPUESTA v1 redactada tras la aprobación del S3 de T-8.3; pendiente de envío al Director cuando las releases v1.5.0 y v1.6.0 estén en marcha, tal como ordenó. Sin implementación hasta su aprobación.
+- 2026-08-30: PROPUESTA v1 redactada tras la aprobación del S3 de T-8.3 y enviada al Director con las releases v1.5.0 y v1.6.0 ya en marcha.
+- 2026-08-30: **APROBADA** por el Director de Ingeniería y Producto «en su totalidad»: las ocho decisiones de §10 confirmadas y los umbrales de §4.4 **fijados** («no se modificarán»). El S1 comienza cuando las dos releases estén verificadas.
