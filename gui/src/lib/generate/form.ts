@@ -1,5 +1,5 @@
 /** El formulario de Generar → los cuerpos de POST /generate y POST /analyze-offer, con la validación que la API exigiría. */
-import type { AnalyzeRequest, GenerateRequest } from '../api/types';
+import type { AnalyzeRequest, GenerateRequest, ProfileResponse } from '../api/types';
 
 export type OfferMode = 'none' | 'text' | 'file';
 
@@ -17,6 +17,9 @@ export interface GenerateForm {
   readonly maxSkills: string;
   readonly maxProjects: string;
   readonly maxCertifications: string;
+  /** Selección explícita de skills (nombres) y proyectos (ids); vacío = todas/todos. */
+  readonly skills: readonly string[];
+  readonly projects: readonly string[];
   readonly compact: boolean;
   /** Nombre del fichero en output/ (vacío = el de la CLI). */
   readonly output: string;
@@ -36,6 +39,8 @@ export const EMPTY_FORM: GenerateForm = {
   maxSkills: '',
   maxProjects: '',
   maxCertifications: '',
+  skills: [],
+  projects: [],
   compact: false,
   output: '',
   build: false,
@@ -107,6 +112,8 @@ export function buildGenerateRequest(form: GenerateForm): FormResult<GenerateReq
     ...(maxSkills >= 0 ? { maxSkills } : {}),
     ...(maxProjects >= 0 ? { maxProjects } : {}),
     ...(maxCertifications >= 0 ? { maxCertifications } : {}),
+    ...(form.skills.length > 0 ? { skills: [...form.skills] } : {}),
+    ...(form.projects.length > 0 ? { projects: [...form.projects] } : {}),
     ...(form.compact ? { compact: true } : {}),
   };
   return { ok: true, body };
@@ -121,4 +128,23 @@ export function buildAnalyzeRequest(form: GenerateForm): FormResult<AnalyzeReque
     return { ok: false, message: 'Para analizar hace falta una oferta: pega su texto, sube su PDF o indica su fichero' };
   }
   return { ok: true, body: { offer: offer.body, ...(form.specialty === '' ? {} : { specialty: form.specialty }), ...(form.build ? { build: true } : {}) } };
+}
+
+export interface SkillGroup {
+  readonly category: string;
+  readonly names: readonly string[];
+}
+
+/** Skills del perfil agrupadas por categoría (en el orden del perfil) para el selector múltiple. */
+export function skillGroups(profile: ProfileResponse | undefined): SkillGroup[] {
+  const groups = new Map<string, string[]>();
+  for (const skill of profile?.skills ?? []) {
+    groups.set(skill.category, [...(groups.get(skill.category) ?? []), skill.name]);
+  }
+  return [...groups.entries()].map(([category, names]) => ({ category, names }));
+}
+
+/** Proyectos del perfil (id y nombre) para el selector múltiple. */
+export function projectOptions(profile: ProfileResponse | undefined): Array<{ readonly id: string; readonly name: string }> {
+  return (profile?.projects ?? []).map((project) => ({ id: project.id, name: project.name }));
 }

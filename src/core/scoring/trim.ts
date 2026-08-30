@@ -16,6 +16,10 @@ export interface SectionLimits {
   readonly skills?: number | undefined;
   readonly projects?: number | undefined;
   readonly certifications?: number | undefined;
+  /** Selección explícita de skills (ids o nombres): solo estas, antes del límite por cantidad (`--skills`). */
+  readonly skillsInclude?: readonly string[] | undefined;
+  /** Selección explícita de proyectos (ids o nombres): solo estos, antes del límite por cantidad (`--projects`). */
+  readonly projectsInclude?: readonly string[] | undefined;
 }
 
 export type RemovableSection = 'experience' | 'projects' | 'achievements' | 'skills' | 'certifications';
@@ -33,10 +37,43 @@ export interface TrimResult {
   readonly profile: MasterProfile;
   /** Lo recortado, en el orden en que se recortó (por sección y de mayor a menor puntuación). */
   readonly removed: readonly RemovedItem[];
+  /** Nombres o ids de la selección explícita que no existen en el perfil (aviso, no error). */
+  readonly unknown: { readonly skills: readonly string[]; readonly projects: readonly string[] };
+}
+
+/** Clave de comparación de nombres e ids: minúsculas, sin acentos ni espacios sobrantes. */
+export function selectionKey(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Selección explícita: conserva los ítems cuyo id o nombre está en la lista (en el orden del documento) y devuelve los
+ * demás como recortados; los nombres que no casan con nada se devuelven aparte. La lista manda sobre los anclados.
+ */
+export function keepListed<T extends Trimmable & { readonly name: string }>(items: readonly T[], include: readonly string[], scoreOf: ScoreLookup): KeepResult<T> & { readonly unknown: readonly string[] } {
+  const wanted = new Set(include.map(selectionKey));
+  const matched = new Set<string>();
+  const kept: T[] = [];
+  const removed: Array<{ readonly item: T; readonly score: number }> = [];
+  for (const item of items) {
+    const keys = [selectionKey(item.id), selectionKey(item.name)];
+    const hit = keys.find((key) => wanted.has(key));
+    if (hit === undefined) {
+      removed.push({ item, score: scoreOf(item.id) });
+    } else {
+      keys.forEach((key) => matched.add(key));
+      kept.push(item);
+    }
+  }
+  return { kept, removed, unknown: include.filter((value) => !matched.has(selectionKey(value))) };
 }
 
 /** Preset `--compact`: la vía rápida a un CV de una página. */
-export const COMPACT_LIMITS: Required<SectionLimits> = {
+export const COMPACT_LIMITS: Required<Omit<SectionLimits, 'skillsInclude' | 'projectsInclude'>> = {
   achievementsPerContainer: 4,
   achievements: 4,
   skills: 12,
@@ -104,11 +141,22 @@ export function applyLimits(profile: MasterProfile, limits: SectionLimits, score
     return result.kept;
   };
 
+  const listed = <T extends Trimmable & { readonly name: string }>(section: 'skills' | 'projects', items: readonly T[], include: readonly string[] | undefined): { readonly kept: readonly T[]; readonly unknown: readonly string[] } => {
+    if (include === undefined) {
+      return { kept: items, unknown: [] };
+    }
+    const result = keepListed(items, include, scoreOf);
+    removed.push(...result.removed.map(({ item, score }) => ({ section, id: item.id, score })));
+    return { kept: result.kept, unknown: result.unknown };
+  };
+
   const experience = profile.experience.map((container) => trimContainer('experience', container));
-  const projects = trimFlat('projects', profile.projects, limits.projects).map((container) => trimContainer('projects', container));
-  const skills = trimFlat('skills', profile.skills, limits.skills);
+  const listedProjects = listed('projects', profile.projects, limits.projectsInclude);
+  const projects = trimFlat('projects', listedProjects.kept, limits.projects).map((container) => trimContainer('projects', container));
+  const listedSkills = listed('skills', profile.skills, limits.skillsInclude);
+  const skills = trimFlat('skills', listedSkills.kept, limits.skills);
   const certifications = trimFlat('certifications', profile.certifications, limits.certifications);
   const achievements = trimFlat('achievements', profile.achievements, limits.achievements);
 
-  return { profile: { ...profile, experience, projects, skills, certifications, achievements }, removed };
+  return { profile: { ...profile, experience, projects, skills, certifications, achievements }, removed, unknown: { skills: listedSkills.unknown, projects: listedProjects.unknown } };
 }

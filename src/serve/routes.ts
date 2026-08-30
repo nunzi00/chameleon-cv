@@ -333,6 +333,8 @@ export function createRouter(): Router<ServerState> {
         maxProjects: body.maxProjects,
         maxCertifications: body.maxCertifications,
         compact: body.compact ?? false,
+        skills: body.skills,
+        projects: body.projects,
       });
       const report = result.report === undefined ? undefined : { selection: result.report.selection, match: result.report.match, limits: result.report.limits, removed: result.report.removed, theme: result.report.theme };
       if (!result.ok) {

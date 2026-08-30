@@ -22,7 +22,7 @@ import { parsePort, runServe, type ServeCommandOptions } from './commands/serve'
 import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
-import { parseLimit, parseProposals } from './limits';
+import { parseLimit, parseList, parseProposals } from './limits';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
@@ -95,6 +95,8 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--max-skills <n>', 'skills como máximo', parseLimit)
     .option('--max-projects <n>', 'proyectos como máximo', parseLimit)
     .option('--max-certifications <n>', 'certificaciones como máximo', parseLimit)
+    .option('--skills <lista>', 'solo estas skills (nombres o ids separados por comas), antes de --max-skills; las desconocidas se avisan', parseList)
+    .option('--projects <lista>', 'solo estos proyectos (nombres o ids separados por comas), antes de --max-projects; los desconocidos se avisan', parseList)
     .option('--compact', 'preset: --top-n 4 --max-skills 12 --max-projects 4 --max-certifications 5 (los límites explícitos prevalecen)', false)
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)

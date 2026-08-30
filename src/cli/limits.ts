@@ -19,3 +19,15 @@ export function parseProposals(value: string): number {
   }
   return parsed;
 }
+
+/** `--skills PHP,Kubernetes` / `--projects proj-a,proj-b`: nombres o ids separados por comas, sin vacíos. */
+export function parseList(value: string): string[] {
+  const items = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+  if (items.length === 0) {
+    throw new InvalidArgumentError('debe ser una lista de nombres o ids separados por comas');
+  }
+  return items;
+}

@@ -8,10 +8,12 @@ import {
   COMPACT_LIMITS,
   NO_SCORES,
   applyLimits,
+  keepListed,
   keepTop,
   labelFor,
   labelOrId,
   scoresFromReport,
+  selectionKey,
   summarizeMatch,
   tailorToOffer,
   type ScoreLookup,
@@ -214,5 +216,39 @@ describe('summarizeMatch', () => {
     expect(labelOrId(profile, 'skills', 'nope')).toBe('nope');
     const long = { ...profile, achievements: [{ ...profile.achievements[0]!, id: 'largo', text: 'x'.repeat(80) }] };
     expect(labelFor(long, 'achievements', 'largo')).toHaveLength(60);
+  });
+});
+
+describe('selección explícita de skills y proyectos (docs/trimming-cli.md §3.5, invariante 6)', () => {
+  it('selectionKey ignora mayúsculas, acentos y espacios', () => {
+    expect(selectionKey('  Ingeniería de DATOS ')).toBe('ingenieria de datos');
+  });
+
+  it('keepListed conserva los listados por id o nombre en el orden del documento, devuelve el resto como recortado y los desconocidos aparte', () => {
+    const items = [
+      { id: 'skill-1', name: 'PHP', tags: ['pin'] },
+      { id: 'skill-2', name: 'Kubernetes', tags: [] },
+      { id: 'skill-3', name: 'Análisis de datos', tags: [] },
+    ];
+    const result = keepListed(items, ['kubernetes', 'analisis de datos', 'Inexistente'], (id) => (id === 'skill-1' ? 9 : 1));
+    expect(result.kept.map((item) => item.id)).toEqual(['skill-2', 'skill-3']);
+    expect(result.removed).toEqual([{ item: items[0], score: 9 }]);
+    expect(result.unknown).toEqual(['Inexistente']);
+    expect(keepListed(items, ['skill-1'], NO_SCORES).kept.map((item) => item.id)).toEqual(['skill-1']);
+  });
+
+  it('applyLimits aplica la lista antes del límite por cantidad y no toca las demás secciones', () => {
+    const profile = deepFreeze(selectionProfile());
+    const [firstSkill, secondSkill] = profile.skills;
+    const [firstProject] = profile.projects;
+    const limits: SectionLimits = { skillsInclude: [secondSkill!.name, firstSkill!.id, 'Nadie'], projectsInclude: [firstProject!.name], skills: 1 };
+    const result = applyLimits(profile, limits, NO_SCORES);
+    expect(result.profile.skills.map((skill) => skill.id)).toEqual([firstSkill!.id]);
+    expect(result.profile.projects.map((project) => project.id)).toEqual([firstProject!.id]);
+    expect(result.unknown).toEqual({ skills: ['Nadie'], projects: [] });
+    expect(result.removed.filter((item) => item.section === 'skills')).toHaveLength(profile.skills.length - 1);
+    expect(result.removed.filter((item) => item.section === 'projects')).toHaveLength(profile.projects.length - 1);
+    expect(result.profile.experience).toEqual(profile.experience);
+    expect(applyLimits(profile, {}, NO_SCORES).unknown).toEqual({ skills: [], projects: [] });
   });
 });

@@ -10,7 +10,13 @@ export interface LimitOptions {
   readonly maxProjects?: number | undefined;
   readonly maxCertifications?: number | undefined;
   readonly compact: boolean;
+  /** Solo estas skills (ids o nombres), antes de `maxSkills`. */
+  readonly skills?: readonly string[] | undefined;
+  /** Solo estos proyectos (ids o nombres), antes de `maxProjects`. */
+  readonly projects?: readonly string[] | undefined;
 }
+
+const listOrUndefined = (values: readonly string[] | undefined): readonly string[] | undefined => (values === undefined || values.length === 0 ? undefined : values);
 
 export function resolveLimits(options: LimitOptions): SectionLimits {
   const preset: SectionLimits = options.compact ? COMPACT_LIMITS : {};
@@ -20,6 +26,8 @@ export function resolveLimits(options: LimitOptions): SectionLimits {
     skills: options.maxSkills ?? preset.skills,
     projects: options.maxProjects ?? preset.projects,
     certifications: options.maxCertifications ?? preset.certifications,
+    skillsInclude: listOrUndefined(options.skills),
+    projectsInclude: listOrUndefined(options.projects),
   };
 }
 
@@ -34,6 +42,8 @@ export function describeLimits(limits: SectionLimits): string {
     limits.skills === undefined ? undefined : `--max-skills ${limits.skills}`,
     limits.projects === undefined ? undefined : `--max-projects ${limits.projects}`,
     limits.certifications === undefined ? undefined : `--max-certifications ${limits.certifications}`,
+    limits.skillsInclude === undefined ? undefined : `--skills ${limits.skillsInclude.join(',')}`,
+    limits.projectsInclude === undefined ? undefined : `--projects ${limits.projectsInclude.join(',')}`,
   ];
   return parts.filter((part): part is string => part !== undefined).join(', ');
 }

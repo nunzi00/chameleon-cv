@@ -5,9 +5,9 @@
   import Notice from '../components/Notice.svelte';
   import PdfViewer from '../components/PdfViewer.svelte';
   import type { ApiClient, OutputFile } from '../lib/api/client';
-  import type { GenerateResponse, ThemesResponse } from '../lib/api/types';
+  import type { GenerateResponse, ProfileResponse, ThemesResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, type GenerateForm } from '../lib/generate/form';
+  import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, projectOptions, skillGroups, type GenerateForm } from '../lib/generate/form';
   import { analysisView, reportSections, type AnalysisView, type ReportSection } from '../lib/generate/report';
   import type { Route } from '../lib/router';
   import { describeInstalled, installProblem, themeOptionLabel, type InstallProblem } from '../lib/themes/install';
@@ -23,6 +23,7 @@
   let specialties = $state<readonly string[]>([]);
   let typstUsable = $state(false);
   let themes = $state<ThemesResponse | undefined>(undefined);
+  let profile = $state<ProfileResponse | undefined>(undefined);
   let error = $state<ExplainedError | undefined>(undefined);
   let notice = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
@@ -45,8 +46,9 @@
 
   async function loadContext(): Promise<void> {
     try {
-      const [status, inventory] = await Promise.all([api.status(), api.themes()]);
+      const [status, inventory, loadedProfile] = await Promise.all([api.status(), api.themes(), Promise.resolve().then(() => api.profile()).catch(() => undefined)]);
       specialties = status.artifact.specialties;
+      profile = loadedProfile;
       typstUsable = status.typst.usable;
       themes = inventory;
       if (typstUsable) {
@@ -249,8 +251,26 @@
       {/if}
     {/if}
     <label class="cv-field"><span>Top N logros</span><input name="topN" inputmode="numeric" bind:value={form.topN} placeholder="todos" /></label>
-    <label class="cv-field"><span>Skills</span><input name="maxSkills" inputmode="numeric" bind:value={form.maxSkills} placeholder="todas" /></label>
-    <label class="cv-field"><span>Proyectos</span><input name="maxProjects" inputmode="numeric" bind:value={form.maxProjects} placeholder="todos" /></label>
+    <label class="cv-field"><span>Skills como máximo</span><input name="maxSkills" inputmode="numeric" bind:value={form.maxSkills} placeholder="todas" /></label>
+    <label class="cv-field"><span>Proyectos como máximo</span><input name="maxProjects" inputmode="numeric" bind:value={form.maxProjects} placeholder="todos" /></label>
+    {#if skillGroups(profile).length > 0}
+      <label class="cv-field">
+        <span>Solo estas skills ({form.skills.length === 0 ? 'todas' : form.skills.length})</span>
+        <select name="skills" multiple size="6" bind:value={form.skills}>
+          {#each skillGroups(profile) as group (group.category)}
+            <optgroup label={group.category}>{#each group.names as name (name)}<option value={name}>{name}</option>{/each}</optgroup>
+          {/each}
+        </select>
+      </label>
+    {/if}
+    {#if projectOptions(profile).length > 0}
+      <label class="cv-field">
+        <span>Solo estos proyectos ({form.projects.length === 0 ? 'todos' : form.projects.length})</span>
+        <select name="projects" multiple size="4" bind:value={form.projects}>
+          {#each projectOptions(profile) as project (project.id)}<option value={project.id}>{project.name}</option>{/each}
+        </select>
+      </label>
+    {/if}
     <label class="cv-field"><span>Certificaciones</span><input name="maxCertifications" inputmode="numeric" bind:value={form.maxCertifications} placeholder="todas" /></label>
     <label class="cv-field"><span>Idioma (locale)</span><input name="locale" bind:value={form.locale} placeholder="el del perfil" /></label>
     <label class="cv-field"><span>Nombre del fichero</span><input name="output" bind:value={form.output} placeholder="el de la CLI" /></label>

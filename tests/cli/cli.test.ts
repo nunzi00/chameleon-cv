@@ -164,6 +164,17 @@ describe('cv generate-cv', () => {
     expect(written?.content).toContain('### Tech Lead · Startup Ejemplo');
   });
 
+  it('con --skills y --projects solo entran los listados, avisa de los desconocidos y el informe lo refleja', async () => {
+    const h = compiled();
+    expect(await runCli(['generate-cv', '--skills', 'php,Nadie', '--projects', 'proj-platform,Nadie2', '--explain'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Aviso: skills no encontrados en el perfil (se ignoran): Nadie\n');
+    expect(h.stderr()).toContain('Aviso: proyectos no encontrados en el perfil (se ignoran): Nadie2\n');
+    expect(h.stderr()).toContain('Recortes (--skills php,Nadie, --projects proj-platform,Nadie2)');
+    const written = h.fs.file('/work/output/cv-ada-ejemplo.md')?.content ?? '';
+    expect(written).toContain('PHP');
+    expect(h.stderr()).toContain('skills: skill-kubernetes Kubernetes');
+  });
+
   it('con --specialty reproduce el golden y explica la selección con --explain', async () => {
     const h = compiled();
     expect(await runCli(['generate-cv', '--specialty', 'backend', '--explain'], h.context)).toBe(EXIT_OK);

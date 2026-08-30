@@ -31,8 +31,8 @@ Dentro del alcance: la política de recorte (T-2.3), su algoritmo e invariantes,
 |---|---|---|---|
 | Logros dentro de cada experiencia y proyecto | sí | `--top-n` (por contenedor) | puntuación desc · orden de documento |
 | Logros transversales (`achievements`) | sí | `--top-n` | ídem |
-| Skills | sí | `--max-skills` (global, no por categoría) | ídem |
-| Proyectos | sí | `--max-projects` | ídem (los supervivientes se muestran cronológicamente) |
+| Skills | sí | `--skills` (selección explícita por nombre o id, antes del límite) y `--max-skills` (global, no por categoría) | ídem |
+| Proyectos | sí | `--projects` (selección explícita por nombre o id, antes del límite) y `--max-projects` | ídem (los supervivientes se muestran cronológicamente) |
 | Certificaciones | sí | `--max-certifications` | ídem (cronológico en el CV) |
 | Experiencias, formación, idiomas, datos personales | **no** | — | — |
 
@@ -87,6 +87,7 @@ Un ítem sin tags es **relevante para todo** (regla del selector) pero **no demu
 3. **Monótono en N**: subir un límite nunca elimina un ítem que sobrevivía; `undefined` no recorta nada; `0` vacía la sección.
 4. **Determinista y puro**: mismos datos y límites, mismo resultado; la entrada no se muta.
 5. **Explicable y completo**: `removed` contiene exactamente los ítems que faltan, con su puntuación; `|removed| = |entrada| − |salida|`.
+6. **La selección explícita manda** (2026-08-30, requisito del Director): con `--skills`/`--projects` sobreviven exactamente los ítems listados que existen (por id o por nombre, sin distinguir mayúsculas ni acentos), en el orden del documento y por encima de los anclados; después se aplica el límite por cantidad; los nombres desconocidos se devuelven en `unknown` y la CLI y la API los avisan sin fallar.
 
 ### 3.6 Ejemplo (dataset de ejemplo, oferta de `docs/scoring.md` §6)
 

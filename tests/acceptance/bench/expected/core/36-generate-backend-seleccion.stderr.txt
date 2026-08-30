@@ -1,0 +1,64 @@
+Aviso: skills no encontrados en el perfil (se ignoran): Inexistente
+Aviso: proyectos no encontrados en el perfil (se ignoran): Pipeline Demo
+Especialidad «backend» (vocabulario: backend, php, symfony, kubernetes, kafka, postgresql, api, performance): 29 de 59 ítems incluidos
++ experience exp-delta-consultores: matched (php, symfony, api)
+    + exp-delta-consultores-1: matched (php, symfony, api)
+    + exp-delta-consultores-2: matched (symfony, php)
+    - exp-delta-consultores-3: no-match
+    + exp-delta-consultores-4: matched (performance)
++ experience exp-freelance: matched (php)
+    + exp-freelance-1: matched (php)
+    + exp-freelance-2: matched (php)
+    - exp-freelance-3: no-match
++ experience exp-lumen-analytics: matched (kafka)
+    + exp-lumen-analytics-1: matched (kafka)
+    - exp-lumen-analytics-2: no-match
+    - exp-lumen-analytics-3: no-match
+    - exp-lumen-analytics-4: no-match
++ experience exp-nexo-pagos: matched (php, symfony, kubernetes, kafka, postgresql, api)
+    + exp-nexo-pasarela: pinned (kafka, postgresql)
+    + exp-nexo-pagos-2: matched (performance, api, postgresql)
+    + exp-nexo-pagos-3: matched (kubernetes)
+    + exp-nexo-pagos-4: matched (symfony, api)
+    - exp-nexo-pagos-5: no-match
+    - exp-nexo-pagos-6: no-match
++ experience exp-orbita-cloud: matched (kubernetes)
+    + exp-orbita-cloud-1: matched (kubernetes)
+    - exp-orbita-cloud-2: no-match
+    - exp-orbita-cloud-3: no-match
+    - exp-orbita-cloud-4: no-match
+    - exp-orbita-cloud-5: no-match
++ projects proj-kafka-guardian: matched (kafka, php)
+    + proj-kafka-guardian-1: matched (kafka)
+    + proj-kafka-guardian-2: matched (php)
+    - proj-kafka-guardian-3: no-match
+- projects proj-pipeline-demo: no-match
+- projects proj-terraform-modules: no-match
++ education edu-grado-informatica: universal
+- education edu-master-datos: no-match
++ skills skill-1: matched (php, backend)
++ skills skill-2: matched (symfony, php, backend)
++ skills skill-3: matched (kubernetes)
+- skills skill-4: no-match
+- skills skill-5: no-match
++ skills skill-6: matched (kafka, backend)
++ skills skill-7: matched (postgresql, backend)
+- skills skill-8: no-match
+- skills skill-9: no-match
+- skills skill-10: no-match
+- skills skill-11: no-match
+- skills skill-12: no-match
+- skills skill-13: no-match
+- skills skill-14: no-match
+- skills skill-15: no-match
+- skills skill-16: no-match
++ certifications cert-1: matched (kubernetes)
+- certifications cert-2: no-match
+- certifications cert-3: no-match
++ certifications cert-4: matched (symfony, php)
++ achievements ach-1: matched (kafka)
+- achievements ach-2: no-match
++ achievements ach-3: matched (kubernetes)
+- achievements ach-4: no-match
+Recortes (--skills PHP,kubernetes,Inexistente, --projects proj-kafka-guardian,Pipeline Demo): 3 ítems fuera
+  skills: skill-2 Symfony (0.00), skill-6 Kafka (0.00), skill-7 PostgreSQL (0.00)

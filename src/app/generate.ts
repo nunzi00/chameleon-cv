@@ -145,6 +145,12 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
   }
   const limits = resolveLimits(request);
   const trimmed = applyLimits(tailored.tailored.profile, limits, tailored.tailored.scoreOf);
+  if (trimmed.unknown.skills.length > 0) {
+    warnings.push({ kind: 'unknown-selection', section: 'skills', names: trimmed.unknown.skills });
+  }
+  if (trimmed.unknown.projects.length > 0) {
+    warnings.push({ kind: 'unknown-selection', section: 'projects', names: trimmed.unknown.projects });
+  }
   const report: GenerateReport = { selection: tailored.tailored.selection, match: tailored.tailored.match, limits, removed: trimmed.removed, profileBeforeTrim: tailored.tailored.profile, theme: undefined };
   const outputPath = resolve(context.cwd, request.output ?? defaultOutputPath(trimmed.profile, request.specialty, tailored.tailored.offerName, request.format));
 

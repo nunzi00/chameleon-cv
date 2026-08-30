@@ -16,7 +16,9 @@ export type AppWarning =
   | { readonly kind: 'stale-artifact'; readonly newestSource: string }
   | { readonly kind: 'freshness-unknown'; readonly reason: string }
   /** El co-piloto procesa solo los `kept` primeros de `total` logros (presupuesto `--max-items`). */
-  | { readonly kind: 'items-truncated'; readonly total: number; readonly kept: number };
+  | { readonly kind: 'items-truncated'; readonly total: number; readonly kept: number }
+  /** `--skills`/`--projects`: nombres o ids que no existen en el perfil (se ignoran). */
+  | { readonly kind: 'unknown-selection'; readonly section: 'skills' | 'projects'; readonly names: readonly string[] };
 
 export async function checkArtifactFreshness(fs: FileSystem, artifactPath: string, sourcesRoot: string): Promise<Freshness> {
   let artifactMtime: number;

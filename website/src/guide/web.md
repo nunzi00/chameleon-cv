@@ -36,7 +36,7 @@ El árbol de `data/sources` a la izquierda y un editor con resaltado (Markdown y
 
 ![Pantalla Generar: formulario, análisis de adecuación a la oferta, CV en Markdown e informe de decisiones](/gui/generar.png)
 
-Las mismas opciones que `cv generate-cv`: especialidad, oferta (pegada como texto, subida como **PDF** —el texto se extrae en local— o un fichero del espacio de trabajo), formato, motor (Typst si está disponible), tema, límites (`Top N`, skills, proyectos, certificaciones), idioma, nombre del fichero, compacto y recompilar antes.
+Las mismas opciones que `cv generate-cv` —incluidos dos selectores múltiples para elegir a mano qué skills y qué proyectos entran, alimentados por tu perfil—: especialidad, oferta (pegada como texto, subida como **PDF** —el texto se extrae en local— o un fichero del espacio de trabajo), formato, motor (Typst si está disponible), tema, límites (`Top N`, skills, proyectos, certificaciones), idioma, nombre del fichero, compacto y recompilar antes.
 
 - **Analizar oferta** es `cv analyze-offer`: cuántos requisitos reconoce, cuáles demuestra tu perfil (y con qué logros), cuáles no, las carencias y las mejores evidencias.
 - **Generar CV** escribe el fichero en `output/`. El Markdown se muestra como texto con descarga; el **PDF** se abre en el visor del navegador (se descarga con tu token y se muestra desde la memoria de la pestaña) con su botón de descarga.

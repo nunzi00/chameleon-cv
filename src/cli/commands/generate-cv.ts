@@ -95,6 +95,8 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     maxProjects: options.maxProjects,
     maxCertifications: options.maxCertifications,
     compact: options.compact,
+    skills: options.skills,
+    projects: options.projects,
   });
   reportWarnings(context, result.warnings);
   if (options.explain && result.report !== undefined) {

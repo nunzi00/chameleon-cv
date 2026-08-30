@@ -35,7 +35,13 @@ export const LimitsSchema = {
   maxCertifications: z.number().int().min(0).optional(),
   compact: z.boolean().optional(),
 };
+/** Selección explícita de skills y proyectos (ids o nombres); se aplica antes de los límites por cantidad. */
+export const IncludeSchema = {
+  skills: z.array(z.string().min(1).max(160)).max(300).optional(),
+  projects: z.array(z.string().min(1).max(160)).max(100).optional(),
+};
 export const GenerateSchema = z.object({
+  ...IncludeSchema,
   specialty: z.string().min(1).optional(),
   offer: OfferSchema.optional(),
   format: z.enum(CV_FORMATS).optional(),

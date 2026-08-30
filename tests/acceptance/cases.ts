@@ -94,6 +94,7 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'theme-path-bench', args: ['theme', 'path', 'bench'], exitCode: 0 },
       { id: 'theme-path-nada', args: ['theme', 'path', 'nada'], exitCode: 1 },
       { id: 'typst-status-ausente', args: ['typst', 'status'], exitCode: 2 },
+      { id: 'generate-backend-seleccion', args: ['generate-cv', '-s', 'backend', '--skills', 'PHP,kubernetes,Inexistente', '--projects', 'proj-kafka-guardian,Pipeline Demo', '--explain', '-o', 'output/cv-backend-seleccion.md'], exitCode: 0, outputs: [{ path: 'output/cv-backend-seleccion.md', kind: 'text' }] },
     ],
   },
   {
