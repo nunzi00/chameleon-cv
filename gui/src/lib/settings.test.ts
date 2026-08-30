@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LlmConfigResponse } from './api/types';
-import { buildSettings, describeCheck, describeProvider, formFromConfig, isLoopbackUrl, lockedFields } from './settings';
+import { buildSettings, describeCheck, describeProvider, formFromConfig, isLoopbackUrl, lockedFields, describeModelOptions } from './settings';
 
 const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
@@ -11,6 +11,10 @@ const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   host: 'api.groq.com',
   baseUrl: 'https://api.groq.com/openai',
   defaultModel: 'openai/gpt-oss-120b',
+  models: [
+    { id: 'openai/gpt-oss-120b', status: 'production', recommendedFor: ['improve', 'summarize'], note: 'calidad', sourceUrl: 'https://console.groq.com/docs/model/openai/gpt-oss-120b', verifiedAt: '2026-08-30' },
+    { id: 'qwen/qwen3.8-27b', status: 'preview', recommendedFor: ['suggest-tags', 'improve', 'summarize'], note: 'cuota', sourceUrl: 'https://console.groq.com/docs/model/qwen/qwen3.8-27b', verifiedAt: '2026-08-30' },
+  ],
   keyPresence: 'none',
   quota: { requestsPerMinute: 30, requestsPerDay: 1000, tokensPerMinute: 8000, tokensPerDay: 200000, note: '', sourceUrl: 'https://console.groq.com/docs/rate-limits', verifiedAt: '2026-08-30' },
   rateLimitsUrl: 'https://console.groq.com/docs/rate-limits',
@@ -98,5 +102,12 @@ describe('ajustes del co-piloto', () => {
     expect(describeCheck({ provider: 'ollama', kind: 'local', ok: false, models: [], modelAvailable: false, message: undefined, quota: undefined })).toBe('No responde: sin detalle');
     expect(describeCheck({ provider: 'groq', kind: 'remote', ok: true, models: ['1', '2', '3', '4', '5', '6', '7'], modelAvailable: true, message: undefined, quota: undefined })).toBe('Responde: 7 modelos (1, 2, 3, 4, 5, 6, …) · el modelo configurado está disponible');
     expect(describeCheck({ provider: 'groq', kind: 'remote', ok: true, models: [], modelAvailable: true, message: undefined, quota: undefined })).toBe('Responde: ningún modelo · el modelo configurado está disponible');
+  });
+});
+
+describe('describeModelOptions', () => {
+  it('lista los modelos con su estado y las tareas recomendadas; con uno solo no dice nada', () => {
+    expect(describeModelOptions(GROQ.models)).toBe('openai/gpt-oss-120b (estable; mejorar logros, resumir) · qwen/qwen3.8-27b (preview; sugerir etiquetas, mejorar logros, resumir)');
+    expect(describeModelOptions(GROQ.models.slice(0, 1))).toBeUndefined();
   });
 });

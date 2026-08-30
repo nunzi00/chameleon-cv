@@ -414,6 +414,20 @@
         "host": "api.openai.com",
         "id": "openai",
         "keyPresence": "none",
+        "models": [
+          {
+            "id": "gpt-4o-mini",
+            "note": "modelo de pago de bajo coste con salida estructurada (json_schema estricto); único registrado para OpenAI",
+            "recommendedFor": [
+              "improve",
+              "summarize",
+              "suggest-tags"
+            ],
+            "sourceUrl": "https://platform.openai.com/docs/models",
+            "status": "production",
+            "verifiedAt": "2026-08-30"
+          }
+        ],
         "plan": "paid",
         "rateLimitsUrl": "https://developers.openai.com/api/docs/guides/rate-limits"
       },
@@ -429,6 +443,20 @@
         "host": "api.anthropic.com",
         "id": "anthropic",
         "keyPresence": "none",
+        "models": [
+          {
+            "id": "claude-sonnet-4-5",
+            "note": "modelo de pago con herramienta forzada (esquema de la tarea); único registrado para Anthropic",
+            "recommendedFor": [
+              "improve",
+              "summarize",
+              "suggest-tags"
+            ],
+            "sourceUrl": "https://docs.anthropic.com/en/docs/about-claude/models",
+            "status": "production",
+            "verifiedAt": "2026-08-30"
+          }
+        ],
         "plan": "paid",
         "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
       },
@@ -445,6 +473,31 @@
         "host": "api.groq.com",
         "id": "groq",
         "keyPresence": "none",
+        "models": [
+          {
+            "id": "openai/gpt-oss-120b",
+            "note": "calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta",
+            "recommendedFor": [
+              "improve",
+              "summarize"
+            ],
+            "sourceUrl": "https://console.groq.com/docs/model/openai/gpt-oss-120b",
+            "status": "production",
+            "verifiedAt": "2026-08-30"
+          },
+          {
+            "id": "qwen/qwen3.8-27b",
+            "note": "json_schema estricto, razonamiento desactivable y 2 000 000 tokens/día en el plan Free (≈ diez sesiones): ideal para etiquetas y para sesiones gratuitas con más de una tanda al día; en preview (retirable sin plazo) y sin cifra publicada en español: si falla, volver a openai/gpt-oss-120b",
+            "recommendedFor": [
+              "suggest-tags",
+              "improve",
+              "summarize"
+            ],
+            "sourceUrl": "https://console.groq.com/docs/model/qwen/qwen3.8-27b",
+            "status": "preview",
+            "verifiedAt": "2026-08-30"
+          }
+        ],
         "plan": "free",
         "quota": {
           "note": "plan Free, por organización, para openai/gpt-oss-120b (otros modelos: 200 000–2 000 000 tokens/día)",
@@ -552,6 +605,20 @@
         "host": "api.openai.com",
         "id": "openai",
         "keyPresence": "none",
+        "models": [
+          {
+            "id": "gpt-4o-mini",
+            "note": "modelo de pago de bajo coste con salida estructurada (json_schema estricto); único registrado para OpenAI",
+            "recommendedFor": [
+              "improve",
+              "summarize",
+              "suggest-tags"
+            ],
+            "sourceUrl": "https://platform.openai.com/docs/models",
+            "status": "production",
+            "verifiedAt": "2026-08-30"
+          }
+        ],
         "plan": "paid",
         "rateLimitsUrl": "https://developers.openai.com/api/docs/guides/rate-limits"
       },
@@ -567,6 +634,20 @@
         "host": "api.anthropic.com",
         "id": "anthropic",
         "keyPresence": "none",
+        "models": [
+          {
+            "id": "claude-sonnet-4-5",
+            "note": "modelo de pago con herramienta forzada (esquema de la tarea); único registrado para Anthropic",
+            "recommendedFor": [
+              "improve",
+              "summarize",
+              "suggest-tags"
+            ],
+            "sourceUrl": "https://docs.anthropic.com/en/docs/about-claude/models",
+            "status": "production",
+            "verifiedAt": "2026-08-30"
+          }
+        ],
         "plan": "paid",
         "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
       },
@@ -583,6 +664,31 @@
         "host": "api.groq.com",
         "id": "groq",
         "keyPresence": "none",
+        "models": [
+          {
+            "id": "openai/gpt-oss-120b",
+            "note": "calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta",
+            "recommendedFor": [
+              "improve",
+              "summarize"
+            ],
+            "sourceUrl": "https://console.groq.com/docs/model/openai/gpt-oss-120b",
+            "status": "production",
+            "verifiedAt": "2026-08-30"
+          },
+          {
+            "id": "qwen/qwen3.8-27b",
+            "note": "json_schema estricto, razonamiento desactivable y 2 000 000 tokens/día en el plan Free (≈ diez sesiones): ideal para etiquetas y para sesiones gratuitas con más de una tanda al día; en preview (retirable sin plazo) y sin cifra publicada en español: si falla, volver a openai/gpt-oss-120b",
+            "recommendedFor": [
+              "suggest-tags",
+              "improve",
+              "summarize"
+            ],
+            "sourceUrl": "https://console.groq.com/docs/model/qwen/qwen3.8-27b",
+            "status": "preview",
+            "verifiedAt": "2026-08-30"
+          }
+        ],
         "plan": "free",
         "quota": {
           "note": "plan Free, por organización, para openai/gpt-oss-120b (otros modelos: 200 000–2 000 000 tokens/día)",

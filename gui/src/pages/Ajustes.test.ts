@@ -12,7 +12,7 @@ const PROVIDER: LlmConfigResponse['llm']['providers'][number] = {
   availabilityNote: undefined,
   host: 'api.groq.com',
   baseUrl: 'https://api.groq.com/openai',
-  defaultModel: 'openai/gpt-oss-120b',
+  defaultModel: 'openai/gpt-oss-120b', models: [],
   keyPresence: 'none',
   quota: { requestsPerMinute: 30, requestsPerDay: 1000, tokensPerMinute: 8000, tokensPerDay: 200000, note: '', sourceUrl: 'https://console.groq.com/docs/rate-limits', verifiedAt: '2026-08-30' },
   rateLimitsUrl: 'https://console.groq.com/docs/rate-limits',

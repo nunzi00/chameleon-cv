@@ -7,7 +7,7 @@ import { DEFAULT_ALLOWED_HOSTS, allowedHosts, createProvider, isLocalProviderId,
 import type { JsonHttp } from './http';
 import { KEY_ENV_VARIABLES, describeKeys, keysFilePath, type KeySource } from './keys';
 import { QuotaLedger, defaultQuotaLedger, describeQuotaSnapshot, type QuotaSnapshot } from './quota';
-import { REMOTE_PROVIDERS, describeQuota, type ProviderEvidence, type ProviderQuota, type RemoteProviderId, type ProviderAvailability } from './registry';
+import { REMOTE_PROVIDERS, describeModels, describeQuota, type ProviderEvidence, type ProviderQuota, type RemoteModelOption, type RemoteProviderId, type ProviderAvailability } from './registry';
 import type { LlmHealth } from './provider';
 
 export type KeyPresence = KeySource | 'none' | 'insecure-file' | 'invalid-file';
@@ -39,6 +39,7 @@ export interface RemoteProviderStatus {
   readonly host: string;
   readonly baseUrl: string;
   readonly defaultModel: string;
+  readonly models: readonly RemoteModelOption[];
   readonly keyPresence: KeyPresence;
   readonly quota: ProviderQuota | undefined;
   readonly rateLimitsUrl: string;
@@ -89,6 +90,7 @@ export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStat
     host: entry.host,
     baseUrl: entry.baseUrl,
     defaultModel: entry.defaultModel,
+    models: entry.models,
     keyPresence: keys[entry.id],
     quota: entry.quota,
     rateLimitsUrl: entry.rateLimitsUrl,
@@ -174,6 +176,9 @@ export function formatLlmStatus(status: LlmStatus): string {
     const plan = provider.plan === 'free' ? `plan gratuito: ${published}` : `plan de pago (${published})`;
     const pending = provider.availability === 'available' ? '' : ` · PENDIENTE DE VERIFICACIÓN: ${provider.availabilityNote ?? 'no disponible'}`;
     lines.push(`  ${provider.id} → clave ${describeKey(status.keys[provider.id], KEY_ENV_VARIABLES[provider.id])} · ${plan} · ${provider.host} · modelo por defecto ${provider.defaultModel}${pending}`);
+    if (provider.models.length > 1) {
+      lines.push(`    modelos (--model o [llm.models]): ${describeModels(provider.models)}`);
+    }
     if (provider.live !== undefined) {
       lines.push(`    cuota viva: ${describeQuotaSnapshot(provider.live)} (leída ${provider.live.observedAt})`);
     }

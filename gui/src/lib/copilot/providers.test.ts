@@ -26,6 +26,7 @@ function config(
         host: `${provider.id}.example`,
         baseUrl: `https://${provider.id}.example`,
         defaultModel: `${provider.id}-model`,
+        models: [{ id: `${provider.id}-model`, status: 'production', recommendedFor: ['improve', 'summarize', 'suggest-tags'], note: '', sourceUrl: 'https://example.org', verifiedAt: '2026-08-30' }],
         keyPresence: provider.keyPresence,
         quota: undefined,
         rateLimitsUrl: 'https://x',

@@ -39,6 +39,21 @@ export interface ProviderQuota {
  */
 export type ProviderAvailability = 'available' | 'pending-verification';
 
+/** Tarea del co-piloto para la que se recomienda un modelo. */
+export type CopilotTask = 'improve' | 'summarize' | 'suggest-tags';
+
+/** Modelo seleccionable de un proveedor remoto, con su estado publicado y para qué tareas se recomienda. */
+export interface RemoteModelOption {
+  readonly id: string;
+  /** `production` = estable; `preview` = el proveedor puede retirarlo sin plazo. */
+  readonly status: 'production' | 'preview';
+  readonly recommendedFor: readonly CopilotTask[];
+  /** Por qué se recomienda (o no) y con qué evidencia. */
+  readonly note: string;
+  readonly sourceUrl: string;
+  readonly verifiedAt: string;
+}
+
 export interface RemoteProviderEntry {
   readonly id: RemoteProviderId;
   readonly availability: ProviderAvailability;
@@ -50,6 +65,8 @@ export interface RemoteProviderEntry {
   /** URL base a la que el cliente añade sus rutas (`/v1/chat/completions`, `/v1/models`, `/v1/messages`). */
   readonly baseUrl: string;
   readonly defaultModel: string;
+  /** Modelos seleccionables (`--model` o `[llm.models]`); el primero es el de por defecto. */
+  readonly models: readonly RemoteModelOption[];
   /** `CHAMELEON_<ID>_API_KEY` y `CHAMELEON_<ID>_BASE_URL`. */
   readonly keyEnv: string;
   readonly baseUrlEnv: string;
@@ -71,6 +88,16 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
     host: 'api.openai.com',
     baseUrl: 'https://api.openai.com',
     defaultModel: 'gpt-4o-mini',
+    models: [
+      {
+        id: 'gpt-4o-mini',
+        status: 'production',
+        recommendedFor: ['improve', 'summarize', 'suggest-tags'],
+        note: 'modelo de pago de bajo coste con salida estructurada (json_schema estricto); único registrado para OpenAI',
+        sourceUrl: 'https://platform.openai.com/docs/models',
+        verifiedAt: '2026-08-30',
+      },
+    ],
     keyEnv: 'CHAMELEON_OPENAI_API_KEY',
     baseUrlEnv: 'CHAMELEON_OPENAI_BASE_URL',
     plan: 'paid',
@@ -90,6 +117,16 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
     host: 'api.anthropic.com',
     baseUrl: 'https://api.anthropic.com',
     defaultModel: 'claude-sonnet-4-5',
+    models: [
+      {
+        id: 'claude-sonnet-4-5',
+        status: 'production',
+        recommendedFor: ['improve', 'summarize', 'suggest-tags'],
+        note: 'modelo de pago con herramienta forzada (esquema de la tarea); único registrado para Anthropic',
+        sourceUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+        verifiedAt: '2026-08-30',
+      },
+    ],
     keyEnv: 'CHAMELEON_ANTHROPIC_API_KEY',
     baseUrlEnv: 'CHAMELEON_ANTHROPIC_BASE_URL',
     plan: 'paid',
@@ -110,6 +147,24 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
     host: 'api.groq.com',
     baseUrl: 'https://api.groq.com/openai',
     defaultModel: 'openai/gpt-oss-120b',
+    models: [
+      {
+        id: 'openai/gpt-oss-120b',
+        status: 'production',
+        recommendedFor: ['improve', 'summarize'],
+        note: 'calidad y español probados (MMMLU es 84,6–85,9 %), json_schema estricto y caché de prompt; plan Free: 200 000 tokens/día (≈ una sesión al día). Ideal para reescribir logros y resúmenes cuando el presupuesto diario basta',
+        sourceUrl: 'https://console.groq.com/docs/model/openai/gpt-oss-120b',
+        verifiedAt: '2026-08-30',
+      },
+      {
+        id: 'qwen/qwen3.8-27b',
+        status: 'preview',
+        recommendedFor: ['suggest-tags', 'improve', 'summarize'],
+        note: 'json_schema estricto, razonamiento desactivable y 2 000 000 tokens/día en el plan Free (≈ diez sesiones): ideal para etiquetas y para sesiones gratuitas con más de una tanda al día; en preview (retirable sin plazo) y sin cifra publicada en español: si falla, volver a openai/gpt-oss-120b',
+        sourceUrl: 'https://console.groq.com/docs/model/qwen/qwen3.8-27b',
+        verifiedAt: '2026-08-30',
+      },
+    ],
     keyEnv: 'CHAMELEON_GROQ_API_KEY',
     baseUrlEnv: 'CHAMELEON_GROQ_BASE_URL',
     plan: 'free',
@@ -168,4 +223,14 @@ export function describeQuota(quota: ProviderQuota): string {
     quota.tokensPerDay === undefined ? undefined : `${quota.tokensPerDay} tokens/día`,
   ].filter((part): part is string => part !== undefined);
   return parts.join(', ');
+}
+
+/** Modelo recomendado de un proveedor para una tarea: el primero que la lista; si ninguno la lista, el de por defecto. */
+export function recommendedModel(entry: RemoteProviderEntry, task: CopilotTask): RemoteModelOption {
+  return entry.models.find((model) => model.recommendedFor.includes(task)) ?? entry.models.find((model) => model.id === entry.defaultModel) ?? entry.models[0]!;
+}
+
+/** Los modelos de un proveedor en una línea: «id (estado; tareas)». */
+export function describeModels(models: readonly RemoteModelOption[]): string {
+  return models.map((model) => `${model.id} (${model.status === 'production' ? 'estable' : 'preview'}; ${model.recommendedFor.join(', ')})`).join(' · ');
 }

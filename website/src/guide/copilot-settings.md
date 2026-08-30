@@ -35,7 +35,9 @@ Cada proveedor remoto está en un **registro** con su evidencia: la URL, la fech
 |---|---|---|---|
 | `openai` | de pago | `gpt-4o-mini` | según el nivel de la cuenta |
 | `anthropic` | de pago | `claude-sonnet-4-5` | según el nivel de la cuenta |
-| `groq` | **gratuito** (sin tarjeta) — **pendiente de verificación humana, no seleccionable todavía** | `openai/gpt-oss-120b` | 30 peticiones/min, 1 000/día, 8 000 tokens/min (según su documentación a 2026-08-30) |
+| `groq` | **gratuito** (sin tarjeta) — **pendiente de verificación humana, no seleccionable todavía** | `openai/gpt-oss-120b` (también `qwen/qwen3.8-27b`, *preview*) | 30 peticiones/min, 1 000/día, 8 000 tokens/min, 200 000 tokens/día (gpt-oss) o 2 000 000 (qwen3.8) (según su documentación a 2026-08-30) |
+
+**Qué modelo de Groq para cada acción** (`cv llm status` lo muestra; se elige con `--model` o con `[llm.models]`): **mejorar logros y resumir → `openai/gpt-oss-120b`** (calidad en español probada, esquema estricto, caché de prompt; su cuota gratuita da para una sesión al día); **sugerir etiquetas → `qwen/qwen3.8-27b`** (razonamiento desactivable y diez veces más cuota diaria), que también sirve para las otras dos tareas si haces varias sesiones gratuitas al día, con la advertencia de que está en *preview* (Groq puede retirarlo) y de que su español no está medido: si falla, vuelve a `openai/gpt-oss-120b`.
 
 Groq está registrado tras un estudio con evidencia (`docs/copilot-providers.md` en el repositorio) y **quedará disponible cuando una persona complete el protocolo de verificación al alta** (§9 de esa nota); hasta entonces `cv llm status` y Ajustes lo muestran como pendiente y `--provider groq` se rechaza: su acuerdo de servicio prohíbe entrenar con entradas y salidas y la retención es de 30 días como máximo, desactivable con *Zero Data Retention* en su consola (recomendado). Los planes gratuitos de otros proveedores conocidos se descartaron porque permiten entrenar con los datos enviados.
 

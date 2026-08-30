@@ -5,7 +5,7 @@ import { createRemoteHttp, quotaHeadersOf, type JsonHttp } from '../../src/llm/h
 import { createOllamaProvider, llmFailure } from '../../src/llm/ollama';
 import { createOpenAiCompatibleProvider } from '../../src/llm/openai-compatible';
 import { QuotaLedger, defaultQuotaLedger, describeQuotaSnapshot, hasQuotaData, parseDuration, parseQuotaHeaders } from '../../src/llm/quota';
-import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, describeQuota, isRemoteProviderId, registryHosts, remoteProvider } from '../../src/llm/registry';
+import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, describeQuota, isRemoteProviderId, registryHosts, remoteProvider, describeModels, recommendedModel } from '../../src/llm/registry';
 
 const NOW = new Date('2026-08-30T12:00:00.000Z');
 
@@ -33,6 +33,30 @@ describe('registro de proveedores', () => {
     expect(isRemoteProviderId('gemini')).toBe(false);
     expect(remoteProvider('groq')).toMatchObject({ api: 'openai-chat', baseUrl: 'https://api.groq.com/openai', plan: 'free' });
     expect(() => remoteProvider('gemini' as never)).toThrow(/sin registrar/);
+  });
+
+  it('cada remoto lista sus modelos seleccionables con estado, tareas y evidencia; el de por defecto está entre ellos; Groq ofrece gpt-oss-120b y qwen3.8-27b', () => {
+    for (const entry of REMOTE_PROVIDERS) {
+      expect(entry.models.length).toBeGreaterThan(0);
+      expect(new Set(entry.models.map((model) => model.id)).size).toBe(entry.models.length);
+      expect(entry.models.map((model) => model.id)).toContain(entry.defaultModel);
+      for (const model of entry.models) {
+        expect(model.recommendedFor.length).toBeGreaterThan(0);
+        expect(model.sourceUrl).toMatch(/^https:\/\//);
+        expect(model.verifiedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(model.note.length).toBeGreaterThan(0);
+      }
+    }
+    const groq = remoteProvider('groq');
+    expect(groq.models.map((model) => [model.id, model.status])).toEqual([
+      ['openai/gpt-oss-120b', 'production'],
+      ['qwen/qwen3.8-27b', 'preview'],
+    ]);
+    expect(recommendedModel(groq, 'improve').id).toBe('openai/gpt-oss-120b');
+    expect(recommendedModel(groq, 'suggest-tags').id).toBe('qwen/qwen3.8-27b');
+    expect(recommendedModel({ ...groq, models: [{ ...groq.models[0]!, recommendedFor: [] }] }, 'improve').id).toBe('openai/gpt-oss-120b');
+    expect(recommendedModel({ ...groq, defaultModel: 'otro', models: [{ ...groq.models[1]!, recommendedFor: [] }] }, 'improve').id).toBe('qwen/qwen3.8-27b');
+    expect(describeModels(groq.models)).toBe('openai/gpt-oss-120b (estable; improve, summarize) · qwen/qwen3.8-27b (preview; suggest-tags, improve, summarize)');
   });
 
   it('describe una cuota publicada solo con los límites presentes', () => {

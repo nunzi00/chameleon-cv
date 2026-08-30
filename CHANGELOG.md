@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- Modelos seleccionables por proveedor remoto en el registro (`src/llm/registry.ts`), con estado (`estable`/`preview`), tareas recomendadas y evidencia; Groq ofrece `openai/gpt-oss-120b` (por defecto: mejorar logros y resumir) y `qwen/qwen3.8-27b` (preview; sugerir etiquetas y sesiones gratuitas con más de una tanda al día, por sus 2 000 000 tokens/día). `cv llm status`, `GET /api/v1/config/llm` y Ajustes los muestran; se eligen con `--model` o `[llm.models]`. Groq sigue pendiente de la verificación humana al alta.
+
 ## [1.6.1] - 2026-08-30
 
 ### Corregido

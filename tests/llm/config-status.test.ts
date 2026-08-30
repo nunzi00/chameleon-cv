@@ -71,6 +71,7 @@ describe('llmStatus / formatLlmStatus', () => {
         '  openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini',
         '  anthropic → clave definida en CHAMELEON_ANTHROPIC_API_KEY · plan de pago (límites según la cuenta) · api.anthropic.com · modelo por defecto claude-sonnet-4-5',
         '  groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b · PENDIENTE DE VERIFICACIÓN: pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
+        '    modelos (--model o [llm.models]): openai/gpt-oss-120b (estable; improve, summarize) · qwen/qwen3.8-27b (preview; suggest-tags, improve, summarize)',
         'Fichero de claves: /h/.config/chameleon-cv/keys.json',
         'Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com',
         '',

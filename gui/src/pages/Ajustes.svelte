@@ -5,7 +5,7 @@
   import type { ApiClient } from '../lib/api/client';
   import type { LlmConfigResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { LOCAL_PROVIDERS, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, formFromConfig, lockedFields, type LocalForm } from '../lib/settings';
+  import { LOCAL_PROVIDERS, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, formFromConfig, lockedFields, type LocalForm, describeModelOptions } from '../lib/settings';
 
   interface Props {
     api: ApiClient;
@@ -140,6 +140,7 @@
           <li class="cv-provider">
             <strong>{provider.id}</strong> <span class="cv-muted">· {view.plan} · {provider.host} · modelo por defecto <code>{provider.defaultModel}</code></span>
             {#if provider.availability !== 'available'}<div class="cv-warning">Pendiente de verificación humana: {provider.availabilityNote}</div>{/if}
+            {#if describeModelOptions(provider.models) !== undefined}<div class="cv-muted">Modelos (<code>--model</code> o <code>[llm.models]</code>): {describeModelOptions(provider.models)}</div>{/if}
             <div>{view.key}</div>
             {#if view.quota !== undefined}<div class="cv-muted">Cuota publicada: {view.quota}</div>{/if}
             {#if view.live !== undefined}<div>Cuota viva: {view.live}</div>{/if}

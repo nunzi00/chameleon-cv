@@ -139,3 +139,13 @@ export function describeCheck(result: LlmCheckResponse): string {
   const models = result.models.length === 0 ? 'ningún modelo' : `${plural(result.models.length, 'modelo', 'modelos')} (${result.models.slice(0, 6).join(', ')}${result.models.length > 6 ? ', …' : ''})`;
   return result.ok ? `Responde: ${models} · el modelo configurado está disponible` : `Responde: ${models} · ${result.message ?? 'el modelo configurado no está disponible'}`;
 }
+
+const TASK_LABELS: Readonly<Record<ProviderStatus['models'][number]['recommendedFor'][number], string>> = { improve: 'mejorar logros', summarize: 'resumir', 'suggest-tags': 'sugerir etiquetas' };
+
+/** Los modelos seleccionables de un remoto («id (estado; tareas)»), o nada si solo hay uno. */
+export function describeModelOptions(models: ProviderStatus['models']): string | undefined {
+  if (models.length < 2) {
+    return undefined;
+  }
+  return models.map((model) => `${model.id} (${model.status === 'production' ? 'estable' : 'preview'}; ${model.recommendedFor.map((task) => TASK_LABELS[task]).join(', ')})`).join(' · ');
+}
