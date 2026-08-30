@@ -7,7 +7,7 @@ import { DEFAULT_ALLOWED_HOSTS, allowedHosts, createProvider, isLocalProviderId,
 import type { JsonHttp } from './http';
 import { KEY_ENV_VARIABLES, describeKeys, keysFilePath, type KeySource } from './keys';
 import { QuotaLedger, defaultQuotaLedger, describeQuotaSnapshot, type QuotaSnapshot } from './quota';
-import { REMOTE_PROVIDERS, describeQuota, type ProviderEvidence, type ProviderQuota, type RemoteProviderId } from './registry';
+import { REMOTE_PROVIDERS, describeQuota, type ProviderEvidence, type ProviderQuota, type RemoteProviderId, type ProviderAvailability } from './registry';
 import type { LlmHealth } from './provider';
 
 export type KeyPresence = KeySource | 'none' | 'insecure-file' | 'invalid-file';
@@ -31,6 +31,9 @@ export interface SettingsStatus {
 
 /** Un proveedor remoto del registro tal como lo ven `cv llm status`, la API y «Ajustes»: nunca la clave. */
 export interface RemoteProviderStatus {
+  /** `pending-verification`: registrado pero no seleccionable hasta la verificación humana (docs/copilot-providers.md §9). */
+  readonly availability: ProviderAvailability;
+  readonly availabilityNote: string | undefined;
   readonly id: RemoteProviderId;
   readonly plan: 'free' | 'paid';
   readonly host: string;
@@ -80,6 +83,8 @@ export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStat
   const ledger = options.quotaLedger ?? defaultQuotaLedger;
   const providers: RemoteProviderStatus[] = REMOTE_PROVIDERS.map((entry) => ({
     id: entry.id,
+    availability: entry.availability,
+    availabilityNote: entry.availabilityNote,
     plan: entry.plan,
     host: entry.host,
     baseUrl: entry.baseUrl,
@@ -167,7 +172,8 @@ export function formatLlmStatus(status: LlmStatus): string {
   for (const provider of status.providers) {
     const published = provider.quota === undefined ? 'límites según la cuenta' : `${describeQuota(provider.quota)} (${provider.quota.sourceUrl}, ${provider.quota.verifiedAt})`;
     const plan = provider.plan === 'free' ? `plan gratuito: ${published}` : `plan de pago (${published})`;
-    lines.push(`  ${provider.id} → clave ${describeKey(status.keys[provider.id], KEY_ENV_VARIABLES[provider.id])} · ${plan} · ${provider.host} · modelo por defecto ${provider.defaultModel}`);
+    const pending = provider.availability === 'available' ? '' : ` · PENDIENTE DE VERIFICACIÓN: ${provider.availabilityNote ?? 'no disponible'}`;
+    lines.push(`  ${provider.id} → clave ${describeKey(status.keys[provider.id], KEY_ENV_VARIABLES[provider.id])} · ${plan} · ${provider.host} · modelo por defecto ${provider.defaultModel}${pending}`);
     if (provider.live !== undefined) {
       lines.push(`    cuota viva: ${describeQuotaSnapshot(provider.live)} (leída ${provider.live.observedAt})`);
     }

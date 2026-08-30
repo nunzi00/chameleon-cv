@@ -373,6 +373,7 @@
     "keysFile": "<TMP>/home/.config/chameleon-cv/keys.json",
     "providers": [
       {
+        "availability": "available",
         "baseUrl": "https://api.openai.com",
         "c7": {
           "quote": "As of March 1, 2023, data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us).",
@@ -387,6 +388,7 @@
         "rateLimitsUrl": "https://developers.openai.com/api/docs/guides/rate-limits"
       },
       {
+        "availability": "available",
         "baseUrl": "https://api.anthropic.com",
         "c7": {
           "quote": "Anthropic may not train models on Customer Content from Services.",
@@ -401,6 +403,8 @@
         "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
       },
       {
+        "availability": "pending-verification",
+        "availabilityNote": "pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces",
         "baseUrl": "https://api.groq.com/openai",
         "c7": {
           "quote": "Groq is not permitted to use Inputs or Outputs for training or fine-tuning any AI Model Services or other models, unless explicitly granted permission or instructed by Customer.",
@@ -507,6 +511,7 @@
     "keysFile": "<TMP>/home/.config/chameleon-cv/keys.json",
     "providers": [
       {
+        "availability": "available",
         "baseUrl": "https://api.openai.com",
         "c7": {
           "quote": "As of March 1, 2023, data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us).",
@@ -521,6 +526,7 @@
         "rateLimitsUrl": "https://developers.openai.com/api/docs/guides/rate-limits"
       },
       {
+        "availability": "available",
         "baseUrl": "https://api.anthropic.com",
         "c7": {
           "quote": "Anthropic may not train models on Customer Content from Services.",
@@ -535,6 +541,8 @@
         "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
       },
       {
+        "availability": "pending-verification",
+        "availabilityNote": "pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces",
         "baseUrl": "https://api.groq.com/openai",
         "c7": {
           "quote": "Groq is not permitted to use Inputs or Outputs for training or fine-tuning any AI Model Services or other models, unless explicitly granted permission or instructed by Customer.",

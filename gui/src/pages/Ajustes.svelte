@@ -139,12 +139,13 @@
           {@const view = describeProvider(provider)}
           <li class="cv-provider">
             <strong>{provider.id}</strong> <span class="cv-muted">· {view.plan} · {provider.host} · modelo por defecto <code>{provider.defaultModel}</code></span>
+            {#if provider.availability !== 'available'}<div class="cv-warning">Pendiente de verificación humana: {provider.availabilityNote}</div>{/if}
             <div>{view.key}</div>
             {#if view.quota !== undefined}<div class="cv-muted">Cuota publicada: {view.quota}</div>{/if}
             {#if view.live !== undefined}<div>Cuota viva: {view.live}</div>{/if}
             <div class="cv-muted">Sin entrenamiento con tus datos según <a href={provider.c7.sourceUrl} target="_blank" rel="noreferrer">{provider.c7.sourceUrl}</a> ({provider.c7.verifiedAt}); límites en <a href={provider.rateLimitsUrl} target="_blank" rel="noreferrer">{provider.rateLimitsUrl}</a>.</div>
             <div class="cv-actions">
-              <button class="cv-button" type="button" disabled={busy !== undefined || !view.hasKey || !config.remote.allowed} title={!view.hasKey ? 'Sin clave' : !config.remote.allowed ? 'El servidor no admite remotos' : 'Una llamada de salud, sin datos tuyos'} onclick={() => check(provider.id, undefined)}>Comprobar {provider.id}</button>
+              <button class="cv-button" type="button" disabled={busy !== undefined || !view.hasKey || !config.remote.allowed || provider.availability !== 'available'} title={!view.hasKey ? 'Sin clave' : !config.remote.allowed ? 'El servidor no admite remotos' : 'Una llamada de salud, sin datos tuyos'} onclick={() => check(provider.id, undefined)}>Comprobar {provider.id}</button>
               {#if checks[provider.id] !== undefined}<span>{checks[provider.id]}</span>{/if}
             </div>
           </li>

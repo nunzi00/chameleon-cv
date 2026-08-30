@@ -26,8 +26,9 @@ export function remoteProviderOptions(config: LlmConfigResponse | undefined): Re
   }
   return config.llm.providers.map((provider) => {
     const hasKey = provider.keyPresence === 'env' || provider.keyPresence === 'file';
-    const usable = hasKey && config.remote.allowed;
-    const reason = !hasKey ? KEY_LABELS[provider.keyPresence] : config.remote.allowed ? KEY_LABELS[provider.keyPresence] : 'el servidor no admite remotos (--allow-remote)';
+    const pending = provider.availability !== 'available';
+    const usable = hasKey && config.remote.allowed && !pending;
+    const reason = pending ? 'pendiente de verificación humana' : !hasKey ? KEY_LABELS[provider.keyPresence] : config.remote.allowed ? KEY_LABELS[provider.keyPresence] : 'el servidor no admite remotos (--allow-remote)';
     return { id: provider.id, label: `${provider.id} · ${provider.plan === 'free' ? 'plan gratuito' : 'plan de pago'} · ${reason}`, defaultModel: provider.defaultModel, usable };
   });
 }

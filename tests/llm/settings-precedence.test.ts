@@ -54,12 +54,12 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
       return http;
     };
     const now = () => new Date('2026-08-30T12:00:00.000Z');
-    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk' }, remoteHttp, quotaLedger: ledger, now })).toMatchObject({ ok: true, provider: { id: 'groq', model: 'openai/gpt-oss-120b' } });
+    expect(await selectProvider({ provider: 'openai' }, { env: { CHAMELEON_OPENAI_API_KEY: 'sk' }, remoteHttp, quotaLedger: ledger, now })).toMatchObject({ ok: true, provider: { id: 'openai', model: 'gpt-4o-mini' } });
     observer?.({ 'x-ratelimit-remaining-requests': '29', 'x-ratelimit-limit-requests': '30' });
-    expect(ledger.get('groq')).toMatchObject({ provider: 'groq', observedAt: '2026-08-30T12:00:00.000Z', remainingRequests: 29, limitRequests: 30 });
+    expect(ledger.get('openai')).toMatchObject({ provider: 'openai', observedAt: '2026-08-30T12:00:00.000Z', remainingRequests: 29, limitRequests: 30 });
     const status = await llmStatus({ env: {}, http, quotaLedger: ledger });
     expect(formatLlmStatus(status)).toContain('    cuota viva: quedan 29/30 peticiones (leída 2026-08-30T12:00:00.000Z)');
-    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk' }, remoteHttp })).toMatchObject({ ok: true });
+    expect(await selectProvider({ provider: 'openai' }, { env: { CHAMELEON_OPENAI_API_KEY: 'sk' }, remoteHttp })).toMatchObject({ ok: true });
     observer?.({ 'retry-after': '3' });
   });
 
