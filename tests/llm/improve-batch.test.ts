@@ -118,4 +118,22 @@ describe('runImproveBatch con señal de cancelación', () => {
     expect(calls[0]?.signal).toBe(controller.signal);
     expect(progress.at(-1)).toBe('[2/2] ach-talk: cancelado');
   });
+
+  it('si la petición en curso falla porque se canceló, lo anota como cancelado y no sigue (sin depender del momento de la señal)', async () => {
+    const controller = new AbortController();
+    const progress: string[] = [];
+    const calls: LlmRequest[] = [];
+    const abortingProvider: LlmProvider = {
+      ...provider({}, calls),
+      complete: async (request) => {
+        calls.push(request);
+        controller.abort();
+        return { ok: false, code: 'cancelled', message: 'petición cancelada' };
+      },
+    };
+    const items = await runImproveBatch({ profile, ids: ['ach-acme-latency', 'ach-talk'], provider: abortingProvider, prompt: 'P', fragment: {}, progress: (line) => progress.push(line), signal: controller.signal });
+    expect(items).toEqual([]);
+    expect(calls).toHaveLength(1);
+    expect(progress.at(-1)).toBe('[1/2] ach-acme-latency: cancelado');
+  });
 });
