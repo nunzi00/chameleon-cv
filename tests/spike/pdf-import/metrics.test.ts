@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseMasterProfile, type MasterProfile } from '../../../src/core/schema';
-import { THRESHOLDS, markdownTable, percent, score, textCoverage } from '../../../scripts/spike/pdf-import/metrics';
+import { THRESHOLDS, markdownTable, percent, score, textCoverage, plainText } from '../../../scripts/spike/pdf-import/metrics';
 import type { DraftEntry, DraftProfile } from '../../../scripts/spike/pdf-import/structure';
 import { fullProfileInput } from '../../fixtures/master-profile';
 
@@ -119,5 +119,12 @@ describe('cobertura del texto y tabla', () => {
     expect(table).toContain('| a/pdfkit | p1 | ');
     expect(table).toContain('| 5/5 | 100 %');
     expect(table).toContain('| 12 |');
+  });
+});
+
+describe('plainText', () => {
+  it('quita enlaces, negritas y cursivas Markdown de la verdad', () => {
+    expect(plainText('Publiqué [Kafka Guardian](https://example.org/kafka-guardian), con **métricas** _listas_ para usar.')).toBe('Publiqué Kafka Guardian, con métricas listas para usar.');
+    expect(plainText('snake_case_name sigue igual')).toBe('snake_case_name sigue igual');
   });
 });

@@ -12,7 +12,7 @@
  */
 import { findDateRange, findSingleDate } from './dates';
 import { SKILL_CATEGORY_LABELS, detectHeading, skillCategory, type SectionKind } from './headings';
-import { normalize } from './text';
+import { normalize, similarity } from './text';
 
 export interface Provenance {
   /** Línea (base 1) del texto extraído. */
@@ -84,6 +84,10 @@ const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/;
 /** Al menos tres grupos de dígitos (seis cifras o más): un año o un número de página no bastan. */
 const PHONE = /(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?){2,4}\d{2,4}/;
 const URL = /https?:\/\/[^\s)]+|www\.[^\s)]+/i;
+// Un enlace solo en su línea; admite un espacio interior (algunas fuentes devuelven el guion como espacio).
+const CELL_AFTER = /^\s*\|\s/;
+const PROSE = /[.;](?:\s|$)/;
+const URL_ONLY = /^\s*(?:https?:\/\/|www\.)[^\s)]+(?:\s[^\s)]+)?\s*$/i;
 const BULLET = /^(?:[•▸◦‣▪■●○☑☐✓✔\-–—*]|\d+[.)])\s+/;
 const CONTACT_GLYPHS = /[✉☎☏⌂]/g;
 const SEPARATORS = / · | — | – | \| | • /;
@@ -91,6 +95,7 @@ const FOOTER = /(?:·|—|-)\s*(?:\d+\s*\/\s*\d+|p[aá]gina\s+\d+\s+de\s+\d+|pag
 const TECHNOLOGIES = /^(?:tecnolog[ií]as|technologies|tech|stack)\s*:\s*(.+?)\.?$/i;
 const INLINE_TECHNOLOGIES = /\s*(?:tecnolog[ií]as|technologies|stack)\s*:\s*([^;]+?)\.?\s*$/i;
 const LINK_LABELS = new Set(['github', 'linkedin', 'web', 'website', 'portfolio', 'twitter', 'x', 'gitlab', 'blog', 'enlace', 'link']);
+const TRAILING_LEVEL = /^(\S.*?)\s+((?:nativ[oa]|native|biling[üu]e|bilingual|fluido|fluent|[abc][12]|b[aá]sico|basic|intermedio|intermediate|avanzado|advanced|profesional|professional)\.?)$/i;
 const LEVEL = /^(?:nativo|nativa|native|bilingüe|bilingual|fluido|fluent|[abc][12]|b[aá]sico|basic|intermedio|intermediate|avanzado|advanced|profesional|professional|mother tongue|lengua materna)\b/i;
 const KNOWN_LANGUAGES = new Set(['espanol', 'castellano', 'spanish', 'ingles', 'english', 'catalan', 'valenciano', 'valencian', 'gallego', 'galician', 'euskera', 'vasco', 'basque', 'frances', 'french', 'aleman', 'german', 'italiano', 'italian', 'portugues', 'portuguese', 'chino', 'chinese', 'mandarin', 'japones', 'japanese', 'arabe', 'arabic', 'ruso', 'russian', 'neerlandes', 'holandes', 'dutch', 'sueco', 'swedish', 'polaco', 'polish', 'griego', 'greek', 'turco', 'turkish', 'coreano', 'korean', 'hindi', 'rumano', 'romanian']);
 /** Un cuerpo largo tras la fecha en la misma línea: la entrada va «en una línea» (resumen y logros separados por «;»). */
@@ -187,16 +192,23 @@ function parseContact(text: string, draft: ContactDraft): void {
 }
 
 /** «Rol · Empresa · Lugar», «Rol, Empresa (Lugar)» o «Nombre — Rol». */
-function parseTitle(text: string): { readonly title: string; readonly subtitle: string | undefined; readonly location: string | undefined } {
+function parseTitle(text: string, keepParenthesis = false): { readonly title: string; readonly subtitle: string | undefined; readonly location: string | undefined } {
   let rest = trimSeparators(text);
+  if (rest === '') {
+    return { title: '', subtitle: undefined, location: undefined };
+  }
   let location: string | undefined;
-  const parenthesized = /^(.*?\S)\s*\((.+)\)$/.exec(rest);
+  const parenthesized = keepParenthesis ? null : /^(.*?\S)\s*\((.+)\)$/.exec(rest);
   if (parenthesized !== null) {
     rest = parenthesized[1]!;
     location = parenthesized[2]!;
   }
   const parts = SEPARATORS.test(rest) ? splitParts(rest) : rest.split(/\s*,\s*/).map(trimSeparators).filter((part) => part !== '');
-  return { title: parts[0] ?? rest, subtitle: parts[1], location: location ?? parts[2] };
+  if (parts.length >= 3) {
+    // El paréntesis final califica al lugar («Valencia (remoto)»), no lo sustituye.
+    return { title: parts[0]!, subtitle: parts[1], location: location === undefined ? parts[2] : `${parts[2]} (${location})` };
+  }
+  return { title: parts[0]!, subtitle: parts[1], location };
 }
 
 function parseDegree(text: string): { readonly degree: string; readonly field: string | undefined } {
@@ -232,8 +244,13 @@ function achievementsFromInline(body: string, line: Line): Array<{ text: string;
 }
 
 /** Entradas con rango de fechas (experiencia, proyectos, formación). */
+/** Similitud mínima entre una línea y «título subtítulo» de una entrada cerrada para tratarla como su bloque de detalle. */
+const REPEATED_TITLE = 0.75;
+
 function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provenance[]): DraftEntry[] {
   const entries: DraftEntry[] = [];
+  /** La entrada abierta tal como estaba al cerrarse, por si un bloque de detalle posterior la reabre. */
+  const closed: OpenEntry[] = [];
   const pending: Line[] = [];
   let current: OpenEntry | undefined;
   const keepPending = (line: Line): void => {
@@ -266,6 +283,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       achievements: current.achievements,
       provenance: current.provenance,
     });
+    closed.push(current);
     current = undefined;
   };
   /** El título viene en una o dos líneas anteriores: «Rol · Empresa» + «de València» (continuación) o «Título» + «Centro» (tabla). */
@@ -275,7 +293,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       entry.needsTitle = true;
       return;
     }
-    const parsed = parseTitle(first.text);
+    const parsed = parseTitle(first.text, kind === 'education');
     entry.title = parsed.title;
     entry.subtitle = parsed.subtitle;
     entry.location ??= parsed.location;
@@ -307,7 +325,9 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       after = trimSeparators(after.replace(url, ''));
     }
     const entry: OpenEntry = { title: '', subtitle: undefined, location: undefined, url, start: range.start, end: range.end, current: range.current, summary: [], technologies: [], achievements: [], provenance: provenance(line), sawBullet: false, needsTitle: false };
-    const inlineBody = after.length >= INLINE_BODY_MIN ? after : undefined;
+    // Cuerpo en línea tras la fecha solo si parece prosa (frases con punto o punto y coma) y no es una fila de tabla («Periodo | Puesto | Empresa»);
+    // «2014 – 2015 Máster en Ciencia de Datos · Universitat de València» es un título largo, no un cuerpo.
+    const inlineBody = after.length >= INLINE_BODY_MIN && PROSE.test(after) && !CELL_AFTER.test(line.text.slice(range.index + range.text.length)) ? after : undefined;
     const titleText = inlineBody === undefined ? trimSeparators(`${before} ${after}`) : before;
     // «mar 2022 – actualidad · Valencia (remoto)» debajo del título: lo que queda junto a la fecha es el lugar, no un título.
     const restIsLocation = pending.length > 0 && titleText !== '' && !SEPARATORS.test(titleText) && looksLikeLocation(titleText);
@@ -316,7 +336,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       titleFromPending(entry);
     } else {
       dropPending();
-      const parsed = parseTitle(titleText);
+      const parsed = parseTitle(titleText, kind === 'education');
       entry.title = parsed.title;
       entry.subtitle = parsed.subtitle;
       entry.location = parsed.location;
@@ -338,7 +358,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
     current = entry;
   };
   const dateAt = lines.map((line) => findDateRange(line.text) !== undefined);
-  const titleLike = (line: Line): boolean => line.text.length <= 90 && !/[.!?]$/.test(line.text) && !isBullet(line.text) && !TECHNOLOGIES.test(line.text);
+  const titleLike = (line: Line): boolean => line.text.length <= 90 && !/[.!?]$/.test(line.text) && !isBullet(line.text) && !TECHNOLOGIES.test(line.text) && !URL_ONLY.test(line.text);
   for (const [index, line] of lines.entries()) {
     const range = findDateRange(line.text);
     if (range !== undefined) {
@@ -351,14 +371,27 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
     }
     // La fecha de la entrada siguiente viene una o dos líneas más abajo: esta línea corta es su título, no cuerpo de la actual.
     const next = lines[index + 1];
-    const startsNextEntry = !current.needsTitle && titleLike(line) && (dateAt[index + 1] === true || (dateAt[index + 2] === true && next !== undefined && titleLike(next)));
+    const continuation = startsLowercase(line.text) && line.text.length <= 40 && current.subtitle !== undefined && current.summary.length === 0;
+    const startsNextEntry = !current.needsTitle && !continuation && titleLike(line) && (dateAt[index + 1] === true || (dateAt[index + 2] === true && next !== undefined && titleLike(next)));
     if (startsNextEntry) {
       flush();
       keepPending(line);
       continue;
     }
+    // Bloque de detalle que repite el título de una entrada ya cerrada («Staff Backend Engineer — Nexo Pagos» tras la tabla): se reabre.
+    const repeated = titleLike(line) ? entries.findIndex((entry) => similarity(`${entry.title} ${entry.subtitle ?? ''}`, line.text) >= REPEATED_TITLE) : -1;
+    if (repeated !== -1) {
+      flush();
+      entries.splice(repeated, 1);
+      current = closed.splice(repeated, 1)[0];
+      continue;
+    }
+    if (titleLike(line) && similarity(`${current.title} ${current.subtitle ?? ''}`, line.text) >= REPEATED_TITLE) {
+      // Cabecera del bloque de detalle de la entrada abierta: no es resumen.
+      continue;
+    }
     if (current.needsTitle) {
-      const parsed = parseTitle(line.text);
+      const parsed = parseTitle(line.text, kind === 'education');
       current.title = parsed.title;
       current.subtitle = parsed.subtitle;
       current.location ??= parsed.location;
@@ -385,7 +418,14 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       continue;
     }
     if (!current.sawBullet) {
-      if (current.subtitle !== undefined && current.summary.length === 0 && startsLowercase(line.text) && line.text.length <= 40) {
+      if (URL_ONLY.test(line.text)) {
+        // Enlace del proyecto en su propia línea, bajo el título; un segundo enlace queda sin asignar.
+        if (current.url === undefined) {
+          current.url = line.text.replace(/\s+/g, '');
+        } else {
+          unparsed.push(provenance(line));
+        }
+      } else if (current.subtitle !== undefined && current.summary.length === 0 && startsLowercase(line.text) && line.text.length <= 40) {
         // Continuación del subtítulo partido por la maquetación («Universitat» + «de València»).
         current.subtitle = `${current.subtitle} ${trimSeparators(line.text)}`;
       } else if (current.location === undefined && current.summary.length === 0 && looksLikeLocation(line.text)) {
@@ -450,7 +490,7 @@ function parseCertifications(lines: readonly Line[]): DraftEntry[] {
 }
 
 function splitNames(text: string): string[] {
-  return text.split(/\s*[,;·]\s*/).map((name) => stripBullet(name.trim())).filter((name) => name !== '');
+  return text.split(/\s*[,;·]\s*/).map((name) => trimSeparators(stripBullet(name.trim()))).filter((name) => name !== '');
 }
 
 /** «Lenguajes PHP, Python» (etiqueta sin dos puntos, como en un margen): la etiqueta conocida al principio. */
@@ -458,7 +498,7 @@ function splitLabelledLine(text: string): { readonly label: string; readonly nam
   const key = normalize(text);
   for (const [label] of SKILL_CATEGORY_LABELS) {
     if (key.startsWith(`${label} `) && key.length > label.length + 1) {
-      return { label, names: text.slice(label.length).trim() };
+      return { label, names: trimSeparators(text.slice(label.length)) };
     }
   }
   return undefined;
@@ -508,7 +548,8 @@ function parseLanguages(lines: readonly Line[], unparsed: Provenance[]): DraftLa
     }
   };
   for (const line of lines) {
-    const parts = splitParts(stripBullet(line.text).replace(/[;,]\s*/g, ' · ').replace(/:\s*/g, ' · ').replace(/\s*\(([^()]+)\)/g, ' · $1'));
+    // «Valenciano C1» sin separador: el nivel final se separa del nombre.
+    const parts = splitParts(stripBullet(line.text).replace(/[;,]\s*/g, ' · ').replace(/:\s*/g, ' · ').replace(/\s*\(([^()]+)\)/g, ' · $1').replace(TRAILING_LEVEL, '$1 · $2'));
     let candidate: string | undefined;
     for (const part of parts) {
       if (LEVEL.test(part) && candidate !== undefined) {

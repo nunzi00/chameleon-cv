@@ -73,6 +73,11 @@ interface TruthEntry {
   readonly technologies: readonly string[];
 }
 
+/** El texto de la verdad sin marcas Markdown («[Kafka Guardian](url)», «**negrita**»): el PDF solo muestra el texto. */
+export function plainText(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(?<!\w)_([^_]+)_(?!\w)/g, '$1');
+}
+
 function entryKey(title: string, subtitle: string | undefined): string {
   return `${title} ${subtitle ?? ''}`;
 }
@@ -188,7 +193,7 @@ function truthExperience(profile: MasterProfile): TruthEntry[] {
     subtitle: item.company,
     location: item.location,
     dates: item.dates,
-    achievements: item.achievements.map((achievement) => ({ text: achievement.text, impact: achievement.impact })),
+    achievements: item.achievements.map((achievement) => ({ text: plainText(achievement.text), impact: achievement.impact })),
     technologies: item.technologies,
   }));
 }
@@ -199,7 +204,7 @@ function truthProjects(profile: MasterProfile): TruthEntry[] {
     subtitle: item.role,
     location: undefined,
     dates: item.dates,
-    achievements: item.achievements.map((achievement) => ({ text: achievement.text, impact: achievement.impact })),
+    achievements: item.achievements.map((achievement) => ({ text: plainText(achievement.text), impact: achievement.impact })),
     technologies: item.technologies,
   }));
 }

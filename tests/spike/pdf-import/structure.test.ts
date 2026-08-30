@@ -174,3 +174,115 @@ Unknown stuff
     expect(empty.unparsed).toEqual([]);
   });
 });
+
+describe('structureCv · enlace bajo el título', () => {
+  it('toma como URL del proyecto la línea que solo contiene un enlace y no la pega al subtítulo', () => {
+    const draft = structureCv(
+      [
+        'Lucía Ferrer Montalbán',
+        'Proyectos',
+        'Kafka Guardian · Autora y mantenedora jun 2023 – actualidad',
+        'https://example.org/kafka-guardian',
+        'Biblioteca de código abierto para detectar consumidores retrasados.',
+        '▸ Publiqué Kafka Guardian, adoptada por 30 organizaciones. (30 organizaciones)',
+        'Módulos Terraform para AWS · Autora sept 2020 – ene 2022',
+        'www.example.org/terraform',
+        'https://example.org/otro',
+        'Pipeline Demo · Autora may 2016 – dic 2016',
+        'https://example.org/pipeline demo',
+      ].join('\n'),
+    );
+    expect(draft.projects.map((project) => [project.title, project.subtitle, project.url, project.summary])).toEqual([
+      ['Kafka Guardian', 'Autora y mantenedora', 'https://example.org/kafka-guardian', 'Biblioteca de código abierto para detectar consumidores retrasados.'],
+      ['Módulos Terraform para AWS', 'Autora', 'www.example.org/terraform', undefined],
+      ['Pipeline Demo', 'Autora', 'https://example.org/pipelinedemo', undefined],
+    ]);
+    expect(draft.projects[0]?.achievements).toHaveLength(1);
+  });
+});
+
+describe('structureCv · tabla y bloques de detalle', () => {
+  it('parte las celdas « | » en título, empresa y lugar y reabre la entrada cuyo título repite el bloque de detalle', () => {
+    const draft = structureCv(
+      [
+        'Lucía Ferrer Montalbán',
+        'Experiencia laboral',
+        'Periodo | Puesto | Empresa | Lugar',
+        'mar 2022 – actualidad | Staff Backend Engineer | Nexo Pagos | Valencia (remoto)',
+        'jun 2019 – feb 2022 | Platform Engineer | Órbita Cloud | Madrid',
+        'Staff Backend Engineer — Nexo Pagos',
+        '— Diseñé la arquitectura de la nueva pasarela de pagos. (0 incidentes)',
+        '— Reduje la latencia p99 de 480 ms a 210 ms.',
+        'Tecnologías: PHP 8.3, Kafka',
+        'Platform Engineer — Órbita Cloud',
+        '— Construí la plataforma Kubernetes multi-tenant.',
+        'Formación',
+        '2014 – 2015 | Máster en Ciencia de Datos (Ingeniería de datos) | Universitat de València',
+        'Máster en Ciencia de Datos — Universitat de València',
+        '— Trabajo final sobre canalizaciones de datos.',
+      ].join('\n'),
+    );
+    expect(draft.experience.map((entry) => [entry.title, entry.subtitle, entry.location, entry.start, entry.achievements.length, entry.technologies])).toEqual([
+      ['Staff Backend Engineer', 'Nexo Pagos', 'Valencia (remoto)', '2022-03', 2, ['PHP 8.3', 'Kafka']],
+      ['Platform Engineer', 'Órbita Cloud', 'Madrid', '2019-06', 1, []],
+    ]);
+    expect(draft.experience[0]?.achievements[0]).toMatchObject({ text: 'Diseñé la arquitectura de la nueva pasarela de pagos.', impact: '0 incidentes' });
+    expect(draft.education.map((entry) => [entry.title, entry.field, entry.subtitle, entry.achievements.length])).toEqual([['Máster en Ciencia de Datos', 'Ingeniería de datos', 'Universitat de València', 1]]);
+    expect(draft.unparsed.map((line) => line.text)).toEqual(['Periodo | Puesto | Empresa | Lugar']);
+  });
+});
+
+describe('structureCv · texto con celdas « | » (P3)', () => {
+  it('limpia los separadores de celda en habilidades, conserva el paréntesis de la formación, sigue el subtítulo en minúscula y omite la cabecera repetida de la entrada abierta', () => {
+    const draft = structureCv(
+      [
+        'Lucía Ferrer Montalbán',
+        'Experiencia',
+        'Staff Backend Engineer · Nexo Pagos | mar 2022 – actualidad',
+        'Staff Backend Engineer — Nexo Pagos',
+        '▸ Diseñé la arquitectura de la nueva pasarela de pagos.',
+        'Formación',
+        'Máster en Ciencia de Datos (Ingeniería de datos) · Universitat | 2014 – 2015',
+        'de València',
+        'Grado en Ingeniería Informática (Ingeniería del software) | 2009 – 2013',
+        'Habilidades',
+        'Lenguajes: | PHP, Python',
+        'Cloud: | AWS',
+      ].join('\n'),
+    );
+    expect(draft.experience.map((entry) => [entry.title, entry.subtitle, entry.summary, entry.achievements.length])).toEqual([['Staff Backend Engineer', 'Nexo Pagos', undefined, 1]]);
+    expect(draft.education.map((entry) => [entry.title, entry.field, entry.subtitle, entry.location, entry.start])).toEqual([
+      ['Máster en Ciencia de Datos', 'Ingeniería de datos', 'Universitat de València', undefined, '2014'],
+      ['Grado en Ingeniería Informática', 'Ingeniería del software', undefined, undefined, '2009'],
+    ]);
+    expect(draft.skills.map((group) => [group.category, group.names])).toEqual([
+      ['language', ['PHP', 'Python']],
+      ['cloud', ['AWS']],
+    ]);
+    expect(draft.unparsed).toEqual([]);
+  });
+});
+
+describe('structureCv · idiomas sin separador', () => {
+  it('separa el nivel final del nombre («Valenciano C1») y respeta los formatos con separador', () => {
+    const draft = structureCv(['Lucía Ferrer', 'Idiomas', 'Español | nativo', 'Valenciano C1', 'Inglés (C1)', 'Klingon B2'].join('\n'));
+    expect(draft.languages).toEqual([
+      { name: 'Español', level: 'nativo' },
+      { name: 'Valenciano', level: 'C1' },
+      { name: 'Inglés', level: 'C1' },
+      { name: 'Klingon', level: 'B2' },
+    ]);
+    expect(draft.unparsed).toEqual([]);
+  });
+});
+
+describe('structureCv · reapertura sin subtítulo y título vacío', () => {
+  it('reabre un proyecto sin rol por su título y deja vacío el título de una línea que solo tiene separadores', () => {
+    const draft = structureCv(['Lucía Ferrer', 'Proyectos', 'Pipeline Demo | may 2016 – dic 2016', 'Kafka Guardian | jun 2023 – actualidad', 'Pipeline Demo', '▸ Construí una canalización de ejemplo.', 'Formación', '2009 – 2013', '— —'].join('\n'));
+    expect(draft.projects.map((project) => [project.title, project.subtitle, project.achievements.length])).toEqual([
+      ['Kafka Guardian', undefined, 0],
+      ['Pipeline Demo', undefined, 1],
+    ]);
+    expect(draft.education.map((entry) => [entry.title, entry.start])).toEqual([['', '2009']]);
+  });
+});
