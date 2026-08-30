@@ -122,3 +122,33 @@ SSRF (bloqueo de loopback, rangos privados, enlace local y `169.254.169.254`, co
 
 - 2026-08-30: PROPUESTA v1 redactada tras los dos requisitos del Director (URL como origen de la oferta y selector de ofertas del espacio de trabajo) durante las pruebas con el espacio de trabajo real; enviada al Product Owner junto con el informe final de T-8.4.
 - 2026-08-30: **APROBADA** por el Director de Ingeniería y Producto: las ocho decisiones de §10 tal como se recomendaban (solo `https`, extractor propio con corpus y umbrales, `--allow-remote` obligatorio, guardado explícito en `offers/`, listado limitado a `offers/`, sin navegador embebido, **prioridad sobre T-8.4b**, versión 1.7.0, después reasignada a 1.8.0 por el PO). Confirmado que Lucas aporta las seis páginas reales del S0. Luz verde para implementar.
+
+## S0 · Corpus real (2026-08-30)
+
+Páginas facilitadas por el Director (siete URL; las copias HTML viven en `build/offers-corpus/`, fuera del repositorio por ser
+contenido de terceros; las pruebas usarán réplicas sintéticas con la misma estructura):
+
+| # | Portal | Oferta | Descarga (curl, UA de navegador) | JSON-LD | Descripción JSON-LD | Texto visible |
+|---|---|---|---|---|---|---|
+| 1 | LinkedIn (vista pública) | Backend Software Engineer – Golang (BETWEEN Group) | 200 · 293 KB | `JobPosting` | 342 palabras | 1957 palabras |
+| 2 | LinkedIn (vista pública) | Senior Back-End Engineer (Preply) | 200 · 300 KB | `JobPosting` | 1090 palabras | 2704 palabras |
+| 3 | Jobgether | Banking Customer Agent (Skillmatch) | 200 · 196 KB | `BreadcrumbList` + `JobPosting` | 335 palabras | 1974 palabras |
+| 4 | Jobgether | Senior Quality Assurance Engineer (Trading 212) | 200 · 205 KB | `BreadcrumbList` + `JobPosting` | 446 palabras | 2245 palabras |
+| 5 | Jobgether | Security Engineer – Product | **503** en tres intentos (oferta retirada o protección) | — | — | — |
+| 6 | Manfred | Product Manager (Valsea Technologies) | 200 · 279 KB | `JobPosting` | 106 palabras | 2442 palabras |
+| 7 | Manfred | Performance Marketing Specialist (Topcar) | 200 · 272 KB | `JobPosting` | 69 palabras | 2631 palabras |
+
+Conclusiones para S1:
+
+1. **Primera vía: JSON-LD `JobPosting`** (schema.org), presente en las seis páginas descargadas: `title`, `hiringOrganization.name`,
+   `description` (HTML), y en algunos portales `datePosted`, `jobLocation`, `employmentType`, `baseSalary`. Es determinista y no
+   depende del DOM del portal.
+2. **Segunda vía: texto visible principal**, porque la descripción del JSON-LD puede ser un resumen (Manfred: 69–106 palabras frente
+   a 2400+ visibles). Regla propuesta: si la descripción tiene menos de ~250 palabras, completar con el bloque de texto más largo
+   del cuerpo (excluyendo `nav`, `header`, `footer`, `script`, `style` y listas de ofertas relacionadas), sin superar el límite de
+   tamaño de la ingesta.
+3. `og:title`/`og:description` existen en todas y sirven de tercera vía (portales sin JSON-LD).
+4. Las páginas pesan 200–300 KB de HTML: el límite de descarga de 2 MB de la propuesta es holgado; el consentimiento debe citar host y
+   tamaño como ya hace la instalación de temas.
+5. LinkedIn sirve la vista pública sin sesión con un `User-Agent` de navegador; sin él devuelve otra página. La cabecera se fija
+   en el extractor y se documenta.
