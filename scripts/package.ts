@@ -144,7 +144,9 @@ async function main(): Promise<void> {
   const common = { bundle: true, platform: 'node' as const, format: 'cjs' as const, target: 'node26', external: ['@napi-rs/canvas', 'canvas'], logLevel: 'warning' as const, legalComments: 'none' as const, plugins: [pdfkitStandardFonts], absWorkingDir: ROOT, metafile: true as const };
   const cli = await build({ ...common, entryPoints: [join(ROOT, 'dist', 'index.js')], outfile: join(BUILD, 'cv.cjs') });
   const worker = await build({ ...common, entryPoints: [join(ROOT, 'src', 'pdf', 'worker.mts')], outfile: join(BUILD, 'worker.js') });
-  log(`  cv.cjs ${megabytes(statSync(join(BUILD, 'cv.cjs')).size)} · worker.js ${megabytes(statSync(join(BUILD, 'worker.js')).size)}`);
+  const itemsWorker = await build({ ...common, entryPoints: [join(ROOT, 'src', 'import', 'items-worker.mts')], outfile: join(BUILD, 'items-worker.js') });
+  void itemsWorker;
+  log(`  cv.cjs ${megabytes(statSync(join(BUILD, 'cv.cjs')).size)} · worker.js ${megabytes(statSync(join(BUILD, 'worker.js')).size)} · items-worker.js ${megabytes(statSync(join(BUILD, 'items-worker.js')).size)}`);
 
   step('3/8 Interfaz web (gui/dist: la SPA que cv serve sirve desde el ejecutable)');
   if (!existsSync(join(ROOT, 'gui', 'node_modules'))) {
@@ -174,6 +176,7 @@ async function main(): Promise<void> {
     add(file, join(ROOT, file));
   }
   add('worker.js', join(BUILD, 'worker.js'));
+  add('items-worker.js', join(BUILD, 'items-worker.js'));
   const manifestPath = join(BUILD, 'assets-manifest.json');
   writeFileSync(manifestPath, `${JSON.stringify({ version, files }, null, 2)}\n`);
   assets['assets-manifest.json'] = manifestPath;

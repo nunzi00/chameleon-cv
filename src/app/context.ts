@@ -10,6 +10,7 @@ import type { LlmCacheStore, LlmStatus, LlmStatusOptions, ProviderSelection, Pro
 import type { LlmRuntime } from '../llm/runtime';
 import type { FileSystem, SourceParser } from '../parsers';
 import type { PdfExtractionResult } from '../pdf';
+import type { ItemsResult } from '../import/items';
 import type { TypstRenderOptions, TypstRenderResult } from '../renderers/typst';
 import type { AssetStore } from '../shared/assets';
 import type { Fetcher, InstallOptions, InstallResult, Reporter, StatusOptions, TypstStatus } from '../typst';
@@ -27,6 +28,8 @@ export interface AppContext {
   readonly parsers: readonly SourceParser[];
   /** Extrae el texto de una oferta en PDF (contenido en un worker). */
   readonly pdfExtractor: (bytes: Uint8Array) => Promise<PdfExtractionResult>;
+  /** Items de un PDF con coordenadas (T-8.4b, `cv import-cv`); inyectable en pruebas. Ausente: worker por defecto. */
+  readonly itemsExtractor?: ((bytes: Uint8Array) => Promise<ItemsResult>) | undefined;
   /** Renderiza con Typst (proceso hijo contenido); inyectable para probar sin binario. */
   readonly typstRenderer: TypstRenderer;
   /** `cv typst install`: la única operación de red; inyectable para probar sin red. */

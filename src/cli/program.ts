@@ -5,6 +5,7 @@
 import { Command, CommanderError } from 'commander';
 
 import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-offer';
+import { runImportCv, type ImportCvOptions } from './commands/import-cv';
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
@@ -119,6 +120,16 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--build', 'recompila el artefacto desde las fuentes antes de generar (equivale a un «cv build» previo)', false)
     .action(async (options: GenerateCvOptions) => {
       onExit(await runGenerateCv(context, options));
+    });
+
+  program
+    .command('import-cv')
+    .description('importa un CV ya maquetado (PDF o DOCX) como borrador de fuentes en import/<nombre>/, con informe de lo reconocido; nunca escribe en data/sources/')
+    .argument('<fichero>', 'el CV a importar (.pdf o .docx)')
+    .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .action(async (file: string, options: ImportCvOptions) => {
+      onExit(await runImportCv(context, file, options));
     });
 
   program

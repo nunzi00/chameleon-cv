@@ -8,6 +8,7 @@ import type { AppContext } from '../app/context';
 import { loadLlmSettings } from '../app/settings';
 import { NodeFileSystem, defaultSourceParsers } from '../parsers';
 import { DEFAULT_PDF_LIMITS, createWorkerRunner, extractPdfText, workerSource } from '../pdf';
+import { createItemsRunner, extractItems, itemsWorkerSource } from '../import/items';
 import { renderTypstCv } from '../renderers/typst';
 import { installTypst, typstStatus } from '../typst';
 import { createLlmRuntime, createNodeLlmCache, llmStatus, runtimeConfiguration, selectProvider, type LlmStatusOptions } from '../llm';
@@ -56,6 +57,7 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
     artifactFileSystem: new NodeWritableFileSystem(),
     parsers: defaultSourceParsers(),
     pdfExtractor: async (bytes) => extractPdfText(bytes, DEFAULT_PDF_LIMITS, createWorkerRunner(await workerSource(assets))),
+    itemsExtractor: async (bytes) => extractItems(bytes, DEFAULT_PDF_LIMITS, createItemsRunner(await itemsWorkerSource(assets))),
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),

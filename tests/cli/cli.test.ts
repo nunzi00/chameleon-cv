@@ -396,6 +396,7 @@ describe('contexto real y errores no estándar', () => {
 
   it('el extractor de PDF del contexto real contiene la extracción en un worker', async () => {
     expect(await createNodeContext().pdfExtractor(Buffer.from('no soy un pdf', 'utf8'))).toEqual({ ok: false, code: 'invalid', message: 'Invalid PDF structure.' });
+    expect(await createNodeContext().itemsExtractor?.(Buffer.from('no soy un pdf', 'utf8'))).toMatchObject({ ok: false, code: 'invalid' });
   });
 
   it('el renderer Typst del contexto real busca el binario y explica su ausencia', async () => {

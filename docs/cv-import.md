@@ -51,3 +51,9 @@ métrica del spike como prueba con umbrales; el asistente del co-piloto con el d
 3. **D3** DOCX con extractor propio mínimo (document.xml); la maquetación fina, solo PDF.
 4. **D4** Los PDF de los 27 temas del banco como corpus de regresión, más 3 CV reales anonimizados del Director.
 5. **D5** Se implementa tras T-8.5 S1–S2 (la URL primero, como ordenó el Director), con destino 1.9.0.
+
+## §6 Estado
+
+- **Núcleo (fase 1) IMPLEMENTADO el 2026-08-30**: `src/import/{text,dates,headings,layout,structure}.ts` portados del spike con cabeceras de producto; `items.ts`/`items-worker.mts` endurecidos como el extractor de PDF (ruta o código embebido vía assets, límites, worker terminado); `draft.ts` valida ENTIDAD A ENTIDAD contra el esquema maestro y degrada con motivo y procedencia (idiomas MCER aproximado con aviso, experiencia sin fechas al informe, campos opcionales rotos retirados uno a uno); ficheros con los serializadores de `cv import` + banner de borrador + `README.md` (informe); `docx.ts` mínimo con `readZipEntries`. CLI `import-cv` (--name, --replace), escenario de aceptación `import-cv` (PDF del banco → borrador → `build --data` en verde) y humo real: el PDF del tema `classic` regenera un borrador que compila.
+- Desviaciones: el informe se llama `README.md` (el cargador lo ignora en la raíz del dataset, así el borrador valida tal cual); idioma sin nivel reconocible queda como B2 provisional con aviso (el esquema exige nivel MCER).
+- Pendiente (fase 2): `--copilot` con propuestas como revisión C2, corpus con los 3 CV reales anonimizados del Director, guía en el portal.

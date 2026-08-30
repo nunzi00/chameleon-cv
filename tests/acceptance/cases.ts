@@ -331,4 +331,17 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'listado-explicito', args: ['analyze-offer', '--list'], exitCode: 0 },
     ],
   },
+  {
+    id: 'import-cv',
+    description: 'importación de un CV maquetado (T-8.4b): PDF del banco a borrador en import/<nombre>/ con README, --replace obligatorio para sustituir, cabecera desconocida rechazada y el borrador validado con build --data',
+    workspace: 'bench',
+    steps: [
+      { id: 'importa-pdf', args: ['import-cv', 'offers/pdf/nexo-senior-backend.pdf', '--name', 'nexo'], exitCode: 0 },
+      { id: 'sin-replace', args: ['import-cv', 'offers/pdf/nexo-senior-backend.pdf', '--name', 'nexo'], exitCode: 1 },
+      { id: 'con-replace', args: ['import-cv', 'offers/pdf/nexo-senior-backend.pdf', '--name', 'nexo', '--replace'], exitCode: 0 },
+      { id: 'cabecera-desconocida', args: ['import-cv', 'offers/nexo-senior-backend.txt'], exitCode: 1 },
+      { id: 'valida-borrador', args: ['build', '--data', 'import/nexo'], exitCode: 0 },
+      { id: 'readme-borrador', args: ['import-cv', 'offers/pdf/orbita-platform-engineer.pdf'], exitCode: 0 },
+    ],
+  },
 ];
