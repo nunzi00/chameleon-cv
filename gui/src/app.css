@@ -109,3 +109,12 @@ pre.cv-progress { max-height: 12rem; }
 .cv-proposal { margin: 0.35rem 0; }
 .cv-proposal del { color: var(--cv-muted); }
 .cv-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Selector de etiquetas (skills y proyectos): botones que se añaden y se quitan. */
+.cv-tags { display: flex; flex-direction: column; gap: 0.35rem; }
+.cv-tags-group { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.cv-tags-label { color: var(--cv-muted); font-size: 0.85rem; margin-right: 0.25rem; }
+.cv-tag { border: 1px solid var(--cv-border); border-radius: 999px; background: var(--cv-surface); color: var(--cv-text); padding: 0.15rem 0.65rem; font: inherit; font-size: 0.9rem; cursor: pointer; }
+.cv-tag:hover, .cv-tag:focus-visible { border-color: var(--cv-accent); }
+.cv-tag.selected { background: var(--cv-accent); border-color: var(--cv-accent); color: var(--cv-accent-text); }
+.cv-tag-remove { margin-left: 0.35rem; opacity: 0.8; }

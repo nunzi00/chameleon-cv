@@ -18,8 +18,8 @@ export interface GenerateForm {
   readonly maxProjects: string;
   readonly maxCertifications: string;
   /** Selección explícita de skills (nombres) y proyectos (ids); vacío = todas/todos. */
-  readonly skills: readonly string[];
-  readonly projects: readonly string[];
+  skills: string[];
+  projects: string[];
   readonly compact: boolean;
   /** Nombre del fichero en output/ (vacío = el de la CLI). */
   readonly output: string;

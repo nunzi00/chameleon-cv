@@ -4,6 +4,7 @@
   import Dialog from '../components/Dialog.svelte';
   import Notice from '../components/Notice.svelte';
   import PdfViewer from '../components/PdfViewer.svelte';
+  import TagPicker from '../components/TagPicker.svelte';
   import type { ApiClient, OutputFile } from '../lib/api/client';
   import type { GenerateResponse, ProfileResponse, ThemesResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
@@ -254,22 +255,16 @@
     <label class="cv-field"><span>Skills como máximo</span><input name="maxSkills" inputmode="numeric" bind:value={form.maxSkills} placeholder="todas" /></label>
     <label class="cv-field"><span>Proyectos como máximo</span><input name="maxProjects" inputmode="numeric" bind:value={form.maxProjects} placeholder="todos" /></label>
     {#if skillGroups(profile).length > 0}
-      <label class="cv-field">
+      <div class="cv-field wide">
         <span>Solo estas skills ({form.skills.length === 0 ? 'todas' : form.skills.length})</span>
-        <select name="skills" multiple size="6" bind:value={form.skills}>
-          {#each skillGroups(profile) as group (group.category)}
-            <optgroup label={group.category}>{#each group.names as name (name)}<option value={name}>{name}</option>{/each}</optgroup>
-          {/each}
-        </select>
-      </label>
+        <TagPicker name="Solo estas skills" groups={skillGroups(profile).map((group) => ({ label: group.category, options: group.names.map((skill) => ({ value: skill, label: skill })) }))} bind:selected={form.skills} />
+      </div>
     {/if}
     {#if projectOptions(profile).length > 0}
-      <label class="cv-field">
+      <div class="cv-field wide">
         <span>Solo estos proyectos ({form.projects.length === 0 ? 'todos' : form.projects.length})</span>
-        <select name="projects" multiple size="4" bind:value={form.projects}>
-          {#each projectOptions(profile) as project (project.id)}<option value={project.id}>{project.name}</option>{/each}
-        </select>
-      </label>
+        <TagPicker name="Solo estos proyectos" groups={[{ label: '', options: projectOptions(profile).map((project) => ({ value: project.id, label: project.name })) }]} bind:selected={form.projects} />
+      </div>
     {/if}
     <label class="cv-field"><span>Certificaciones</span><input name="maxCertifications" inputmode="numeric" bind:value={form.maxCertifications} placeholder="todas" /></label>
     <label class="cv-field"><span>Idioma (locale)</span><input name="locale" bind:value={form.locale} placeholder="el del perfil" /></label>

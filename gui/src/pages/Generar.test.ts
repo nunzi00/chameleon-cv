@@ -123,18 +123,13 @@ describe('Generar · selección explícita de skills y proyectos', () => {
     const profile = { skills: [{ name: 'PHP', category: 'language' }, { name: 'Kubernetes', category: 'platform' }], projects: [{ id: 'proj-a', name: 'Proyecto A' }, { id: 'proj-b', name: 'Proyecto B' }] } as never;
     const api = fakeApi({ profile: vi.fn(async () => profile) });
     render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
-    await waitFor(() => expect(screen.getByLabelText(/Solo estas skills/)).toBeTruthy());
-    const skills = screen.getByLabelText(/Solo estas skills/) as HTMLSelectElement;
-    expect(skills.querySelectorAll('optgroup')).toHaveLength(2);
-    for (const option of Array.from(skills.options)) {
-      option.selected = option.value === 'Kubernetes';
-    }
-    await fireEvent.change(skills);
-    const projects = screen.getByLabelText(/Solo estos proyectos/) as HTMLSelectElement;
-    for (const option of Array.from(projects.options)) {
-      option.selected = option.value === 'proj-b';
-    }
-    await fireEvent.change(projects);
+    await waitFor(() => expect(screen.getByRole('group', { name: 'Solo estas skills' })).toBeTruthy());
+    expect(screen.getByText('language')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Kubernetes' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'PHP' }));
+    await fireEvent.click(screen.getByRole('button', { name: /PHP/ }));
+    expect((screen.getByRole('button', { name: /Kubernetes/ }) as HTMLButtonElement).getAttribute('aria-pressed')).toBe('true');
+    await fireEvent.click(screen.getByRole('button', { name: 'Proyecto B' }));
     await fireEvent.change(screen.getByLabelText('Formato'), { target: { value: 'md' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Generar CV' }));
     await waitFor(() => expect(api.generate).toHaveBeenCalledWith({ format: 'md', skills: ['Kubernetes'], projects: ['proj-b'] }));
