@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Cambiado
+
+- Interfaz web, sprint S1 del rediseño (T-8.6, `docs/gui-design/`): sistema visual nuevo (tokens claro/oscuro con contraste AA comprobado en las pruebas, clases `cv-*` de referencia), barra lateral con tres grupos (Perfil, Producir, Co-piloto) más el portal, plegable a iconos (persistente, forzada por debajo de 1024 px), cabecera de contexto presente en todas las pantallas (espacio de trabajo, chips de artefacto/Typst/co-piloto/remotos alimentados por una sola consulta, conmutador de tema claro/oscuro/sistema aplicado antes del primer render y «Apagar» con confirmación), diálogos con foco atrapado y `Esc`. La pantalla Estado ya no tiene su propio botón de apagar.
+
 ## [1.7.0] - 2026-08-30
 
 ### Añadido

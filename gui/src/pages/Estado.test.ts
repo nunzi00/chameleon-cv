@@ -76,17 +76,4 @@ describe('Estado', () => {
     await waitFor(() => expect(onsession).toHaveBeenCalled());
     expect(screen.getByText('La sesión no es válida')).toBeTruthy();
   });
-
-  it('apagar pide confirmación y deja la pantalla en «servidor detenido»', async () => {
-    const api = fakeApi();
-    render(Estado, { props: { api, onsession: vi.fn(), onopen: vi.fn() } });
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Apagar el servidor' })).toBeTruthy());
-    await fireEvent.click(screen.getByRole('button', { name: 'Apagar el servidor' }));
-    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(api.shutdown).not.toHaveBeenCalled();
-    await fireEvent.click(screen.getByRole('button', { name: 'Apagar el servidor' }));
-    await fireEvent.click(screen.getByRole('button', { name: 'Apagar' }));
-    await waitFor(() => expect(screen.getByText('Servidor detenido')).toBeTruthy());
-    expect(api.shutdown).toHaveBeenCalledTimes(1);
-  });
 });

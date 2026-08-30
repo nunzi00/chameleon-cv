@@ -26,8 +26,9 @@ test('la sesión entra por el fragmento, lo retira de la URL y la guarda en la p
 
 test('Estado muestra el espacio de trabajo real, valida y compila', async ({ page }) => {
   await openWithToken(page, state);
-  await expect(page.getByText(state.workspace)).toBeVisible();
-  await expect(page.getByText('al día')).toBeVisible();
+  await expect(page.getByRole('banner').getByText(state.workspace)).toBeVisible();
+  await expect(page.getByRole('main').getByText(state.workspace)).toBeVisible();
+  await expect(page.getByRole('main').getByText('al día')).toBeVisible();
   await page.getByRole('button', { name: 'Validar' }).click();
   await expect(page.getByText(/Fuentes válidas: \d+ ficheros/)).toBeVisible();
   await page.getByRole('button', { name: 'Compilar' }).click();
@@ -172,9 +173,56 @@ test('Ajustes muestra la configuración de cv.toml con sus orígenes, comprueba 
   await expect(page.getByText(/modelo stub-model \(cv\.toml\)/)).toBeVisible();
 });
 
+test('la barra lateral y la cabecera de contexto (T-8.6 S1): chips en toda pantalla, tema, teclado, plegado y 1024 px', async ({ page }) => {
+  await openWithToken(page, state);
+  const banner = page.getByRole('banner');
+  await expect(banner.getByText('Artefacto al día')).toBeVisible();
+  await expect(banner.getByText(/^Typst /)).toBeVisible();
+  await expect(banner.getByText(/^Co-piloto/)).toBeVisible();
+  await expect(banner.getByText(/^Remotos: /)).toBeVisible();
+  await page.goto(`${state.url}#/salidas`);
+  await page.getByRole('heading', { name: 'Salidas' }).waitFor();
+  await expect(banner.getByText('Artefacto al día')).toBeVisible();
+
+  await banner.getByRole('button', { name: 'Oscuro' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await page.evaluate(() => localStorage.getItem('cv.theme'))).toBe('dark');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Salidas' }).waitFor();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await banner.getByRole('button', { name: 'Sistema' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /./);
+
+  await page.getByRole('link', { name: 'Fuentes' }).focus();
+  const order: string[] = [];
+  for (let i = 0; i < 8; i += 1) {
+    order.push(await page.evaluate(() => document.activeElement?.querySelector('span')?.textContent?.trim() ?? ''));
+    await page.keyboard.press('Tab');
+  }
+  expect(order).toEqual(['Fuentes', 'Estado del artefacto', 'Generar', 'Salidas', 'Trabajos', 'Revisiones', 'Ajustes', 'Portada']);
+  expect(await page.evaluate(() => getComputedStyle(document.activeElement as Element).outlineStyle)).toBe('solid');
+
+  await page.getByRole('button', { name: 'Plegar a iconos' }).click();
+  await expect(page.locator('.cv-app')).toHaveAttribute('data-rail', '');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Salidas' }).waitFor();
+  await expect(page.locator('.cv-app')).toHaveAttribute('data-rail', '');
+  // Plegada, el texto del botón está oculto y su nombre accesible pasa a ser el title.
+  await page.getByRole('button', { name: 'Desplegar la barra' }).click();
+  await expect(page.locator('.cv-app')).not.toHaveAttribute('data-rail', /.*/);
+
+  await page.setViewportSize({ width: 1024, height: 700 });
+  for (const name of ['Apagar cv serve', 'Sistema', 'Claro']) {
+    const box = await banner.getByRole('button', { name }).boundingBox();
+    expect(box, name).not.toBeNull();
+    expect((box?.x ?? 0) + (box?.width ?? 0), name).toBeLessThanOrEqual(1024);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
-  await page.getByRole('button', { name: 'Apagar el servidor' }).click();
+  await page.getByRole('button', { name: 'Apagar cv serve' }).click();
   await page.getByRole('button', { name: 'Apagar', exact: true }).click();
   await expect(page.getByText('Servidor detenido')).toBeVisible();
 });

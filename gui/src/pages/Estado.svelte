@@ -26,8 +26,6 @@
   let issues = $state<readonly Issue[]>([]);
   let message = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
-  let confirmShutdown = $state(false);
-  let stopped = $state(false);
   let importing = $state<{ readonly name: string; readonly profile: Record<string, unknown> } | undefined>(undefined);
   let replace = $state(false);
   let plan = $state<ImportResponse | undefined>(undefined);
@@ -138,16 +136,6 @@
     await run('Importando…', async () => describeImport(await api.importProfile(body)));
   }
 
-  async function shutdown(): Promise<void> {
-    confirmShutdown = false;
-    try {
-      await api.shutdown();
-      stopped = true;
-    } catch (caught) {
-      fail(caught);
-    }
-  }
-
   onMount(() => {
     void load();
   });
@@ -155,9 +143,6 @@
 
 <section aria-labelledby="cv-estado-title">
   <h2 id="cv-estado-title">Estado</h2>
-  {#if stopped}
-    <Notice kind="warn" title="Servidor detenido">Vuelve a arrancarlo con <code>cv serve</code> y abre la nueva URL con su token.</Notice>
-  {:else}
     {#if error !== undefined}
       <Notice kind="error" title={error.title} lines={issues.length > 0 ? [] : error.lines}>{error.detail}</Notice>
     {/if}
@@ -210,9 +195,6 @@
           {#if view.themes.warning !== undefined}<p class="cv-muted">{view.themes.warning}</p>{/if}
         </div>
       </div>
-      <div class="cv-card cv-actions">
-        <button class="cv-button danger" type="button" onclick={() => (confirmShutdown = true)}>Apagar el servidor</button>
-      </div>
     {/if}
     <Dialog open={importing !== undefined} title="Importar perfil">
       {#if importing !== undefined}
@@ -241,12 +223,4 @@
         </div>
       {/if}
     </Dialog>
-    <Dialog open={confirmShutdown} title="¿Apagar cv serve?">
-      <p>La interfaz dejará de funcionar hasta que vuelvas a arrancar <code>cv serve</code>.</p>
-      <div class="cv-actions">
-        <button class="cv-button danger" type="button" onclick={shutdown}>Apagar</button>
-        <button class="cv-button" type="button" onclick={() => (confirmShutdown = false)}>Cancelar</button>
-      </div>
-    </Dialog>
-  {/if}
 </section>
