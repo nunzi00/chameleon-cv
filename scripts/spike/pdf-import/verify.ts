@@ -49,7 +49,7 @@ export const ModelDraftSchema = z.strictObject({
 export type ModelDraft = z.output<typeof ModelDraftSchema>;
 
 export const MODEL_PROMPT_VERSION = 'structure-cv.v2';
-export const MODEL_LIMITS = { maxTokens: 6000, maxTextChars: 24_000, timeoutMs: 15 * 60 * 1000 } as const;
+export const MODEL_LIMITS = { maxTokens: 6000, maxTextChars: 24_000, timeoutMs: 30 * 60 * 1000 } as const;
 
 export function modelJsonSchema(): Record<string, unknown> {
   return z.toJSONSchema(ModelDraftSchema) as Record<string, unknown>;
