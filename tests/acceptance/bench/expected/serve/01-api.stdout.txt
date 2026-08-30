@@ -317,7 +317,7 @@
   "typst": {
     "usable": false
   },
-  "version": "1.7.0",
+  "version": "1.8.0",
   "workspace": "<WS>"
 }
 
@@ -5238,7 +5238,7 @@
       "installedAt": "<ISO>",
       "kind": "archive",
       "source": "<WS>/themes/comunidad.zip",
-      "tool": "chameleon-cv 1.7.0"
+      "tool": "chameleon-cv 1.8.0"
     },
     "state": "intact"
   }

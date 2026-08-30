@@ -5,7 +5,7 @@
 | **Tarea** | T-8.5 [OFERTAS] Ingesta desde URL (Hito 8, `ROADMAP.md`) |
 | **Estado** | PROPUESTA v1 (2026-08-30) **APROBADA** por el Director de Ingeniería y Producto el 2026-08-30 (ocho decisiones de §10 aprobadas; T-8.5 tiene prioridad sobre T-8.4b; versión 1.7.0); S0 pendiente de las seis páginas reales que aporta Lucas |
 | **Origen** | Requisitos del Director del 2026-08-30 durante las pruebas con datos reales: «la oferta debe aceptar también URL» y «en Analizar oferta del espacio de trabajo debería salir un selector de las opciones disponibles» |
-| **Versión prevista** | 1.8.0 (menor; decisión del PO del 2026-08-30: la 1.7.0 recoge lo entregado ese día —temas, selección explícita, historial de ofertas, modelos de Groq—) |
+| **Versión prevista** | 1.9.0 (menor; la 1.8.0 del 2026-08-30 recoge T-8.6 S1–S3, T-8.8 a T-8.13 y el catálogo de 27 temas sin esperar a las seis páginas reales de ofertas; decisión original del PO del 2026-08-30: la 1.7.0 recoge lo entregado ese día —temas, selección explícita, historial de ofertas, modelos de Groq—) |
 
 ## 0. Resumen ejecutivo
 

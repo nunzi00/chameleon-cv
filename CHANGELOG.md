@@ -4,6 +4,8 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-30
+
 ### Añadido
 
 - Tres organizaciones y tres estilos más (T-8.12, parte 3; veintisiete temas): `education-first` (formación y certificaciones primero, después habilidades, proyectos y la experiencia), `achievements-first` (los logros del perfil y el primero de cada puesto en un panel inicial, cronología corta después), `unified-timeline` (puestos, formación, certificaciones y proyectos en un solo eje temporal ordenado por fecha), `swiss` (estilo tipográfico internacional con los títulos en una columna izquierda), `newspaper` (mancheta y experiencia a dos columnas en serif) y `pastel` (paleta lavanda/menta). La vista estructurada de las plantillas añade las fechas ISO (`experience[].start/end`, `projects[].start/end`, `education[].start/end`, `certifications[].dateIso`).
