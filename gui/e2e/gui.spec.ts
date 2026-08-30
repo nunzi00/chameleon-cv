@@ -164,7 +164,7 @@ test('Ajustes muestra la configuración de cv.toml con sus orígenes, comprueba 
   await expect(page.getByRole('button', { name: 'Comprobar groq' })).toBeDisabled();
   await page.getByRole('button', { name: 'Comprobar', exact: true }).click();
   await expect(page.getByText(/Responde: 1 modelo \(stub-model\)/)).toBeVisible();
-  const model = page.getByLabel('Modelo');
+  const model = page.getByLabel('Modelo', { exact: true });
   await model.fill('otro-modelo');
   await page.getByRole('button', { name: 'Guardar en cv.toml' }).click();
   await expect(page.getByText(/Guardado en .*cv\.toml/)).toBeVisible();
