@@ -8,6 +8,7 @@ export type IconName =
   | 'check-circle'
   | 'play'
   | 'file-down'
+  | 'file-up'
   | 'robot'
   | 'checklist'
   | 'sliders'
@@ -33,6 +34,7 @@ export const ICONS: Readonly<Record<IconName, readonly string[]>> = {
   'check-circle': [CIRCLE_8, 'M8.6 12.2l2.3 2.3 4.4-4.6'],
   play: ['M8 5.5l9 6.5-9 6.5z'],
   'file-down': ['M6 4h8l4 4v12H6z', 'M12 10v6M9.5 13.5L12 16l2.5-2.5'],
+  'file-up': ['M6 4h8l4 4v12H6z', 'M12 16v-6M9.5 12.5L12 10l2.5 2.5'],
   robot: ['M7 8h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z', 'M12 5v3M9 12.5h.01M15 12.5h.01'],
   checklist: ['M4 7.5l2 2 3-3M4 16.5l2 2 3-3M12 8h8M12 17h8'],
   sliders: ['M4 8h10M18 8h2M4 16h4M12 16h8', 'M14 8a2 2 0 104 0a2 2 0 10-4 0', 'M8 16a2 2 0 104 0a2 2 0 10-4 0'],

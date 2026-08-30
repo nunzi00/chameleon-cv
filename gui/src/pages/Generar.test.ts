@@ -44,6 +44,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     analyze: vi.fn(async () => ANALYSIS),
     offerHistory: vi.fn(async () => ({ entries: [] })),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
+    importCv: vi.fn(),
     createTheme: vi.fn(async () => ({ name: 'mio', directory: '/work/themes/mio', from: 'classic' } as never)),
     installTheme: vi.fn(),
     verifyTheme: vi.fn(),

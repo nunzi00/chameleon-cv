@@ -143,6 +143,12 @@
               {:then ajustes}
                 <ajustes.default {api} onsession={sessionLost} />
               {/await}
+            {:else if route.page === 'importar'}
+              {#await import('./pages/Importar.svelte')}
+                <p class="cv-muted">Cargando…</p>
+              {:then importar}
+                <importar.default {api} onsession={sessionLost} />
+              {/await}
             {:else if route.page === 'salidas'}
               {#await import('./pages/Salidas.svelte')}
                 <p class="cv-muted">Cargando…</p>

@@ -40,6 +40,7 @@ export type {
   LlmCheckResponse,
   LlmConfigResponse,
   LlmConfigWriteResponse,
+  ImportCvResponse,
   LlmSettingsWriteRequest,
   OutputEntry,
   OutputListResponse,

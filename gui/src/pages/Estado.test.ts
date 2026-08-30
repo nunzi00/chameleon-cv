@@ -26,6 +26,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     generate: vi.fn(),
     analyze: vi.fn(),
     extractOffer: vi.fn(),
+    importCv: vi.fn(),
     themes: vi.fn(),
     createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(),
     outputs: vi.fn(),

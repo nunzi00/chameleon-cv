@@ -4,6 +4,7 @@
  * servidor convertida en `ApiError`. Sin caché ni estado: la verdad está en el servidor.
  */
 import type {
+  ImportCvResponse,
   AnalyzeRequest,
   AnalyzeResponse,
   ApplyRequest,
@@ -113,6 +114,8 @@ export interface ApiClient {
   offerHistory(body: HistoryLookupRequest): Promise<HistoryLookupResponse>;
   /** Un PDF (bytes) → su texto, extraído en el worker aislado del servidor. */
   extractOffer(pdf: Blob): Promise<ExtractResponse>;
+  /** POST /import-cv (T-8.4b): el CV (PDF/DOCX) como borrador en import/<nombre>/; 409 conflict si ya existe sin replace. */
+  importCv(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
   themes(): Promise<ThemesResponse>;
   createTheme(body: ThemeCreateRequest): Promise<ThemeCreateResponse>;
   /** 200 plan (dryRun) o 201 instalado; 403 remote-disabled y 409 consent-required llegan como ApiError con sus detalles. */
@@ -254,6 +257,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     extractOffer: async (pdf) => {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });
       return parseJson(await response.text()) as ExtractResponse;
+    },
+    importCv: async (file, options = {}) => {
+      const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
+      const response = await raw('POST', '/import-cv', { body: file, contentType: 'application/pdf', headers });
+      return (await response.json()) as ImportCvResponse;
     },
     themes: () => request('GET', '/themes'),
     createTheme: (body) => request('POST', '/themes', { body }),

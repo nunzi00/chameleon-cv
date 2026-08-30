@@ -269,6 +269,27 @@ export interface GenerateResponse {
   readonly history: readonly HistoryEntry[];
   readonly warnings: readonly AppWarning[];
 }
+/** `POST /import-cv` (T-8.4b): el CV maquetado (cuerpo binario PDF/DOCX) importado como borrador en import/<nombre>/. */
+export interface ImportCvResponse {
+  /** Carpeta del borrador (`import/<nombre>`). */
+  readonly name: string;
+  /** Ficheros escritos (README incluido). */
+  readonly files: number;
+  readonly counts: {
+    readonly experience: number;
+    readonly projects: number;
+    readonly education: number;
+    readonly certifications: number;
+    readonly skills: number;
+    readonly achievements: number;
+    readonly languages: number;
+  };
+  readonly issues: ReadonlyArray<{ readonly reason: string; readonly line?: number | undefined }>;
+  readonly unparsed: ReadonlyArray<{ readonly line: number; readonly text: string }>;
+  /** El informe (README.md del borrador), para mostrarlo tal cual. */
+  readonly readme: string;
+}
+
 /** `POST /offers/history`: consulta de solo lectura del historial de una oferta. */
 export const HistoryLookupSchema = z.object({ offer: OfferSchema });
 export type HistoryLookupRequest = z.infer<typeof HistoryLookupSchema>;

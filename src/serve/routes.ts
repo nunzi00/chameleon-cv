@@ -25,14 +25,15 @@ import { readConfigFile, writeLlmSettings } from '../app/settings';
 import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
+import { importCvDraft } from '../app/import-cv';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
+import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse } from './contract';
 import type { ConsentStore } from './consent';
-import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
+import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
 import { Router, type RouteRequest, type RouteResponse } from './router';
 
@@ -557,6 +558,42 @@ export function createRouter(): Router<ServerState> {
       }
       const extracted = await state.context.pdfExtractor(request.body);
       return extracted.ok ? json(200, { text: extracted.text } satisfies ExtractResponse) : appErrorResponse(extracted.code === 'timeout' || extracted.code === 'failed' ? environmentError(extracted.message) : { code: 'invalid-data', message: extracted.message, exitCode: 1 });
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/import-cv`,
+    summary: 'Importa un CV maquetado (cuerpo binario PDF o DOCX, hasta 10 MiB) como borrador en import/<nombre>/ con su README; nunca escribe en data/sources. Cabeceras opcionales x-cv-import-name y x-cv-import-replace: 1.',
+    writes: true,
+    accepts: 'application/pdf',
+    handler: async (request, state) => {
+      const nameHeader = headerValue(request.headers['x-cv-import-name']);
+      const result = await importCvDraft(state.context, request.body, nameHeader ?? 'cv-importado', {
+        name: nameHeader,
+        replace: headerValue(request.headers['x-cv-import-replace']) === '1',
+      });
+      if (!result.ok) {
+        return appErrorResponse(result.error);
+      }
+      const { draft } = result;
+      const { profile } = draft;
+      return json(201, {
+        name: draft.name,
+        files: draft.files,
+        counts: {
+          experience: profile.experience.length,
+          projects: profile.projects.length,
+          education: profile.education.length,
+          certifications: profile.certifications.length,
+          skills: profile.skills.length,
+          achievements: profile.achievements.length,
+          languages: profile.languages.length,
+        },
+        issues: draft.issues.map((issue) => ({ reason: issue.reason, line: issue.provenance?.line })),
+        unparsed: draft.unparsed.map((item) => ({ line: item.line, text: item.text })),
+        readme: draft.readme,
+      } satisfies ImportCvResponse);
     },
   });
 
