@@ -78,12 +78,39 @@
 .VPHome .VPHero .tagline {
   color: var(--vp-c-text-2);
 }
+/* La captura del hero es alta: fuera del posicionamiento absoluto del tema (contenedor de altura fija que
+   la hacía solaparse con el título al apilarse), al flujo normal y con su anchura contenida. */
+.VPHome .VPHero .image {
+  order: 2;
+}
+.VPHome .VPHero .image-container {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  max-width: min(460px, 100%);
+  padding: 0;
+  transform: none;
+}
+.VPHome .VPHero .image-bg {
+  display: none;
+}
 .VPHome .VPHero .image-src {
+  position: static;
   max-width: 100%;
   max-height: none;
+  transform: none;
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
   box-shadow: var(--cv-shadow);
+}
+/* En una columna (móvil/medio) el tema empuja la imagen con márgenes negativos: fuera, y siempre debajo del texto. */
+@media (max-width: 959px) {
+  .VPHome .VPHero .image {
+    order: 2;
+    margin: 28px 0 0;
+    padding: 0;
+  }
 }
 .cv-home-chip {
   display: inline-flex;
