@@ -54,6 +54,7 @@ export default defineConfig({
             { text: 'Typst y temas', link: '/guide/typst-themes' },
             { text: 'Co-piloto de IA', link: '/guide/copilot' },
             { text: 'La interfaz web', link: '/guide/web' },
+            { text: 'Exportar e importar el perfil', link: '/guide/portability' },
             { text: 'La API local (cv serve)', link: '/guide/api' },
             { text: 'Seguridad y privacidad', link: '/guide/security' },
             { text: 'Solución de problemas', link: '/guide/troubleshooting' },

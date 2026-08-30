@@ -285,3 +285,16 @@ Los mensajes **no reproducen el contenido** del fichero (solo ruta, línea y cla
 6. Adoptar `remark`/`unified` (ESM) mediante `require(esm)` y fijar `engines.node >= 22.12`. Recomendación: sí.
 
 Aprobados los seis puntos sin modificaciones. Implementación: `src/parsers/markdown/` (parser puro) y `src/parsers/dataset/` (cargador con sistema de ficheros inyectable), con el dataset de ejemplo en `tests/fixtures/dataset/`.
+
+## 15. Fuentes regeneradas por `cv import`
+
+`cv import` (T-8.1, `docs/portability.md` §4.4) escribe las fuentes a partir del perfil canónico siguiendo este documento al pie de la letra, de forma determinista (mismo perfil, mismos bytes):
+
+- **Disposición** de §3: `profile.md`, un fichero por entidad en `specialties/`, `experience/`, `projects/` y `education/`, `achievements.md` y los dos CSV; las secciones vacías no producen fichero.
+- **Frontmatter** con las claves de §8.1 en ese orden, generado con la biblioteca `yaml` en esquema *failsafe* (se entrecomilla solo lo que YAML exige: `"2020"`, `"ACME: Corp"`); listas de escalares en flujo (`tags: [php, symfony]`), listas de objetos en bloque; los opcionales ausentes y las listas vacías no aparecen.
+- **Ids**: el nombre de fichero es el id sin su prefijo por defecto (`exp-acme` → `experience/acme.md`) y no se escribe `id:`; si el id no lleva el prefijo o lo que queda no es un nombre válido, el fichero se llama como el id completo y lleva `id:` explícito. Si dos ids querrían el mismo fichero (`exp-acme` y `acme`), el segundo recibe el primer sufijo libre (`acme-2.md`) con `id:`. Los ids de los logros solo se escriben (`- id:`) cuando no son los que el parser derivaría (`<id-padre>-<n>`, `ach-<n>`), y la columna `id` del CSV solo aparece cuando algún id no es el posicional.
+- **Cuerpo**: el resumen tal cual (con sus párrafos), una línea en blanco y `## Logros` con una viñeta por logro —el texto en una sola línea, las `#etiquetas` al final y la sublista de metadatos `id`, `impact`, `date` en ese orden—.
+- **CSV**: delimitador `,`, comillas RFC 4180 solo cuando el valor contiene `,`, `"` o salto de línea, `|` para los multivalor, `\n` y salto final.
+- **Orden**: las entidades quedan en el orden en que el cargador lee los ficheros (nombre con extensión, comparación por código), que es el orden que tendrá el perfil tras `cv build`.
+
+La garantía es de ida y vuelta: `cv build` sobre las fuentes regeneradas produce exactamente el perfil importado (se comprueba en cada importación antes de escribir) y volver a importar ese perfil regenera los mismos bytes.

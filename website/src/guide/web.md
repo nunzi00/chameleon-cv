@@ -12,7 +12,7 @@ cv serve --open      # arranca el servidor y abre el navegador con la URL y el t
 ```
 
 ```text
-Chameleon CV 1.3.0 · espacio de trabajo /home/ada/mi-cv
+Chameleon CV 1.4.0 · espacio de trabajo /home/ada/mi-cv
 API: http://127.0.0.1:4310/api/v1/ (Authorization: Bearer <token>)
 Interfaz: http://127.0.0.1:4310/#token=4f6c…e2
 Ctrl-C para parar (o POST /api/v1/shutdown)
@@ -24,7 +24,7 @@ La URL lleva el **token de sesión** en el fragmento (`#token=…`): el navegado
 
 ![Pantalla Estado: artefacto, Typst, co-piloto y temas, con los botones de validar, compilar y apagar](/gui/estado.png)
 
-Lo mismo que `cv build --check`, `cv typst status` y `cv llm status` de un vistazo: si el artefacto está al día, obsoleto o sin compilar (con sus especialidades), si Typst es utilizable, si hay un proveedor de IA local listo y qué temas hay. **Validar** y **Compilar** hacen lo que sus órdenes; los problemas de las fuentes salen con fichero y línea, y cada uno enlaza con el editor. **Apagar el servidor** pide confirmación.
+Lo mismo que `cv build --check`, `cv typst status` y `cv llm status` de un vistazo: si el artefacto está al día, obsoleto o sin compilar (con sus especialidades), si Typst es utilizable, si hay un proveedor de IA local listo y qué temas hay. **Validar** y **Compilar** hacen lo que sus órdenes; **Exportar perfil (JSON)** e **Importar perfil…** son `cv export` y `cv import` (ver [Exportar e importar el perfil](/guide/portability)); los problemas de las fuentes salen con fichero y línea, y cada uno enlaza con el editor. **Apagar el servidor** pide confirmación.
 
 ## Fuentes
 

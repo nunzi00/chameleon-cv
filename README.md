@@ -41,7 +41,7 @@ El archivo incluye `LICENSE`, `CHANGELOG.md`, `THIRD-PARTY-NOTICES.md` (licencia
 **Docker** (todo en un contenedor, con la IA local opcional): la imagen se publica en `ghcr.io/nunzi00/chameleon-cv` (linux/amd64 y linux/arm64, con SBOM y atestación de procedencia) en cada release; el contenedor corre sin red, sin privilegios y con el sistema de ficheros de solo lectura; tus datos quedan en `./my-profile`.
 
 ```bash
-docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.3.0 --help   # sin clonar nada
+docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.4.0 --help   # sin clonar nada
 mkdir -p my-profile && docker compose pull && docker compose run --rm chameleon-cv init  # o con Compose (docker compose build la construye en local con tu UID/GID)
 docker compose run --rm chameleon-cv build && docker compose run --rm chameleon-cv generate-cv -s backend --format pdf --engine typst
 docker compose -f compose.yml -f compose.ai.yml run --rm chameleon-cv llm status   # IA local con Ollama (≈ 8 GB la primera vez)
@@ -78,6 +78,8 @@ La regla de selección cabe en una frase: **sin etiquetas, siempre; con etiqueta
 |---|---|---|
 | `cv init [dir]` | Crea un espacio de trabajo: `data/sources/` con el dataset de ejemplo (permisos 0600) y un `.gitignore` con `data/dist/` y `output/`. Si algún destino existe, lista los conflictos y no escribe nada. | `--template <dir>` (dataset de ejemplo alternativo) |
 | `cv validate` | Comprueba las fuentes sin escribir nada. | `-d, --data <dir>` (por defecto `data/sources`) |
+| `cv export` | Exporta el perfil canónico (el JSON de `data/dist/profile.json`) desde las fuentes, sin necesitar `cv build`: por la salida estándar o a un fichero. | `-d, --data <dir>` · `-o, --output <file>` |
+| `cv import <file>` | Regenera las fuentes Markdown/CSV a partir de un perfil canónico (la inversa de `cv build`), comprobando antes que `cv build` las leería igual; solo en un directorio vacío o con `--replace` (copia `.bak`). | `-d, --data <dir>` · `--replace` · `--dry-run` |
 | `cv build` (alias `build-profile`) | Compila las fuentes y escribe el artefacto canónico: la puerta de calidad del perfil. Silencioso en éxito. | `-d, --data <dir>` · `-o, --out <file>` (por defecto `data/dist/profile.json`) · `--check` (no escribe; falla si las fuentes tienen problemas o el artefacto falta o no está al día) · `-v, --verbose` |
 | `cv generate-cv` | Genera el CV en Markdown o PDF (pdfkit o Typst) a partir del artefacto. | `--build` (recompila antes) · `-s, --specialty <id>` · `-f, --from-job-offer <file>` (texto o PDF; `-` = stdin, solo texto) · `--format <md\|pdf>` · `--engine <pdfkit\|typst>` · `--typst-path <file>` · `--typst-any-version` · `-n, --top-n <n>` · `--max-skills <n>` · `--max-projects <n>` · `--max-certifications <n>` · `--compact` · `-p, --profile <file>` · `-o, --output <file>` · `-t, --template <file>` · `-l, --locale <locale>` · `--explain` · `--stdout` · `-d, --data <dir>` (solo para el aviso de artefacto obsoleto) · `--theme <nombre>` (tema de Typst: `themes/<nombre>/`, por defecto `default`) |
 | `cv analyze-offer <offer>` | Analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias. | `--build` (recompila antes) · `-s, --specialty <id>` · `-p, --profile <file>` · `--explain` (auditoría por ítem) · `--json` (para scripts) · `<offer>` puede ser `-` (stdin) |
@@ -129,7 +131,7 @@ npm run test:acceptance:ai                                # aceptación de IA co
 npm run docs:check                                        # portal: referencia generada desde la CLI, sincronización, build sin enlaces muertos y tutoriales ejecutados
 npm run package                                           # ejecutable autónomo, prueba de humo y tar.gz reproducible con .sha256 y THIRD-PARTY-NOTICES.md (build/release/)
 npm run docker:build && npm run docker:smoke              # imagen Docker (chameleon-cv:local) y su prueba de humo: volumen, usuario sin privilegios, Typst, endurecida, red compartida
-npm run release:notes -- 1.3.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
+npm run release:notes -- 1.4.0                            # notas de la release de esa versión, extraídas de CHANGELOG.md (las usa el flujo de release)
 ```
 
 Cómo contribuir: [`CONTRIBUTING.md`](CONTRIBUTING.md). Pruebas de aceptación: [`docs/acceptance-testing.md`](docs/acceptance-testing.md). Integración continua (`.github/workflows/ci.yml`), release por tag (`release.yml`: empaqueta linux-x64, acepta el binario, publica `tar.gz`, `.sha256`, `SHA256SUMS.txt`, atestación y las notas de `CHANGELOG.md`) y portal (`pages.yml`): [`docs/packaging-and-release.md`](docs/packaging-and-release.md) y [`docs/docs-portal.md`](docs/docs-portal.md). Plan de trabajo: [`ROADMAP.md`](ROADMAP.md).
