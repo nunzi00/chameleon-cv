@@ -6,15 +6,9 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView, highlightActiveLine, keymap, lineNumbers } from '@codemirror/view';
 
-export type Language = 'markdown' | 'yaml' | 'plain';
+import { languageFor, type Language } from './codemirror-language';
 
-export function languageFor(path: string): Language {
-  const lower = path.toLowerCase();
-  if (lower.endsWith('.md') || lower.endsWith('.markdown')) {
-    return 'markdown';
-  }
-  return lower.endsWith('.yml') || lower.endsWith('.yaml') || lower.endsWith('.toml') ? 'yaml' : 'plain';
-}
+export { languageFor, type Language };
 
 export interface EditorHandle {
   getValue(): string;

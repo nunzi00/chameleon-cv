@@ -489,3 +489,23 @@ pre.cv-progress { max-height: 12rem; }
 .cv-output-name .cv-mono { font: var(--cv-size-sm)/1.4 var(--cv-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cv-table + .cv-actions { margin-top: 10px; }
 .cv-card-head .cv-mono { font: var(--cv-size-sm)/1.4 var(--cv-mono); flex: 1; min-width: 0; word-break: break-all; }
+/* Fuentes (T-8.6 S2): dos columnas a toda altura con scroll propio. */
+.cv-page-wide { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.cv-split-fuentes { display: grid; grid-template-columns: 288px 1fr; flex: 1; min-height: 0; }
+@media (max-width: 1024px) { .cv-split-fuentes { grid-template-columns: 220px 1fr; } }
+.cv-tree-pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--cv-border); background: var(--cv-surface); }
+.cv-tree-head { display: flex; gap: 8px; padding: 10px 10px 8px; border-bottom: 1px solid var(--cv-border); }
+.cv-tree-head input { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid var(--cv-border-strong); border-radius: var(--cv-radius); background: var(--cv-surface); color: var(--cv-text); font: inherit; font-size: var(--cv-size-sm); }
+.cv-icon-button { width: 30px; height: 30px; padding: 0; justify-content: center; }
+.cv-tree-scroll { flex: 1; overflow: auto; padding: 8px 6px; }
+.cv-tree-scroll > .cv-tree-children { padding-left: 0; }
+.cv-tree-foot { padding: 8px 12px; border-top: 1px solid var(--cv-border); font-size: var(--cv-size-xs); color: var(--cv-muted); }
+.cv-editor-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--cv-surface); }
+.cv-editor-pane > .cv-notice { margin: 10px 18px 0; }
+.cv-editor-path { font: var(--cv-size-sm)/1.4 var(--cv-mono); }
+.cv-editor-sha { font: var(--cv-size-xs)/1.4 var(--cv-mono); color: var(--cv-muted); }
+.cv-editor-dirty { font-size: var(--cv-size-sm); color: var(--cv-warn); }
+.cv-editor-pane .cv-editor { flex: 1; min-height: 0; overflow: auto; border: 0; border-radius: 0; }
+.cv-editor-pane .cv-editor .cm-editor { min-height: 100%; }
+.cv-editor-pane textarea.cv-plain { min-height: 100%; height: 100%; padding: 12px 18px; }
+.cv-editor-pane .cv-empty { flex: 1; }

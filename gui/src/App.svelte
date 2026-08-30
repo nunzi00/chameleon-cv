@@ -115,7 +115,7 @@
             </div>
           </div>
         {:else}
-          <div class="cv-page">
+          <div class={route.page === 'fuentes' || route.page === 'generar' ? 'cv-page-wide' : 'cv-page'}>
             {#if route.page === 'estado'}
               {#await import('./pages/Estado.svelte')}
                 <p class="cv-loading" aria-live="polite">Cargando…</p>

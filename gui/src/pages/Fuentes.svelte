@@ -3,6 +3,8 @@
 
   import Dialog from '../components/Dialog.svelte';
   import Editor from '../components/Editor.svelte';
+  import { languageFor } from '../components/codemirror-language';
+  import Icon from '../components/Icon.svelte';
   import Issues from '../components/Issues.svelte';
   import Notice from '../components/Notice.svelte';
   import Tree from '../components/Tree.svelte';
@@ -10,7 +12,7 @@
   import { explainError, type ExplainedError } from '../lib/errors';
   import { formatBytes, plural } from '../lib/format';
   import type { Route } from '../lib/router';
-  import { buildTree, type TreeNode } from '../lib/sources/tree';
+  import { buildTree, countFiles, filterTree, issueCounts, lineEnding, shortSha, type TreeNode } from '../lib/sources/tree';
   import { issuesOf, type Issue } from '../lib/validation';
 
   interface Props {
@@ -23,29 +25,45 @@
   }
   let { api, item, onsession, navigate, plainEditor = false }: Props = $props();
 
+  const LANGUAGE_LABELS = { markdown: 'Markdown', yaml: 'YAML', plain: 'Texto' } as const;
   let tree = $state<readonly TreeNode[]>([]);
-  let count = $state(0);
   let root = $state('');
+  let query = $state('');
   let content = $state('');
   let saved = $state('');
   let sha = $state<string | undefined>(undefined);
   let bytes = $state(0);
+  let cursor = $state({ line: 1, column: 1 });
   let error = $state<ExplainedError | undefined>(undefined);
+  /** Incidencias de la última validación (al cargar y tras guardar): badges del árbol y lista. */
   let issues = $state<readonly Issue[]>([]);
   let message = $state<string | undefined>(undefined);
   let saving = $state(false);
-  let conflict = $state(false);
+  let conflict = $state<{ readonly diskSha: string | undefined } | undefined>(undefined);
   let creating = $state(false);
   let newPath = $state('');
   let editorKey = $state(0);
   const dirty = $derived(sha !== undefined && content !== saved);
+  const visible = $derived(filterTree(tree, query));
+  const counts = $derived(issueCounts(issues));
+  const total = $derived(countFiles(tree));
+  const withIssues = $derived(counts.size);
 
   function fail(caught: unknown): void {
     const explained = explainError(caught);
     error = explained;
-    issues = issuesOf(caught);
     if (explained.kind === 'session') {
       onsession();
+    }
+  }
+
+  /** Validación de solo lectura: alimenta los badges; un fallo que no sea de datos se ignora aquí (lo dirá Estado). */
+  async function refreshIssues(): Promise<void> {
+    try {
+      await api.validate();
+      issues = [];
+    } catch (caught) {
+      issues = issuesOf(caught);
     }
   }
 
@@ -53,8 +71,8 @@
     try {
       const list = await api.sources();
       root = list.root;
-      count = list.entries.length;
       tree = buildTree(list.entries);
+      await refreshIssues();
     } catch (caught) {
       fail(caught);
     }
@@ -62,7 +80,6 @@
 
   async function open(path: string): Promise<void> {
     error = undefined;
-    issues = [];
     message = undefined;
     try {
       const file = await api.source(path);
@@ -70,6 +87,7 @@
       saved = file.content;
       sha = file.sha256;
       bytes = new TextEncoder().encode(file.content).byteLength;
+      cursor = { line: 1, column: 1 };
       editorKey += 1;
     } catch (caught) {
       sha = undefined;
@@ -80,6 +98,7 @@
   async function validateAfterSave(): Promise<void> {
     try {
       const result = await api.validate();
+      issues = [];
       message = `Guardado. Fuentes válidas (${plural(result.files.length, 'fichero', 'ficheros')}); recompila el artefacto en Estado.`;
     } catch (caught) {
       const found = issuesOf(caught);
@@ -98,18 +117,22 @@
     }
     saving = true;
     error = undefined;
-    issues = [];
     message = undefined;
     try {
       const written = await api.writeSource(item, content, sha);
       sha = written.sha256;
       saved = content;
+      bytes = new TextEncoder().encode(content).byteLength;
       await validateAfterSave();
       await loadTree();
     } catch (caught) {
       const explained = explainError(caught);
       if (explained.kind === 'conflict') {
-        conflict = true;
+        const diskSha = await Promise.resolve()
+          .then(() => api.source(item))
+          .then((current) => current.sha256)
+          .catch(() => undefined);
+        conflict = { diskSha };
       } else {
         fail(caught);
       }
@@ -119,14 +142,14 @@
   }
 
   async function reloadDiscarding(): Promise<void> {
-    conflict = false;
+    conflict = undefined;
     if (item !== undefined) {
       await open(item);
     }
   }
 
   async function overwrite(): Promise<void> {
-    conflict = false;
+    conflict = undefined;
     if (item === undefined) {
       return;
     }
@@ -172,55 +195,82 @@
   });
 </script>
 
-<section aria-labelledby="cv-fuentes-title">
-  <h2 id="cv-fuentes-title">Fuentes</h2>
-  {#if error !== undefined}
-    <Notice kind="error" title={error.title} lines={issues.length > 0 ? [] : error.lines}>{error.detail}</Notice>
-  {/if}
-  {#if issues.length > 0}
-    <Notice kind="error" title={`${plural(issues.length, 'problema', 'problemas')} en las fuentes`}><Issues {issues} onopen={openIssue} /></Notice>
-  {/if}
-  {#if message !== undefined}<Notice kind="ok">{message}</Notice>{/if}
-  <div class="cv-split">
-    <aside class="cv-card cv-tree" aria-label="Ficheros de fuentes">
-      <p class="cv-muted">{root === '' ? '' : `${root} · ${plural(count, 'fichero', 'ficheros')}`}</p>
-      <Tree nodes={tree} selected={item} onselect={(path) => navigate({ page: 'fuentes', item: path })} />
-      <div class="cv-actions">
-        <button class="cv-button" type="button" onclick={() => (creating = true)}>Nuevo fichero</button>
-      </div>
-    </aside>
-    <div class="cv-card">
-      {#if item === undefined || sha === undefined}
-        <p class="cv-muted">Elige un fichero del árbol para editarlo. Guardar escribe en tus fuentes solo cuando tú lo pides; el servidor comprueba que nadie las cambió entre medias.</p>
+<section class="cv-split-fuentes" aria-labelledby="cv-fuentes-title">
+  <aside class="cv-tree-pane" aria-label="Ficheros de fuentes">
+    <div class="cv-tree-head">
+      <h1 id="cv-fuentes-title" class="cv-sr-only">Fuentes</h1>
+      <input type="search" placeholder="Filtrar ficheros…" aria-label="Filtrar ficheros" bind:value={query} />
+      <button class="cv-button cv-icon-button" type="button" aria-label="Nuevo fichero" title="Nuevo fichero" onclick={() => (creating = true)}><Icon name="plus" size={15} weight={1.8} /></button>
+    </div>
+    <div class="cv-tree cv-tree-scroll">
+      {#if visible.length === 0 && tree.length > 0}
+        <p class="cv-muted">Ningún fichero coincide con «{query}».</p>
       {:else}
-        <div class="cv-actions">
-          <strong><code>{item}</code></strong>
-          <span class="cv-muted">{formatBytes(bytes)}{dirty ? ' · cambios sin guardar' : ''}</span>
-          <button class="cv-button primary" type="button" disabled={!dirty || saving} onclick={save}>{saving ? 'Guardando…' : 'Guardar'}</button>
-          <button class="cv-button" type="button" disabled={!dirty || saving} onclick={() => (content = saved)}>Descartar</button>
-        </div>
-        {#key editorKey}
-          <Editor value={content} path={item} onchange={(value) => (content = value)} plain={plainEditor} />
-        {/key}
+        <Tree nodes={visible} selected={item} issues={counts} onselect={(path) => navigate({ page: 'fuentes', item: path })} />
       {/if}
     </div>
+    <div class="cv-tree-foot">
+      <span title={root}>{plural(total, 'fichero', 'ficheros')} · {withIssues === 0 ? 'sin incidencias' : `${withIssues} con incidencias`}</span>
+    </div>
+  </aside>
+  <div class="cv-editor-pane">
+    {#if error !== undefined}
+      <Notice kind="error" title={error.title} lines={error.lines}>{error.detail}</Notice>
+    {/if}
+    {#if message !== undefined}<Notice kind={issues.length > 0 ? 'warn' : 'ok'}>{message}</Notice>{/if}
+    {#if message !== undefined && issues.length > 0}
+      <Notice kind="error" title={`${plural(issues.length, 'problema', 'problemas')} en las fuentes`}><Issues {issues} onopen={openIssue} /></Notice>
+    {/if}
+    {#if item === undefined || sha === undefined}
+      <div class="cv-empty">
+        <div class="cv-empty-inner">
+          <div class="cv-empty-icon"><Icon name="folder" size={26} /></div>
+          <h1>Elige un fichero</h1>
+          <p>Las fuentes son la verdad: el editor no reformatea nada y guardar escribe solo cuando tú lo pides. El servidor comprueba que nadie las cambió entre medias.</p>
+        </div>
+      </div>
+    {:else}
+      <div class="cv-editor-bar">
+        <span class="cv-editor-path">{item}</span>
+        <span class="cv-editor-sha" title={sha}>{shortSha(sha)}</span>
+        <span class="cv-header-spacer"></span>
+        {#if dirty}<span class="cv-editor-dirty">cambios sin guardar</span>{/if}
+        <button class="cv-button primary small" type="button" disabled={!dirty || saving} onclick={save}>{saving ? 'Guardando…' : 'Guardar'}</button>
+        <button class="cv-button small" type="button" disabled={!dirty || saving} onclick={() => (content = saved)}>Descartar</button>
+      </div>
+      {#key editorKey}
+        <Editor value={content} path={item} onchange={(value) => (content = value)} oncursor={(line, column) => (cursor = { line, column })} plain={plainEditor} />
+      {/key}
+      <div class="cv-editor-status">
+        <span>{LANGUAGE_LABELS[languageFor(item)]} · UTF-8 · {lineEnding(content)}</span>
+        <span>Línea {cursor.line}, columna {cursor.column}</span>
+        <span>{formatBytes(bytes)}</span>
+        <span class="cv-header-spacer"></span>
+        <span>Guardar valida las fuentes; compilar se hace en Estado.</span>
+      </div>
+    {/if}
   </div>
-  <Dialog open={conflict} title="El fichero cambió desde que lo abriste">
-    <p>Alguien (o tú, en otra pestaña) guardó <code>{item}</code> mientras lo editabas. Puedes recargar la versión actual y perder tus cambios, o sobrescribirla con lo que ves.</p>
-    <div class="cv-actions">
-      <button class="cv-button" type="button" onclick={reloadDiscarding}>Recargar (descarta mis cambios)</button>
+  <Dialog open={conflict !== undefined} title="Otro proceso ha cambiado este fichero" onclose={() => (conflict = undefined)}>
+    <p>No se ha guardado nada. Tus cambios siguen en el editor.</p>
+    <dl class="cv-consent">
+      <dt>Fichero</dt><dd><code>{item}</code></dd>
+      <dt>Huella al abrir</dt><dd class="cv-mono">{sha === undefined ? '—' : shortSha(sha)}</dd>
+      <dt>Huella en disco</dt><dd class="cv-mono cv-editor-dirty">{conflict?.diskSha === undefined ? 'desconocida' : shortSha(conflict.diskSha)}</dd>
+    </dl>
+    <div class="cv-dialog-actions">
+      <button class="cv-button" type="button" onclick={reloadDiscarding}>Recargar del disco (descarta mis cambios)</button>
       <button class="cv-button danger" type="button" onclick={overwrite}>Sobrescribir con mi versión</button>
     </div>
   </Dialog>
-  <Dialog open={creating} title="Nuevo fichero de fuentes">
+  <Dialog open={creating} title="Nuevo fichero de fuentes" onclose={() => (creating = false)}>
     <form onsubmit={create}>
       <label class="cv-field">
         <span>Ruta relativa (por ejemplo <code>experience/acme.md</code>)</span>
         <input name="path" bind:value={newPath} required />
       </label>
-      <div class="cv-actions">
-        <button class="cv-button primary" type="submit">Crear</button>
+      <div class="cv-dialog-actions">
         <button class="cv-button" type="button" onclick={() => (creating = false)}>Cancelar</button>
+        <button class="cv-button primary" type="submit">Crear</button>
       </div>
     </form>
   </Dialog>

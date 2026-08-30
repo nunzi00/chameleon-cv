@@ -42,7 +42,7 @@ describe('Fuentes', () => {
     const api = fakeApi();
     const navigate = vi.fn();
     render(Fuentes, { props: { api, item: 'experience/acme.md', onsession: vi.fn(), navigate, plainEditor: true } });
-    await waitFor(() => expect(screen.getByText('/work/data/sources · 2 ficheros')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('2 ficheros · sin incidencias')).toBeTruthy());
     expect(screen.getByText('experience/')).toBeTruthy();
     await waitFor(() => expect(textarea().value).toBe('# experience/acme.md\n'));
     const save = screen.getByRole('button', { name: 'Guardar' }) as HTMLButtonElement;
@@ -52,7 +52,11 @@ describe('Fuentes', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(screen.getByText(/Guardado\. Fuentes válidas \(1 fichero\)/)).toBeTruthy());
     expect(api.writeSource).toHaveBeenCalledWith('experience/acme.md', '# editado\n', 'sha-1');
-    expect(api.validate).toHaveBeenCalledTimes(1);
+    // Una validación al cargar el árbol (badges), otra tras guardar y otra al recargar el árbol.
+    expect(api.validate).toHaveBeenCalledTimes(3);
+    expect(screen.getByText('Markdown · UTF-8 · LF')).toBeTruthy();
+    await fireEvent.input(screen.getByLabelText('Filtrar ficheros'), { target: { value: 'prof' } });
+    expect(screen.queryByRole('button', { name: 'experience/acme.md' })).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'profile.md' }));
     expect(navigate).toHaveBeenCalledWith({ page: 'fuentes', item: 'profile.md' });
   });
@@ -63,14 +67,15 @@ describe('Fuentes', () => {
       .mockRejectedValueOnce(new ApiError(409, { code: 'conflict', message: 'huella distinta' }))
       .mockRejectedValueOnce(new ApiError(409, { code: 'conflict', message: 'huella distinta' }))
       .mockResolvedValueOnce({ path: 'experience/acme.md', sha256: 'sha-3' });
-    const source = vi.fn().mockResolvedValueOnce({ path: 'experience/acme.md', content: 'v1', sha256: 'sha-1' }).mockResolvedValueOnce({ path: 'experience/acme.md', content: 'v2', sha256: 'sha-2' }).mockResolvedValueOnce({ path: 'experience/acme.md', content: 'v2', sha256: 'sha-2' });
+    const source = vi.fn().mockResolvedValueOnce({ path: 'experience/acme.md', content: 'v1', sha256: 'sha-1' }).mockResolvedValueOnce({ path: 'experience/acme.md', content: 'v2', sha256: 'sha-2' }).mockResolvedValue({ path: 'experience/acme.md', content: 'v2', sha256: 'sha-2' });
     const api = fakeApi({ writeSource, source });
     render(Fuentes, { props: { api, item: 'experience/acme.md', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
     await waitFor(() => expect(textarea().value).toBe('v1'));
     await fireEvent.input(textarea(), { target: { value: 'mío' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
-    await fireEvent.click(screen.getByRole('button', { name: 'Recargar (descarta mis cambios)' }));
+    expect(screen.getByRole('dialog').textContent).toContain('Huella en disco');
+    await fireEvent.click(screen.getByRole('button', { name: 'Recargar del disco (descarta mis cambios)' }));
     await waitFor(() => expect(textarea().value).toBe('v2'));
     await fireEvent.input(textarea(), { target: { value: 'mío otra vez' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -93,13 +98,15 @@ describe('Fuentes', () => {
     await fireEvent.input(textarea(), { target: { value: 'sin role' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(screen.getByText('Guardado, pero las fuentes tienen problemas.')).toBeTruthy());
+    expect(screen.getByText('2 ficheros · 1 con incidencias')).toBeTruthy();
+    expect(screen.getByLabelText('1 incidencias').textContent).toBe('1');
     await fireEvent.click(screen.getByRole('button', { name: 'experience/acme.md:2' }));
     expect(navigate).toHaveBeenCalledWith({ page: 'fuentes', item: 'experience/acme.md' });
     await fireEvent.click(screen.getByRole('button', { name: 'Nuevo fichero' }));
     await fireEvent.input(screen.getByLabelText(/Ruta relativa/), { target: { value: ' projects/nuevo.md ' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
     await waitFor(() => expect(api.writeSource).toHaveBeenCalledWith('projects/nuevo.md', '', '*'));
-    expect(navigate).toHaveBeenCalledWith({ page: 'fuentes', item: 'projects/nuevo.md' });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ page: 'fuentes', item: 'projects/nuevo.md' }));
     (api.sources as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new ApiError(401, { code: 'unauthorized', message: 'caducó' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Nuevo fichero' }));
     await fireEvent.input(screen.getByLabelText(/Ruta relativa/), { target: { value: 'otro.md' } });
