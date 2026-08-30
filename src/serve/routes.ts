@@ -17,6 +17,7 @@ import type { OfferInput } from '../app/offer';
 import { isSafeSourcePath } from '../app/paths';
 import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
+import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { profileSummary } from '../app/text';
 import { createTheme, themeInventory } from '../app/themes';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -24,7 +25,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemesResponse, type ValidateResponse } from './contract';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -163,6 +164,38 @@ export function createRouter(): Router<ServerState> {
     handler: async (_request, state) => {
       const result = await loadProfile(state.context, { profile: state.profile });
       return result.ok ? json(200, result.profile satisfies ProfileResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/export`,
+    summary: 'El perfil canónico desde las fuentes (cv export), sin pasar por el artefacto; con problemas en las fuentes, 422 con todas las líneas.',
+    writes: false,
+    handler: async (_request, state) => {
+      const result = await exportProfile(state.context, { data: state.data });
+      return result.ok ? json(200, result.profile satisfies ExportResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/import`,
+    summary:
+      'Regenera las fuentes desde un perfil canónico (cv import): por defecto solo el plan y el auto-chequeo (dryRun); con dryRun:false escribe en un directorio de fuentes vacío o, con replace, tras apartar el existente como copia. 409 si el destino tiene contenido y no hay replace; 422 si el perfil no es válido o no se puede representar.',
+    writes: true,
+    body: ImportSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, ImportSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await importProfile(state.context, parsed.value.profile, { data: state.data, replace: parsed.value.replace, dryRun: parsed.value.dryRun ?? true });
+      if (!result.ok) {
+        return appErrorResponse(result.error);
+      }
+      const { outcome } = result;
+      return json(200, { root: outcome.root, dryRun: outcome.dryRun, plan: describePlan(outcome.plan), written: outcome.written, backup: outcome.backup } satisfies ImportResponse);
     },
   });
 

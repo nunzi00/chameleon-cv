@@ -126,7 +126,8 @@ describe('planImport', () => {
   it('rechaza el perfil inválido con las rutas, la versión de esquema y los logros no representables', async () => {
     const invalid = await planImport(context, { meta: { schemaVersion: 2 }, personal: { fullName: '' }, experience: [{ id: 'X' }] });
     expect(!invalid.ok && invalid.error.code).toBe('invalid-data');
-    expect(!invalid.ok && invalid.error.message).toMatch(/^El perfil no es válido \(\d+ problemas\)$/);
+    expect(!invalid.ok && invalid.error.message).toMatch(/^\d+ problemas en el perfil importado$/);
+    expect(!invalid.ok && invalid.error.lines?.at(-1)).toBe(!invalid.ok && invalid.error.message);
     expect(!invalid.ok && invalid.error.lines?.join('\n')).toMatch(/meta\.schemaVersion: .*entiende la 1/);
     expect(!invalid.ok && invalid.error.lines?.join('\n')).toMatch(/experience\[0\]\.id: Identificador inválido/);
     const unrepresentable = await planImport(context, {
@@ -137,6 +138,7 @@ describe('planImport', () => {
     expect(!unrepresentable.ok && unrepresentable.error.lines).toEqual([
       'projects[0].achievements[0].text («b»): el texto tiene saltos de línea y el parser los une con un espacio',
       'achievements[0].text («a»): el texto termina en «#cosas», que el parser leería como etiqueta',
+      'Hay logros que las fuentes Markdown no pueden representar tal cual; no se escribe nada',
     ]);
   });
 

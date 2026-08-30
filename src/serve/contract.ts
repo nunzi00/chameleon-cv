@@ -17,6 +17,7 @@ import type { CreatedTheme, ThemeInventory } from '../app/themes';
 import type { WorkspaceStatus } from '../app/workspace';
 import type { MasterProfile } from '../core/schema';
 import { SUGGEST_TAGS_LIMITS } from '../llm';
+import type { PlanDescription } from '../app/portability';
 import type { ServerErrorCode } from './http';
 import type { JobSnapshot } from './jobs';
 
@@ -96,6 +97,16 @@ export const ApplySchema = z.object({
   deleteReview: z.boolean().optional(),
 });
 
+export const ImportSchema = z.object({
+  /** El perfil canónico (profile.json) tal cual. */
+  profile: z.record(z.string(), z.unknown()),
+  /** Sustituir un directorio de fuentes con contenido, apartándolo entero como copia. */
+  replace: z.boolean().optional(),
+  /** Por defecto solo el plan y el auto-chequeo; `false` escribe en las fuentes (C9). */
+  dryRun: z.boolean().optional(),
+});
+
+export type ImportRequest = z.infer<typeof ImportSchema>;
 export type OfferInputBody = z.infer<typeof OfferSchema>;
 export type GenerateRequest = z.infer<typeof GenerateSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeSchema>;
@@ -145,6 +156,17 @@ export interface BuildResponse {
   readonly summary: string;
 }
 export type ProfileResponse = MasterProfile;
+/** GET /export: el perfil canónico desde las fuentes. */
+export type ExportResponse = MasterProfile;
+export interface ImportResponse {
+  readonly root: string;
+  readonly dryRun: boolean;
+  readonly plan: PlanDescription;
+  /** Rutas relativas escritas (vacío con `dryRun`). */
+  readonly written: readonly string[];
+  /** Directorio al que se apartaron las fuentes anteriores, si las había (ausente si no). */
+  readonly backup?: string | undefined;
+}
 export type GenerateReportPayload = Pick<GenerateReport, 'selection' | 'match' | 'limits' | 'removed' | 'theme'>;
 export interface GenerateResponse {
   readonly output: {

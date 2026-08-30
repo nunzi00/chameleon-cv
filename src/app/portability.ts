@@ -77,6 +77,21 @@ export interface ImportPlan {
 
 export type PlanResult = { readonly ok: true; readonly plan: ImportPlan } | { readonly ok: false; readonly error: AppError };
 
+export interface PlanDescription {
+  readonly files: readonly { readonly path: string; readonly bytes: number }[];
+  readonly counts: ImportCounts;
+  readonly warnings: readonly string[];
+}
+
+/** El plan sin los contenidos (para la CLI y la API): rutas con su tamaño, conteos y avisos. */
+export function describePlan(plan: ImportPlan): PlanDescription {
+  return {
+    files: plan.files.map((file) => ({ path: file.path, bytes: Buffer.byteLength(file.content, 'utf8') })),
+    counts: plan.counts,
+    warnings: plan.warnings,
+  };
+}
+
 const ENTITY_SECTIONS: readonly EntitySection[] = ['specialties', 'experience', 'projects', 'education'];
 
 export function parseProfileJson(text: string): { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly error: AppError } {
@@ -213,11 +228,13 @@ export async function planImport(context: Pick<AppContext, 'parsers'>, input: un
   const validation = validateMasterProfile(input);
   if (!validation.ok) {
     const lines = validation.issues.map((issue) => `${issue.path === '' ? '<raíz>' : issue.path}: ${issue.message}`);
-    return { ok: false, error: dataError(`El perfil no es válido (${pluralize(lines.length, 'problema', 'problemas')})`, lines) };
+    const summary = `${pluralize(lines.length, 'problema', 'problemas')} en el perfil importado`;
+    return { ok: false, error: dataError(summary, [...lines, summary]) };
   }
   const problems = unrepresentable(validation.profile);
   if (problems.length > 0) {
-    return { ok: false, error: dataError('Hay logros que las fuentes Markdown no pueden representar tal cual', problems) };
+    const summary = 'Hay logros que las fuentes Markdown no pueden representar tal cual; no se escribe nada';
+    return { ok: false, error: dataError(summary, [...problems, summary]) };
   }
   const { profile, reordered, naming } = canonicalOrder(validation.profile);
   const warnings = reordered.map(
@@ -232,14 +249,13 @@ export async function planImport(context: Pick<AppContext, 'parsers'>, input: un
     parsers: context.parsers,
   });
   if (!reread.ok) {
-    return {
-      ok: false,
-      error: dataError('Las fuentes regeneradas no se pueden volver a leer; no se escribe nada', reread.errors.map(formatDatasetError)),
-    };
+    const summary = 'Las fuentes regeneradas no se pueden volver a leer; no se escribe nada';
+    return { ok: false, error: dataError(summary, [...reread.errors.map(formatDatasetError), summary]) };
   }
   const differences = diffPaths(profile, reread.profile);
   if (differences.length > 0) {
-    return { ok: false, error: dataError('El perfil regenerado no coincide con el importado; no se escribe nada', differences) };
+    const summary = 'El perfil regenerado no coincide con el importado; no se escribe nada';
+    return { ok: false, error: dataError(summary, [...differences, summary]) };
   }
   const counts: ImportCounts = {
     specialties: profile.specialties.length,
