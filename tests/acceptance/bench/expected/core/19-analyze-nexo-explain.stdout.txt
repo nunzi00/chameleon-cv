@@ -1,3 +1,7 @@
+Esta oferta ya se procesó 3 veces:
+  <ISO> · analyze-offer (backend)
+  <ISO> · generate-cv (backend) → output/cv-backend-nexo-compact.pdfkit.pdf
+  <ISO> · generate-cv (backend) → output/cv-backend-nexo.md
 Oferta nexo-senior-backend · 13 requisitos reconocidos · 5 años de experiencia exigidos
 Adecuación: 12 de 13 requisitos demostrados (92 %) · imprescindibles: 7 de 7
 

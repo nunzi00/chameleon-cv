@@ -175,6 +175,38 @@ describe('cv generate-cv', () => {
     expect(h.stderr()).toContain('skills: skill-kubernetes Kubernetes');
   });
 
+  it('la segunda vez con la misma oferta avisa de cuándo se procesó y con qué CV (historial en output/)', async () => {
+    const h = compiled();
+    await h.fs.writeFile('/work/oferta.txt', 'Buscamos PHP y Kubernetes', 0o600);
+    expect(await runCli(['analyze-offer', 'oferta.txt', '-s', 'backend'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).not.toContain('ya se procesó');
+    expect(h.fs.file('/work/output/historial-ofertas.json')?.mode).toBe(0o600);
+    expect(await runCli(['generate-cv', '-s', 'backend', '-f', 'oferta.txt'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Esta oferta ya se procesó una vez:\n  ');
+    expect(h.stderr()).toContain(' · analyze-offer (backend)\n');
+    expect(await runCli(['analyze-offer', 'oferta.txt', '--json'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('"history": [');
+    expect(h.stdout()).toContain('"path": "output/cv-ada-ejemplo-backend-oferta.md"');
+    expect(await runCli(['analyze-offer', 'oferta.txt'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('Esta oferta ya se procesó 3 veces:');
+    expect(await runCli(['generate-cv', '-f', 'oferta.txt', '--stdout'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Esta oferta ya se procesó 4 veces:');
+    expect(await runCli(['generate-cv', '-f', 'oferta.txt', '-o', '/fuera/cv.md'], h.context)).toBe(EXIT_OK);
+    expect(h.fs.file('/work/output/historial-ofertas.json')?.content).toContain('"path": "/fuera/cv.md"');
+  });
+
+  it('si el historial no se puede escribir, avisa y la orden termina bien', async () => {
+    const h = compiled();
+    await h.fs.writeFile('/work/oferta.txt', 'Buscamos PHP', 0o600);
+    const failing = { ...h.fs, mkdir: h.fs.mkdir.bind(h.fs), readFile: h.fs.readFile.bind(h.fs), writeBinaryFile: h.fs.writeBinaryFile.bind(h.fs), writeFile: (path: string, content: string, mode: number) => (path.endsWith('historial-ofertas.json') ? Promise.reject(new Error('disco lleno')) : h.fs.writeFile(path, content, mode)) };
+    const context = { ...h.context, artifactFileSystem: failing as never };
+    expect(await runCli(['analyze-offer', 'oferta.txt'], context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Aviso: no se pudo anotar la oferta en el historial (output/historial-ofertas.json): disco lleno');
+    expect(await runCli(['generate-cv', '-f', 'oferta.txt'], context)).toBe(EXIT_OK);
+    expect(h.stderr().match(/no se pudo anotar/g)).toHaveLength(2);
+    expect(h.stdout()).toContain('CV escrito en /work/output/cv-ada-ejemplo-oferta.md');
+  });
+
   it('con --specialty reproduce el golden y explica la selección con --explain', async () => {
     const h = compiled();
     expect(await runCli(['generate-cv', '--specialty', 'backend', '--explain'], h.context)).toBe(EXIT_OK);

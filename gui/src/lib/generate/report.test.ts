@@ -50,6 +50,7 @@ describe('informe de decisiones', () => {
 
 describe('analysisView', () => {
   const base: AnalyzeResponse = {
+    history: [],
     offer: { source: 'acme', terms: match.requirements.terms, gaps: ['go'], experienceYears: 5 } as never,
     summary: { recognized: 2, demonstrated: 1, ratio: 0.5, requiredTotal: 1, requiredDemonstrated: 1 },
     coverage: { kubernetes: ['exp-acme'], go: [] },

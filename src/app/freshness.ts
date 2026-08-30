@@ -18,7 +18,9 @@ export type AppWarning =
   /** El co-piloto procesa solo los `kept` primeros de `total` logros (presupuesto `--max-items`). */
   | { readonly kind: 'items-truncated'; readonly total: number; readonly kept: number }
   /** `--skills`/`--projects`: nombres o ids que no existen en el perfil (se ignoran). */
-  | { readonly kind: 'unknown-selection'; readonly section: 'skills' | 'projects'; readonly names: readonly string[] };
+  | { readonly kind: 'unknown-selection'; readonly section: 'skills' | 'projects'; readonly names: readonly string[] }
+  /** El historial de ofertas (`output/historial-ofertas.json`) no se pudo escribir; la orden se completó igualmente. */
+  | { readonly kind: 'history-unwritable'; readonly message: string };
 
 export async function checkArtifactFreshness(fs: FileSystem, artifactPath: string, sourcesRoot: string): Promise<Freshness> {
   let artifactMtime: number;

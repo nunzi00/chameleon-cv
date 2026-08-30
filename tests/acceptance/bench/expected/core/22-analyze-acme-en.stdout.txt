@@ -1,3 +1,5 @@
+Esta oferta ya se procesó una vez:
+  <ISO> · generate-cv (engineering-manager) → output/cv-em-acme-en.md
 Oferta acme-engineering-manager-en · 10 requisitos reconocidos
 Adecuación: 8 de 10 requisitos demostrados (80 %) · imprescindibles: 5 de 7
 

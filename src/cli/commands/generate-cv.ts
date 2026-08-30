@@ -5,6 +5,7 @@
  * entre escribir el fichero o imprimir por stdout.
  */
 import { generateCv, writeCvFile, type GenerateReport } from '../../app/generate';
+import { describeHistory, recordHistory } from '../../app/history';
 import type { CliContext } from '../context';
 import { formatMatchReport, formatSelectionReport, formatTrimReport } from '../explain';
 import type { CvEngine, CvFormat } from '../format';
@@ -105,6 +106,7 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
   if (!result.ok) {
     return reportError(context, result.error);
   }
+  context.stderr(describeHistory(result.history.previous));
   if (result.cv.kind === 'md' && options.stdout) {
     context.stdout(result.cv.markdown);
     return EXIT_OK;
@@ -112,6 +114,12 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
   const failure = await writeCvFile(context, result.cv);
   if (failure !== undefined) {
     return reportError(context, failure);
+  }
+  if (result.history.entry !== undefined) {
+    const unwritable = await recordHistory(context, result.history.entry);
+    if (unwritable !== undefined) {
+      reportWarnings(context, [{ kind: 'history-unwritable', message: unwritable }]);
+    }
   }
   context.stdout(`CV escrito en ${result.cv.outputPath}\n`);
   return EXIT_OK;

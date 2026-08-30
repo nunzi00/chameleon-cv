@@ -9,6 +9,7 @@ import type { AppContext } from './context';
 import { buildProfile, loadProfile } from './dataset';
 import type { AppError } from './errors';
 import { checkArtifactFreshness, freshnessWarning, type AppWarning } from './freshness';
+import { lookupHistory, offerFingerprint, readHistory, recordHistory, type HistoryEntry } from './history';
 import { readOffer, type OfferInput } from './offer';
 import { tailorWithOffer, type JobRequirements } from './tailor';
 
@@ -28,7 +29,7 @@ export interface OfferAnalysis {
 }
 
 export type AnalyzeResult =
-  | { readonly ok: true; readonly analysis: OfferAnalysis; readonly warnings: readonly AppWarning[] }
+  | { readonly ok: true; readonly analysis: OfferAnalysis; readonly history: readonly HistoryEntry[]; readonly warnings: readonly AppWarning[] }
   | { readonly ok: false; readonly error: AppError; readonly warnings: readonly AppWarning[] };
 
 export async function analyzeOffer(context: AppContext, request: AnalyzeRequest): Promise<AnalyzeResult> {
@@ -59,22 +60,31 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
     return { ok: false, error: tailored.error, warnings };
   }
   const { scored, requirements } = tailored;
-  return { ok: true, analysis: { offerName: read.offer.name, requirements, scored, summary: summarizeMatch(scored.report, scored.profile) }, warnings };
+  const sha256 = offerFingerprint(read.offer.text);
+  const history = lookupHistory(await readHistory(context), sha256);
+  const failure = await recordHistory(context, { at: new Date().toISOString(), action: 'analyze', offer: { name: read.offer.name, sha256 }, specialty: request.specialty });
+  if (failure !== undefined) {
+    warnings.push({ kind: 'history-unwritable', message: failure });
+  }
+  return { ok: true, analysis: { offerName: read.offer.name, requirements, scored, summary: summarizeMatch(scored.report, scored.profile) }, history, warnings };
 }
 
 /** La salida de `cv analyze-offer --json`, campo a campo en este orden (también la de POST /analyze-offer). */
 export interface AnalysisPayload {
   readonly offer: { readonly source: string } & OfferAnalysis['requirements'];
+  /** Procesamientos previos de la misma oferta (huella del texto), del más reciente al más antiguo. */
+  readonly history: readonly HistoryEntry[];
   readonly summary: Pick<OfferAnalysis['summary'], 'recognized' | 'demonstrated' | 'ratio' | 'requiredTotal' | 'requiredDemonstrated'>;
   readonly coverage: OfferAnalysis['scored']['report']['coverage'];
   readonly decisions: OfferAnalysis['scored']['report']['decisions'];
   readonly ranking: OfferAnalysis['summary']['topEvidence'];
 }
 
-export function analysisPayload(analysis: OfferAnalysis): AnalysisPayload {
+export function analysisPayload(analysis: OfferAnalysis, history: readonly HistoryEntry[] = []): AnalysisPayload {
   const { summary, scored, requirements } = analysis;
   return {
     offer: { source: analysis.offerName, ...requirements },
+    history,
     summary: {
       recognized: summary.recognized,
       demonstrated: summary.demonstrated,

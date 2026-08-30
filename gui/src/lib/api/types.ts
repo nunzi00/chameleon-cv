@@ -5,6 +5,9 @@
 export type {
   AnalyzeRequest,
   AnalyzeResponse,
+  HistoryEntry,
+  HistoryLookupRequest,
+  HistoryLookupResponse,
   ApplyRequest,
   ApplyResponse,
   BuildResponse,

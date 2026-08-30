@@ -29,6 +29,8 @@ export function formatWarning(warning: AppWarning): string {
       return `Aviso: no se pudo comprobar si el artefacto está al día (${warning.reason})\n`;
     case 'items-truncated':
       return `Aviso: ${warning.total} logros superan el máximo por ejecución (${warning.kept}); se procesan los ${warning.kept} primeros (--max-items o --only para elegir)\n`;
+    case 'history-unwritable':
+      return `Aviso: no se pudo anotar la oferta en el historial (output/historial-ofertas.json): ${warning.message}\n`;
     case 'unknown-selection':
       return `Aviso: ${warning.section === 'skills' ? 'skills' : 'proyectos'} no encontrados en el perfil (se ignoran): ${warning.names.join(', ')}\n`;
   }

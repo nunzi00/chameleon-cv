@@ -38,3 +38,15 @@ Analiza sin generar: adecuación global, evidencias (qué ítems del perfil demu
 El PDF se procesa en un *worker* aislado con límites (10 MiB, 50 páginas, 20 s, 512 MB), sin cargar fuentes ni renderizar; solo se extrae el texto. Un PDF escaneado sin capa de texto no aporta nada: pega el texto a mano.
 
 Tutorial paso a paso: [Un CV para tres ofertas](/tutorials/three-offers).
+
+## Historial de ofertas procesadas
+
+Cada `cv analyze-offer` y cada `cv generate-cv --from-job-offer` deja una entrada en `output/historial-ofertas.json` (fecha, acción, especialidad y CV escrito) identificada por la **huella del texto** de la oferta. Al volver a usar la misma oferta —pegada, extraída de su PDF o desde un fichero— el producto te lo dice antes del resultado:
+
+```text
+Esta oferta ya se procesó 2 veces:
+  2026-08-30T12:10:33.000Z · generate-cv (backend) → output/cv-ada-backend-nexo.pdf
+  2026-08-29T09:00:00.000Z · analyze-offer (backend)
+```
+
+En la interfaz web el aviso aparece en Generar en cuanto añades la oferta; en la API, `POST /api/v1/offers/history` consulta el historial sin efectos y las respuestas de `/analyze-offer` y `/generate` lo incluyen (`history`). El fichero es tuyo: puedes borrarlo o editarlo; se conservan las 500 entradas más recientes.

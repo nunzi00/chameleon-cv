@@ -19,13 +19,13 @@ const STATUS = {
   themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] },
 } as unknown as StatusResponse;
 
-const MD: GenerateResponse = {
+const MD: GenerateResponse = { history: [],
   output: { name: 'cv-ada-backend.md', kind: 'md', path: 'output/cv-ada-backend.md', markdown: '# Ada Ejemplo\n' },
   report: { selection: { specialtyId: 'backend', vocabulary: ['php'], decisions: [] }, match: undefined, limits: {}, removed: [], theme: undefined },
   warnings: [],
 };
 
-const ANALYSIS = {
+const ANALYSIS = { history: [],
   offer: { source: 'texto', terms: [{ term: 'kubernetes', emphasis: 'required', occurrences: 1, weight: 1 }], gaps: [], experienceYears: undefined },
   summary: { recognized: 1, demonstrated: 1, ratio: 1, requiredTotal: 1, requiredDemonstrated: 1 },
   coverage: { kubernetes: ['exp-acme'] },
@@ -42,6 +42,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     themes: vi.fn(async () => ({ defaultName: 'default', configWarning: undefined, roots: [], entries: [{ name: 'default' }, { name: 'classic' }] as never })),
     generate: vi.fn(async () => MD),
     analyze: vi.fn(async () => ANALYSIS),
+    offerHistory: vi.fn(async () => ({ entries: [] })),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
     createTheme: vi.fn(async () => ({ name: 'mio', directory: '/work/themes/mio', from: 'classic' } as never)),
     installTheme: vi.fn(),
@@ -68,7 +69,7 @@ describe('Generar', () => {
   });
 
   it('con Typst utilizable propone el motor Typst y el tema; un PDF generado se muestra en el visor', async () => {
-    const PDF: GenerateResponse = { output: { name: 'cv.pdf', kind: 'pdf', path: 'output/cv.pdf', bytes: 4 }, report: undefined, warnings: [{ kind: 'freshness-unknown', reason: 'x' }] };
+    const PDF: GenerateResponse = { history: [], output: { name: 'cv.pdf', kind: 'pdf', path: 'output/cv.pdf', bytes: 4 }, report: undefined, warnings: [{ kind: 'freshness-unknown', reason: 'x' }] };
     const api = fakeApi({ generate: vi.fn(async () => PDF) });
     render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
     await waitFor(() => expect(screen.getByLabelText('Tema')).toBeTruthy());
@@ -134,5 +135,19 @@ describe('Generar · selección explícita de skills y proyectos', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Generar CV' }));
     await waitFor(() => expect(api.generate).toHaveBeenCalledWith({ format: 'md', skills: ['Kubernetes'], projects: ['proj-b'] }));
     expect(screen.getByText(/Solo estas skills \(1\)/)).toBeTruthy();
+  });
+});
+
+describe('Generar · historial de la oferta', () => {
+  it('al añadir una oferta ya procesada avisa de cuándo y con qué CV', async () => {
+    const entries = [{ at: '2026-08-30T12:10:00.000Z', action: 'generate', offer: { name: 'nexo', sha256: 'x' }, specialty: 'backend', output: { path: 'output/cv-nexo.pdf', format: 'pdf' } }];
+    const api = fakeApi({ offerHistory: vi.fn(async () => ({ entries })) as never });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.change(screen.getByLabelText('Oferta'), { target: { value: 'text' } });
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos Kubernetes' } });
+    await waitFor(() => expect(screen.getByText('Esta oferta ya se procesó una vez')).toBeTruthy(), { timeout: 3000 });
+    expect(api.offerHistory).toHaveBeenCalledWith({ offer: { text: 'Buscamos Kubernetes' } });
+    expect(screen.getByText('2026-08-30 12:10 · Generar CV (backend) → output/cv-nexo.pdf')).toBeTruthy();
   });
 });

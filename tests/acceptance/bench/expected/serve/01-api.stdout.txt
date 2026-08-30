@@ -734,6 +734,7 @@
 
 ### POST /generate → 200
 {
+  "history": [],
   "output": {
     "kind": "md",
     "markdown": "# Lucía Ferrer Montalbán\n\n**Senior Backend Engineer**\n\nValencia, España · lucia.ferrer@example.org · +34 600 123 456 · [GitHub](https://github.com/lucia-ferrer-example) · [LinkedIn](https://www.linkedin.com/in/lucia-ferrer-example) · [Web](https://lucia.example.org)\n\nDiseño y operación de APIs y sistemas distribuidos de pago: PHP moderno, Symfony, Kafka y PostgreSQL sobre Kubernetes, con la latencia y la resiliencia como primer requisito.\n\n## Experiencia\n\n### Staff Backend Engineer · Nexo Pagos\n\n*mar 2022 – actualidad · Valencia (remoto)*\n\nPasarela de pagos B2B con **9 M de transacciones al mes** y disponibilidad comprometida del 99,95 %. Equipo de plataforma de pagos de 8 personas.\n\n- Diseñé la arquitectura de la nueva pasarela de pagos sobre Kafka y PostgreSQL, procesando **9 M de transacciones al mes** sin pérdida de eventos. (0 incidentes de pérdida de datos en 18 meses)\n- Reduje la latencia `p99` de la API de autorización de 480 ms a 210 ms rediseñando la capa de caché y los índices. (-56 % p99)\n- Lideré la migración de 14 servicios PHP a Kubernetes con despliegues canary y sin ventana de parada. (despliegues diarios frente a quincenales)\n- Implanté *contract testing* entre el monolito Symfony y los microservicios de liquidación.\n\n*Tecnologías:* PHP 8.3, Symfony 7, Kafka, PostgreSQL 16, Kubernetes, Terraform\n\n### Platform Engineer · Órbita Cloud\n\n*jun 2019 – feb 2022 · Madrid*\n\nPlataforma interna para 25 equipos de producto en AWS.\n\n- Construí la plataforma Kubernetes multi-tenant que hoy sirve a 25 equipos y 300 servicios. (300 servicios en producción)\n\n*Tecnologías:* Kubernetes, Terraform, AWS, Prometheus, Grafana, GitLab CI\n\n### Backend Developer · Delta Consultores\n\n*ene 2017 – may 2019 · Valencia*\n\nDesarrollo de APIs y back-offices para clientes del sector seguros y logística.\n\n- Desarrollé la API REST de tarificación de seguros usada por 12 aseguradoras.\n- Migré un monolito heredado a Symfony 4 en fases, manteniendo el servicio durante la transición.\n- Optimicé consultas MySQL críticas, bajando el tiempo de respuesta del back-office un **35 %**. (-35 % tiempo de respuesta)\n\n*Tecnologías:* PHP 7, Symfony 4, MySQL, Redis, Docker\n\n### Data Engineer · Lumen Analytics\n\n*sept 2015 – dic 2016 · Barcelona*\n\nCanalizaciones de datos para analítica de comercio electrónico.\n\n- Construí con Spark la canalización diaria de 2 TB de eventos de navegación. (2 TB/día)\n\n*Tecnologías:* Python, Spark, Airflow, PostgreSQL, Kafka\n\n### Desarrolladora web · Freelance\n\n*feb 2013 – ago 2015 · Valencia*\n\nAplicaciones web a medida para pequeñas empresas.\n\n- Entregué 14 proyectos web a medida con PHP y JavaScript para pymes.\n- Diseñé un sistema de reservas en línea que gestionó 20 000 reservas al año. (20 000 reservas/año)\n\n*Tecnologías:* PHP, JavaScript, MySQL\n\n## Proyectos\n\n### Kafka Guardian · Autora y mantenedora\n\n*jun 2023 – actualidad · https://example.org/kafka-guardian*\n\nBiblioteca de código abierto para detectar consumidores retrasados y particiones huérfanas en Kafka.\n\n- Publiqué [Kafka Guardian](https://example.org/kafka-guardian), adoptada por 30 organizaciones, con métricas Prometheus listas para usar. (30 organizaciones)\n- Mantengo una suite de 400 pruebas y una política de compatibilidad semántica.\n\n*Tecnologías:* PHP 8.3, Kafka, Prometheus\n\n## Habilidades\n\n- **Lenguajes:** PHP\n- **Frameworks:** Symfony\n- **Plataformas:** Kubernetes, Kafka\n- **Bases de datos:** PostgreSQL\n\n## Logros destacados\n\n- Ponente en dos ediciones de la conferencia PHP Valencia con charlas sobre Kafka y observabilidad.\n- Organizadora del grupo local de Kubernetes, con encuentros mensuales desde 2021.\n\n## Formación\n\n- **Grado en Ingeniería Informática** (Ingeniería del software) · Universitat Politècnica de València · 2009 – 2013\n\n## Certificaciones\n\n- **CKA** · CNCF · 20 abr 2021 · [enlace](https://example.org/cert/cka)\n- **Symfony Certified Developer** · SensioLabs · 2018\n\n## Idiomas\n\n- Español: nativo\n- Valenciano: C1\n- Inglés: C1\n",
@@ -1286,6 +1287,7 @@
 
 ### POST /generate → 200
 {
+  "history": [],
   "output": {
     "kind": "pdf",
     "name": "cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf",
@@ -2906,6 +2908,10 @@
     {
       "bytes": 4075,
       "name": "cv-lucia-ferrer-montalban-backend.md"
+    },
+    {
+      "bytes": 461,
+      "name": "historial-ofertas.json"
     }
   ]
 }
@@ -3705,6 +3711,7 @@
       "section": "achievements"
     }
   ],
+  "history": [],
   "offer": {
     "gaps": [],
     "source": "oferta",

@@ -18,6 +18,7 @@ import { DEFAULT_OUTPUT_DIR } from './defaults';
 import { dataError, environmentError, errorWithExit, type AppError } from './errors';
 import type { CvEngine, CvFormat } from './format';
 import { checkArtifactFreshness, freshnessWarning, type AppWarning } from './freshness';
+import { lookupHistory, offerFingerprint, readHistory, type HistoryEntry } from './history';
 import { resolveLimits, type LimitOptions } from './limits';
 import { readOffer, type OfferInput, type OfferText } from './offer';
 import { slugify } from './slug';
@@ -66,7 +67,7 @@ export type GeneratedCv =
   | { readonly kind: 'pdf'; readonly outputPath: string; readonly pdf: Buffer };
 
 export type GenerateResult =
-  | { readonly ok: true; readonly cv: GeneratedCv; readonly report: GenerateReport; readonly warnings: readonly AppWarning[] }
+  | { readonly ok: true; readonly cv: GeneratedCv; readonly report: GenerateReport; readonly history: GenerateHistory; readonly warnings: readonly AppWarning[] }
   | { readonly ok: false; readonly error: AppError; readonly report: GenerateReport | undefined; readonly warnings: readonly AppWarning[] };
 
 /** `output/cv-<nombre>[-<especialidad>][-<oferta>].<formato>`, relativo al directorio de trabajo. */
@@ -112,6 +113,12 @@ async function renderWithTypst(context: AppContext, profile: MasterProfile, requ
   return { ok: false, error: errorWithExit(message, typstExitCode(result.error.code)) };
 }
 
+/** Procesamientos previos de la oferta y la entrada que anotar cuando el CV se escriba (sin oferta, ninguna). */
+export interface GenerateHistory {
+  readonly previous: readonly HistoryEntry[];
+  readonly entry: HistoryEntry | undefined;
+}
+
 export async function generateCv(context: AppContext, request: GenerateRequest): Promise<GenerateResult> {
   const warnings: AppWarning[] = [];
   const artifactPath = resolve(context.cwd, request.profile);
@@ -153,10 +160,11 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
   }
   const report: GenerateReport = { selection: tailored.tailored.selection, match: tailored.tailored.match, limits, removed: trimmed.removed, profileBeforeTrim: tailored.tailored.profile, theme: undefined };
   const outputPath = resolve(context.cwd, request.output ?? defaultOutputPath(trimmed.profile, request.specialty, tailored.tailored.offerName, request.format));
+  const history = await generateHistory(context, offer, request, outputPath);
 
   if (request.format === 'pdf') {
     const rendered = request.engine === 'typst' ? await renderWithTypst(context, trimmed.profile, request, report) : { ok: true as const, pdf: await renderPdfCv(trimmed.profile, { locale: request.locale, fonts: await loadFonts(context.assets) }) };
-    return rendered.ok ? { ok: true, cv: { kind: 'pdf', outputPath, pdf: rendered.pdf }, report, warnings } : { ok: false, error: rendered.error, report, warnings };
+    return rendered.ok ? { ok: true, cv: { kind: 'pdf', outputPath, pdf: rendered.pdf }, report, history, warnings } : { ok: false, error: rendered.error, report, warnings };
   }
 
   let template: string;
@@ -170,7 +178,20 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
       return { ok: false, error: environmentError(`No se pudo leer la plantilla «${templatePath}»: ${describeError(error)}`), report, warnings };
     }
   }
-  return { ok: true, cv: { kind: 'md', outputPath, markdown: renderMarkdownCv(trimmed.profile, { locale: request.locale, template }) }, report, warnings };
+  return { ok: true, cv: { kind: 'md', outputPath, markdown: renderMarkdownCv(trimmed.profile, { locale: request.locale, template }) }, report, history, warnings };
+}
+
+async function generateHistory(context: AppContext, offer: OfferText | undefined, request: GenerateRequest, outputPath: string): Promise<GenerateHistory> {
+  if (offer === undefined) {
+    return { previous: [], entry: undefined };
+  }
+  const sha256 = offerFingerprint(offer.text);
+  // Ruta relativa al espacio de trabajo cuando cabe; motor y tema tal como se pidieron (para md no aplican, pero no se inventan).
+  const output = { path: outputPath.startsWith(`${context.cwd}/`) ? outputPath.slice(context.cwd.length + 1) : outputPath, format: request.format, engine: request.engine, theme: request.theme };
+  return {
+    previous: lookupHistory(await readHistory(context), sha256),
+    entry: { at: new Date().toISOString(), action: 'generate', offer: { name: offer.name, sha256 }, specialty: request.specialty, output },
+  };
 }
 
 /** Escribe el CV generado (0600) creando el directorio; `undefined` si todo fue bien. */

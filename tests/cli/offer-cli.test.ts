@@ -177,7 +177,7 @@ describe('cv generate-cv --from-job-offer', () => {
 });
 
 describe('cv analyze-offer', () => {
-  it('imprime el resumen de adecuación sin escribir nada', async () => {
+  it('imprime el resumen de adecuación sin escribir ningún CV (solo anota el historial)', async () => {
     const h = compiled();
     expect(await runCli(['analyze-offer', 'offers/acme-backend.txt'], h.context)).toBe(EXIT_OK);
     expect(h.stderr()).toBe('');
@@ -194,7 +194,8 @@ describe('cv analyze-offer', () => {
     expect(lines).toContain('Mejores evidencias');
     expect(lines).toContain('  1. exp-acme · ACME Corp — Senior Backend Engineer (7.75)');
     expect(lines).toContain('  2. skill-2 · Symfony (3.75)');
-    await expect(h.fs.stat('/work/output')).rejects.toThrow('ENOENT');
+    expect(h.fs.file('/work/output/historial-ofertas.json')?.mode).toBe(0o600);
+    expect(h.fs.file('/work/output/cv-ada-ejemplo-backend-acme-backend.md')).toBeUndefined();
   });
 
   it('--explain añade la auditoría por ítem y --specialty usa la especialidad real', async () => {

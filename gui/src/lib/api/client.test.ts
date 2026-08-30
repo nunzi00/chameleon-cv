@@ -39,6 +39,7 @@ describe('cliente de la API', () => {
     await api.profile();
     await api.sources();
     await api.shutdown();
+    await api.offerHistory({ offer: { text: 'Kubernetes' } });
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
       'GET /api/v1/sources/experience/%C3%B1%20acme.md',
       'PUT /api/v1/sources/experience/acme.md',
@@ -49,6 +50,7 @@ describe('cliente de la API', () => {
       'GET /api/v1/profile',
       'GET /api/v1/sources',
       'POST /api/v1/shutdown',
+      'POST /api/v1/offers/history',
     ]);
     expect(calls[3]?.body).toBe('{}');
   });

@@ -6,9 +6,10 @@
   import PdfViewer from '../components/PdfViewer.svelte';
   import TagPicker from '../components/TagPicker.svelte';
   import type { ApiClient, OutputFile } from '../lib/api/client';
-  import type { GenerateResponse, ProfileResponse, ThemesResponse } from '../lib/api/types';
+  import type { GenerateResponse, HistoryEntry, ProfileResponse, ThemesResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, projectOptions, skillGroups, type GenerateForm } from '../lib/generate/form';
+  import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, offerOf, projectOptions, skillGroups, type GenerateForm } from '../lib/generate/form';
+  import { describeHistoryEntries } from '../lib/generate/history';
   import { analysisView, reportSections, type AnalysisView, type ReportSection } from '../lib/generate/report';
   import type { Route } from '../lib/router';
   import { describeInstalled, installProblem, themeOptionLabel, type InstallProblem } from '../lib/themes/install';
@@ -25,6 +26,29 @@
   let typstUsable = $state(false);
   let themes = $state<ThemesResponse | undefined>(undefined);
   let profile = $state<ProfileResponse | undefined>(undefined);
+  /** Procesamientos previos de la oferta actual (se consulta al cambiarla y llega también con cada análisis o generación). */
+  let history = $state<readonly HistoryEntry[]>([]);
+  let historyTimer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => {
+    const offer = offerOf(form);
+    clearTimeout(historyTimer);
+    if (!offer.ok || offer.body === undefined) {
+      history = [];
+      return;
+    }
+    const body = offer.body;
+    historyTimer = setTimeout(() => {
+      api
+        .offerHistory({ offer: body })
+        .then((result) => {
+          history = result.entries;
+        })
+        .catch(() => {
+          history = [];
+        });
+    }, 400);
+  });
   let error = $state<ExplainedError | undefined>(undefined);
   let notice = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
@@ -90,7 +114,9 @@
     error = undefined;
     analysis = undefined;
     try {
-      analysis = analysisView(await api.analyze(request.body));
+      const analyzed = await api.analyze(request.body);
+      analysis = analysisView(analyzed);
+      history = analyzed.history;
     } catch (caught) {
       fail(caught);
     } finally {
@@ -113,6 +139,7 @@
     try {
       const result = await api.generate(request.body);
       generated = result;
+      history = result.history;
       report = result.report === undefined ? [] : reportSections(result.report);
       if (result.output.kind === 'pdf') {
         pdf = await api.output(result.output.name);
@@ -195,6 +222,7 @@
   <h2 id="cv-generar-title">Generar</h2>
   {#if error !== undefined}<Notice kind="error" title={error.title} lines={error.lines}>{error.detail}</Notice>{/if}
   {#if notice !== undefined}<Notice kind="ok">{notice}</Notice>{/if}
+  {#if history.length > 0}<Notice kind="warn" title={`Esta oferta ya se procesó ${history.length === 1 ? 'una vez' : `${history.length} veces`}`} lines={describeHistoryEntries(history)} />{/if}
   <form class="cv-card cv-form" onsubmit={(event) => { event.preventDefault(); void generate(); }}>
     <label class="cv-field">
       <span>Especialidad</span>

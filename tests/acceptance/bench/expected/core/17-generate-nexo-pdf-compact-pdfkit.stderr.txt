@@ -1,0 +1,2 @@
+Esta oferta ya se procesó una vez:
+  <ISO> · generate-cv (backend) → output/cv-backend-nexo.md

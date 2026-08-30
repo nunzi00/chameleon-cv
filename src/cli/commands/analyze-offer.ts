@@ -4,6 +4,7 @@
  * escribe ficheros.
  */
 import { analysisPayload, analyzeOffer } from '../../app/analyze';
+import { describeHistory } from '../../app/history';
 import type { CliContext } from '../context';
 import { formatMatchReport, formatMatchSummary, formatSelectionReport } from '../explain';
 import { offerInput } from '../offer';
@@ -24,11 +25,12 @@ export async function runAnalyzeOffer(context: CliContext, source: string, optio
   if (!result.ok) {
     return reportError(context, result.error);
   }
-  const { analysis } = result;
+  const { analysis, history } = result;
   if (options.json) {
-    context.stdout(`${JSON.stringify(analysisPayload(analysis), null, 2)}\n`);
+    context.stdout(`${JSON.stringify(analysisPayload(analysis, history), null, 2)}\n`);
     return EXIT_OK;
   }
+  context.stdout(describeHistory(history));
   context.stdout(formatMatchSummary(analysis.summary, analysis.offerName));
   if (options.explain) {
     context.stdout(`\n${formatSelectionReport(analysis.scored.selection.report)}${formatMatchReport(analysis.scored.report)}`);

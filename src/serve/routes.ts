@@ -8,12 +8,14 @@ import { basename, extname, resolve } from 'node:path';
 import { z } from 'zod';
 
 import { analysisPayload, analyzeOffer } from '../app/analyze';
+import { lookupHistory, offerFingerprint, readHistory, recordHistory } from '../app/history';
 import type { AppContext } from '../app/context';
 import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
 import { buildProfile, loadProfile, loadSources } from '../app/dataset';
 import { environmentError, notFoundError, unsafePathError, type AppError } from '../app/errors';
 import { generateCv, writeCvFile } from '../app/generate';
-import type { OfferInput } from '../app/offer';
+import type { AppWarning } from '../app/freshness';
+import { readOffer, type OfferInput } from '../app/offer';
 import { isSafeSourcePath } from '../app/paths';
 import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
@@ -27,7 +29,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmConfigResponse, type LlmConfigWriteResponse } from './contract';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -345,7 +347,14 @@ export function createRouter(): Router<ServerState> {
         return appErrorResponse(failure, { warnings: result.warnings });
       }
       const name = result.cv.outputPath.slice(resolve(state.context.cwd, OUTPUT_DIR).length + 1);
-      return json(200, { output: { name, kind: result.cv.kind, path: `${OUTPUT_DIR}/${name}`, ...(result.cv.kind === 'md' ? { markdown: result.cv.markdown } : { bytes: result.cv.pdf.byteLength }) }, report, warnings: result.warnings } satisfies GenerateResponse);
+      const historyWarnings: AppWarning[] = [];
+      if (result.history.entry !== undefined) {
+        const unwritable = await recordHistory(state.context, result.history.entry);
+        if (unwritable !== undefined) {
+          historyWarnings.push({ kind: 'history-unwritable', message: unwritable });
+        }
+      }
+      return json(200, { output: { name, kind: result.cv.kind, path: `${OUTPUT_DIR}/${name}`, ...(result.cv.kind === 'md' ? { markdown: result.cv.markdown } : { bytes: result.cv.pdf.byteLength }) }, report, history: result.history.previous, warnings: [...result.warnings, ...historyWarnings] } satisfies GenerateResponse);
     },
   });
 
@@ -401,7 +410,31 @@ export function createRouter(): Router<ServerState> {
         return appErrorResponse(input);
       }
       const result = await analyzeOffer(state.context, { profile: state.profile, data: state.data, specialty: parsed.value.specialty, offer: input, build: parsed.value.build ?? false });
-      return result.ok ? json(200, { ...analysisPayload(result.analysis), selection: result.analysis.scored.selection.report, warnings: result.warnings } satisfies AnalyzeResponse) : appErrorResponse(result.error, { warnings: result.warnings });
+      return result.ok ? json(200, { ...analysisPayload(result.analysis, result.history), selection: result.analysis.scored.selection.report, warnings: result.warnings } satisfies AnalyzeResponse) : appErrorResponse(result.error, { warnings: result.warnings });
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/offers/history`,
+    summary: 'Historial de una oferta: si ya se procesó (analyze-offer o generate-cv), cuándo y con qué CV; solo lectura, por la huella del texto (output/historial-ofertas.json)',
+    writes: false,
+    body: HistoryLookupSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, HistoryLookupSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const input = offerInputOf(state.context, parsed.value.offer);
+      if (!('kind' in input)) {
+        return appErrorResponse(input);
+      }
+      const read = await readOffer(state.context, input);
+      if (!read.ok) {
+        return appErrorResponse(read.error);
+      }
+      const entries = lookupHistory(await readHistory(state.context), offerFingerprint(read.offer.text));
+      return json(200, { entries } satisfies HistoryLookupResponse);
     },
   });
 

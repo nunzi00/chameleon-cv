@@ -10,6 +10,9 @@ import type { AnalysisPayload, OfferAnalysis } from '../app/analyze';
 import type { DatasetLoadResult } from '../app/dataset';
 import { CV_ENGINES, CV_FORMATS } from '../app/format';
 import type { AppWarning } from '../app/freshness';
+import type { HistoryEntry } from '../app/history';
+
+export type { HistoryEntry } from '../app/history';
 import type { GenerateReport } from '../app/generate';
 import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../app/review';
 import type { SourceEntry, SourceFile } from '../app/sources';
@@ -230,7 +233,15 @@ export interface GenerateResponse {
     readonly bytes?: number | undefined;
   };
   readonly report: GenerateReportPayload | undefined;
+  /** Procesamientos previos de la oferta (huella del texto), del más reciente al más antiguo; vacío sin oferta. */
+  readonly history: readonly HistoryEntry[];
   readonly warnings: readonly AppWarning[];
+}
+/** `POST /offers/history`: consulta de solo lectura del historial de una oferta. */
+export const HistoryLookupSchema = z.object({ offer: OfferSchema });
+export type HistoryLookupRequest = z.infer<typeof HistoryLookupSchema>;
+export interface HistoryLookupResponse {
+  readonly entries: readonly HistoryEntry[];
 }
 export interface OutputEntry {
   readonly name: string;

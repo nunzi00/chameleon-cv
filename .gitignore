@@ -44,3 +44,4 @@ Thumbs.db
 
 # Espacio de trabajo de Docker Compose (tus datos personales; docs/docker.md)
 /my-profile/
+ds-bundle/

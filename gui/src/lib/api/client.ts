@@ -45,6 +45,8 @@ import type {
   ThemeVerifyResponse,
   ThemesResponse,
   ValidateResponse,
+  HistoryLookupRequest,
+  HistoryLookupResponse,
 } from './types';
 import { bodyChunks, sseEvents, type SseEvent } from './sse';
 
@@ -99,6 +101,8 @@ export interface ApiClient {
   writeSource(path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
   generate(body: GenerateRequest): Promise<GenerateResponse>;
   analyze(body: AnalyzeRequest): Promise<AnalyzeResponse>;
+  /** Historial de una oferta (solo lectura): procesamientos previos por la huella de su texto. */
+  offerHistory(body: HistoryLookupRequest): Promise<HistoryLookupResponse>;
   /** Un PDF (bytes) → su texto, extraído en el worker aislado del servidor. */
   extractOffer(pdf: Blob): Promise<ExtractResponse>;
   themes(): Promise<ThemesResponse>;
@@ -226,6 +230,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     writeSource: (path, content, ifMatch) => requestWithHeaders('PUT', `/sources/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
     generate: (body) => request('POST', '/generate', { body }),
     analyze: (body) => request('POST', '/analyze-offer', { body }),
+    offerHistory: (body) => request('POST', '/offers/history', { body }),
     extractOffer: async (pdf) => {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });
       return parseJson(await response.text()) as ExtractResponse;

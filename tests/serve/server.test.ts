@@ -137,6 +137,22 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(generated.output.markdown).toContain('# Ada Ejemplo');
     expect(generated.report.match).toBeDefined();
     expect(fs.file('/work/output/cv-ada-ejemplo-backend-oferta.md')?.mode).toBe(0o600);
+    expect((generated as unknown as { history: unknown[] }).history).toEqual([]);
+    const again = (await (await post('/generate', { specialty: 'backend', offer: { text: 'buscamos php y kubernetes' }, topN: 1 })).json()) as { history: { action: string; specialty: string; output: { path: string; format: string } }[] };
+    expect(again.history).toHaveLength(1);
+    expect(again.history[0]).toMatchObject({ action: 'generate', specialty: 'backend', output: { path: 'output/cv-ada-ejemplo-backend-oferta.md', format: 'md' } });
+    const lookup = await post('/offers/history', { offer: { text: 'Buscamos PHP y Kubernetes' } });
+    expect(lookup.status).toBe(200);
+    expect(((await lookup.json()) as { entries: unknown[] }).entries).toHaveLength(2);
+    expect(((await (await post('/offers/history', { offer: { text: 'otra oferta' } })).json()) as { entries: unknown[] }).entries).toEqual([]);
+    expect((await post('/offers/history', { offer: { workspaceFile: '/etc/passwd' } })).status).toBe(400);
+    expect((await post('/offers/history', { nada: true })).status).toBe(400);
+    expect((await post('/offers/history', { offer: { workspaceFile: 'no-existe.txt' } })).status).toBe(503);
+    const originalWriteFile = fs.writeFile.bind(fs);
+    fs.writeFile = (path, content, mode) => (path.endsWith('historial-ofertas.json') ? Promise.reject(new Error('disco lleno')) : originalWriteFile(path, content, mode));
+    const unwritable = (await (await post('/generate', { specialty: 'backend', offer: { text: 'Buscamos PHP y Kubernetes' }, output: 'sin-historial.md' })).json()) as { warnings: { kind: string; message?: string }[] };
+    expect(unwritable.warnings).toContainEqual({ kind: 'history-unwritable', message: 'disco lleno' });
+    fs.writeFile = originalWriteFile;
 
     const custom = await post('/generate', { template: { workspaceFile: 'plantilla.hbs' }, output: 'propio.md', format: 'md', engine: 'pdfkit', build: true, compact: true });
     expect(((await custom.json()) as { output: { markdown: string } }).output.markdown).toBe('# Ada Ejemplo (plantilla propia)\n');
@@ -160,7 +176,7 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(pdfBody.output.bytes).toBeGreaterThan(1000);
 
     const list = (await (await api('/output')).json()) as { files: Array<{ name: string; bytes: number }> };
-    expect(list.files.map((file) => file.name)).toEqual(['cv-ada-ejemplo-backend-oferta.md', 'cv.pdf', 'fichero.md', 'propio.md']);
+    expect(list.files.map((file) => file.name)).toEqual(['cv-ada-ejemplo-backend-oferta.md', 'cv.pdf', 'fichero.md', 'historial-ofertas.json', 'propio.md', 'sin-historial.md']);
     const served = await api('/output/cv.pdf');
     expect(served.status).toBe(200);
     expect(served.headers.get('content-type')).toBe('application/pdf');

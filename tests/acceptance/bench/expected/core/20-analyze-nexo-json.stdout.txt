@@ -205,6 +205,53 @@
       "rust"
     ]
   },
+  "history": [
+    {
+      "at": "<ISO>",
+      "action": "analyze",
+      "offer": {
+        "name": "nexo-senior-backend",
+        "sha256": "d44c885d880b8b72632baef02616116ac65e0c3190d6f72cb9f0375f0292d7e2"
+      },
+      "specialty": "backend"
+    },
+    {
+      "at": "<ISO>",
+      "action": "analyze",
+      "offer": {
+        "name": "nexo-senior-backend",
+        "sha256": "d44c885d880b8b72632baef02616116ac65e0c3190d6f72cb9f0375f0292d7e2"
+      },
+      "specialty": "backend"
+    },
+    {
+      "at": "<ISO>",
+      "action": "generate",
+      "offer": {
+        "name": "nexo-senior-backend",
+        "sha256": "d44c885d880b8b72632baef02616116ac65e0c3190d6f72cb9f0375f0292d7e2"
+      },
+      "specialty": "backend",
+      "output": {
+        "path": "output/cv-backend-nexo-compact.pdfkit.pdf",
+        "format": "pdf",
+        "engine": "pdfkit"
+      }
+    },
+    {
+      "at": "<ISO>",
+      "action": "generate",
+      "offer": {
+        "name": "nexo-senior-backend",
+        "sha256": "d44c885d880b8b72632baef02616116ac65e0c3190d6f72cb9f0375f0292d7e2"
+      },
+      "specialty": "backend",
+      "output": {
+        "path": "output/cv-backend-nexo.md",
+        "format": "md"
+      }
+    }
+  ],
   "summary": {
     "recognized": 13,
     "demonstrated": 12,

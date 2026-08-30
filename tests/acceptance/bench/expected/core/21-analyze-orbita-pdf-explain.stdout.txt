@@ -1,3 +1,5 @@
+Esta oferta ya se procesó una vez:
+  <ISO> · generate-cv → output/cv-orbita-compact.md
 Oferta orbita-platform-engineer · 9 requisitos reconocidos
 Adecuación: 8 de 9 requisitos demostrados (89 %) · imprescindibles: 7 de 7
 
