@@ -1,0 +1,5 @@
+Tema «copia-mio» instalado en <WS>/themes/copia-mio desde el directorio <WS>/themes/mio
+  template.typ      7941 bytes  76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647
+  theme.toml        1005 bytes  8a8d07b756d8ab8125dab73cc563aad16545b324cb3dc155b55a0177603c6edf
+Huella del contenido (SHA-256): 50e0f015f32e42c55ec24c75d031ad916fd1ad84d4d5c49aa4bc9676bd7e2a7e
+Origen fijado en <WS>/themes/copia-mio/.origin.json. Úsalo con «cv generate-cv --format pdf --engine typst --theme copia-mio» y compruébalo con «cv theme verify copia-mio»; el tema se ejecuta contenido, como todos.

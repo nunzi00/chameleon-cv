@@ -1,0 +1,4 @@
+bench: sin origen registrado (tema creado o copiado a mano)
+comunidad: intacto (origen <WS>/themes/comunidad-v2.tar.gz, instalado el <ISO>)
+default: sin origen registrado (tema creado o copiado a mano)
+mio: sin origen registrado (tema creado o copiado a mano)

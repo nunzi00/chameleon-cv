@@ -1,0 +1,1 @@
+El archivo «<WS>/themes/nombre-malo.zip» no es un tema instalable: El directorio raíz «Nombre Malo» no es un nombre de tema válido: minúsculas, dígitos y guiones

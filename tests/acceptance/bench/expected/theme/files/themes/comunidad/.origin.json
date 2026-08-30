@@ -1,0 +1,13 @@
+{
+  "source": "<WS>/themes/comunidad.zip",
+  "kind": "archive",
+  "archiveSha256": "bfbc3701c2d7c867d37baf107197d39efdb0845e7211564fdd9820244fe7092e",
+  "files": {
+    "LICENSE": "adc37366f403835c1470ab2df93d3837d4719372fc1ef8593d922e06f033f8b2",
+    "README.md": "baead9809a94dde013c6f7db768d15238313271a2d4392e8019c889da165a383",
+    "template.typ": "76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647",
+    "theme.toml": "40c5ad17a72d7ecb7dac9c46aec99fb2f7f74afda06463545aeb97e37b975a59"
+  },
+  "installedAt": "<ISO>",
+  "tool": "chameleon-cv 1.5.0"
+}

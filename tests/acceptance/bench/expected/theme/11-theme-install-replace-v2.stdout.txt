@@ -1,0 +1,6 @@
+Tema «comunidad» instalado en <WS>/themes/comunidad desde el archivo <WS>/themes/comunidad-v2.tar.gz
+  README.md           89 bytes  baead9809a94dde013c6f7db768d15238313271a2d4392e8019c889da165a383
+  template.typ      7941 bytes  76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647
+  theme.toml         999 bytes  e539cfce9674299869843680ef03e7e431b7693ee66801e42d65ab4ab0ffd3c7
+Huella del archivo (SHA-256): 021a867918488f1a05667b671efb29e4d0e09481ee15f99b577bced6a7605c3a
+Origen fijado en <WS>/themes/comunidad/.origin.json. Úsalo con «cv generate-cv --format pdf --engine typst --theme comunidad» y compruébalo con «cv theme verify comunidad»; el tema se ejecuta contenido, como todos.

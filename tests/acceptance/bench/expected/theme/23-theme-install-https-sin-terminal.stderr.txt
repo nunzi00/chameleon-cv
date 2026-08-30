@@ -1,0 +1,2 @@
+Se descargará «https://ejemplo.org/tema.zip» (host ejemplo.org, máximo 8 MiB) para instalarlo como themes/<nombre del tema>/; la huella se mostrará antes de instalar
+Operación cancelada: no se ha descargado nada: sin terminal interactiva, confirma con --yes

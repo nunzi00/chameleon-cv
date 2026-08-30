@@ -1,0 +1,1 @@
+Origen no admitido «http://ejemplo.org/tema.zip»: solo URL https:// o rutas locales (nada de http://)

@@ -1,0 +1,1 @@
+comunidad: intacto (origen <WS>/themes/comunidad-v2.tar.gz, instalado el <ISO>)

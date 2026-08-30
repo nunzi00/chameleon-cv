@@ -1,0 +1,1 @@
+«classic» es un tema distribuido: no tiene origen que verificar (solo los de themes/ del proyecto)

@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 
 import { locateTypst } from '../../src/renderers/typst';
-import { generateOfferPdfs, generateReviews } from './bench/generate';
+import { generateOfferPdfs, generateReviews, generateThemeArchives } from './bench/generate';
 import { SCENARIOS, type Scenario, type Step, type StepOutput } from './cases';
 import { compareBytes, comparePdf, compareText, type Mismatch } from './compare';
 
@@ -94,8 +94,23 @@ async function readText(path: string): Promise<string | undefined> {
   }
 }
 
-/** Compara un fichero producido con el esperado según su clase. */
-async function compareFile(what: string, kind: StepOutput['kind'], expectedPath: string, actualPath: string): Promise<Mismatch | undefined> {
+/** Los ficheros de texto esperados se guardan normalizados (rutas del espacio de trabajo, marcas de tiempo), como stdout y stderr. */
+async function normalizeStoredFile(path: string, replacements: readonly Replacement[]): Promise<void> {
+  const bytes = await readFile(path);
+  let text: string;
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return; // binario (PDF, fuentes): tal cual
+  }
+  const normalized = normalize(text, replacements);
+  if (normalized !== text) {
+    await writeFile(path, normalized);
+  }
+}
+
+/** Compara un fichero producido con el esperado según su clase; el texto se compara normalizado. */
+async function compareFile(what: string, kind: StepOutput['kind'], expectedPath: string, actualPath: string, replacements: readonly Replacement[]): Promise<Mismatch | undefined> {
   if (!(await exists(expectedPath))) {
     return { what, detail: 'no hay artefacto esperado (regenera con --update y revisa el diff)' };
   }
@@ -106,10 +121,12 @@ async function compareFile(what: string, kind: StepOutput['kind'], expectedPath:
     return comparePdf(what, await readFile(expectedPath), await readFile(actualPath));
   }
   const [expected, actual] = await Promise.all([readFile(expectedPath), readFile(actualPath)]);
-  return kind === 'text' || kind === 'json' ? compareText(what, expected.toString('utf8'), actual.toString('utf8')) : compareBytes(what, expected, actual);
+  return kind === 'text' || kind === 'json'
+    ? compareText(what, normalize(expected.toString('utf8'), replacements), normalize(actual.toString('utf8'), replacements))
+    : compareBytes(what, expected, actual);
 }
 
-async function compareTree(what: string, expectedRoot: string, actualRoot: string): Promise<Mismatch[]> {
+async function compareTree(what: string, expectedRoot: string, actualRoot: string, replacements: readonly Replacement[]): Promise<Mismatch[]> {
   if (!(await exists(expectedRoot))) {
     return [{ what, detail: 'no hay árbol esperado (regenera con --update)' }];
   }
@@ -124,7 +141,7 @@ async function compareTree(what: string, expectedRoot: string, actualRoot: strin
     mismatches.push({ what: `${what}/${file}`, detail: 'fichero inesperado' });
   }
   for (const file of expectedProduced.filter((candidate) => actualFiles.includes(candidate))) {
-    const mismatch = await compareFile(`${what}/${file}`, file.endsWith('.pdf') ? 'pdf' : 'text', join(expectedRoot, storedName(file)), join(actualRoot, file));
+    const mismatch = await compareFile(`${what}/${file}`, file.endsWith('.pdf') ? 'pdf' : 'text', join(expectedRoot, storedName(file)), join(actualRoot, file), replacements);
     if (mismatch !== undefined) {
       mismatches.push(mismatch);
     }
@@ -192,11 +209,14 @@ async function runStep(context: Context, index: number, step: Step, options: Run
       await cp(source, destination, { recursive: true });
       if (output.kind === 'tree') {
         for (const file of await listFiles(destination)) {
+          await normalizeStoredFile(join(destination, file), context.replacements);
           if (storedName(file) !== file) {
             await cp(join(destination, file), join(destination, storedName(file)));
             await rm(join(destination, file));
           }
         }
+      } else if (output.kind === 'text' || output.kind === 'json') {
+        await normalizeStoredFile(destination, context.replacements);
       }
     }
     return { prefix, mismatches };
@@ -221,9 +241,9 @@ async function runStep(context: Context, index: number, step: Step, options: Run
     const expectedPath = join(context.target, 'files', storedName(output.path));
     const actualPath = join(context.workspace, output.path);
     if (output.kind === 'tree') {
-      mismatches.push(...(await compareTree(output.path, expectedPath, actualPath)));
+      mismatches.push(...(await compareTree(output.path, expectedPath, actualPath, context.replacements)));
     } else {
-      const mismatch = await compareFile(output.path, output.kind, expectedPath, actualPath);
+      const mismatch = await compareFile(output.path, output.kind, expectedPath, actualPath, context.replacements);
       if (mismatch !== undefined) {
         mismatches.push(mismatch);
       }
@@ -270,6 +290,8 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
       [REPO_ROOT, '<REPO>'],
       // La copia de seguridad de `cv import --replace` lleva la fecha y hora.
       [/\.\d{8}-\d{6}\.bak/g, '.<STAMP>.bak'],
+      // `.origin.json` y `cv theme verify` llevan la fecha de instalación (T-8.3).
+      [/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '<ISO>'],
       ...(typst === undefined ? [] : [[typst, '<TYPST>'] as Replacement]),
     ];
     const target = join(EXPECTED_DIRECTORY, scenario.id);
@@ -333,7 +355,7 @@ export async function checkBenchConsistency(): Promise<ScenarioResult> {
   try {
     const copy = join(root, 'ws');
     await cp(BENCH_WORKSPACE, copy, { recursive: true });
-    const produced = [...(await generateOfferPdfs(copy)), ...(await generateReviews(copy))];
+    const produced = [...(await generateOfferPdfs(copy)), ...(await generateReviews(copy)), ...(await generateThemeArchives(copy))];
     const mismatches: Mismatch[] = [];
     for (const path of produced) {
       const file = relative(copy, path);

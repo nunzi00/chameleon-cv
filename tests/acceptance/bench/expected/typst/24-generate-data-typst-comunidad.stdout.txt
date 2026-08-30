@@ -1,0 +1,1 @@
+CV escrito en <WS>/output/cv-data.typst-comunidad.pdf

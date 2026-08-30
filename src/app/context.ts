@@ -11,7 +11,7 @@ import type { FileSystem, SourceParser } from '../parsers';
 import type { PdfExtractionResult } from '../pdf';
 import type { TypstRenderOptions, TypstRenderResult } from '../renderers/typst';
 import type { AssetStore } from '../shared/assets';
-import type { InstallOptions, InstallResult, Reporter, StatusOptions, TypstStatus } from '../typst';
+import type { Fetcher, InstallOptions, InstallResult, Reporter, StatusOptions, TypstStatus } from '../typst';
 
 export type TypstRenderer = (profile: MasterProfile, options: TypstRenderOptions) => Promise<TypstRenderResult>;
 export type TypstInstaller = (options: InstallOptions, report: Reporter) => Promise<InstallResult>;
@@ -40,6 +40,8 @@ export interface AppContext {
   readonly llmCache: LlmCacheStore;
   /** Reloj (por defecto, el del sistema): fechas de los ficheros de revisión. */
   readonly now?: (() => Date) | undefined;
+  /** Descarga de archivos de temas (T-8.3); inyectable en las pruebas. Por defecto, `fetch` de Node. */
+  readonly fetcher?: Fetcher | undefined;
   /** Assets distribuidos (temas, fuentes, plantilla, dataset de ejemplo, prompts, package.json): repositorio o binario (T-6.2). */
   readonly assets: AssetStore;
 }

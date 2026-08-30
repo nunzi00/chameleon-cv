@@ -1,0 +1,1 @@
+El archivo «<WS>/themes/escapa.zip» no es un tema instalable: La entrada «../escapa.typ» sale del tema («..»): no se admite

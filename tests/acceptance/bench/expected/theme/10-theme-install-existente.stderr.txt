@@ -1,0 +1,1 @@
+Ya existe <WS>/themes/comunidad: usa --replace para apartarlo a <WS>/themes/comunidad.<marca>.bak/ o --as <otro-nombre> (nunca se sobrescribe un tema)

@@ -1,0 +1,7 @@
+Tema «otra» instalado en <WS>/themes/otra desde el archivo <WS>/themes/comunidad.zip
+  LICENSE              4 bytes  adc37366f403835c1470ab2df93d3837d4719372fc1ef8593d922e06f033f8b2
+  README.md           89 bytes  baead9809a94dde013c6f7db768d15238313271a2d4392e8019c889da165a383
+  template.typ      7941 bytes  76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647
+  theme.toml         979 bytes  b2dd149e8b669428e92838dcf01ec807d06e067b0bdfab2a6dd858456f6be3cc
+Huella del archivo (SHA-256): bfbc3701c2d7c867d37baf107197d39efdb0845e7211564fdd9820244fe7092e · coincide con --sha256
+Origen fijado en <WS>/themes/otra/.origin.json. Úsalo con «cv generate-cv --format pdf --engine typst --theme otra» y compruébalo con «cv theme verify otra»; el tema se ejecuta contenido, como todos.

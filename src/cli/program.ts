@@ -13,7 +13,7 @@ import { runApplyCommand, type ApplyOptions } from './commands/apply';
 import { runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
-import { runThemeCreate, runThemeList, runThemePath, type ThemeCreateOptions } from './commands/theme';
+import { runThemeCreate, runThemeInstall, runThemeList, runThemePath, runThemeVerify, type ThemeCreateOptions, type ThemeInstallCliOptions, type ThemeListOptions } from './commands/theme';
 import { DEFAULT_THEME } from '../themes';
 import { runTypstInstall, runTypstStatus, type TypstInstallOptions } from './commands/typst';
 import { runValidate, type ValidateOptions } from './commands/validate';
@@ -243,9 +243,10 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
   const theme = program.command('theme').description('temas de diseño de Typst: los distribuidos y los de themes/<nombre>/ de tu proyecto (T-5.1–T-5.3)');
   theme
     .command('list')
-    .description('lista los temas disponibles: nombre, origen (distribuido o del proyecto), descripción y cuál es el tema por defecto')
-    .action(async () => {
-      onExit(await runThemeList(context));
+    .description('lista los temas disponibles: nombre, origen (distribuido, del proyecto o instalado), descripción, autoría y cuál es el tema por defecto')
+    .option('--verify', 'recalcula las huellas de los temas instalados y marca los modificados', false)
+    .action(async (options: ThemeListOptions) => {
+      onExit(await runThemeList(context, options));
     });
   theme
     .command('path <name>')
@@ -259,6 +260,25 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--from <theme>', 'tema del que partir', DEFAULT_THEME)
     .action(async (name: string, options: ThemeCreateOptions) => {
       onExit(await runThemeCreate(context, name, options));
+    });
+  theme
+    .command('install <source>')
+    .description(
+      'instala en themes/<nombre>/ un tema de la comunidad desde una URL https a un .zip o .tar.gz (pide consentimiento antes de descargar) o desde un archivo o directorio local; lee el archivo en el propio proceso con una política cerrada, valida theme.toml, fija el origen y las huellas en .origin.json y nunca sobrescribe (T-8.3)',
+    )
+    .option('--as <name>', 'nombre del tema en el proyecto (por defecto, theme.name o el directorio raíz del archivo)')
+    .option('--sha256 <hash>', 'huella SHA-256 del archivo publicada por su autor; si no coincide, no se instala')
+    .option('--dry-run', 'muestra el plan (entradas, tamaños, huellas y nombre) sin escribir nada', false)
+    .option('--replace', 'aparta un tema existente con ese nombre a themes/<nombre>.<marca>.bak/ antes de instalar', false)
+    .option('--yes', 'acepta por adelantado el aviso de descarga', false)
+    .action(async (source: string, options: ThemeInstallCliOptions) => {
+      onExit(await runThemeInstall(context, source, options));
+    });
+  theme
+    .command('verify [name]')
+    .description('recalcula las huellas de un tema instalado (o de todos los del proyecto) y las compara con su .origin.json: intacto, modificado localmente o sin origen; código 1 si hay diferencias')
+    .action(async (name: string | undefined) => {
+      onExit(await runThemeVerify(context, name));
     });
 
   program

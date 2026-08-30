@@ -14,11 +14,14 @@ import { buildSourceIndex, type SourceIndex } from '../../../src/cli';
 import { fingerprint, formatReview, type ReviewHeader, type ReviewItem, type ReviewSource } from '../../../src/llm';
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../../src/parsers';
 import { FONTS_DIRECTORY } from '../../../src/renderers/pdf';
+import { buildTarGz, buildZip } from '../../helpers/archives';
 
 export const BENCH_WORKSPACE = resolve(__dirname, 'workspace');
 /** La misma fecha que `updatedAt` en profile.md: todo artefacto del banco lleva esta fecha. */
 export const BENCH_DATE = new Date(Date.UTC(2026, 7, 15, 9, 0, 0));
 export const OFFER_PDFS = ['nexo-senior-backend', 'orbita-platform-engineer'] as const;
+/** Archivos de temas para `cv theme install` (T-8.3): uno válido en zip y en tar.gz (otra huella) y tres que deben fallar. */
+export const THEME_ARCHIVES = ['comunidad.zip', 'comunidad-v2.tar.gz', 'escapa.zip', 'sin-plantilla.zip', 'nombre-malo.zip'] as const;
 
 /** PDF de una oferta a partir de su texto: A4, Source Sans 3 embebida, fechas fijas → bytes reproducibles. */
 export function renderOfferPdf(text: string, title: string): Promise<Buffer> {
@@ -153,10 +156,69 @@ export async function generateReviews(workspace: string = BENCH_WORKSPACE): Prom
   return [improvePath, summarizePath];
 }
 
+/** Hora DOS (9:00) y fecha DOS (15-08-2026) de BENCH_DATE para las entradas del zip. */
+const DOS_TIME = 0x4800;
+const DOS_DATE = 0x5d0f;
+
+/** El tema «comunidad» del banco: el tema del proyecto (themes/bench) con nombre, autoría, descripción y acento propios. */
+function communityConfig(base: string, description: string, accent: string): string {
+  const body = base.replace(/^(#.*\n)+\n/, '');
+  return [
+    '# Tema «comunidad» del banco de pruebas (T-8.3): generado por tests/acceptance/bench/generate.ts a partir de themes/bench.',
+    '',
+    body
+      .replace(/^name = "bench"$/m, 'name = "comunidad"\nauthor = "Banco de pruebas de Chameleon CV"\nlicense = "MIT"\nhomepage = "https://example.org/temas/comunidad"')
+      .replace(/^description = .*$/m, `description = "${description}"`)
+      .replace(/^accent = "[^"]*"/m, `accent = "${accent}"`),
+  ].join('\n');
+}
+
+/** Archivos deterministas (zip almacenado con fechas fijas; tar.gz con bloques deflate almacenados): mismos bytes en cualquier máquina. */
+export async function generateThemeArchives(workspace: string = BENCH_WORKSPACE): Promise<string[]> {
+  const directory = join(workspace, 'themes');
+  const base = await readFile(join(directory, 'bench', 'theme.toml'), 'utf8');
+  const template = await readFile(join(directory, 'bench', 'template.typ'), 'utf8');
+  const v1 = communityConfig(base, 'Tema de la comunidad del banco de pruebas: bench con acento granate', '#8a1c1c');
+  const v2 = communityConfig(base, 'Tema de la comunidad del banco de pruebas, segunda versión: bench con acento azul', '#1c4f8a');
+  const readme = '# Tema «comunidad»\n\nTema del banco de pruebas de Chameleon CV para `cv theme install`.\n';
+  const mtime = Math.floor(BENCH_DATE.getTime() / 1000);
+  const archives: Record<(typeof THEME_ARCHIVES)[number], Buffer> = {
+    'comunidad.zip': buildZip(
+      [
+        { path: 'comunidad/' },
+        { path: 'comunidad/theme.toml', data: v1 },
+        { path: 'comunidad/template.typ', data: template },
+        { path: 'comunidad/README.md', data: readme },
+        { path: 'comunidad/LICENSE', data: 'MIT\n' },
+      ],
+      { time: DOS_TIME, date: DOS_DATE },
+    ),
+    'comunidad-v2.tar.gz': buildTarGz(
+      [
+        { path: 'comunidad/', type: '5' },
+        { path: 'comunidad/theme.toml', data: v2 },
+        { path: 'comunidad/template.typ', data: template },
+        { path: 'comunidad/README.md', data: readme },
+      ],
+      { mtime },
+    ),
+    'escapa.zip': buildZip([{ path: 'comunidad/theme.toml', data: v1 }, { path: 'comunidad/template.typ', data: template }, { path: '../escapa.typ', data: '#let cv(d, theme) = []' }], { time: DOS_TIME, date: DOS_DATE }),
+    'sin-plantilla.zip': buildZip([{ path: 'comunidad/theme.toml', data: v1 }], { time: DOS_TIME, date: DOS_DATE }),
+    'nombre-malo.zip': buildZip([{ path: 'Nombre Malo/theme.toml', data: v1 }, { path: 'Nombre Malo/template.typ', data: template }], { time: DOS_TIME, date: DOS_DATE }),
+  };
+  const written: string[] = [];
+  for (const name of THEME_ARCHIVES) {
+    const path = join(directory, name);
+    await writeFile(path, archives[name], { mode: 0o644 });
+    written.push(path);
+  }
+  return written;
+}
+
 if (require.main === module) {
-  Promise.all([generateOfferPdfs(), generateReviews()])
-    .then(([pdfs, reviews]) => {
-      for (const path of [...pdfs, ...reviews]) {
+  Promise.all([generateOfferPdfs(), generateReviews(), generateThemeArchives()])
+    .then(([pdfs, reviews, archives]) => {
+      for (const path of [...pdfs, ...reviews, ...archives]) {
         console.log(`generado ${path}`);
       }
     })

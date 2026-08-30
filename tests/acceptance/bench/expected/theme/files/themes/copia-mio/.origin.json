@@ -1,0 +1,11 @@
+{
+  "source": "<WS>/themes/mio",
+  "kind": "directory",
+  "archiveSha256": "50e0f015f32e42c55ec24c75d031ad916fd1ad84d4d5c49aa4bc9676bd7e2a7e",
+  "files": {
+    "template.typ": "76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647",
+    "theme.toml": "8a8d07b756d8ab8125dab73cc563aad16545b324cb3dc155b55a0177603c6edf"
+  },
+  "installedAt": "<ISO>",
+  "tool": "chameleon-cv 1.5.0"
+}
