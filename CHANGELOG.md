@@ -4,6 +4,22 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-30
+
+Portabilidad del perfil (T-8.1): el perfil canónico entra y sale del producto, y la importación regenera las fuentes Markdown/CSV —la inversa de `cv build`— comprobándose a sí misma antes de escribir.
+
+### Añadido
+
+- `cv export [-d <dir>] [-o <fichero>]`: el perfil canónico (el mismo JSON que `data/dist/profile.json`) desde las fuentes, por la salida estándar o a un fichero `0600`, sin necesitar `cv build`.
+- `cv import <fichero|-> [-d <dir>] [--replace] [--dry-run]`: regenera las fuentes a partir de un perfil canónico con las convenciones de `cv init` (ids conservados, `id:` solo cuando no se deriva del nombre, colisiones con sufijo), valida el perfil con todas las líneas, rechaza lo que las fuentes no pueden representar y **vuelve a leer lo generado con el parser real antes de escribir**: a la primera diferencia no escribe nada. Solo sobre un directorio vacío o, con `--replace`, tras apartar el existente entero como copia `<dir>.<fecha-hora>.bak`; avisa cuando el orden de las entidades cambia.
+- API: `GET /api/v1/export` y `POST /api/v1/import` (`dryRun` por defecto; 409 con el destino ocupado; 422 con el perfil inválido), en la referencia generada.
+- Interfaz web: en Estado, **Exportar perfil (JSON)** (descarga) e **Importar perfil…** (plan con auto-chequeo, casilla de sustitución con copia y confirmación).
+- Guía «Exportar e importar el perfil», sección «Fuentes regeneradas por `cv import`» en el formato del dataset, ejemplos de `export` e `import` en la referencia; el arnés determinista gana el escenario `portability` con la ida y vuelta en vivo (`export` tras `import` byte a byte idéntico).
+
+### Cambiado
+
+- Clarificación del canon C9: `cv import` es la segunda orden que escribe fuentes, bajo el mismo régimen que `improve apply` (acción explícita del usuario, sin IA, con copia).
+
 ## [1.3.0] - 2026-08-30
 
 La interfaz web completa (T-7.5b): el co-piloto de IA y las revisiones también en el navegador, con las mismas garantías que la CLI —consentimiento de coste antes de enviar nada a un proveedor remoto, marcas que solo cambian `[ ]`↔`[x]`, escritura en las fuentes solo tras confirmar y con copias `.bak`—.
