@@ -1,0 +1,4 @@
+Fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
+openai: ninguna
+anthropic: ninguna
+groq: ninguna

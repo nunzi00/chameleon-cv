@@ -1,0 +1,1 @@
+Clave de «groq» eliminada de <TMP>/home/.config/chameleon-cv/keys.json

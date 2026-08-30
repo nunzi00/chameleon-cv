@@ -1,6 +1,6 @@
-Proveedor local: ollama (http://127.0.0.1:9; por defecto) · modelo: qwen2.5:7b-instruct (por defecto)
-Estado: no disponible · Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version)
-  Arranca Ollama en http://127.0.0.1:9 o configura CHAMELEON_LLM_PROVIDER/CHAMELEON_LLM_BASE_URL/CHAMELEON_LLM_MODEL
+Proveedor local: openai-compatible (http://127.0.0.1:9; orden) · modelo: de-la-orden (orden)
+Estado: no disponible · El servidor compatible con OpenAI no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/v1/models)
+  Arranca servidor compatible con OpenAI en http://127.0.0.1:9 o configura CHAMELEON_LLM_PROVIDER/CHAMELEON_LLM_BASE_URL/CHAMELEON_LLM_MODEL
 Configuración del proyecto: <WS>/cv.toml (sin tabla [llm])
 Proveedores remotos (solo con --provider explícito):
   openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini

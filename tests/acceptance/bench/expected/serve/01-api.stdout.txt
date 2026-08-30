@@ -337,6 +337,257 @@
   }
 }
 
+### GET /config/llm → 200
+{
+  "file": {
+    "path": "<WS>/cv.toml",
+    "present": true,
+    "sha256": "61724d1017fa00d7f26722a45a422b1bacea48d002d5abbdb756a5975fc567dc"
+  },
+  "llm": {
+    "allowedHosts": [
+      "api.openai.com",
+      "api.anthropic.com",
+      "api.groq.com"
+    ],
+    "config": {
+      "baseUrl": "http://127.0.0.1:9",
+      "model": "qwen2.5:7b-instruct",
+      "provider": "ollama",
+      "sources": {
+        "baseUrl": "env",
+        "model": "default",
+        "provider": "default"
+      }
+    },
+    "health": {
+      "code": "unreachable",
+      "message": "Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version)",
+      "ok": false
+    },
+    "keys": {
+      "anthropic": "none",
+      "groq": "none",
+      "openai": "none"
+    },
+    "keysFile": "<TMP>/home/.config/chameleon-cv/keys.json",
+    "providers": [
+      {
+        "baseUrl": "https://api.openai.com",
+        "c7": {
+          "quote": "As of March 1, 2023, data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us).",
+          "sourceUrl": "https://developers.openai.com/api/docs/guides/your-data",
+          "verifiedAt": "2026-08-30"
+        },
+        "defaultModel": "gpt-4o-mini",
+        "host": "api.openai.com",
+        "id": "openai",
+        "keyPresence": "none",
+        "plan": "paid",
+        "rateLimitsUrl": "https://developers.openai.com/api/docs/guides/rate-limits"
+      },
+      {
+        "baseUrl": "https://api.anthropic.com",
+        "c7": {
+          "quote": "Anthropic may not train models on Customer Content from Services.",
+          "sourceUrl": "https://www.anthropic.com/legal/commercial-terms",
+          "verifiedAt": "2026-08-30"
+        },
+        "defaultModel": "claude-sonnet-4-5",
+        "host": "api.anthropic.com",
+        "id": "anthropic",
+        "keyPresence": "none",
+        "plan": "paid",
+        "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
+      },
+      {
+        "baseUrl": "https://api.groq.com/openai",
+        "c7": {
+          "quote": "Groq is not permitted to use Inputs or Outputs for training or fine-tuning any AI Model Services or other models, unless explicitly granted permission or instructed by Customer.",
+          "sourceUrl": "https://console.groq.com/docs/legal/services-agreement",
+          "verifiedAt": "2026-08-30"
+        },
+        "defaultModel": "openai/gpt-oss-120b",
+        "host": "api.groq.com",
+        "id": "groq",
+        "keyPresence": "none",
+        "plan": "free",
+        "quota": {
+          "note": "plan Free, por organización, para openai/gpt-oss-120b (otros modelos: 200 000–2 000 000 tokens/día)",
+          "requestsPerDay": 1000,
+          "requestsPerMinute": 30,
+          "sourceUrl": "https://console.groq.com/docs/rate-limits",
+          "tokensPerDay": 200000,
+          "tokensPerMinute": 8000,
+          "verifiedAt": "2026-08-30"
+        },
+        "rateLimitsUrl": "https://console.groq.com/docs/rate-limits"
+      }
+    ],
+    "settings": {
+      "configured": false,
+      "path": "<WS>/cv.toml",
+      "present": true
+    },
+    "usable": false
+  },
+  "remote": {
+    "allowed": false
+  }
+}
+
+### PUT /config/llm → 428
+{
+  "error": {
+    "code": "precondition-required",
+    "message": "Falta la cabecera If-Match: la huella actual de cv.toml, o «*» para crearlo"
+  }
+}
+
+### PUT /config/llm → 400
+{
+  "error": {
+    "code": "bad-request",
+    "issues": [
+      {
+        "message": "provider debe ser un proveedor local (ollama, openai-compatible): los remotos exigen --provider explícito en cada orden",
+        "path": "provider"
+      }
+    ],
+    "message": "El cuerpo no cumple el esquema"
+  }
+}
+
+### PUT /config/llm → 200
+{
+  "llm": {
+    "model": "qwen",
+    "models": {
+      "groq": "openai/gpt-oss-20b"
+    },
+    "provider": "openai-compatible"
+  },
+  "path": "<WS>/cv.toml",
+  "sha256": "a2d29efdfef4c6346b739155e8734646fcbfe131412a0b10ae3aa39a89150dea"
+}
+
+### GET /config/llm → 200
+{
+  "file": {
+    "path": "<WS>/cv.toml",
+    "present": true,
+    "sha256": "a2d29efdfef4c6346b739155e8734646fcbfe131412a0b10ae3aa39a89150dea"
+  },
+  "llm": {
+    "allowedHosts": [
+      "api.openai.com",
+      "api.anthropic.com",
+      "api.groq.com"
+    ],
+    "config": {
+      "baseUrl": "http://127.0.0.1:9",
+      "model": "qwen",
+      "provider": "openai-compatible",
+      "sources": {
+        "baseUrl": "env",
+        "model": "file",
+        "provider": "file"
+      }
+    },
+    "health": {
+      "code": "unreachable",
+      "message": "El servidor compatible con OpenAI no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/v1/models)",
+      "ok": false
+    },
+    "keys": {
+      "anthropic": "none",
+      "groq": "none",
+      "openai": "none"
+    },
+    "keysFile": "<TMP>/home/.config/chameleon-cv/keys.json",
+    "providers": [
+      {
+        "baseUrl": "https://api.openai.com",
+        "c7": {
+          "quote": "As of March 1, 2023, data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us).",
+          "sourceUrl": "https://developers.openai.com/api/docs/guides/your-data",
+          "verifiedAt": "2026-08-30"
+        },
+        "defaultModel": "gpt-4o-mini",
+        "host": "api.openai.com",
+        "id": "openai",
+        "keyPresence": "none",
+        "plan": "paid",
+        "rateLimitsUrl": "https://developers.openai.com/api/docs/guides/rate-limits"
+      },
+      {
+        "baseUrl": "https://api.anthropic.com",
+        "c7": {
+          "quote": "Anthropic may not train models on Customer Content from Services.",
+          "sourceUrl": "https://www.anthropic.com/legal/commercial-terms",
+          "verifiedAt": "2026-08-30"
+        },
+        "defaultModel": "claude-sonnet-4-5",
+        "host": "api.anthropic.com",
+        "id": "anthropic",
+        "keyPresence": "none",
+        "plan": "paid",
+        "rateLimitsUrl": "https://platform.claude.com/docs/en/api/rate-limits"
+      },
+      {
+        "baseUrl": "https://api.groq.com/openai",
+        "c7": {
+          "quote": "Groq is not permitted to use Inputs or Outputs for training or fine-tuning any AI Model Services or other models, unless explicitly granted permission or instructed by Customer.",
+          "sourceUrl": "https://console.groq.com/docs/legal/services-agreement",
+          "verifiedAt": "2026-08-30"
+        },
+        "defaultModel": "openai/gpt-oss-120b",
+        "host": "api.groq.com",
+        "id": "groq",
+        "keyPresence": "none",
+        "plan": "free",
+        "quota": {
+          "note": "plan Free, por organización, para openai/gpt-oss-120b (otros modelos: 200 000–2 000 000 tokens/día)",
+          "requestsPerDay": 1000,
+          "requestsPerMinute": 30,
+          "sourceUrl": "https://console.groq.com/docs/rate-limits",
+          "tokensPerDay": 200000,
+          "tokensPerMinute": 8000,
+          "verifiedAt": "2026-08-30"
+        },
+        "rateLimitsUrl": "https://console.groq.com/docs/rate-limits"
+      }
+    ],
+    "settings": {
+      "configured": true,
+      "path": "<WS>/cv.toml",
+      "present": true
+    },
+    "usable": false
+  },
+  "remote": {
+    "allowed": false
+  }
+}
+
+### POST /config/llm/check → 200
+{
+  "kind": "local",
+  "message": "El servidor compatible con OpenAI no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/v1/models)",
+  "modelAvailable": false,
+  "models": [],
+  "ok": false,
+  "provider": "openai-compatible"
+}
+
+### POST /config/llm/check → 403
+{
+  "error": {
+    "code": "remote-disabled",
+    "message": "Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo"
+  }
+}
+
 ### POST /generate → 200
 {
   "output": {
@@ -4035,9 +4286,9 @@
 {
   "error": {
     "code": "environment",
-    "message": "Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version); comprueba el proveedor con «cv llm status»",
+    "message": "El servidor compatible con OpenAI no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/v1/models); comprueba el proveedor con «cv llm status»",
     "sending": {
-      "destination": "ollama (http://127.0.0.1:9, local; modelo qwen2.5:7b-instruct)",
+      "destination": "openai-compatible (http://127.0.0.1:9, local; modelo qwen)",
       "ids": [
         "exp-delta-consultores-1",
         "exp-delta-consultores-2",
@@ -4071,9 +4322,9 @@
 {
   "error": {
     "code": "environment",
-    "message": "Ollama no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/api/version); comprueba el proveedor con «cv llm status»",
+    "message": "El servidor compatible con OpenAI no responde en http://127.0.0.1:9: fetch failed (GET http://127.0.0.1:9/v1/models); comprueba el proveedor con «cv llm status»",
     "sending": {
-      "destination": "ollama (http://127.0.0.1:9, local; modelo qwen2.5:7b-instruct)",
+      "destination": "openai-compatible (http://127.0.0.1:9, local; modelo qwen)",
       "items": 1,
       "redactCompanies": false,
       "scope": "diccionario cerrado de 22 etiquetas de 4 especialidades",

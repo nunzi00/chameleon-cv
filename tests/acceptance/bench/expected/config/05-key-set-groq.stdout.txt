@@ -1,0 +1,1 @@
+Clave de «groq» guardada en <TMP>/home/.config/chameleon-cv/keys.json (permisos 0600)
