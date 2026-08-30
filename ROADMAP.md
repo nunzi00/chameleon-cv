@@ -177,6 +177,8 @@ Visión posterior confirmada por el Director el 2026-08-29, **sin planificar tod
 
 ## Hito 8 — Ecosistema abierto y co-piloto avanzado (plan post-Hito 7, propuesto por el Director el 2026-08-30)
 
+> Releases del hito: **v1.7.0** (2026-08-30: temas T-8.7, selección explícita, historial de ofertas, modelos por acción) y **v1.8.0** (2026-08-30, publicada y verificada externamente —tar.gz sha256 `9e461c01…`, imágenes `f4de4e3b…`/`213ead68…` multi-arch con cosign, arnés 186/186 contra el binario descargado—: rediseño de la GUI S1–S3, T-8.8, T-8.9, T-8.10, qwen3:8b por defecto (T-8.11), 27 temas (T-8.12) y catálogo de modelos locales (T-8.13)). Siguiente: T-8.6 S4 (portal); T-8.5 en 1.9.0; T-8.4b supeditada a la orden del Director y al corpus.
+
 Se inicia al cerrar el Hito 7; cada tarea tendrá su especificación técnica (PROPUESTA → aprobación) antes de implementarse, como hasta ahora. Observaciones del Director Técnico registradas al validar el plan:
 
 -   [x] **T-8.1: [DATOS] Portabilidad fundacional** (**entregada 2026-08-30**, aprobada sprint a sprint; **v1.4.0 publicada el 2026-08-30**, run 33284273921, verificación externa en `docs/portability.md` §11): `cv export` del perfil canónico (`profile.json`, ya existe como artefacto) y `cv import` desde ese formato estructurado. *Nota*: la fuente de verdad son las fuentes Markdown/CSV (C9); importar un `profile.json` exige regenerar fuentes a partir del perfil (la transformación inversa a `cv build`), no copiar el artefacto: es la parte con diseño real.
