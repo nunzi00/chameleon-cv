@@ -9,7 +9,7 @@ function status(overrides: Partial<StatusResponse> = {}): StatusResponse {
     workspace: '/home/ada/cv',
     artifact: { status: 'fresh', detail: undefined, specialties: ['backend', 'nube'] },
     typst: { required: '0.15.1', candidates: [], selected: undefined, usable: true },
-    llm: { config: undefined, configError: undefined, health: undefined, keys: {} as StatusResponse['llm']['keys'], keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined } },
+    llm: { config: undefined, configError: undefined, health: undefined, keys: {} as StatusResponse['llm']['keys'], keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined }, providers: [] },
     themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] },
     ...overrides,
   };
@@ -25,7 +25,7 @@ describe('describeStatus', () => {
     expect(describeStatus(status({ artifact: { status: 'unknown', detail: 'EACCES', specialties: [] } })).artifact.label).toBe('estado desconocido');
     expect(describeStatus(status({ typst: { required: '0.15.1', candidates: [], selected: undefined, usable: false } })).typst).toMatchObject({ tone: 'warn', label: 'no disponible (se requiere 0.15.1; cv typst install)' });
     const base = status();
-    expect(describeStatus(status({ llm: { ...base.llm, usable: true, settings: { path: undefined, present: false, configured: false, error: undefined } } })).llm).toMatchObject({ tone: 'ok', label: 'proveedor local listo' });
+    expect(describeStatus(status({ llm: { ...base.llm, usable: true, settings: { path: undefined, present: false, configured: false, error: undefined }, providers: [] } })).llm).toMatchObject({ tone: 'ok', label: 'proveedor local listo' });
     expect(describeStatus(status({ llm: { ...base.llm, configError: 'CHAMELEON_LLM_PROVIDER inválido' } })).llm.detail).toBe('CHAMELEON_LLM_PROVIDER inválido');
     expect(describeStatus(status({ llm: { ...base.llm, health: { ok: false, code: 'unreachable', message: 'Ollama no responde' } } })).llm.detail).toBe('Ollama no responde');
     expect(describeStatus(status({ llm: { ...base.llm, health: { ok: true, version: undefined, models: ['m'], modelAvailable: true } } })).llm.detail).toBeUndefined();

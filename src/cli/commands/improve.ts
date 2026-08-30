@@ -8,7 +8,7 @@ import { DEFAULT_MAX_ITEMS, describeProvider, executeImprove, improveEstimate, i
 import { IMPROVE_LIMITS, IMPROVE_PROMPT_VERSION, loadPrompt } from '../../llm';
 import type { CliContext } from '../context';
 import { offerInput } from '../offer';
-import { EXIT_FAILURE, EXIT_OK, pluralize, reportError, reportWarnings } from '../output';
+import { EXIT_FAILURE, EXIT_OK, pluralize, reportError, reportQuota, reportWarnings } from '../output';
 import { ensureProviderReady } from './remote';
 import type { SelectionOptions } from './selection';
 
@@ -112,6 +112,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
   context.stdout(
     `Revisión escrita en ${outcome.outputPath}: ${pluralize(stats.items, 'logro', 'logros')} · ${pluralize(stats.proposals, 'propuesta', 'propuestas')} · ${stats.accepted} aceptadas · ${stats.rejected} rechazadas (C2) · ${stats.failed} fallidos · ${stats.fromCache} desde caché\n`,
   );
+  reportQuota(context, provider);
   return stats.failed === stats.items ? EXIT_FAILURE : EXIT_OK;
 }
 

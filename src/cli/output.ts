@@ -3,6 +3,7 @@ import type { AppWarning } from '../app/freshness';
 import type { CliContext } from './context';
 
 export { formatDatasetError, pluralize, profileSummary } from '../app/text';
+import { defaultQuotaLedger, describeQuotaSnapshot, isRemoteProviderId, type LlmProvider } from '../llm';
 
 /** Códigos de salida de `cv`. */
 export const EXIT_OK = 0;
@@ -34,5 +35,16 @@ export function formatWarning(warning: AppWarning): string {
 export function reportWarnings(context: Pick<CliContext, 'stderr'>, warnings: readonly AppWarning[]): void {
   for (const warning of warnings) {
     context.stderr(formatWarning(warning));
+  }
+}
+
+/** Tras un trabajo con un remoto: la cuota que el proveedor devolvió en sus cabeceras (T-8.2); nunca una llamada extra. */
+export function reportQuota(context: Pick<CliContext, 'stderr'>, provider: Pick<LlmProvider, 'id' | 'kind'>): void {
+  if (provider.kind !== 'remote' || !isRemoteProviderId(provider.id)) {
+    return;
+  }
+  const snapshot = defaultQuotaLedger.get(provider.id);
+  if (snapshot !== undefined) {
+    context.stderr(`Cuota según ${provider.id}: ${describeQuotaSnapshot(snapshot)}\n`);
   }
 }

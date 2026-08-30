@@ -72,7 +72,7 @@ describe('cv llm key', () => {
 
     const list = harness();
     expect(await runCli(['llm', 'key', 'list'], list.context)).toBe(EXIT_OK);
-    expect(list.stdout()).toBe(`Fichero de claves: ${keysFile()}\nopenai: fichero de claves\nanthropic: fichero de claves\n`);
+    expect(list.stdout()).toBe(`Fichero de claves: ${keysFile()}\nopenai: fichero de claves\nanthropic: fichero de claves\ngroq: ninguna\n`);
 
     const remove = harness();
     expect(await runCli(['llm', 'key', 'remove', 'openai'], remove.context)).toBe(EXIT_OK);
@@ -85,7 +85,7 @@ describe('cv llm key', () => {
   it('errores: proveedor desconocido (1), clave vacía (2), fichero inseguro (2) y list con permisos abiertos', async () => {
     const unknown = harness('sk');
     expect(await runCli(['llm', 'key', 'set', 'gemini'], unknown.context)).toBe(EXIT_DATA_ERROR);
-    expect(unknown.stderr()).toBe('«gemini» no es un proveedor remoto conocido (openai, anthropic)\n');
+    expect(unknown.stderr()).toBe('«gemini» no es un proveedor remoto conocido (openai, anthropic, groq)\n');
     expect(await runCli(['llm', 'key', 'remove', 'gemini'], unknown.context)).toBe(EXIT_DATA_ERROR);
     const empty = harness('   \n');
     expect(await runCli(['llm', 'key', 'set', 'openai'], empty.context)).toBe(EXIT_FAILURE);

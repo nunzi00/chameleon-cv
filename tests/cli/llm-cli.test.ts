@@ -40,29 +40,29 @@ const CONFIG = { provider: 'ollama' as const, baseUrl: 'http://127.0.0.1:11434',
 
 describe('cv llm status', () => {
   it('imprime el estado y sale con 0 si el proveedor local es utilizable, con 2 si no', async () => {
-    const usable = harness({ config: CONFIG, configError: undefined, health: { ok: true, version: '0.33.1', models: ['qwen2.5:7b-instruct'], modelAvailable: true }, keys: { openai: 'none', anthropic: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, usable: true });
+    const usable = harness({ config: CONFIG, configError: undefined, health: { ok: true, version: '0.33.1', models: ['qwen2.5:7b-instruct'], modelAvailable: true }, keys: { openai: 'none', anthropic: 'none', groq: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, providers: [], allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, usable: true });
     expect(await runCli(['llm', 'status'], usable.context)).toBe(EXIT_OK);
     expect(usable.stdout()).toContain('Estado: alcanzable · versión 0.33.1 · 1 modelo (qwen2.5:7b-instruct) · el modelo configurado está disponible\n');
 
-    const down = harness({ config: CONFIG, configError: undefined, health: { ok: false, code: 'unreachable', message: 'ECONNREFUSED' }, keys: { openai: 'none', anthropic: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, usable: false });
+    const down = harness({ config: CONFIG, configError: undefined, health: { ok: false, code: 'unreachable', message: 'ECONNREFUSED' }, keys: { openai: 'none', anthropic: 'none', groq: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, providers: [], allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, usable: false });
     expect(await runCli(['llm', 'status'], down.context)).toBe(EXIT_FAILURE);
     expect(down.stdout()).toContain('Estado: no disponible · ECONNREFUSED');
   });
 
   it('la ayuda del grupo llm deja claro que nunca envía datos sin una orden explícita', async () => {
-    const h = harness({ config: CONFIG, configError: undefined, health: undefined, keys: { openai: 'none', anthropic: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, usable: false });
+    const h = harness({ config: CONFIG, configError: undefined, health: undefined, keys: { openai: 'none', anthropic: 'none', groq: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, providers: [], allowedHosts: ['api.openai.com', 'api.anthropic.com'], remote: undefined, usable: false });
     await runCli(['llm', '--help'], h.context);
     expect(h.stdout().replace(/\s+/g, ' ')).toContain('nunca envía datos sin una orden explícita');
   });
 });
 
 describe('cv llm status --provider <remoto>', () => {
-  const base = { config: CONFIG, configError: undefined, health: { ok: true as const, version: undefined, models: ['qwen2.5:7b-instruct'], modelAvailable: true }, keys: { openai: 'env' as const, anthropic: 'none' as const }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, allowedHosts: ['api.openai.com', 'api.anthropic.com'], usable: true };
+  const base = { config: CONFIG, configError: undefined, health: { ok: true as const, version: undefined, models: ['qwen2.5:7b-instruct'], modelAvailable: true }, keys: { openai: 'env' as const, anthropic: 'none' as const, groq: 'none' as const }, keysFile: '/h/.config/chameleon-cv/keys.json', settings: NO_SETTINGS, providers: [], allowedHosts: ['api.openai.com', 'api.anthropic.com'], usable: true };
 
   it('comprueba el remoto pedido y sale con 0 si responde con el modelo, con 2 si no', async () => {
     const ok = harness({ ...base, remote: { id: 'openai', baseUrl: 'https://api.openai.com', model: 'gpt-4o-mini', keySource: 'env', health: { ok: true, version: undefined, models: ['gpt-4o-mini', 'gpt-4o'], modelAvailable: true } } });
     expect(await runCli(['llm', 'status', '--provider', 'openai'], ok.context)).toBe(EXIT_OK);
-    expect(ok.stdout()).toContain('Proveedores remotos (solo con --provider explícito): openai → clave definida en CHAMELEON_OPENAI_API_KEY · anthropic → clave ninguna · fichero de claves: /h/.config/chameleon-cv/keys.json\n');
+    expect(ok.stdout()).toContain('Proveedores remotos (solo con --provider explícito):\nFichero de claves: /h/.config/chameleon-cv/keys.json\n');
     expect(ok.stdout()).toContain('Lista blanca de hosts: api.openai.com, api.anthropic.com\n');
     expect(ok.stdout()).toContain('Remoto openai (https://api.openai.com; modelo gpt-4o-mini; clave del entorno): alcanzable · 2 modelos (gpt-4o-mini, gpt-4o) · el modelo configurado está disponible\n');
 

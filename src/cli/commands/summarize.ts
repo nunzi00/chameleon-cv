@@ -8,7 +8,7 @@ import { describeProvider, executeSummarize, planSummarize, selectCopilotProvide
 import { SUMMARIZE_LIMITS, loadSummarizePrompt } from '../../llm';
 import type { CliContext } from '../context';
 import { offerInput } from '../offer';
-import { EXIT_FAILURE, EXIT_OK, reportError, reportWarnings } from '../output';
+import { EXIT_FAILURE, EXIT_OK, reportError, reportWarnings, reportQuota } from '../output';
 import { ensureProviderReady } from './remote';
 import type { SelectionOptions } from './selection';
 
@@ -99,5 +99,6 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
   }
   const { stats } = outcome;
   context.stdout(`Revisión escrita en ${outcome.outputPath}: ${stats.proposals} propuestas · ${stats.accepted} aceptadas · ${stats.rejected} rechazadas (C2)${item.fromCache ? ' · desde caché' : ` · ${item.elapsedMs} ms`}\n`);
+  reportQuota(context, provider);
   return EXIT_OK;
 }

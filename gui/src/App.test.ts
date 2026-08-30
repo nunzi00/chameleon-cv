@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import App from './App.svelte';
 import { TOKEN_KEY } from './lib/session';
 
-const STATUS = { version: '1.2.0', workspace: '/work', artifact: { status: 'fresh', detail: undefined, specialties: [] }, typst: { required: '0.15.1', candidates: [], selected: undefined, usable: false }, llm: { config: undefined, configError: undefined, health: undefined, keys: {}, keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined } }, themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] } };
+const STATUS = { version: '1.2.0', workspace: '/work', artifact: { status: 'fresh', detail: undefined, specialties: [] }, typst: { required: '0.15.1', candidates: [], selected: undefined, usable: false }, llm: { config: undefined, configError: undefined, health: undefined, keys: {}, keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined }, providers: [] }, themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] } };
 
 const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const headers = (init?.headers as Record<string, string> | undefined) ?? {};

@@ -10,7 +10,7 @@ import { InvalidArgumentError } from 'commander';
 import { DEFAULT_MAX_ITEMS, describeProvider, executeSuggestTags, planSuggestTags, selectCopilotProvider, suggestTagsEstimate, suggestTagsPayload } from '../../app/copilot';
 import { SUGGEST_TAGS_LIMITS, formatTagLine, loadSuggestTagsPrompt } from '../../llm';
 import type { CliContext } from '../context';
-import { EXIT_FAILURE, EXIT_OK, pluralize, reportError, reportWarnings } from '../output';
+import { EXIT_FAILURE, EXIT_OK, pluralize, reportError, reportQuota, reportWarnings } from '../output';
 import { parseOnly } from './improve';
 import { ensureProviderReady } from './remote';
 
@@ -122,5 +122,6 @@ export async function runSuggestTagsCommand(context: CliContext, options: Sugges
   context.stderr(
     `${pluralize(stats.items, 'fragmento', 'fragmentos')} · ${pluralize(stats.suggested, 'etiqueta sugerida', 'etiquetas sugeridas')} (${stats.fresh} nuevas) · ${stats.rejected} rechazadas · ${stats.failed} fallidos · ${stats.fromCache} desde caché\n`,
   );
+  reportQuota(context, provider);
   return stats.failed === stats.items ? EXIT_FAILURE : EXIT_OK;
 }
