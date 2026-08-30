@@ -1,0 +1,48 @@
+# Tema «elegant» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from elegant`) y genera con `--theme mio`.
+
+[theme]
+name = "elegant"
+description = "Elegante: serif Libertinus, nombre centrado en versalitas, doble filete y títulos de sección entre filetes; sin color, para dirección, consultoría, derecho o academia"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1f1d1a"       # cuerpo de texto
+primary = "#2b2620"    # nombre y títulos
+secondary = "#6b655d"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#7b5e3b"     # enlaces y acentos
+rule = "#bfb7ad"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Libertinus Serif"
+heading = "Libertinus Serif"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 22
+headline = 11.5
+contact = 9.4
+section = 9.6
+title = 11
+meta = 9.4
+body = 10.2
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.6
+paragraph = 0.7
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 18
+right = 20
+bottom = 17
+left = 20

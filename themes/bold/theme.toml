@@ -1,0 +1,48 @@
+# Tema «bold» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from bold`) y genera con `--theme mio`.
+
+[theme]
+name = "bold"
+description = "Titulares grandes de color: nombre en acento con barra lateral, secciones en mayúsculas con subrayado grueso y periodos en pastilla; para producto, marketing, ventas o diseño"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1b1b1b"       # cuerpo de texto
+primary = "#1b1b1b"    # nombre y títulos
+secondary = "#5f5f5f"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#d64541"     # enlaces y acentos
+rule = "#f1e4e3"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 30
+headline = 12.5
+contact = 9.4
+section = 12
+title = 11.2
+meta = 9.2
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 16
+right = 18
+bottom = 16
+left = 18

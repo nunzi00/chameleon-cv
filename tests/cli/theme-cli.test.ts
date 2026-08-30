@@ -83,17 +83,23 @@ describe('cv theme list (T-5.3)', () => {
         'Estilos (la organización cronológica con otra maquetación):',
         await line('academic'),
         await line('awesome'),
+        await line('bold'),
         await line('classic', ''),
+        await line('compact-grid'),
         `${'default'.padEnd(width)}  distribuido   ${defaultThemeConfig().theme.description} · por defecto`,
+        await line('elegant'),
+        await line('europass-like'),
         await line('executive'),
         await line('minimal'),
         await line('modern'),
+        await line('monochrome'),
         await line('tech'),
         await line('timeline'),
+        await line('warm'),
         '',
       ].join('\n'),
     );
-    expect(h.stderr()).toBe(`15 temas (6 organizaciones, 9 estilos) en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
+    expect(h.stderr()).toBe(`21 temas (6 organizaciones, 15 estilos) en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
   });
 
   it('los temas del proyecto van primero, con su validez, si ocultan a un distribuido y el tema por defecto de cv.toml', async () => {
@@ -111,19 +117,25 @@ describe('cv theme list (T-5.3)', () => {
       'Estilos (la organización cronológica con otra maquetación):',
       expect.stringMatching(/^academic           distribuido   Serif de una columna/),
       expect.stringMatching(/^awesome            distribuido   Estilo Awesome-CV/),
+      expect.stringMatching(/^bold               distribuido   Titulares grandes de color/),
       expect.stringMatching(/^classic            distribuido   Serif tradicional/),
+      expect.stringMatching(/^compact-grid       distribuido   Rejilla compacta/),
+      expect.stringMatching(/^elegant            distribuido   Elegante: serif Libertinus/),
+      expect.stringMatching(/^europass-like      distribuido   Estructura tabular al estilo europeo/),
       expect.stringMatching(/^executive          distribuido   Ejecutivo tipo banking/),
-      expect.stringMatching(/^minimal            distribuido   Monocromo/),
+      expect.stringMatching(/^minimal            distribuido   Monocromo y sin filetes/),
       expect.stringMatching(/^modern             distribuido   Contemporáneo/),
+      expect.stringMatching(/^monochrome         distribuido   Monocromo para imprimir/),
       expect.stringMatching(/^tech               distribuido   Skills-first para perfiles/),
       expect.stringMatching(/^timeline           distribuido   Línea de tiempo/),
+      expect.stringMatching(/^warm               distribuido   Paleta cálida/),
       'Sin clasificar (theme.toml sin kind):',
       'default            del proyecto  sin descripción · oculta al distribuido del mismo nombre',
       'feo                del proyecto  inválido: Tema «feo» inválido (/work/themes/feo/theme.toml): colors.primary: Color inválido: usa #rrggbb (p. ej. "#1f4e79")',
       'mio                del proyecto  sin descripción · por defecto',
       '',
     ]);
-    expect(h.stderr()).toContain('17 temas (6 organizaciones, 8 estilos, 3 sin clasificar) en /work/themes y ');
+    expect(h.stderr()).toContain('23 temas (6 organizaciones, 14 estilos, 3 sin clasificar) en /work/themes y ');
     const broken = harness({ '/work/cv.toml': '[theme\n' });
     expect(await runCli(['theme', 'list'], broken.context)).toBe(EXIT_OK);
     expect(broken.stderr()).toMatch(/^Aviso: Configuración inválida \(\/work\/cv\.toml\):\n  - línea 1: /);
@@ -154,7 +166,7 @@ describe('cv theme path <nombre>', () => {
   it('explica el tema inexistente y el nombre inválido', async () => {
     const missing = harness();
     expect(await runCli(['theme', 'path', 'nada'], missing.context)).toBe(EXIT_DATA_ERROR);
-    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, awesome, chronological, classic, default, executive, functional, hybrid, minimal, modern, one-page, project-portfolio, skills-first, tech, timeline\n`);
+    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, awesome, bold, chronological, classic, compact-grid, default, elegant, europass-like, executive, functional, hybrid, minimal, modern, monochrome, one-page, project-portfolio, skills-first, tech, timeline, warm\n`);
     expect(missing.stdout()).toBe('');
     const bad = harness();
     expect(await runCli(['theme', 'path', '../default'], bad.context)).toBe(EXIT_DATA_ERROR);

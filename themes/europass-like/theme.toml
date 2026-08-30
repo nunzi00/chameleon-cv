@@ -1,0 +1,48 @@
+# Tema «europass-like» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from europass-like`) y genera con `--theme mio`.
+
+[theme]
+name = "europass-like"
+description = "Estructura tabular al estilo europeo: apartado y periodo en una columna azul a la izquierda, contenido a la derecha, filetes finos; familiar en procesos públicos y europeos"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#202020"       # cuerpo de texto
+primary = "#1a4f8b"    # nombre y títulos
+secondary = "#5b6b7a"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#1a4f8b"     # enlaces y acentos
+rule = "#b7c7d8"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 22
+headline = 11.5
+contact = 9.2
+section = 9.2
+title = 10.6
+meta = 9
+body = 9.8
+footer = 8.5
+code = 9
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.65
+list = 0.42
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 16
+right = 18
+bottom = 16
+left = 16

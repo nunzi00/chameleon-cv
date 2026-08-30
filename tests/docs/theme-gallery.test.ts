@@ -24,20 +24,26 @@ describe('galería de temas (T-8.3)', () => {
       'default',
       'academic',
       'awesome',
+      'bold',
       'classic',
+      'compact-grid',
+      'elegant',
+      'europass-like',
       'executive',
       'minimal',
       'modern',
+      'monochrome',
       'tech',
       'timeline',
+      'warm',
     ]);
     const page = readFileSync(GALLERY_PAGE, 'utf8');
     const cards = galleryCards(themes);
     expect(page).toContain(cards);
     // Dos apartados (T-8.12): las organizaciones y los estilos, cada uno con su cuenta y sus fichas.
     expect(cards.indexOf('## Organizaciones (6)')).toBeLessThan(cards.indexOf('### `chronological`'));
-    expect(cards.indexOf('### `skills-first`')).toBeLessThan(cards.indexOf('## Estilos (9)'));
-    expect(cards.indexOf('## Estilos (9)')).toBeLessThan(cards.indexOf('### `default` (por defecto)'));
+    expect(cards.indexOf('### `skills-first`')).toBeLessThan(cards.indexOf('## Estilos (15)'));
+    expect(cards.indexOf('## Estilos (15)')).toBeLessThan(cards.indexOf('### `default` (por defecto)'));
     expect(replaceGallery(page, cards)).toBe(page);
     for (const theme of themes) {
       const image = join(GALLERY_IMAGES, `${theme.name}.png`);

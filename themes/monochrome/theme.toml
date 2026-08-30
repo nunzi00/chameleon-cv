@@ -1,0 +1,48 @@
+# Tema «monochrome» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from monochrome`) y genera con `--theme mio`.
+
+[theme]
+name = "monochrome"
+description = "Monocromo para imprimir: solo negro y grises, reglas gruesas bajo cada sección, enlaces en negro y jerarquía solo por peso y tamaño"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#000000"       # cuerpo de texto
+primary = "#000000"    # nombre y títulos
+secondary = "#4a4a4a"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#000000"     # enlaces y acentos
+rule = "#000000"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 26
+headline = 11.5
+contact = 9.3
+section = 9.6
+title = 10.8
+meta = 9.3
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 18
+right = 19
+bottom = 17
+left = 19

@@ -42,6 +42,17 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Titulares grandes de color: nombre en acento con barra lateral, secciones en mayúsculas con subrayado grueso y periodos en pastilla; para producto, marketing, ventas o diseño",
+        "directory": "<BUILTIN_THEMES>/bold",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "bold",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Cronológica inversa con la fecha como eje: el periodo en una columna fija a la izquierda de cada entrada; después habilidades, logros e idiomas",
         "directory": "<BUILTIN_THEMES>/chronological",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -59,11 +70,44 @@
         "shadows": false
       },
       {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Rejilla compacta: periodo y ubicación en una columna estrecha a la izquierda de cada entrada, habilidades y formación en dos columnas, tamaños contenidos; mucha información en poco papel",
+        "directory": "<BUILTIN_THEMES>/compact-grid",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "compact-grid",
+        "shadows": false
+      },
+      {
         "builtin": true,
         "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
         "directory": "<BUILTIN_THEMES>/default",
         "kind": "style",
         "name": "default",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Elegante: serif Libertinus, nombre centrado en versalitas, doble filete y títulos de sección entre filetes; sin color, para dirección, consultoría, derecho o academia",
+        "directory": "<BUILTIN_THEMES>/elegant",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "elegant",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Estructura tabular al estilo europeo: apartado y periodo en una columna azul a la izquierda, contenido a la derecha, filetes finos; familiar en procesos públicos y europeos",
+        "directory": "<BUILTIN_THEMES>/europass-like",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "europass-like",
         "shadows": false
       },
       {
@@ -124,6 +168,17 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Monocromo para imprimir: solo negro y grises, reglas gruesas bajo cada sección, enlaces en negro y jerarquía solo por peso y tamaño",
+        "directory": "<BUILTIN_THEMES>/monochrome",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "monochrome",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)",
         "directory": "<BUILTIN_THEMES>/one-page",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -174,6 +229,17 @@
         "kind": "style",
         "license": "MIT",
         "name": "timeline",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Paleta cálida (terracota, ocre y crema): cabecera sobre un panel crema, títulos como etiquetas redondeadas y periodos en pastilla; cercano y legible",
+        "directory": "<BUILTIN_THEMES>/warm",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "warm",
         "shadows": false
       }
     ],
@@ -4616,6 +4682,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Titulares grandes de color: nombre en acento con barra lateral, secciones en mayúsculas con subrayado grueso y periodos en pastilla; para producto, marketing, ventas o diseño",
+      "directory": "<BUILTIN_THEMES>/bold",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "bold",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Cronológica inversa con la fecha como eje: el periodo en una columna fija a la izquierda de cada entrada; después habilidades, logros e idiomas",
       "directory": "<BUILTIN_THEMES>/chronological",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -4633,11 +4710,44 @@
       "shadows": false
     },
     {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Rejilla compacta: periodo y ubicación en una columna estrecha a la izquierda de cada entrada, habilidades y formación en dos columnas, tamaños contenidos; mucha información en poco papel",
+      "directory": "<BUILTIN_THEMES>/compact-grid",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "compact-grid",
+      "shadows": false
+    },
+    {
       "builtin": true,
       "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
       "directory": "<BUILTIN_THEMES>/default",
       "kind": "style",
       "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Elegante: serif Libertinus, nombre centrado en versalitas, doble filete y títulos de sección entre filetes; sin color, para dirección, consultoría, derecho o academia",
+      "directory": "<BUILTIN_THEMES>/elegant",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "elegant",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Estructura tabular al estilo europeo: apartado y periodo en una columna azul a la izquierda, contenido a la derecha, filetes finos; familiar en procesos públicos y europeos",
+      "directory": "<BUILTIN_THEMES>/europass-like",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "europass-like",
       "shadows": false
     },
     {
@@ -4698,6 +4808,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Monocromo para imprimir: solo negro y grises, reglas gruesas bajo cada sección, enlaces en negro y jerarquía solo por peso y tamaño",
+      "directory": "<BUILTIN_THEMES>/monochrome",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "monochrome",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)",
       "directory": "<BUILTIN_THEMES>/one-page",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -4748,6 +4869,17 @@
       "kind": "style",
       "license": "MIT",
       "name": "timeline",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Paleta cálida (terracota, ocre y crema): cabecera sobre un panel crema, títulos como etiquetas redondeadas y periodos en pastilla; cercano y legible",
+      "directory": "<BUILTIN_THEMES>/warm",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "warm",
       "shadows": false
     }
   ],
@@ -5063,6 +5195,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Titulares grandes de color: nombre en acento con barra lateral, secciones en mayúsculas con subrayado grueso y periodos en pastilla; para producto, marketing, ventas o diseño",
+      "directory": "<BUILTIN_THEMES>/bold",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "bold",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Cronológica inversa con la fecha como eje: el periodo en una columna fija a la izquierda de cada entrada; después habilidades, logros e idiomas",
       "directory": "<BUILTIN_THEMES>/chronological",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -5080,11 +5223,44 @@
       "shadows": false
     },
     {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Rejilla compacta: periodo y ubicación en una columna estrecha a la izquierda de cada entrada, habilidades y formación en dos columnas, tamaños contenidos; mucha información en poco papel",
+      "directory": "<BUILTIN_THEMES>/compact-grid",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "compact-grid",
+      "shadows": false
+    },
+    {
       "builtin": true,
       "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
       "directory": "<BUILTIN_THEMES>/default",
       "kind": "style",
       "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Elegante: serif Libertinus, nombre centrado en versalitas, doble filete y títulos de sección entre filetes; sin color, para dirección, consultoría, derecho o academia",
+      "directory": "<BUILTIN_THEMES>/elegant",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "elegant",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Estructura tabular al estilo europeo: apartado y periodo en una columna azul a la izquierda, contenido a la derecha, filetes finos; familiar en procesos públicos y europeos",
+      "directory": "<BUILTIN_THEMES>/europass-like",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "europass-like",
       "shadows": false
     },
     {
@@ -5145,6 +5321,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Monocromo para imprimir: solo negro y grises, reglas gruesas bajo cada sección, enlaces en negro y jerarquía solo por peso y tamaño",
+      "directory": "<BUILTIN_THEMES>/monochrome",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "monochrome",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Una página: jerarquía tipográfica estricta, márgenes cortos y recortes visibles (cinco puestos con cuatro logros, tres proyectos, tres logros destacados; lo omitido se marca con +N)",
       "directory": "<BUILTIN_THEMES>/one-page",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -5195,6 +5382,17 @@
       "kind": "style",
       "license": "MIT",
       "name": "timeline",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Paleta cálida (terracota, ocre y crema): cabecera sobre un panel crema, títulos como etiquetas redondeadas y periodos en pastilla; cercano y legible",
+      "directory": "<BUILTIN_THEMES>/warm",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "warm",
       "shadows": false
     }
   ],

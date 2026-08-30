@@ -1,0 +1,48 @@
+# Tema «compact-grid» de Chameleon CV (T-8.12): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from compact-grid`) y genera con `--theme mio`.
+
+[theme]
+name = "compact-grid"
+description = "Rejilla compacta: periodo y ubicación en una columna estrecha a la izquierda de cada entrada, habilidades y formación en dos columnas, tamaños contenidos; mucha información en poco papel"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1f2933"       # cuerpo de texto
+primary = "#123c69"    # nombre y títulos
+secondary = "#5c6b7a"  # metadatos, fechas, etiquetas de sección, ubicación e impacto
+accent = "#123c69"     # enlaces y acentos
+rule = "#d0d7de"       # reglas, filetes y fondos suaves
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 21
+headline = 11
+contact = 8.8
+section = 9
+title = 10.2
+meta = 8.6
+body = 9.4
+footer = 8.2
+code = 8.6
+
+[spacing]              # en «em» del cuerpo
+leading = 0.5
+paragraph = 0.6
+list = 0.35
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 14
+right = 15
+bottom = 14
+left = 15

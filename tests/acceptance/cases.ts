@@ -144,6 +144,12 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'generate-full-typst-skills-first', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'skills-first', '-o', 'output/cv-full.typst-skills-first.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-skills-first.pdf', kind: 'pdf' }] },
       { id: 'generate-full-typst-project-portfolio', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'project-portfolio', '-o', 'output/cv-full.typst-project-portfolio.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-project-portfolio.pdf', kind: 'pdf' }] },
       { id: 'generate-full-typst-one-page', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'one-page', '-o', 'output/cv-full.typst-one-page.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-one-page.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-elegant', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'elegant', '-o', 'output/cv-full.typst-elegant.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-elegant.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-bold', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'bold', '-o', 'output/cv-full.typst-bold.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-bold.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-compact-grid', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'compact-grid', '-o', 'output/cv-full.typst-compact-grid.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-compact-grid.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-monochrome', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'monochrome', '-o', 'output/cv-full.typst-monochrome.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-monochrome.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-warm', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'warm', '-o', 'output/cv-full.typst-warm.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-warm.pdf', kind: 'pdf' }] },
+      { id: 'generate-full-typst-europass-like', args: ['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'europass-like', '-o', 'output/cv-full.typst-europass-like.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.typst-europass-like.pdf', kind: 'pdf' }] },
     ],
   },
   {

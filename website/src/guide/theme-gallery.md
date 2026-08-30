@@ -111,7 +111,7 @@ cv generate-cv --format pdf --engine typst --theme skills-first   # genera con e
 cv theme create mio --from skills-first                           # parte de él en themes/mio/ de tu proyecto
 ```
 
-## Estilos (9)
+## Estilos (15)
 
 Mantienen la organización cronológica inversa (experiencia → proyectos → habilidades → logros → formación → certificaciones → idiomas) y cambian la maquetación.
 
@@ -159,6 +159,21 @@ cv generate-cv --format pdf --engine typst --theme awesome        # genera con e
 cv theme create mio --from awesome                                # parte de él en themes/mio/ de tu proyecto
 ```
 
+### `bold`
+
+![Primera página del CV del banco de pruebas con el tema bold](/themes/bold.png)
+
+Titulares grandes de color: nombre en acento con barra lateral, secciones en mayúsculas con subrayado grueso y periodos en pastilla; para producto, marketing, ventas o diseño
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme bold           # genera con este tema
+cv theme create mio --from bold                                   # parte de él en themes/mio/ de tu proyecto
+```
+
 ### `classic`
 
 ![Primera página del CV del banco de pruebas con el tema classic](/themes/classic.png)
@@ -171,6 +186,51 @@ Serif tradicional de aire académico: cabecera centrada, doble filete, secciones
 ```bash
 cv generate-cv --format pdf --engine typst --theme classic        # genera con este tema
 cv theme create mio --from classic                                # parte de él en themes/mio/ de tu proyecto
+```
+
+### `compact-grid`
+
+![Primera página del CV del banco de pruebas con el tema compact-grid](/themes/compact-grid.png)
+
+Rejilla compacta: periodo y ubicación en una columna estrecha a la izquierda de cada entrada, habilidades y formación en dos columnas, tamaños contenidos; mucha información en poco papel
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme compact-grid   # genera con este tema
+cv theme create mio --from compact-grid                           # parte de él en themes/mio/ de tu proyecto
+```
+
+### `elegant`
+
+![Primera página del CV del banco de pruebas con el tema elegant](/themes/elegant.png)
+
+Elegante: serif Libertinus, nombre centrado en versalitas, doble filete y títulos de sección entre filetes; sin color, para dirección, consultoría, derecho o academia
+
+- **Tipografías**: cuerpo Libertinus Serif · títulos Libertinus Serif · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme elegant        # genera con este tema
+cv theme create mio --from elegant                                # parte de él en themes/mio/ de tu proyecto
+```
+
+### `europass-like`
+
+![Primera página del CV del banco de pruebas con el tema europass-like](/themes/europass-like.png)
+
+Estructura tabular al estilo europeo: apartado y periodo en una columna azul a la izquierda, contenido a la derecha, filetes finos; familiar en procesos públicos y europeos
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme europass-like  # genera con este tema
+cv theme create mio --from europass-like                          # parte de él en themes/mio/ de tu proyecto
 ```
 
 ### `executive`
@@ -218,6 +278,21 @@ cv generate-cv --format pdf --engine typst --theme modern         # genera con e
 cv theme create mio --from modern                                 # parte de él en themes/mio/ de tu proyecto
 ```
 
+### `monochrome`
+
+![Primera página del CV del banco de pruebas con el tema monochrome](/themes/monochrome.png)
+
+Monocromo para imprimir: solo negro y grises, reglas gruesas bajo cada sección, enlaces en negro y jerarquía solo por peso y tamaño
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme monochrome     # genera con este tema
+cv theme create mio --from monochrome                             # parte de él en themes/mio/ de tu proyecto
+```
+
 ### `tech`
 
 ![Primera página del CV del banco de pruebas con el tema tech](/themes/tech.png)
@@ -246,6 +321,21 @@ Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a
 ```bash
 cv generate-cv --format pdf --engine typst --theme timeline       # genera con este tema
 cv theme create mio --from timeline                               # parte de él en themes/mio/ de tu proyecto
+```
+
+### `warm`
+
+![Primera página del CV del banco de pruebas con el tema warm](/themes/warm.png)
+
+Paleta cálida (terracota, ocre y crema): cabecera sobre un panel crema, títulos como etiquetas redondeadas y periodos en pastilla; cercano y legible
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme warm           # genera con este tema
+cv theme create mio --from warm                                   # parte de él en themes/mio/ de tu proyecto
 ```
 
 <!-- galería:fin -->

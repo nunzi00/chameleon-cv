@@ -30,9 +30,9 @@ async function benchProfile(): Promise<MasterProfile> {
 }
 
 /** Los temas de la galería (T-8.3) y las organizaciones (T-8.12) declaran autoría; los de T-5.1 no la necesitan. */
-const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS];
+const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS, 'bold', 'compact-grid', 'elegant', 'europass-like', 'monochrome', 'warm'];
 const HOMEPAGE = 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery';
-const STYLES: readonly string[] = ['academic', 'awesome', 'classic', 'default', 'executive', 'minimal', 'modern', 'tech', 'timeline'];
+const STYLES: readonly string[] = ['academic', 'awesome', 'bold', 'classic', 'compact-grid', 'default', 'elegant', 'europass-like', 'executive', 'minimal', 'modern', 'monochrome', 'tech', 'timeline', 'warm'];
 
 async function builtinThemes(): Promise<LoadedTheme[]> {
   const themes: LoadedTheme[] = [];
@@ -63,7 +63,7 @@ async function textOf(pdf: Buffer): Promise<{ text: string; pages: number }> {
 }
 
 describe('temas distribuidos (T-8.3): contrato común', () => {
-  it('los quince temas cargan, validan, se describen, declaran su clase y los de la galería llevan autor, licencia y página', async () => {
+  it('los veintiún temas cargan, validan, se describen, declaran su clase y los de la galería llevan autor, licencia y página', async () => {
     const themes = await builtinThemes();
     expect(themes.map((theme) => theme.name)).toEqual([...ORGANIZATIONS, ...STYLES].sort());
     for (const theme of themes) {
