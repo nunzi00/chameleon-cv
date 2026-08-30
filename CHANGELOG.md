@@ -4,6 +4,13 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-08-30
+
+### Corregido
+
+- `cv theme install` fallaba en el **ejecutable publicado** (`chameleon-cv-1.6.0-linux-x64.tar.gz`) con «ENOENT … package.json»: leía la versión para `.origin.json` de un `package.json` relativo a la ruta del ejecutable, que solo existe cuando el binario está dentro del repositorio (por eso el arnés de la release no lo vio). Ahora la versión sale de los assets embebidos, como `--version` y `cv serve`. La imagen Docker de la 1.6.0 no estaba afectada.
+- Prueba de humo del empaquetado: instala y verifica un tema desde fuera del árbol del repositorio; el flujo de release ejecuta el arnés contra una copia del ejecutable fuera del repositorio.
+
 ## [1.6.0] - 2026-08-30
 
 Galería de temas (T-8.3): tres temas distribuidos nuevos, metadatos de autoría en `theme.toml`, la página «Galería de temas» del portal, `cv theme install` para temas de la comunidad (con consentimiento, lector propio y huellas), `cv theme verify`, la API en dos pasos y «Instalar tema…» en la interfaz web.
