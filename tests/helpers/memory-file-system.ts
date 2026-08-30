@@ -143,6 +143,15 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
 
   async rename(from: string, to: string): Promise<void> {
     this.check('rename', from);
+    const source = posix.normalize(from);
+    if (this.entries.get(source)?.kind === 'directory') {
+      const target = posix.normalize(to);
+      for (const [path, value] of [...this.entries.entries()].filter(([path]) => path === source || path.startsWith(`${source}/`))) {
+        this.entries.delete(path);
+        this.add(`${target}${path.slice(source.length)}`, value);
+      }
+      return;
+    }
     const file = this.existingFile(from);
     this.entries.delete(posix.normalize(from));
     this.add(to, { ...file, kind: 'file' });

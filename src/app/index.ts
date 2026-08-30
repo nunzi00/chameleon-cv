@@ -16,6 +16,7 @@ export * from './generate';
 export * from './limits';
 export * from './offer';
 export * from './paths';
+export * from './portability';
 export * from './provenance';
 export * from './review';
 export * from './slug';
