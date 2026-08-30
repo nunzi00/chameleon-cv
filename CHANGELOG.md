@@ -4,6 +4,11 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- `cv.toml` gana la tabla `[llm]` (T-8.2): proveedor **local** (`ollama` u `openai-compatible`), `base_url` en loopback y `model`, más `[llm.models]` con el modelo por defecto de cada proveedor remoto. Precedencia explícita y visible: `--provider`/`--model` > variables `CHAMELEON_LLM_*` > `cv.toml` > valores por defecto; `cv llm status` dice de dónde sale cada valor y si `cv.toml` existe, tiene la tabla o es inválido (un `cv.toml` inválido bloquea al co-piloto con su mensaje).
+- `cv llm key set|remove|list`: las claves de los proveedores remotos se guardan en el fichero de claves (`0600`, directorio `0700`) desde la terminal —pregunta sin eco, o entrada estándar sin terminal—; nunca como argumento, nunca por HTTP, nunca se imprimen.
+
 ## [1.4.0] - 2026-08-30
 
 Portabilidad del perfil (T-8.1): el perfil canónico entra y sale del producto, y la importación regenera las fuentes Markdown/CSV —la inversa de `cv build`— comprobándose a sí misma antes de escribir.
