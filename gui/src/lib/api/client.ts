@@ -20,6 +20,11 @@ import type {
   JobCreatedResponse,
   JobResponse,
   JobsResponse,
+  LlmCheckRequest,
+  LlmCheckResponse,
+  LlmConfigResponse,
+  LlmConfigWriteResponse,
+  LlmSettingsWriteRequest,
   OutputListResponse,
   ProfileResponse,
   ReviewDeleteResponse,
@@ -116,6 +121,12 @@ export interface ApiClient {
   exportProfile(): Promise<ExportResponse>;
   /** Sin `dryRun: false` solo el plan y el auto-chequeo; con él regenera las fuentes (C9). */
   importProfile(body: ImportRequest): Promise<ImportResponse>;
+  /** La configuración del co-piloto: efectiva, cv.toml con huella, proveedores del registro (sin claves) y cuota viva. */
+  llmConfig(): Promise<LlmConfigResponse>;
+  /** Guarda la tabla [llm] de cv.toml con la huella leída (o «*» si no existe). */
+  writeLlmConfig(body: LlmSettingsWriteRequest, ifMatch: string): Promise<LlmConfigWriteResponse>;
+  /** Una llamada de salud explícita a un proveedor (los remotos exigen --allow-remote en el servidor). */
+  checkLlm(body: LlmCheckRequest): Promise<LlmCheckResponse>;
   shutdown(): Promise<ShutdownResponse>;
 }
 
@@ -236,6 +247,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     applyReview: (name, body) => request('POST', `/reviews/${encodeId(name)}/apply`, { body }),
     exportProfile: () => request('GET', '/export'),
     importProfile: (body) => request('POST', '/import', { body }),
+    llmConfig: () => request('GET', '/config/llm'),
+    writeLlmConfig: (body, ifMatch) => requestWithHeaders('PUT', '/config/llm', body, { 'If-Match': ifMatchHeader(ifMatch) }),
+    checkLlm: (body) => request('POST', '/config/llm/check', { body }),
     shutdown: () => request('POST', '/shutdown', { body: {} }),
   };
 }

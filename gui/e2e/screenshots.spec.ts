@@ -50,4 +50,7 @@ test('capturas de las pantallas', async ({ page }) => {
   await page.getByRole('button', { name: 'Plan de aplicación' }).click();
   await page.getByRole('heading', { name: 'Plan de aplicación' }).waitFor();
   await page.screenshot({ path: join(OUT, 'revisiones.png'), fullPage: true });
+  await page.goto(`${state.url}#/ajustes`);
+  await page.getByText(/Efectivo: /).waitFor();
+  await page.screenshot({ path: join(OUT, 'ajustes.png'), fullPage: true });
 });

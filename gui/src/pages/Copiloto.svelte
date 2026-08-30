@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
+  import { remoteProviderOptions, type RemoteOption } from '../lib/copilot/providers';
 
   import Dialog from '../components/Dialog.svelte';
   import Notice from '../components/Notice.svelte';
@@ -20,6 +21,8 @@
   let { api, onsession, navigate }: Props = $props();
 
   let form = $state<CopilotForm>({ ...EMPTY_COPILOT_FORM });
+  let remoteOptions = $state<readonly RemoteOption[]>([]);
+  const modelPlaceholder = $derived(remoteOptions.find((option) => option.id === form.provider)?.defaultModel ?? 'el configurado');
   let status = $state<StatusView | undefined>(undefined);
   let specialties = $state<readonly string[]>([]);
   let achievements = $state<readonly AchievementOption[]>([]);
@@ -67,6 +70,11 @@
   }
 
   async function load(): Promise<void> {
+    try {
+      remoteOptions = remoteProviderOptions(await api.llmConfig());
+    } catch {
+      remoteOptions = [];
+    }
     try {
       const [state, profile, list] = await Promise.all([api.status(), api.profile().catch(() => undefined), api.jobs()]);
       status = describeStatus(state);
@@ -193,8 +201,16 @@
       <label class="cv-field"><span>Nombre de la revisión</span><input name="output" bind:value={form.output} placeholder="revision-<tarea>-<fecha>.md" /></label>
     {/if}
     <label class="cv-field"><span>Idioma (locale)</span><input name="locale" bind:value={form.locale} placeholder="el del perfil" /></label>
-    <label class="cv-field"><span>Proveedor</span><input name="provider" bind:value={form.provider} placeholder="el configurado (local)" /></label>
-    <label class="cv-field"><span>Modelo</span><input name="model" bind:value={form.model} placeholder="el configurado" /></label>
+    <label class="cv-field">
+      <span>Proveedor</span>
+      <select name="provider" bind:value={form.provider}>
+        <option value="">el configurado (local)</option>
+        {#each remoteOptions as option (option.id)}
+          <option value={option.id} disabled={!option.usable}>{option.label}</option>
+        {/each}
+      </select>
+    </label>
+    <label class="cv-field"><span>Modelo</span><input name="model" bind:value={form.model} placeholder={modelPlaceholder} /></label>
     <label class="cv-check"><input name="redactCompanies" type="checkbox" bind:checked={form.redactCompanies} /> Sin nombres de empresas</label>
     <label class="cv-check"><input name="cache" type="checkbox" bind:checked={form.cache} /> Usar la caché de respuestas</label>
     <div class="cv-actions wide">

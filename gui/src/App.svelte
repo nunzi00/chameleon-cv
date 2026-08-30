@@ -59,6 +59,12 @@
         {:then generar}
           <generar.default {api} onsession={sessionLost} {navigate} />
         {/await}
+      {:else if route.page === 'ajustes'}
+        {#await import('./pages/Ajustes.svelte')}
+          <p class="cv-muted">Cargando…</p>
+        {:then ajustes}
+          <ajustes.default {api} onsession={sessionLost} />
+        {/await}
       {:else if route.page === 'salidas'}
         {#await import('./pages/Salidas.svelte')}
           <p class="cv-muted">Cargando…</p>

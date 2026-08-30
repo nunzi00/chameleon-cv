@@ -139,6 +139,25 @@ test('Estado exporta el perfil como descarga y lo importa sustituyendo las fuent
   await expect(page.getByText(/Artefacto compilado en/)).toBeVisible();
 });
 
+test('Ajustes muestra la configuración de cv.toml con sus orígenes, comprueba el proveedor local, guarda un cambio y lo deshace', async ({ page }) => {
+  await openWithToken(page, state, '#/ajustes');
+  await expect(page.getByText(/Efectivo: openai-compatible \(cv\.toml\)/)).toBeVisible();
+  await expect(page.getByText('sin clave').first()).toBeVisible();
+  await expect(page.getByText(/Cuota publicada: 30 peticiones\/min/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Comprobar groq' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Comprobar', exact: true }).click();
+  await expect(page.getByText(/Responde: 1 modelo \(stub-model\)/)).toBeVisible();
+  const model = page.getByLabel('Modelo');
+  await model.fill('otro-modelo');
+  await page.getByRole('button', { name: 'Guardar en cv.toml' }).click();
+  await expect(page.getByText(/Guardado en .*cv\.toml/)).toBeVisible();
+  expect(readFileSync(join(state.workspace, 'cv.toml'), 'utf8')).toContain('model = "otro-modelo"');
+  await expect(page.getByText(/modelo otro-modelo \(cv\.toml\)/)).toBeVisible();
+  await model.fill('stub-model');
+  await page.getByRole('button', { name: 'Guardar en cv.toml' }).click();
+  await expect(page.getByText(/modelo stub-model \(cv\.toml\)/)).toBeVisible();
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
   await page.getByRole('button', { name: 'Apagar el servidor' }).click();

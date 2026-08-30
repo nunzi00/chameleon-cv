@@ -32,6 +32,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const home = join(temporary, 'home');
   mkdirSync(workspace);
   mkdirSync(home);
+  // El co-piloto local se configura en cv.toml (T-8.2): así la pantalla Ajustes edita lo que el servidor usa.
+  writeFileSync(join(workspace, 'cv.toml'), `[llm]\nprovider = "openai-compatible"\nbase_url = "${llm.url}"\nmodel = "${llm.model}"\n`, { mode: 0o600 });
+
   const env: NodeJS.ProcessEnv = {
     PATH: process.env['PATH'] ?? '',
     HOME: home,
@@ -40,9 +43,6 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     TZ: 'UTC',
     LANG: 'C.UTF-8',
     // El co-piloto habla con el doble local (compatible con OpenAI), en el loopback.
-    CHAMELEON_LLM_PROVIDER: 'openai-compatible',
-    CHAMELEON_LLM_BASE_URL: llm.url,
-    CHAMELEON_LLM_MODEL: llm.model,
     ...(process.env['CHAMELEON_TYPST'] === undefined ? {} : { CHAMELEON_TYPST: process.env['CHAMELEON_TYPST'] }),
   };
   const [command = '', ...leading] = cvCommand();

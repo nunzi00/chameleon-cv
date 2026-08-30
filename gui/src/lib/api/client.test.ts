@@ -123,6 +123,19 @@ describe('cliente de la API', () => {
     expect(calls[1]?.body).toBe('{"profile":{"personal":{"fullName":"Ada"}},"replace":true,"dryRun":false}');
   });
 
+  it('configuración del co-piloto: leer, guardar con If-Match y comprobar', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.llmConfig();
+    await api.writeLlmConfig({ provider: 'ollama', model: 'qwen' }, 'abc');
+    await api.writeLlmConfig({}, '*');
+    await api.checkLlm({ provider: 'groq' });
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/config/llm', 'PUT /api/v1/config/llm', 'PUT /api/v1/config/llm', 'POST /api/v1/config/llm/check']);
+    expect(calls[1]).toMatchObject({ headers: { 'If-Match': '"abc"' }, body: '{"provider":"ollama","model":"qwen"}' });
+    expect(calls[2]).toMatchObject({ headers: { 'If-Match': '*' } });
+    expect(calls[3]?.body).toBe('{"provider":"groq"}');
+  });
+
   it('sin token no envía Authorization y admite otra base', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, {}));
     await createApiClient({ fetch: f, token: () => undefined, base: 'http://127.0.0.1:4310/api/v1' }).status();
