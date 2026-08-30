@@ -15,7 +15,7 @@ const STATUS = {
   workspace: '/work',
   artifact: { status: 'fresh', detail: undefined, specialties: ['backend', 'nube'] },
   typst: { required: '0.15.1', candidates: [], selected: undefined, usable: true },
-  llm: { config: undefined, configError: undefined, health: undefined, keys: {}, keysFile: '', allowedHosts: [], remote: undefined, usable: false },
+  llm: { config: undefined, configError: undefined, health: undefined, keys: {}, keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined } },
   themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] },
 } as unknown as StatusResponse;
 

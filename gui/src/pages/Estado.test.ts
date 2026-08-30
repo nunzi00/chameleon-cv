@@ -10,7 +10,7 @@ const STATUS: StatusResponse = {
   workspace: '/work',
   artifact: { status: 'stale', detail: 'experience/acme.md', specialties: ['backend'] },
   typst: { required: '0.15.1', candidates: [], selected: undefined, usable: true },
-  llm: { config: undefined, configError: undefined, health: undefined, keys: {} as StatusResponse['llm']['keys'], keysFile: '', allowedHosts: [], remote: undefined, usable: false },
+  llm: { config: undefined, configError: undefined, health: undefined, keys: {} as StatusResponse['llm']['keys'], keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined } },
   themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] },
 };
 
