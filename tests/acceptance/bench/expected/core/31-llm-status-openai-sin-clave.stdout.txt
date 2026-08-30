@@ -5,7 +5,7 @@ Configuración del proyecto: <WS>/cv.toml (sin tabla [llm])
 Proveedores remotos (solo con --provider explícito):
   openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini
   anthropic → clave ninguna · plan de pago (límites según la cuenta) · api.anthropic.com · modelo por defecto claude-sonnet-4-5
-  groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b
+  groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b · PENDIENTE DE VERIFICACIÓN: pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces
 Fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
 Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com
 Remoto: No hay clave para «openai»: define CHAMELEON_OPENAI_API_KEY o añádela a <TMP>/home/.config/chameleon-cv/keys.json (permisos 0600, {"openai": "…"})

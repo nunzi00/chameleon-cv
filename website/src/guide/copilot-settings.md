@@ -1,6 +1,6 @@
 # Configurar el co-piloto
 
-Desde la versión 1.5.0 el co-piloto se configura en `cv.toml`, se gestiona desde la terminal (claves) y desde la pantalla **Ajustes** de la interfaz web, y puede usar un proveedor externo con plan gratuito —Groq— sin renunciar a las garantías de siempre: local por defecto, ninguna llamada sin que la pidas, y ningún proveedor que entrene con tus datos.
+Desde la versión 1.5.0 el co-piloto se configura en `cv.toml`, se gestiona desde la terminal (claves) y desde la pantalla **Ajustes** de la interfaz web, y está preparado para usar un proveedor externo con plan gratuito —Groq, pendiente de verificación humana y por ahora no seleccionable— sin renunciar a las garantías de siempre: local por defecto, ninguna llamada sin que la pidas, y ningún proveedor que entrene con tus datos.
 
 ## El proveedor local en `cv.toml`
 
@@ -35,9 +35,9 @@ Cada proveedor remoto está en un **registro** con su evidencia: la URL, la fech
 |---|---|---|---|
 | `openai` | de pago | `gpt-4o-mini` | según el nivel de la cuenta |
 | `anthropic` | de pago | `claude-sonnet-4-5` | según el nivel de la cuenta |
-| `groq` | **gratuito** (sin tarjeta) | `openai/gpt-oss-120b` | 30 peticiones/min, 1 000/día, 8 000 tokens/min (según su documentación a 2026-08-30) |
+| `groq` | **gratuito** (sin tarjeta) — **pendiente de verificación humana, no seleccionable todavía** | `openai/gpt-oss-120b` | 30 peticiones/min, 1 000/día, 8 000 tokens/min (según su documentación a 2026-08-30) |
 
-Groq entró tras un estudio con evidencia (`docs/copilot-providers.md` en el repositorio): su acuerdo de servicio prohíbe entrenar con entradas y salidas y la retención es de 30 días como máximo, desactivable con *Zero Data Retention* en su consola (recomendado). Los planes gratuitos de otros proveedores conocidos se descartaron porque permiten entrenar con los datos enviados.
+Groq está registrado tras un estudio con evidencia (`docs/copilot-providers.md` en el repositorio) y **quedará disponible cuando una persona complete el protocolo de verificación al alta** (§9 de esa nota); hasta entonces `cv llm status` y Ajustes lo muestran como pendiente y `--provider groq` se rechaza: su acuerdo de servicio prohíbe entrenar con entradas y salidas y la retención es de 30 días como máximo, desactivable con *Zero Data Retention* en su consola (recomendado). Los planes gratuitos de otros proveedores conocidos se descartaron porque permiten entrenar con los datos enviados.
 
 **Cuota visible, sin telemetría.** Además de los límites publicados, el producto lee las cabeceras de cuota que el proveedor devuelve en las llamadas que tú ya pediste (`x-ratelimit-*`, `retry-after`) y las enseña —al terminar un trabajo remoto, en `cv llm status` y en Ajustes— sin hacer ninguna llamada extra ni guardarlas en disco. Si el proveedor responde 429 (cuota agotada), la orden se detiene con `quota-exceeded` y el tiempo de espera que él indique; nunca se reintenta por su cuenta.
 

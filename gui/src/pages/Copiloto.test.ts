@@ -28,7 +28,7 @@ const LLM_CONFIG = {
   llm: {
     config: undefined, configError: undefined, health: undefined, keys: { openai: 'env' as const, anthropic: 'none' as const, groq: 'none' as const }, keysFile: '', allowedHosts: [], remote: undefined, usable: true,
     settings: { path: undefined, present: false, configured: false, error: undefined },
-    providers: [{ id: 'openai' as const, plan: 'paid' as const, host: 'api.openai.com', baseUrl: 'https://api.openai.com', defaultModel: 'gpt-4o-mini', keyPresence: 'env' as const, quota: undefined, rateLimitsUrl: 'https://x', c7: { sourceUrl: 'https://x', verifiedAt: '2026-08-30', quote: 'q' }, live: undefined }],
+    providers: [{ id: 'openai' as const, plan: 'paid' as const, availability: 'available' as const, availabilityNote: undefined, host: 'api.openai.com', baseUrl: 'https://api.openai.com', defaultModel: 'gpt-4o-mini', keyPresence: 'env' as const, quota: undefined, rateLimitsUrl: 'https://x', c7: { sourceUrl: 'https://x', verifiedAt: '2026-08-30', quote: 'q' }, live: undefined }],
   },
   file: { path: '/work/cv.toml', present: false, sha256: undefined },
   remote: { allowed: true },

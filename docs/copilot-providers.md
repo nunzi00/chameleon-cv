@@ -103,3 +103,7 @@ Y: «Do not submit sensitive, confidential, or personal information to the Unpai
 3. Salud, modelos y cuota publicada, con una sola llamada y sin datos: `cv llm status --provider groq` (debe listar `openai/gpt-oss-120b` y no fallar).
 4. Prueba funcional con el banco (nunca con datos reales): en una copia de `tests/acceptance/bench/workspace`, `cv build` y `cv improve --provider groq -n 1 --yes`; comprobar la revisión escrita y la línea final «Cuota según groq: …» (las cabeceras llegan como se documentan).
 5. Anotar aquí la fecha, el resultado de cada paso y cualquier discrepancia con la evidencia de §1; si algo no cuadra (tarjeta obligatoria, salida JSON rechazada, cabeceras ausentes), Groq se retira del registro con un cambio de datos y una entrada en el CHANGELOG antes de la 1.5.0.
+
+**Registro de la verificación**
+
+- 2026-08-30: el protocolo **no se ha ejecutado**: no hay cuenta ni clave de Groq en la máquina del Director Técnico y ninguno de los dos asistentes puede abrirla. Por decisión del Director de Ingeniería y Producto (misma fecha), Groq queda en el registro con `availability: 'pending-verification'` —visible en `cv llm status` y en Ajustes, rechazado por `--provider`, `POST /config/llm/check` y el selector del Co-piloto— y la 1.5.0 se publica sin proveedor gratuito seleccionable. Cuando una persona complete los pasos 1–4, se anota aquí y un cambio de datos (`availability: 'available'`) lo activa en una versión menor.

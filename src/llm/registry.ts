@@ -31,8 +31,19 @@ export interface ProviderQuota {
   readonly verifiedAt: string;
 }
 
+/**
+ * Un remoto entra en el registro con su evidencia, pero solo se puede seleccionar cuando está `available`. Un
+ * proveedor `pending-verification` espera la verificación al alta por una persona (docs/copilot-providers.md §9):
+ * `cv llm status` y la pantalla Ajustes lo muestran así; `--provider`, `POST /config/llm/check` y el selector del
+ * Co-piloto lo rechazan hasta entonces (la clave sí puede guardarse: es el paso 2 del protocolo).
+ */
+export type ProviderAvailability = 'available' | 'pending-verification';
+
 export interface RemoteProviderEntry {
   readonly id: RemoteProviderId;
+  readonly availability: ProviderAvailability;
+  /** Por qué no está disponible todavía (solo `pending-verification`). */
+  readonly availabilityNote?: string | undefined;
   readonly api: RemoteApi;
   /** Host de la lista blanca (comparación exacta, solo https). */
   readonly host: string;
@@ -55,6 +66,7 @@ export interface RemoteProviderEntry {
 export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
   {
     id: 'openai',
+    availability: 'available',
     api: 'openai-chat',
     host: 'api.openai.com',
     baseUrl: 'https://api.openai.com',
@@ -73,6 +85,7 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
   },
   {
     id: 'anthropic',
+    availability: 'available',
     api: 'anthropic-messages',
     host: 'api.anthropic.com',
     baseUrl: 'https://api.anthropic.com',
@@ -91,6 +104,8 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
   },
   {
     id: 'groq',
+    availability: 'pending-verification',
+    availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
     api: 'openai-chat',
     host: 'api.groq.com',
     baseUrl: 'https://api.groq.com/openai',
@@ -118,6 +133,14 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
 ];
 
 export const REMOTE_PROVIDER_IDS: readonly RemoteProviderId[] = REMOTE_PROVIDERS.map((entry) => entry.id);
+
+/** Los remotos que se pueden seleccionar hoy. */
+export const AVAILABLE_REMOTE_PROVIDER_IDS: readonly RemoteProviderId[] = REMOTE_PROVIDERS.filter((entry) => entry.availability === 'available').map((entry) => entry.id);
+
+/** Mensaje de rechazo de un remoto registrado pero no disponible. */
+export function unavailableMessage(entry: RemoteProviderEntry): string {
+  return `El proveedor «${entry.id}» está registrado pero ${entry.availabilityNote ?? 'no está disponible'}`;
+}
 
 export function isRemoteProviderId(value: string): value is RemoteProviderId {
   return (REMOTE_PROVIDER_IDS as readonly string[]).includes(value);

@@ -54,6 +54,12 @@ describe('llmStatus / formatLlmStatus', () => {
   };
   const HOME = { platform: 'linux' as const, home: '/h' };
 
+  it('un remoto pendiente de verificación sin nota se describe como no disponible', async () => {
+    const status = await llmStatus({ env: {}, http: okHttp, ...HOME });
+    const withoutNote = { ...status, providers: status.providers.map((provider) => (provider.id === 'groq' ? { ...provider, availabilityNote: undefined } : provider)) };
+    expect(formatLlmStatus(withoutNote)).toContain('modelo por defecto openai/gpt-oss-120b · PENDIENTE DE VERIFICACIÓN: no disponible\n');
+  });
+
   it('describe el proveedor local alcanzable, la procedencia de las claves y la lista blanca', async () => {
     const status = await llmStatus({ env: { CHAMELEON_ANTHROPIC_API_KEY: 'x' }, http: okHttp, ...HOME });
     expect(status).toMatchObject({ usable: true, keys: { openai: 'none', anthropic: 'env', groq: 'none' }, keysFile: '/h/.config/chameleon-cv/keys.json', allowedHosts: ['api.openai.com', 'api.anthropic.com', 'api.groq.com'], remote: undefined, health: { ok: true, modelAvailable: true } });
@@ -64,7 +70,7 @@ describe('llmStatus / formatLlmStatus', () => {
         'Proveedores remotos (solo con --provider explícito):',
         '  openai → clave ninguna · plan de pago (límites según la cuenta) · api.openai.com · modelo por defecto gpt-4o-mini',
         '  anthropic → clave definida en CHAMELEON_ANTHROPIC_API_KEY · plan de pago (límites según la cuenta) · api.anthropic.com · modelo por defecto claude-sonnet-4-5',
-        '  groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b',
+        '  groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b · PENDIENTE DE VERIFICACIÓN: pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
         'Fichero de claves: /h/.config/chameleon-cv/keys.json',
         'Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com',
         '',

@@ -6,8 +6,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   ANTHROPIC_VERSION,
+  AVAILABLE_REMOTE_PROVIDER_IDS,
   CHARACTERS_PER_TOKEN,
   KEY_ENV_VARIABLES,
+  REMOTE_PROVIDER_IDS,
   allowsHosts,
   createAnthropicProvider,
   createJsonHttp,
@@ -18,8 +20,10 @@ import {
   formatCostWarning,
   keysFilePath,
   remoteBaseUrl,
+  remoteProvider,
   resolveApiKey,
   selectProvider,
+  unavailableMessage,
   type JsonHttp,
   type JsonHttpRequest,
   type LlmRequest,
@@ -179,6 +183,16 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
     expect(await selectProvider({ provider: '', model: '' }, { env: { CHAMELEON_LLM_MODEL: 'del-entorno' }, http })).toMatchObject({ ok: true, provider: { id: 'ollama', model: 'del-entorno' } });
     expect(await selectProvider({}, { env: { CHAMELEON_LLM_BASE_URL: 'http://192.168.1.2:11434' }, http })).toMatchObject({ ok: false, message: expect.stringContaining('no es una dirección local') });
     expect(await selectProvider({ provider: 'gemini' }, { env: {}, http })).toEqual({ ok: false, message: '--provider «gemini» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic, groq)' });
+  });
+
+  it('un remoto pendiente de verificación humana se rechaza antes de mirar la clave (T-8.2, docs/copilot-providers.md §9)', async () => {
+    expect(AVAILABLE_REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic']);
+    expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
+    expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk-1' } })).toEqual({
+      ok: false,
+      message: 'El proveedor «groq» está registrado pero pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
+    });
+    expect(unavailableMessage({ ...remoteProvider('groq'), availabilityNote: undefined })).toBe('El proveedor «groq» está registrado pero no está disponible');
   });
 
   it('un remoto exige clave, respeta la lista blanca y construye el proveedor con su cabecera de autenticación', async () => {

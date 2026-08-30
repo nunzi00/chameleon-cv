@@ -6,6 +6,8 @@ import { buildSettings, describeCheck, describeProvider, formFromConfig, isLoopb
 const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
   plan: 'free',
+  availability: 'pending-verification',
+  availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
   host: 'api.groq.com',
   baseUrl: 'https://api.groq.com/openai',
   defaultModel: 'openai/gpt-oss-120b',

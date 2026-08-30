@@ -8,6 +8,8 @@ import Ajustes from './Ajustes.svelte';
 const PROVIDER: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
   plan: 'free',
+  availability: 'available',
+  availabilityNote: undefined,
   host: 'api.groq.com',
   baseUrl: 'https://api.groq.com/openai',
   defaultModel: 'openai/gpt-oss-120b',
@@ -113,5 +115,16 @@ describe('Ajustes', () => {
     await waitFor(() => expect(screen.getByText(/Cuota viva: quedan 28\/30 peticiones/)).toBeTruthy());
     await fireEvent.click(screen.getByRole('button', { name: 'Guardar en cv.toml' }));
     await waitFor(() => expect(api.writeLlmConfig).toHaveBeenCalledWith({ provider: 'ollama' }, '*'));
+  });
+});
+
+describe('Ajustes: remotos pendientes de verificación humana', () => {
+  it('muestra el aviso del registro y no deja comprobar el proveedor aunque haya clave y remotos permitidos', async () => {
+    const pending = { ...PROVIDER, keyPresence: 'env' as const, availability: 'pending-verification' as const, availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces' };
+    const api = fakeApi({ llmConfig: vi.fn(async () => response({ llm: { providers: [pending] }, remote: { allowed: true } })) });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByText(/Pendiente de verificación humana: pendiente de la verificación al alta/)).toBeTruthy());
+    const check = screen.getAllByRole('button', { name: 'Comprobar' }).at(-1) as HTMLButtonElement;
+    expect(check.disabled).toBe(true);
   });
 });

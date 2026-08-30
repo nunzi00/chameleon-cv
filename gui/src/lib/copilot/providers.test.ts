@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { LlmConfigResponse } from '../api/types';
 import { remoteProviderOptions } from './providers';
 
-function config(providers: { id: string; plan: 'free' | 'paid'; keyPresence: LlmConfigResponse['llm']['providers'][number]['keyPresence'] }[], allowed: boolean): LlmConfigResponse {
+function config(
+  providers: { id: string; plan: 'free' | 'paid'; keyPresence: LlmConfigResponse['llm']['providers'][number]['keyPresence']; availability?: 'available' | 'pending-verification' }[],
+  allowed: boolean,
+): LlmConfigResponse {
   return {
     llm: {
       config: undefined,
@@ -17,6 +20,8 @@ function config(providers: { id: string; plan: 'free' | 'paid'; keyPresence: Llm
       settings: { path: '/work/cv.toml', present: false, configured: false, error: undefined },
       providers: providers.map((provider) => ({
         id: provider.id as 'groq',
+        availability: provider.availability ?? 'available',
+        availabilityNote: provider.availability === 'pending-verification' ? 'pendiente de la verificación al alta por una persona' : undefined,
         plan: provider.plan,
         host: `${provider.id}.example`,
         baseUrl: `https://${provider.id}.example`,
@@ -45,5 +50,12 @@ describe('remoteProviderOptions', () => {
       { id: 'groq', label: 'groq · plan gratuito · el servidor no admite remotos (--allow-remote)', defaultModel: 'groq-model', usable: false },
       { id: 'openai', label: 'openai · plan de pago · fichero de claves inválido', defaultModel: 'openai-model', usable: false },
     ]);
+  });
+});
+
+describe('remotos pendientes de verificación', () => {
+  it('no son utilizables aunque haya clave y el servidor admita remotos, y lo dicen', () => {
+    const options = remoteProviderOptions(config([{ id: 'groq', plan: 'free', keyPresence: 'env', availability: 'pending-verification' }], true));
+    expect(options).toEqual([{ id: 'groq', label: 'groq · plan gratuito · pendiente de verificación humana', defaultModel: 'groq-model', usable: false }]);
   });
 });

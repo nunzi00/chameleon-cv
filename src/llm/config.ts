@@ -12,7 +12,7 @@ import { createAnthropicProvider } from './anthropic';
 import { allowsHosts, createRemoteHttp, isLoopbackUrl, type JsonHttp, type QuotaObserver } from './http';
 import { KEY_ENV_VARIABLES, resolveApiKey, type KeyLookupOptions, type KeySource } from './keys';
 import { QuotaLedger, defaultQuotaLedger } from './quota';
-import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, isRemoteProviderId, registryHosts, remoteProvider, type RemoteProviderId } from './registry';
+import { REMOTE_PROVIDERS, REMOTE_PROVIDER_IDS, isRemoteProviderId, registryHosts, remoteProvider, unavailableMessage, type RemoteProviderId } from './registry';
 import { OLLAMA_DEFAULT_BASE_URL, OLLAMA_DEFAULT_MODEL, createOllamaProvider } from './ollama';
 import { OPENAI_COMPATIBLE_DEFAULT_BASE_URL, OPENAI_COMPATIBLE_DEFAULT_MODEL, createOpenAiCompatibleProvider } from './openai-compatible';
 import type { LlmProvider, LlmProviderId, LocalProviderId } from './provider';
@@ -182,6 +182,10 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   if (!isRemoteProviderId(requested)) {
     return { ok: false, message: `--provider «${requested}» no es un proveedor conocido (${LLM_PROVIDER_IDS.join(', ')})` };
   }
+  const entry = remoteProvider(requested);
+  if (entry.availability !== 'available') {
+    return { ok: false, message: unavailableMessage(entry) };
+  }
 
   const key = await resolveApiKey(requested, options);
   if (!key.ok) {
@@ -192,7 +196,6 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   if (!allowsHosts(hosts)(`${baseUrl}/`)) {
     return { ok: false, message: `La URL base de «${requested}» (${baseUrl}) no es https o su host no está en la lista blanca (${hosts.join(', ')}); amplíala con ${LLM_ENV.allowedHosts}` };
   }
-  const entry = remoteProvider(requested);
   const ledger = options.quotaLedger ?? defaultQuotaLedger;
   const observe: QuotaObserver = (headers) => {
     ledger.record(requested, headers, options.now?.() ?? new Date());
