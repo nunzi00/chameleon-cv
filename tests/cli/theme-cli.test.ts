@@ -77,10 +77,12 @@ describe('cv theme list (T-5.3)', () => {
         `executive  distribuido   ${await describe('executive')}${credit}`,
         `minimal    distribuido   ${await describe('minimal')}${credit}`,
         `modern     distribuido   ${await describe('modern')}${credit}`,
+        `tech       distribuido   ${await describe('tech')}${credit}`,
+        `timeline   distribuido   ${await describe('timeline')}${credit}`,
         '',
       ].join('\n'),
     );
-    expect(h.stderr()).toBe(`7 temas en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
+    expect(h.stderr()).toBe(`9 temas en /work/themes y ${BUILTIN_THEMES_DIRECTORY}; elige uno con --theme <nombre> o con [theme] name en cv.toml\n`);
   });
 
   it('los temas del proyecto van primero, con su validez, si ocultan a un distribuido y el tema por defecto de cv.toml', async () => {
@@ -96,9 +98,11 @@ describe('cv theme list (T-5.3)', () => {
       expect.stringMatching(/^executive  distribuido   Ejecutivo tipo banking/),
       expect.stringMatching(/^minimal    distribuido   Monocromo/),
       expect.stringMatching(/^modern     distribuido   Contemporáneo/),
+      expect.stringMatching(/^tech       distribuido   Skills-first/),
+      expect.stringMatching(/^timeline   distribuido   Línea de tiempo/),
       '',
     ]);
-    expect(h.stderr()).toContain('9 temas en /work/themes y ');
+    expect(h.stderr()).toContain('11 temas en /work/themes y ');
     const broken = harness({ '/work/cv.toml': '[theme\n' });
     expect(await runCli(['theme', 'list'], broken.context)).toBe(EXIT_OK);
     expect(broken.stderr()).toMatch(/^Aviso: Configuración inválida \(\/work\/cv\.toml\):\n  - línea 1: /);
@@ -129,7 +133,7 @@ describe('cv theme path <nombre>', () => {
   it('explica el tema inexistente y el nombre inválido', async () => {
     const missing = harness();
     expect(await runCli(['theme', 'path', 'nada'], missing.context)).toBe(EXIT_DATA_ERROR);
-    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, awesome, classic, default, executive, minimal, modern\n`);
+    expect(missing.stderr()).toBe(`No existe el tema «nada» (buscado en /work/themes, ${BUILTIN_THEMES_DIRECTORY}); disponibles: academic, awesome, classic, default, executive, minimal, modern, tech, timeline\n`);
     expect(missing.stdout()).toBe('');
     const bad = harness();
     expect(await runCli(['theme', 'path', '../default'], bad.context)).toBe(EXIT_DATA_ERROR);

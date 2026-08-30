@@ -14,7 +14,7 @@ const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 describe('galería de temas (T-8.3)', () => {
   it('la página contiene exactamente las fichas generadas desde los theme.toml y una imagen PNG por tema', async () => {
     const themes = await galleryThemes();
-    expect(themes.map((theme) => theme.name)).toEqual(['default', 'academic', 'awesome', 'classic', 'executive', 'minimal', 'modern']);
+    expect(themes.map((theme) => theme.name)).toEqual(['default', 'academic', 'awesome', 'classic', 'executive', 'minimal', 'modern', 'tech', 'timeline']);
     const page = readFileSync(GALLERY_PAGE, 'utf8');
     const cards = galleryCards(themes);
     expect(page).toContain(cards);

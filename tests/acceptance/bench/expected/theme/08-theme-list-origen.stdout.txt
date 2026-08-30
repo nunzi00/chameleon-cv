@@ -8,3 +8,5 @@ classic    distribuido   Serif tradicional de aire académico: cabecera centrada
 executive  distribuido   Ejecutivo tipo banking: cabecera centrada en serif, logros destacados arriba, fila de competencias clave e impacto en negrita en cada logro · autor: Chameleon CV · licencia: MIT
 minimal    distribuido   Monocromo y sin filetes: jerarquía solo por tamaño y peso, listas planas, sin tablas ni columnas; pensado para los ATS · autor: Chameleon CV · licencia: MIT
 modern     distribuido   Contemporáneo: franja de acento en la cabecera, columna lateral con contacto, skills e idiomas, y fechas en pastillas · autor: Chameleon CV · licencia: MIT
+tech       distribuido   Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas · autor: Chameleon CV · licencia: MIT
+timeline   distribuido   Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas · autor: Chameleon CV · licencia: MIT

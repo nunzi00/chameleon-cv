@@ -14,7 +14,7 @@ import { applyThemeOverrides, builtinThemeRoot, listThemes, loadTheme, type Load
 import { fullProfileInput } from '../fixtures/master-profile';
 
 /** Los temas de la galería (T-8.3) declaran autoría; los de T-5.1 no la necesitan. */
-const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive'];
+const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline'];
 const HOMEPAGE = 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery';
 
 async function builtinThemes(): Promise<LoadedTheme[]> {
@@ -46,9 +46,9 @@ async function textOf(pdf: Buffer): Promise<{ text: string; pages: number }> {
 }
 
 describe('temas distribuidos (T-8.3): contrato común', () => {
-  it('los siete temas cargan, validan, se describen y los de la galería declaran autor, licencia y página', async () => {
+  it('los nueve temas cargan, validan, se describen y los de la galería declaran autor, licencia y página', async () => {
     const themes = await builtinThemes();
-    expect(themes.map((theme) => theme.name)).toEqual(['academic', 'awesome', 'classic', 'default', 'executive', 'minimal', 'modern']);
+    expect(themes.map((theme) => theme.name)).toEqual(['academic', 'awesome', 'classic', 'default', 'executive', 'minimal', 'modern', 'tech', 'timeline']);
     for (const theme of themes) {
       expect(theme.builtin).toBe(true);
       expect(theme.config.theme.name).toBe(theme.name);

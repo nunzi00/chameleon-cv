@@ -80,6 +80,26 @@
         "license": "MIT",
         "name": "modern",
         "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas",
+        "directory": "<BUILTIN_THEMES>/tech",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "license": "MIT",
+        "name": "tech",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas",
+        "directory": "<BUILTIN_THEMES>/timeline",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "license": "MIT",
+        "name": "timeline",
+        "shadows": false
       }
     ],
     "roots": [
@@ -4481,6 +4501,26 @@
       "license": "MIT",
       "name": "modern",
       "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas",
+      "directory": "<BUILTIN_THEMES>/tech",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "tech",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas",
+      "directory": "<BUILTIN_THEMES>/timeline",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "timeline",
+      "shadows": false
     }
   ],
   "roots": [
@@ -4831,6 +4871,26 @@
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "license": "MIT",
       "name": "modern",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas",
+      "directory": "<BUILTIN_THEMES>/tech",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "tech",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas",
+      "directory": "<BUILTIN_THEMES>/timeline",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "timeline",
       "shadows": false
     }
   ],

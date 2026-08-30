@@ -118,6 +118,36 @@ cv generate-cv --format pdf --engine typst --theme modern         # genera con e
 cv theme create mio --from modern                                 # parte de él en themes/mio/ de tu proyecto
 ```
 
+## `tech`
+
+![Primera página del CV del banco de pruebas con el tema tech](/themes/tech.png)
+
+Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme tech           # genera con este tema
+cv theme create mio --from tech                                   # parte de él en themes/mio/ de tu proyecto
+```
+
+## `timeline`
+
+![Primera página del CV del banco de pruebas con el tema timeline](/themes/timeline.png)
+
+Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas
+
+- **Tipografías**: cuerpo Source Sans 3 · títulos Source Sans 3 · código DejaVu Sans Mono
+- **Papel**: a4
+- **Autoría**: Chameleon CV · licencia MIT · [página del tema](https://nunzi00.github.io/chameleon-cv/guide/theme-gallery)
+
+```bash
+cv generate-cv --format pdf --engine typst --theme timeline       # genera con este tema
+cv theme create mio --from timeline                               # parte de él en themes/mio/ de tu proyecto
+```
+
 <!-- galería:fin -->
 
 ## Contención

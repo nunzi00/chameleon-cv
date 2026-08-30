@@ -1,0 +1,49 @@
+# Tema «tech» de Chameleon CV (T-8.7): híbrido «skills-first» para desarrollo, SRE/DevOps y datos —las habilidades
+# van primero, como etiquetas en monoespaciada; el contacto muestra las URL; las tecnologías de cada puesto también
+# como etiquetas—. Una sola columna, sin iconos ni barras: las etiquetas son cajas en línea y el texto se extrae en
+# orden. Sin fuentes nuevas: Source Sans 3 (distribuida) y DejaVu Sans Mono (embebida en Typst).
+
+[theme]
+name = "tech"
+description = "Skills-first para perfiles técnicos: habilidades primero como etiquetas monoespaciadas, contacto con URL visibles y tecnologías de cada puesto en etiquetas"
+version = 1
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#0f172a"       # cuerpo de texto
+primary = "#0f172a"    # nombre, títulos
+secondary = "#55607a"  # metadatos, periodos, impacto
+accent = "#6d28d9"     # violeta: enlaces y filete de sección
+rule = "#e2e8f0"       # fondo de las etiquetas y filetes suaves
+
+[fonts]
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 24
+headline = 11
+contact = 8.8
+section = 10.5
+title = 10.8
+meta = 9
+body = 10
+footer = 8.5
+code = 8.4
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.42
+
+[page]
+paper = "a4"
+
+[page.margins]         # en milímetros
+top = 15
+right = 17
+bottom = 15
+left = 17
