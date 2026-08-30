@@ -69,6 +69,8 @@ describe('cliente de la API', () => {
     await api.generate({ format: 'md', specialty: 'backend' });
     await api.analyze({ offer: { text: 'Kubernetes' } });
     await api.extractOffer(new Blob(['%PDF-1.7'], { type: 'application/pdf' }));
+    await api.importCv(new Blob(['%PDF-1.4']), { name: 'mío borrador', replace: true });
+    await api.importCv(new Blob(['PK\u0003\u0004']));
     await api.themes();
     await api.createTheme({ name: 'mio', from: 'classic' });
     await api.outputs();
@@ -76,10 +78,13 @@ describe('cliente de la API', () => {
     expect(pdf).toMatchObject({ name: 'cv.pdf', contentType: 'application/pdf' });
     expect(await pdf.blob.text()).toBe('%PDF');
     expect((await api.output('sin-tipo')).contentType).toBe('application/octet-stream');
-    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'POST /api/v1/import-cv', 'POST /api/v1/import-cv', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
     expect(calls[0]?.body).toBe('{"format":"md","specialty":"backend"}');
     expect(calls[2]).toMatchObject({ headers: { 'Content-Type': 'application/pdf' }, body: '%PDF-1.7' });
-    expect(calls[6]?.headers['Accept']).toBe('*/*');
+    expect(calls[3]).toMatchObject({ headers: { 'x-cv-import-name': 'mío borrador', 'x-cv-import-replace': '1' }, body: '%PDF-1.4' });
+    expect(calls[4]?.headers['x-cv-import-name']).toBeUndefined();
+    expect(calls[4]?.headers['x-cv-import-replace']).toBeUndefined();
+    expect(calls[8]?.headers['Accept']).toBe('*/*');
   });
 
   it('trabajos: encolar, listar, consultar, cancelar y seguir los eventos por SSE con Accept y señal', async () => {

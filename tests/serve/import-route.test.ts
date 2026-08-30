@@ -22,6 +22,12 @@ const ITEMS: ItemsResult = {
     { page: 1, text: 'Backend Senior · Acme', x: 40, y: 630, width: 220, fontSize: 11 },
     { page: 1, text: 'mar 2020 – actualidad', x: 40, y: 615, width: 120, fontSize: 10 },
     { page: 1, text: '• Migré 14 servicios a Kubernetes.', x: 40, y: 600, width: 220, fontSize: 10 },
+    // «Freelance» sin empresa (fecha en la línea siguiente) → issue «sin empresa reconocida»; la línea suelta acaba en unparsed.
+    { page: 1, text: 'Freelance', x: 40, y: 580, width: 100, fontSize: 11 },
+    { page: 1, text: 'ene 2018 – dic 2019', x: 40, y: 565, width: 120, fontSize: 10 },
+    // Una línea sin viñeta dentro de «Logros» va directa a unparsed (cubre el mapa de la ruta).
+    { page: 1, text: 'Logros', x: 40, y: 540, width: 80, fontSize: 13 },
+    { page: 1, text: 'Nota perdida sin viñeta', x: 40, y: 520, width: 180, fontSize: 10 },
   ],
 };
 
@@ -50,9 +56,11 @@ describe('cv serve: POST /import', () => {
     expect(created.status).toBe(201);
     const body = (await created.json()) as { name: string; files: number; counts: { experience: number }; readme: string; issues: readonly unknown[] };
     expect(body.name).toBe('ada-ejemplo');
-    expect(body.counts.experience).toBe(1);
+    expect(body.counts.experience).toBe(2);
     expect(body.files).toBeGreaterThanOrEqual(3);
     expect(body.readme).toContain('# Informe del borrador importado');
+    expect(body.issues.length).toBeGreaterThanOrEqual(1);
+    expect((body as unknown as { unparsed: readonly unknown[] }).unparsed.length).toBeGreaterThanOrEqual(1);
     const conflict = await post(stubbed, '%PDF-1.4 finto');
     expect(conflict.status).toBe(409);
     expect(((await conflict.json()) as { error: { code: string } }).error.code).toBe('conflict');

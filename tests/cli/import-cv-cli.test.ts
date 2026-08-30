@@ -124,11 +124,33 @@ describe('cv import-cv (T-8.4b)', () => {
     h.fs.writeFile = () => Promise.reject(new Error('disco lleno'));
     expect(await runCli(['import-cv', 'cv.pdf'], h.context)).toBe(EXIT_FAILURE);
     expect(h.stderr()).toContain('No se pudo escribir el borrador');
+    const plano = harness();
+    plano.fs.writeFile = () => Promise.reject('sin espacio');
+    expect(await runCli(['import-cv', 'cv.pdf'], plano.context)).toBe(EXIT_FAILURE);
+    expect(plano.stderr()).toContain('sin espacio');
   });
 
-  it('sin nombre reconocible, la carpeta sale del nombre del fichero', async () => {
-    const h = harness({}, { itemsExtractor: async () => ({ ok: true as const, pages: 1, items: [{ page: 1, text: '· · ·', x: 0, y: 10, width: 10, fontSize: 10 }] }) });
+  it('sin nombre reconocible, la carpeta sale del fichero (y sin nada, «cv-importado»); los avisos remiten al README', async () => {
+    const puntos = { itemsExtractor: async () => ({ ok: true as const, pages: 1, items: [{ page: 1, text: '· · ·', x: 0, y: 10, width: 10, fontSize: 10 }] }) };
+    const h = harness({}, puntos);
     expect(await runCli(['import-cv', 'cv.pdf'], h.context)).toBe(EXIT_OK);
     expect(h.stdout()).toBe('import/cv\n');
+    const conAviso = harness({}, {
+      itemsExtractor: async () => ({
+        ok: true as const,
+        pages: 1,
+        items: [
+          { page: 1, text: 'Ana', x: 0, y: 90, width: 30, fontSize: 16 },
+          { page: 1, text: 'Experiencia', x: 0, y: 70, width: 80, fontSize: 13 },
+          { page: 1, text: 'Freelance', x: 0, y: 50, width: 70, fontSize: 11 },
+          { page: 1, text: 'ene 2020 – feb 2021', x: 0, y: 35, width: 110, fontSize: 10 },
+        ],
+      }),
+    });
+    expect(await runCli(['import-cv', 'cv.pdf'], conAviso.context)).toBe(EXIT_OK);
+    expect(conAviso.stderr()).toContain('Revisa el README.md del borrador:');
+    const sinNada = harness({ '/work/···.pdf': '%PDF-1.4 finto' }, { ...puntos, now: undefined });
+    expect(await runCli(['import-cv', '···.pdf'], sinNada.context)).toBe(EXIT_OK);
+    expect(sinNada.stdout()).toBe('import/cv-importado\n');
   });
 });
