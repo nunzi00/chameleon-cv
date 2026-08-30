@@ -81,6 +81,7 @@ typst compile - - --root <dir-plantilla> --font-path templates/fonts --ignore-sy
 3. `--ignore-system-fonts --font-path templates/fonts` (reproducible); `--creation-timestamp` = `meta.updatedAt` o la constante de T-2.6 (determinismo verificado).
 4. `timeout` 20 s con `SIGKILL`, `maxBuffer` 32 MiB para stdout/stderr, stdin cerrado tras escribir; salida escrita por nosotros con 0600 (mismo `writeBinaryFile` de T-2.6).
 5. Verificación del resultado como en T-2.6: cabecera `%PDF`, sin `/JavaScript`, `/Launch`, `/OpenAction`, `/AA`, `/EmbeddedFile`; `/FontFile2` presente.
+6. **Temas de terceros** (T-8.3, `docs/theme-gallery.md`): un tema instalado con `cv theme install` se ejecuta con exactamente esta contención —`--root` = su directorio, sin paquetes, sin red, mismos límites de tiempo y de memoria—; lo que cambia es la procedencia, y por eso queda a la vista (`.origin.json`, `cv theme verify`). La contención no se relaja para ningún tema.
 6. Opcional, gratis: `--pdf-standard a-2b` (archivo) o `ua-1` (accesibilidad); el PDF ya sale etiquetado.
 
 ## 4. Lenguaje de plantillas (pregunta 3)

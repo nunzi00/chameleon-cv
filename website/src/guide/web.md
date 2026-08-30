@@ -12,7 +12,7 @@ cv serve --open      # arranca el servidor y abre el navegador con la URL y el t
 ```
 
 ```text
-Chameleon CV 1.5.0 · espacio de trabajo /home/ada/mi-cv
+Chameleon CV 1.6.0 · espacio de trabajo /home/ada/mi-cv
 API: http://127.0.0.1:4310/api/v1/ (Authorization: Bearer <token>)
 Interfaz: http://127.0.0.1:4310/#token=4f6c…e2
 Ctrl-C para parar (o POST /api/v1/shutdown)
@@ -41,7 +41,7 @@ Las mismas opciones que `cv generate-cv`: especialidad, oferta (pegada como text
 - **Analizar oferta** es `cv analyze-offer`: cuántos requisitos reconoce, cuáles demuestra tu perfil (y con qué logros), cuáles no, las carencias y las mejores evidencias.
 - **Generar CV** escribe el fichero en `output/`. El Markdown se muestra como texto con descarga; el **PDF** se abre en el visor del navegador (se descarga con tu token y se muestra desde la memoria de la pestaña) con su botón de descarga.
 - **Informe de decisiones** es `--explain`: la selección por especialidad, la cobertura de la oferta, los recortes y el tema, con las mismas palabras que la CLI.
-- **Temas de Typst** (plegable): crea un tema en `themes/<nombre>/` de tu proyecto a partir de otro, como `cv theme create`.
+- **Temas de Typst** (plegable): crea un tema en `themes/<nombre>/` de tu proyecto a partir de otro, como `cv theme create`; e **Instalar tema…**, como `cv theme install`: desde un archivo o directorio del espacio de trabajo, o desde una URL `https://` (el servidor debe arrancar con `--allow-remote` y un diálogo pide confirmar la descarga con el host y el límite). «Ver el plan» es `--dry-run`. El selector de tema muestra la autoría y marca los instalados.
 
 ## Salidas
 
@@ -63,7 +63,7 @@ Cada revisión muestra, ítem a ítem, el **antes** (el logro tal como está en 
 
 ## Qué escribe la interfaz y qué no
 
-Escribe **solo cuando pulsas un botón con nombre**: Guardar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema (`themes/<nombre>/`), Lanzar (una revisión en `output/` al terminar un trabajo de mejorar o resumir), Guardar marcas (el fichero de la revisión), Escribir en las fuentes (tus fuentes, con copia `.bak`, tras confirmar) y Eliminar (una revisión). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.
+Escribe **solo cuando pulsas un botón con nombre**: Guardar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema e Instalar tema (`themes/<nombre>/`), Lanzar (una revisión en `output/` al terminar un trabajo de mejorar o resumir), Guardar marcas (el fichero de la revisión), Escribir en las fuentes (tus fuentes, con copia `.bak`, tras confirmar) y Eliminar (una revisión). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.
 
 ## Seguridad
 

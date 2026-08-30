@@ -82,6 +82,19 @@ El primero usa `mio` (por `cv.toml`); el segundo fuerza `classic` con `--theme`,
 
 Para ir más allá de las variables, edita `themes/mio/template.typ`: debe exportar `cv(d, theme)`, que recibe la vista estructurada del perfil y el tema ya validado. Typst se ejecuta contenido (sin red, `--root` limitado al tema, límites de tiempo y memoria), así que una plantilla solo puede leer lo que hay en su directorio. Contrato completo y ejemplo mínimo: [Plantillas Typst propias](/design/plantillas-typst).
 
+## 8. Instala un tema de la comunidad
+
+Un tema compartido por otra persona llega como un `.zip` o un `.tar.gz` (o como un directorio). Se instala en `themes/<nombre>/` sin tocar nada más, se ejecuta con la misma contención que los distribuidos y deja su origen y sus huellas a la vista:
+
+```bash
+cv theme install https://ejemplo.org/temas/comunidad.zip --sha256 <huella publicada>   # pide confirmación antes de descargar
+cv theme install ~/Descargas/comunidad.zip --dry-run                                  # solo el plan
+cv theme verify comunidad                                                             # intacto, modificado localmente o sin origen
+cv generate-cv -s backend --format pdf --engine typst --theme comunidad
+```
+
+La guía [Typst y temas](../guide/typst-themes#temas-de-la-comunidad-cv-theme-install-y-cv-theme-verify) cuenta la política de entradas, los límites y cómo publicar el tuyo.
+
 ## Siguiente
 
 [El co-piloto con Ollama](./copilot-ollama): mejoras verificadas por código sobre tus propios logros.

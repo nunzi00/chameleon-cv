@@ -4,7 +4,9 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
-Galería de temas (T-8.3, primer sprint): tres temas distribuidos nuevos, metadatos de autoría en `theme.toml` y la página «Galería de temas» del portal.
+## [1.6.0] - 2026-08-30
+
+Galería de temas (T-8.3): tres temas distribuidos nuevos, metadatos de autoría en `theme.toml`, la página «Galería de temas» del portal, `cv theme install` para temas de la comunidad (con consentimiento, lector propio y huellas), `cv theme verify`, la API en dos pasos y «Instalar tema…» en la interfaz web.
 
 ### Añadido
 
@@ -16,6 +18,8 @@ Galería de temas (T-8.3, primer sprint): tres temas distribuidos nuevos, metada
 - **`cv theme install <origen>`** (T-8.3, segundo sprint): instala en `themes/<nombre>/` un tema de la comunidad desde una URL `https://` a un `.zip` o `.tar.gz` (anuncio con host y límite de 8 MiB, consentimiento explícito o `--yes`; sin terminal y sin `--yes`, cancela sin tocar la red; solo https también tras redirecciones) o desde un archivo o directorio local. El archivo se lee **en el propio proceso** (zip «store»/«deflate» y tar ustar con `zlib`, sin `tar` del sistema) con una política de entradas cerrada (un directorio raíz opcional; solo `theme.toml`, `template.typ`, `README.md`, `LICENSE` y `fonts/<nombre>.ttf|otf`; sin `..`, rutas absolutas, enlaces ni dispositivos; límites por fichero, por fuente, totales y de entradas). `theme.toml` se valida antes de escribir; `--as` renombra, `--sha256` contrasta la huella publicada por el autor, `--dry-run` muestra el plan sin escribir y `--replace` aparta el tema anterior a `themes/<nombre>.<marca>.bak/`; la escritura es atómica (directorio temporal y renombrado).
 - **Origen y huellas**: `themes/<nombre>/.origin.json` registra origen, huella del archivo y de cada fichero; **`cv theme verify [<nombre>]`** las recalcula (intacto, modificado localmente con cada fichero, o sin origen; código 1 si hay diferencias) y `cv theme list` muestra el origen de cada tema instalado (`--verify` añade su estado). La API expone el origen en el inventario de temas.
 - Arnés `theme`: instalación desde archivos y directorios locales del banco (zip y tar.gz deterministas generados por `npm run acceptance:bench`), `--dry-run`, `--replace`, `--sha256`, `verify`, y los errores (archivo que sale del tema, sin plantilla, nombre inválido, huella distinta, tema existente, `http://` rechazado, `https://` sin terminal cancelado sin red); arnés `typst`: PDF con el tema instalado.
+- API: `POST /api/v1/themes/install` (archivo o directorio del espacio de trabajo, o URL https con `--allow-remote` y consentimiento en dos pasos: `409 consent-required` con `estimateId`, `host` y `limitBytes`, repetir con `consent.estimateId`; `dryRun` → 200 con el plan, instalado → 201) y `POST /api/v1/themes/{name}/verify`; `GET /api/v1/themes` expone el origen de cada tema instalado.
+- Interfaz web: en Generar, junto a «Crear tema», **Instalar tema…** (origen, nombre y huella opcionales, «Ver el plan», reemplazar) con el diálogo de consentimiento para las URL; el selector de tema muestra la autoría y marca los instalados.
 
 ## [1.5.0] - 2026-08-30
 

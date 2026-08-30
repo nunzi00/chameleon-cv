@@ -70,7 +70,7 @@
   "typst": {
     "usable": false
   },
-  "version": "1.5.0",
+  "version": "1.6.0",
   "workspace": "<WS>"
 }
 
@@ -4335,6 +4335,328 @@
   "from": "classic",
   "name": "api-tema",
   "shadowed": false
+}
+
+### POST /themes/install → 200
+{
+  "plan": {
+    "archiveSha256": "bfbc3701c2d7c867d37baf107197d39efdb0845e7211564fdd9820244fe7092e",
+    "config": {
+      "colors": {
+        "accent": "#8a1c1c",
+        "primary": "#0b3d2e",
+        "rule": "#7c9a8e",
+        "secondary": "#5a5a5a",
+        "text": "#222222"
+      },
+      "fonts": {
+        "body": "Libertinus Serif",
+        "heading": "Libertinus Serif",
+        "mono": "DejaVu Sans Mono"
+      },
+      "page": {
+        "margins": {
+          "bottom": 20,
+          "left": 24,
+          "right": 24,
+          "top": 24
+        },
+        "paper": "a4"
+      },
+      "sizes": {
+        "body": 10.5,
+        "code": 9.2,
+        "contact": 9.5,
+        "footer": 8.5,
+        "headline": 11.5,
+        "meta": 9.5,
+        "name": 22,
+        "section": 9.8,
+        "title": 11
+      },
+      "spacing": {
+        "leading": 0.65,
+        "list": 0.5,
+        "paragraph": 0.8
+      },
+      "theme": {
+        "author": "Banco de pruebas de Chameleon CV",
+        "description": "Tema de la comunidad del banco de pruebas: bench con acento granate",
+        "homepage": "https://example.org/temas/comunidad",
+        "license": "MIT",
+        "name": "comunidad",
+        "version": 1
+      }
+    },
+    "directory": "<WS>/themes/comunidad",
+    "files": [
+      {
+        "bytes": 4,
+        "path": "LICENSE",
+        "sha256": "adc37366f403835c1470ab2df93d3837d4719372fc1ef8593d922e06f033f8b2"
+      },
+      {
+        "bytes": 89,
+        "path": "README.md",
+        "sha256": "baead9809a94dde013c6f7db768d15238313271a2d4392e8019c889da165a383"
+      },
+      {
+        "bytes": 7941,
+        "path": "template.typ",
+        "sha256": "76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647"
+      },
+      {
+        "bytes": 984,
+        "path": "theme.toml",
+        "sha256": "40c5ad17a72d7ecb7dac9c46aec99fb2f7f74afda06463545aeb97e37b975a59"
+      }
+    ],
+    "kind": "archive",
+    "name": "comunidad",
+    "shadowed": false,
+    "source": "<WS>/themes/comunidad.zip",
+    "totalBytes": 9018
+  },
+  "written": false
+}
+
+### POST /themes/install → 201
+{
+  "plan": {
+    "archiveSha256": "bfbc3701c2d7c867d37baf107197d39efdb0845e7211564fdd9820244fe7092e",
+    "config": {
+      "colors": {
+        "accent": "#8a1c1c",
+        "primary": "#0b3d2e",
+        "rule": "#7c9a8e",
+        "secondary": "#5a5a5a",
+        "text": "#222222"
+      },
+      "fonts": {
+        "body": "Libertinus Serif",
+        "heading": "Libertinus Serif",
+        "mono": "DejaVu Sans Mono"
+      },
+      "page": {
+        "margins": {
+          "bottom": 20,
+          "left": 24,
+          "right": 24,
+          "top": 24
+        },
+        "paper": "a4"
+      },
+      "sizes": {
+        "body": 10.5,
+        "code": 9.2,
+        "contact": 9.5,
+        "footer": 8.5,
+        "headline": 11.5,
+        "meta": 9.5,
+        "name": 22,
+        "section": 9.8,
+        "title": 11
+      },
+      "spacing": {
+        "leading": 0.65,
+        "list": 0.5,
+        "paragraph": 0.8
+      },
+      "theme": {
+        "author": "Banco de pruebas de Chameleon CV",
+        "description": "Tema de la comunidad del banco de pruebas: bench con acento granate",
+        "homepage": "https://example.org/temas/comunidad",
+        "license": "MIT",
+        "name": "comunidad",
+        "version": 1
+      }
+    },
+    "directory": "<WS>/themes/comunidad",
+    "files": [
+      {
+        "bytes": 4,
+        "path": "LICENSE",
+        "sha256": "adc37366f403835c1470ab2df93d3837d4719372fc1ef8593d922e06f033f8b2"
+      },
+      {
+        "bytes": 89,
+        "path": "README.md",
+        "sha256": "baead9809a94dde013c6f7db768d15238313271a2d4392e8019c889da165a383"
+      },
+      {
+        "bytes": 7941,
+        "path": "template.typ",
+        "sha256": "76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647"
+      },
+      {
+        "bytes": 984,
+        "path": "theme.toml",
+        "sha256": "40c5ad17a72d7ecb7dac9c46aec99fb2f7f74afda06463545aeb97e37b975a59"
+      }
+    ],
+    "kind": "archive",
+    "name": "comunidad",
+    "shadowed": false,
+    "source": "<WS>/themes/comunidad.zip",
+    "totalBytes": 9018
+  },
+  "written": true
+}
+
+### POST /themes/install → 409
+{
+  "error": {
+    "code": "conflict",
+    "message": "Ya existe <WS>/themes/comunidad: usa --replace para apartarlo a <WS>/themes/comunidad.<marca>.bak/ o --as <otro-nombre> (nunca se sobrescribe un tema)"
+  }
+}
+
+### POST /themes/comunidad/verify → 200
+{
+  "directory": "<WS>/themes/comunidad",
+  "name": "comunidad",
+  "report": {
+    "files": [
+      {
+        "path": "LICENSE",
+        "state": "ok"
+      },
+      {
+        "path": "README.md",
+        "state": "ok"
+      },
+      {
+        "path": "template.typ",
+        "state": "ok"
+      },
+      {
+        "path": "theme.toml",
+        "state": "ok"
+      }
+    ],
+    "origin": {
+      "archiveSha256": "bfbc3701c2d7c867d37baf107197d39efdb0845e7211564fdd9820244fe7092e",
+      "files": {
+        "LICENSE": "adc37366f403835c1470ab2df93d3837d4719372fc1ef8593d922e06f033f8b2",
+        "README.md": "baead9809a94dde013c6f7db768d15238313271a2d4392e8019c889da165a383",
+        "template.typ": "76740d9cbe334d9430b13542f178fb2a06a6bd37717cf65c481883e5e5870647",
+        "theme.toml": "40c5ad17a72d7ecb7dac9c46aec99fb2f7f74afda06463545aeb97e37b975a59"
+      },
+      "installedAt": "<ISO>",
+      "kind": "archive",
+      "source": "<WS>/themes/comunidad.zip",
+      "tool": "chameleon-cv 1.6.0"
+    },
+    "state": "intact"
+  }
+}
+
+### POST /themes/classic/verify → 422
+{
+  "error": {
+    "code": "invalid-data",
+    "message": "«classic» es un tema distribuido: no tiene origen que verificar (solo los de themes/ del proyecto)"
+  }
+}
+
+### POST /themes/install → 422
+{
+  "error": {
+    "code": "invalid-data",
+    "message": "El archivo «<WS>/themes/escapa.zip» no es un tema instalable: La entrada «../escapa.typ» sale del tema («..»): no se admite"
+  }
+}
+
+### POST /themes/install → 403
+{
+  "error": {
+    "code": "remote-disabled",
+    "message": "Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para instalar temas desde una URL"
+  }
+}
+
+### GET /themes → 200
+{
+  "defaultName": "bench",
+  "entries": [
+    {
+      "builtin": false,
+      "description": "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado",
+      "directory": "<WS>/themes/api-tema",
+      "name": "api-tema",
+      "shadows": false
+    },
+    {
+      "builtin": false,
+      "description": "Tema del banco de pruebas: classic con paleta verde y márgenes anchos",
+      "directory": "<WS>/themes/bench",
+      "name": "bench",
+      "shadows": false
+    },
+    {
+      "author": "Banco de pruebas de Chameleon CV",
+      "builtin": false,
+      "description": "Tema de la comunidad del banco de pruebas: bench con acento granate",
+      "directory": "<WS>/themes/comunidad",
+      "homepage": "https://example.org/temas/comunidad",
+      "license": "MIT",
+      "name": "comunidad",
+      "origin": {
+        "installedAt": "<ISO>",
+        "kind": "archive",
+        "source": "<WS>/themes/comunidad.zip"
+      },
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Serif de una columna para trayectorias largas: cabecera centrada, secciones numeradas, fechas al margen y pie con paginación",
+      "directory": "<BUILTIN_THEMES>/academic",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "academic",
+      "shadows": false
+    },
+    {
+      "builtin": true,
+      "description": "Serif tradicional de aire académico: cabecera centrada, doble filete, secciones en mayúsculas y cuerpo justificado",
+      "directory": "<BUILTIN_THEMES>/classic",
+      "name": "classic",
+      "shadows": false
+    },
+    {
+      "builtin": true,
+      "description": "Diseño tipográfico de referencia: jerarquía sobria, versalitas en las secciones y fechas alineadas a la derecha",
+      "directory": "<BUILTIN_THEMES>/default",
+      "name": "default",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Monocromo y sin filetes: jerarquía solo por tamaño y peso, listas planas, sin tablas ni columnas; pensado para los ATS",
+      "directory": "<BUILTIN_THEMES>/minimal",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "minimal",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Contemporáneo: franja de acento en la cabecera, columna lateral con contacto, skills e idiomas, y fechas en pastillas",
+      "directory": "<BUILTIN_THEMES>/modern",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "license": "MIT",
+      "name": "modern",
+      "shadows": false
+    }
+  ],
+  "roots": [
+    "<WS>/themes",
+    "<BUILTIN_THEMES>"
+  ]
 }
 
 ### GET /jobs → 200

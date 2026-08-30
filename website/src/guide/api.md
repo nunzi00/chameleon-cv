@@ -51,6 +51,16 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/
 curl -s -H "Authorization: Bearer $TOKEN" -o cv.pdf $API/output/cv-ada-ejemplo-backend-acme.pdf
 ```
 
+Los temas de Typst tienen su inventario (`GET /themes`, con autoría y origen de cada uno), la creación a partir de otro (`POST /themes`) y, desde la 1.6.0, la instalación de temas de la comunidad (`POST /themes/install`) y su verificación (`POST /themes/{name}/verify`). Instalar desde una URL `https://` exige arrancar con `cv serve --allow-remote` y consentir en dos pasos: la primera petición responde `409 consent-required` con el `estimateId`, el host y el límite; repetirla con `consent.estimateId` es la confirmación (un solo uso, diez minutos). Un archivo o directorio del espacio de trabajo se instala sin pregunta; `dryRun` devuelve el plan sin escribir.
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"source":"temas/comunidad.zip","dryRun":true}' $API/themes/install          # el plan: ficheros, tamaños y huellas
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"source":"https://ejemplo.org/temas/comunidad.zip","sha256":"<huella>"}' $API/themes/install   # 409 con estimateId → repetir con {"consent":{"estimateId":"…"}}
+curl -s -X POST -H "Authorization: Bearer $TOKEN" $API/themes/comunidad/verify                      # intacto, modificado o sin origen
+```
+
 ## El co-piloto como trabajos
 
 `cv improve`, `cv summarize` y `cv suggest tags` tardan lo que tarde el modelo, así que la API los convierte en **trabajos**: `POST /jobs/improve` (o `/jobs/summarize`, `/jobs/suggest-tags`) responde `202` al instante con el identificador del trabajo, la cabecera `Location` y, como hace la CLI antes de enviar nada, **qué va a salir y a dónde** (`sending`: número de fragmentos, palabras, destino). Los trabajos se ejecutan de uno en uno (un solo modelo local) y se siguen de dos maneras:
