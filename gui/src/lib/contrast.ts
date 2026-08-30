@@ -9,7 +9,7 @@ export function parseHex(color: string): Rgb {
   if (match === null) {
     throw new Error(`Color inesperado: ${color}`);
   }
-  const value = Number.parseInt(match[1] ?? '', 16);
+  const value = Number.parseInt(match[1] as string, 16);
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
@@ -39,7 +39,7 @@ export function readTokens(css: string, selector: string): ReadonlyMap<string, s
   const open = css.indexOf('{', start);
   const close = css.indexOf('}', open);
   for (const match of css.slice(open, close).matchAll(/(--cv-[a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi)) {
-    tokens.set(match[1] ?? '', (match[2] ?? '').toLowerCase());
+    tokens.set(match[1] as string, (match[2] as string).toLowerCase());
   }
   return tokens;
 }

@@ -3,7 +3,19 @@
  * co-piloto y si responde; procedencia de las claves remotas (nunca su valor) y lista blanca.
  * Solo con `--provider <remoto>` explícito se comprueba ese proveedor en la red.
  */
-import { REMOTE_PROVIDER_IDS, describeKeys, formatLlmStatus, isRemoteProviderId, keysFilePath, removeApiKey, writeApiKey, type KeyPresence } from '../../llm';
+import {
+  REMOTE_PROVIDER_IDS,
+  describeKeys,
+  formatLlmStatus,
+  formatRuntimeState,
+  isRemoteProviderId,
+  isRuntimeRunner,
+  keysFilePath,
+  removeApiKey,
+  writeApiKey,
+  type KeyPresence,
+  type RuntimeResult,
+} from '../../llm';
 import type { CliContext } from '../context';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK } from '../output';
 
@@ -15,8 +27,72 @@ export interface LlmStatusCommandOptions {
 export async function runLlmStatus(context: CliContext, options: LlmStatusCommandOptions = {}): Promise<number> {
   const status = await context.llmStatus({ provider: options.provider, model: options.model });
   context.stdout(formatLlmStatus(status));
+  if (context.llmRuntime !== undefined) {
+    context.stdout(`${formatRuntimeState(await context.llmRuntime.status())}\n`);
+  }
   const remoteUsable = status.remote === undefined ? true : !('error' in status.remote) && status.remote.health.ok && status.remote.health.modelAvailable;
   return (status.usable || status.remote !== undefined) && remoteUsable ? EXIT_OK : EXIT_FAILURE;
+}
+
+/* ─────────────────────────── cv llm up / down (T-8.8) ─────────────────────────── */
+
+export interface LlmRuntimeCommandOptions {
+  readonly model?: string | undefined;
+  readonly runner?: string | undefined;
+  /** `--no-pull` lo pone a `false`. */
+  readonly pull?: boolean | undefined;
+  readonly json?: boolean | undefined;
+}
+
+function reportRuntime(context: CliContext, result: RuntimeResult, json: boolean): number {
+  const code = result.ok ? EXIT_OK : result.code === 'invalid-model' ? EXIT_DATA_ERROR : EXIT_FAILURE;
+  if (json) {
+    context.stdout(`${JSON.stringify(result, null, 2)}\n`);
+    return code;
+  }
+  if (!result.ok) {
+    context.stderr(`${result.message}\n`);
+    return code;
+  }
+  context.stdout(`${formatRuntimeState(result.state)}\n`);
+  return code;
+}
+
+/** `cv llm up [--model] [--runner native|docker] [--no-pull] [--json]`: arranca el Ollama local y asegura el modelo. */
+export async function runLlmUp(context: CliContext, options: LlmRuntimeCommandOptions = {}): Promise<number> {
+  if (context.llmRuntime === undefined) {
+    context.stderr('El runtime de Ollama no está disponible en este contexto\n');
+    return EXIT_FAILURE;
+  }
+  const runner = options.runner?.trim().toLowerCase();
+  if (runner !== undefined && runner !== '' && !isRuntimeRunner(runner)) {
+    context.stderr(`--runner debe ser native o docker (no «${options.runner}»)\n`);
+    return EXIT_DATA_ERROR;
+  }
+  const json = options.json === true;
+  const result = await context.llmRuntime.up({
+    model: options.model,
+    runner: runner === undefined || runner === '' ? undefined : runner,
+    pull: options.pull,
+    progress: json ? undefined : (line) => context.stdout(`${line}\n`),
+  });
+  return reportRuntime(context, result, json);
+}
+
+/** `cv llm down [--json]`: para el Ollama que arrancó cv; nunca uno ajeno. */
+export async function runLlmDown(context: CliContext, options: LlmRuntimeCommandOptions = {}): Promise<number> {
+  if (context.llmRuntime === undefined) {
+    context.stderr('El runtime de Ollama no está disponible en este contexto\n');
+    return EXIT_FAILURE;
+  }
+  const json = options.json === true;
+  const result = await context.llmRuntime.down();
+  if (!json) {
+    for (const line of result.lines) {
+      context.stdout(`${line}\n`);
+    }
+  }
+  return reportRuntime(context, result, json);
 }
 
 /* ─────────────────────────── cv llm key (T-8.2) ─────────────────────────── */

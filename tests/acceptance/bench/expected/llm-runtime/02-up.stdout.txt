@@ -1,0 +1,8 @@
+Ollama arrancado (native) · registro en <TMP>/home/.cache/chameleon-cv/ollama/serve.log
+Ollama responde en http://127.0.0.1:43117
+descargando el modelo «qwen2.5:7b-instruct» (native)…
+pulling manifest
+pulling 8934d96d3f08: 100%
+success
+modelo «qwen2.5:7b-instruct» disponible
+runtime: Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b-instruct» presente

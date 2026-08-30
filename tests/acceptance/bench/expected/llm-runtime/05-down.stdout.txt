@@ -1,0 +1,2 @@
+Ollama detenido (native)
+runtime: Ollama parado · runner native disponible

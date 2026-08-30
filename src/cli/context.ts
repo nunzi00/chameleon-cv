@@ -10,7 +10,8 @@ import { NodeFileSystem, defaultSourceParsers } from '../parsers';
 import { DEFAULT_PDF_LIMITS, createWorkerRunner, extractPdfText, workerSource } from '../pdf';
 import { renderTypstCv } from '../renderers/typst';
 import { installTypst, typstStatus } from '../typst';
-import { createNodeLlmCache, llmStatus, selectProvider, type LlmStatusOptions } from '../llm';
+import { createLlmRuntime, createNodeLlmCache, llmStatus, runtimeConfiguration, selectProvider, type LlmStatusOptions } from '../llm';
+import { createNodeRuntimeSystem } from '../llm/runtime-node';
 import { defaultAssets } from '../shared/assets';
 import { readStdin } from './stdin';
 
@@ -62,6 +63,7 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
     llmProvider: async (selection) => selectProvider(selection, await settings()),
     ...(interactive ? { confirm: askInTerminal, readSecret: askSecretInTerminal } : {}),
     llmCache: createNodeLlmCache(),
+    llmRuntime: createLlmRuntime(async () => runtimeConfiguration(process.env, await settings()), createNodeRuntimeSystem({ cwd })),
     assets,
   };
 }

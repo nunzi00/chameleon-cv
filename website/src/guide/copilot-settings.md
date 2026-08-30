@@ -17,6 +17,40 @@ groq = "openai/gpt-oss-120b"
 - **Precedencia**, campo a campo: `--provider`/`--model` de la orden > variables `CHAMELEON_LLM_*` > `cv.toml` > valores por defecto. `cv llm status` dice de dónde sale cada valor («orden», «entorno», «cv.toml», «por defecto») y si `cv.toml` existe, tiene la tabla `[llm]` o es inválido; un `cv.toml` inválido no se ignora en silencio: el co-piloto se detiene con el error.
 - Un proveedor remoto **nunca** se fija en `cv.toml`: se elige en cada orden (`--provider groq`) o en cada trabajo de la interfaz, con el consentimiento de coste de siempre. `[llm.models]` solo decide qué modelo usar cuando lo elijas.
 
+## Arrancar y parar Ollama desde cv
+
+Si el proveedor local es Ollama, `cv` puede arrancarlo y pararlo por ti (T-8.8), con el modelo configurado:
+
+```sh
+cv llm up                         # arranca Ollama y descarga el modelo si falta
+cv llm up --model llama3:8b       # otro modelo solo para este arranque
+cv llm up --runner docker         # fuerza el runner (native = binario ollama; docker = contenedor)
+cv llm up --no-pull               # no descargar el modelo si falta
+cv llm down                       # para el Ollama que arrancó cv
+cv llm status                     # incluye la línea «runtime: …»
+```
+
+Cómo funciona:
+
+- **Runner `native`** (hay `ollama` en el `PATH`, o en `CHAMELEON_OLLAMA_BIN`): `ollama serve` como proceso hijo
+  independiente, con `OLLAMA_HOST` derivado de la `base_url` loopback; el registro queda en
+  `~/.cache/chameleon-cv/ollama/serve.log` y el pid en `ollama.pid` (permisos 0600).
+- **Runner `docker`** (hay Docker): contenedor `chameleon-ollama` con la imagen `ollama/ollama` fijada por digest
+  (la misma que `compose.ai.yml`; se cambia con `CHAMELEON_OLLAMA_IMAGE`), puerto publicado solo en `127.0.0.1`
+  y volumen `chameleon-ollama` para los modelos. `cv llm down` hace `docker stop`: el contenedor y los modelos se
+  conservan, así que el siguiente `up` no vuelve a descargar nada.
+- Por defecto se usa `native` si hay `ollama`, si no `docker`; `--runner` o `CHAMELEON_LLM_RUNNER` lo fuerzan.
+- **Solo se para lo que arrancó cv.** Si Ollama ya responde pero lo arrancaste tú, `up` no lo toca (solo asegura
+  el modelo) y `down` se niega con un mensaje claro.
+- La única salida de red es la descarga del modelo desde el registro público de Ollama (la misma que implica
+  usar Ollama); no lleva ningún dato tuyo. En la interfaz web, «Ajustes → Ollama local» pide consentimiento antes
+  de descargar y sigue la descarga como un trabajo más de Co-piloto.
+- Dentro de la imagen Docker del producto (Compose) esta función está deshabilitada: allí Ollama es un servicio
+  del propio Compose (`compose.ai.yml`).
+
+Salida: `0` correcto; `1` modelo o runner inválidos; `2` sin runner, Ollama ajeno, arranque, descarga o parada
+fallidos. Con `--json` se obtiene el resultado completo (estado, líneas de progreso y, si falla, código y mensaje).
+
 ## Las claves de los proveedores remotos
 
 ```bash

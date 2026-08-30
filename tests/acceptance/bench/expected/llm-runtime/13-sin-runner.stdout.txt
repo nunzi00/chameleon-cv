@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "code": "no-runner",
+  "message": "no hay «<WS>/tools/no-ollama» ni Docker («<WS>/tools/no-docker»): instala Ollama o Docker",
+  "lines": []
+}

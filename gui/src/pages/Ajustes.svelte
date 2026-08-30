@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
+  import Dialog from '../components/Dialog.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
-  import type { LlmConfigResponse } from '../lib/api/types';
+  import type { LlmConfigResponse, RuntimeState } from '../lib/api/types';
+  import { isFinished } from '../lib/copilot/jobs';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { LOCAL_PROVIDERS, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, formFromConfig, lockedFields, type LocalForm, describeModelOptions } from '../lib/settings';
+  import { LOCAL_PROVIDERS, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, describeRuntime, formFromConfig, lockedFields, type LocalForm, describeModelOptions } from '../lib/settings';
 
   interface Props {
     api: ApiClient;
@@ -19,6 +21,14 @@
   let message = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
   let checks = $state<Record<string, string>>({});
+  // Runtime de Ollama (T-8.8): estado, líneas del último arranque y diálogos de consentimiento y de parada.
+  let runtime = $state<RuntimeState | undefined>(undefined);
+  let runtimeMessage = $state<string | undefined>(undefined);
+  let runtimeLines = $state<readonly string[]>([]);
+  let consentPull = $state(false);
+  let confirmStop = $state(false);
+  const runtimeView = $derived(runtime === undefined ? undefined : describeRuntime(runtime));
+  const RUNTIME_POLL_MS = 1000;
   const locked = $derived(config === undefined ? { provider: false, baseUrl: false, model: false } : lockedFields(config));
 
   function fail(caught: unknown): void {
@@ -78,8 +88,78 @@
     }
   }
 
+  async function loadRuntime(): Promise<void> {
+    try {
+      runtime = (await api.llmRuntime()).runtime;
+      runtimeMessage = undefined;
+    } catch (caught) {
+      const explained = explainError(caught);
+      if (explained.kind === 'session') {
+        onsession();
+      }
+      runtime = undefined;
+      runtimeMessage = `Runtime no disponible: ${explained.detail === '' ? explained.title : explained.detail}`;
+    }
+  }
+
+  function startOllama(): void {
+    if (runtimeView?.needsPull === true) {
+      consentPull = true;
+    } else {
+      void runtimeUp();
+    }
+  }
+
+  async function follow(id: string): Promise<void> {
+    for (;;) {
+      const { job } = await api.job(id);
+      runtimeLines = job.lines;
+      if (isFinished(job.status)) {
+        if (job.error !== undefined) {
+          error = { kind: 'other', title: 'Ollama no quedó listo', detail: job.error.message, lines: job.error.lines ?? [] };
+        }
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, RUNTIME_POLL_MS));
+    }
+  }
+
+  async function runtimeUp(): Promise<void> {
+    consentPull = false;
+    busy = 'Arrancando Ollama…';
+    error = undefined;
+    runtimeLines = [];
+    try {
+      const created = await api.llmRuntimeAction({ action: 'up' });
+      if ('job' in created) {
+        await follow(created.job.id);
+      }
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      busy = undefined;
+      await loadRuntime();
+    }
+  }
+
+  async function runtimeDown(): Promise<void> {
+    confirmStop = false;
+    busy = 'Parando Ollama…';
+    error = undefined;
+    try {
+      const result = await api.llmRuntimeAction({ action: 'down' });
+      runtimeLines = 'lines' in result ? result.lines : [];
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      busy = undefined;
+      await loadRuntime();
+    }
+  }
+
   onMount(() => {
     void load();
+    void loadRuntime();
   });
 </script>
 
@@ -127,7 +207,42 @@
         {#if busy !== undefined}<span class="cv-muted" aria-live="polite">{busy}</span>{/if}
       </div>
       {#if checks['local'] !== undefined || checks[form.provider] !== undefined}<p>{checks[form.provider] ?? checks['local']}</p>{/if}
+      <div class="cv-panel" aria-labelledby="cv-runtime-title">
+        <div class="cv-card-head">
+          <span class="cv-eyebrow" id="cv-runtime-title">Ollama local</span>
+          {#if runtimeView !== undefined}<span class="cv-badge {runtimeView.tone}">{runtimeView.badge}</span>{/if}
+        </div>
+        {#if runtimeMessage !== undefined}
+          <p class="cv-muted">{runtimeMessage}</p>
+        {:else if runtime !== undefined && runtimeView !== undefined}
+          <p>{runtimeView.detail}</p>
+          <div class="cv-actions">
+            <button class="cv-button primary" type="button" disabled={busy !== undefined || !runtimeView.canStart} title={runtimeView.startHint} onclick={startOllama}>{runtimeView.startLabel}</button>
+            <button class="cv-button danger-quiet" type="button" disabled={busy !== undefined || !runtimeView.canStop} onclick={() => (confirmStop = true)}>Parar Ollama</button>
+          </div>
+          {#if runtimeLines.length > 0}<pre class="cv-text cv-progress">{runtimeLines.join('\n')}</pre>{/if}
+          <p class="cv-muted">Solo se para lo que arrancó cv; un Ollama arrancado por ti no se toca. Registro: <code>{runtime.log}</code></p>
+        {:else}
+          <p class="cv-muted">Consultando el runtime…</p>
+        {/if}
+      </div>
     </div>
+    <Dialog open={consentPull} title="Descargar el modelo" onclose={() => (consentPull = false)}>
+      <p>
+        Ollama descargará <strong>«{runtime?.model.name}»</strong> del registro público de Ollama: varios GB y varios minutos. No sale ningún dato tuyo; solo entra el modelo.
+      </p>
+      <div class="cv-dialog-actions">
+        <button class="cv-button" type="button" onclick={() => (consentPull = false)}>Cancelar</button>
+        <button class="cv-button primary" type="button" onclick={runtimeUp}>Descargar y arrancar</button>
+      </div>
+    </Dialog>
+    <Dialog open={confirmStop} title="¿Parar Ollama?" onclose={() => (confirmStop = false)}>
+      <p>Se para el Ollama que arrancó cv. En Docker el contenedor y sus modelos se conservan; el co-piloto dejará de responder hasta que lo arranques de nuevo.</p>
+      <div class="cv-dialog-actions">
+        <button class="cv-button" type="button" onclick={() => (confirmStop = false)}>Cancelar</button>
+        <button class="cv-button danger" type="button" onclick={runtimeDown}>Parar</button>
+      </div>
+    </Dialog>
     <div class="cv-card">
       <h3>Proveedores externos</h3>
       <p class="cv-muted">

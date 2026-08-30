@@ -21,6 +21,9 @@ import type {
   JobResponse,
   JobsResponse,
   LlmCheckRequest,
+  LlmRuntimeActionRequest,
+  LlmRuntimeActionResponse,
+  LlmRuntimeResponse,
   LlmCheckResponse,
   LlmConfigResponse,
   LlmConfigWriteResponse,
@@ -137,10 +140,14 @@ export interface ApiClient {
   writeLlmConfig(body: LlmSettingsWriteRequest, ifMatch: string): Promise<LlmConfigWriteResponse>;
   /** Una llamada de salud explícita a un proveedor (los remotos exigen --allow-remote en el servidor). */
   checkLlm(body: LlmCheckRequest): Promise<LlmCheckResponse>;
+  /** El Ollama local: si responde, si lo arrancó cv, si el modelo está descargado y con qué runner arrancaría (T-8.8). */
+  llmRuntime(): Promise<LlmRuntimeResponse>;
+  /** «up» devuelve el trabajo `ollama-up` (202); «down» para lo que arrancó cv y devuelve el estado. */
+  llmRuntimeAction(body: LlmRuntimeActionRequest): Promise<LlmRuntimeActionResponse>;
   shutdown(): Promise<ShutdownResponse>;
 }
 
-export type JobKind = 'improve' | 'summarize' | 'suggest-tags';
+export type JobKind = 'improve' | 'summarize' | 'suggest-tags' | 'ollama-up';
 
 export type JobRequest =
   | { readonly kind: 'improve'; readonly body: ImproveJobRequest }
@@ -263,6 +270,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     llmConfig: () => request('GET', '/config/llm'),
     writeLlmConfig: (body, ifMatch) => requestWithHeaders('PUT', '/config/llm', body, { 'If-Match': ifMatchHeader(ifMatch) }),
     checkLlm: (body) => request('POST', '/config/llm/check', { body }),
+    llmRuntime: () => request('GET', '/llm/runtime'),
+    llmRuntimeAction: (body) => request('POST', '/llm/runtime', { body }),
     shutdown: () => request('POST', '/shutdown', { body: {} }),
   };
 }

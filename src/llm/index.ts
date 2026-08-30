@@ -16,6 +16,7 @@ export * from './provider';
 export * from './quota';
 export * from './registry';
 export * from './review';
+export * from './runtime';
 export * from './settings';
 export * from './status';
 export * from './suggest-tags-run';

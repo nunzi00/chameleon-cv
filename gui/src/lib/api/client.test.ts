@@ -191,3 +191,14 @@ describe('temas de la comunidad (T-8.3)', () => {
     expect(calls[2]?.body).toBe('{}');
   });
 });
+
+describe('runtime de Ollama (T-8.8)', () => {
+  it('consulta el estado y envía las acciones al servidor', async () => {
+    const { fetch: f, calls } = fakeFetch((call) => json(call.method === 'GET' ? 200 : 202, call.method === 'GET' ? { runtime: { running: false } } : { job: { id: 'j1' } }));
+    const api = createApiClient({ fetch: f, token: () => 'tok-1234567890abcdef' });
+    expect(await api.llmRuntime()).toEqual({ runtime: { running: false } });
+    expect(await api.llmRuntimeAction({ action: 'up', model: 'llama3:8b', pull: true })).toEqual({ job: { id: 'j1' } });
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/llm/runtime', 'POST /api/v1/llm/runtime']);
+    expect(calls[1]?.body).toBe(JSON.stringify({ action: 'up', model: 'llama3:8b', pull: true }));
+  });
+});

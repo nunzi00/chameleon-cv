@@ -12,7 +12,7 @@ import { lookupHistory, offerFingerprint, readHistory, recordHistory } from '../
 import type { AppContext } from '../app/context';
 import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
 import { buildProfile, loadProfile, loadSources } from '../app/dataset';
-import { environmentError, notFoundError, unsafePathError, type AppError } from '../app/errors';
+import { environmentError, notFoundError, unsafePathError, type AppError, type AppErrorCode } from '../app/errors';
 import { generateCv, writeCvFile } from '../app/generate';
 import type { AppWarning } from '../app/freshness';
 import { readOffer, type OfferInput } from '../app/offer';
@@ -21,7 +21,7 @@ import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { readConfigFile, writeLlmSettings } from '../app/settings';
-import { isRemoteProviderId, type LlmStatus } from '../llm';
+import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -29,7 +29,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
+import { AnalyzeSchema, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -285,6 +285,57 @@ export function createRouter(): Router<ServerState> {
       }
       const status = await state.context.llmStatus({ provider: requested === '' ? undefined : requested, model: parsed.value.model });
       return json(200, checkPayload(status, requested) satisfies LlmCheckResponse);
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/llm/runtime`,
+    summary:
+      'El Ollama local (T-8.8): si responde, si lo arrancó cv (native o docker), si el modelo configurado está descargado y con qué runner podría arrancarse; deshabilitado dentro de la imagen de Compose.',
+    writes: false,
+    handler: async (_request, state) => {
+      const runtime = state.context.llmRuntime;
+      if (runtime === undefined) {
+        return errorResponse('environment', 'El runtime de Ollama no está disponible en este servidor');
+      }
+      return json(200, { runtime: await runtime.status() } satisfies LlmRuntimeResponse);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/llm/runtime`,
+    summary:
+      '«up» arranca el Ollama local y descarga el modelo si falta, como trabajo `ollama-up` seguible por SSE (202); «down» para solo lo que arrancó cv y devuelve el estado (200). Nunca toca un Ollama ajeno.',
+    writes: true,
+    body: LlmRuntimeActionSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, LlmRuntimeActionSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const runtime = state.context.llmRuntime;
+      if (runtime === undefined) {
+        return errorResponse('environment', 'El runtime de Ollama no está disponible en este servidor');
+      }
+      if (parsed.value.action === 'down') {
+        const result = await runtime.down();
+        return result.ok
+          ? json(200, { runtime: result.state, lines: result.lines } satisfies LlmRuntimeDownResponse)
+          : errorResponse(runtimeErrorCode(result.code), result.message, { lines: result.lines });
+      }
+      const { model, runner, pull } = parsed.value;
+      const job = state.jobs.create('ollama-up', async (report) => {
+        const result = await runtime.up({ model, runner, pull, progress: report.line, signal: report.signal });
+        if (!result.ok) {
+          const code = runtimeErrorCode(result.code);
+          throw new JobFailure({ code, message: result.message, lines: result.lines, exitCode: code === 'invalid-data' ? 1 : 2 });
+        }
+        return { runtime: result.state, lines: result.lines };
+      });
+      const sending = { destination: 'ninguno: solo la descarga del modelo desde el registro público de Ollama, sin datos del usuario' };
+      return json(202, { job, sending, warnings: [] } satisfies JobCreatedResponse, { Location: `${API_PREFIX}/jobs/${job.id}` });
     },
   });
 
@@ -906,4 +957,16 @@ function addCopilotRoutes(router: Router<ServerState>): void {
       return result.ok ? json(200, result.outcome satisfies ApplyResponse) : appErrorResponse(result.error, { written: result.written });
     },
   });
+}
+
+/** Los fallos del runtime en el vocabulario de errores del servidor (estado HTTP según ERROR_STATUS). */
+function runtimeErrorCode(code: RuntimeErrorCode): AppErrorCode {
+  switch (code) {
+    case 'invalid-model':
+      return 'invalid-data';
+    case 'not-managed':
+      return 'conflict';
+    default:
+      return 'environment';
+  }
 }

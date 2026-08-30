@@ -22,6 +22,9 @@ import type { MasterProfile } from '../core/schema';
 import { SUGGEST_TAGS_LIMITS } from '../llm';
 import type { PlanDescription } from '../app/portability';
 import type { LlmStatus, QuotaSnapshot } from '../llm';
+import type { RuntimeState } from '../llm/runtime';
+
+export type { RuntimeState };
 import { LlmSettingsSchema, type LlmSettings } from '../llm/settings';
 import type { ServerErrorCode } from './http';
 import type { JobSnapshot } from './jobs';
@@ -140,6 +143,26 @@ export const LlmCheckSchema = z.object({
 });
 
 export type LlmCheckRequest = z.infer<typeof LlmCheckSchema>;
+
+/** POST /llm/runtime (T-8.8): arrancar (como trabajo `ollama-up`) o parar el Ollama local. */
+export const LlmRuntimeActionSchema = z.object({
+  action: z.enum(['up', 'down']),
+  /** Modelo solo para este arranque; por defecto, el configurado. */
+  model: z.string().trim().min(1).max(128).optional(),
+  runner: z.enum(['native', 'docker']).optional(),
+  /** `false`: no descargar el modelo si falta. */
+  pull: z.boolean().optional(),
+});
+export type LlmRuntimeActionRequest = z.infer<typeof LlmRuntimeActionSchema>;
+export interface LlmRuntimeResponse {
+  readonly runtime: RuntimeState;
+}
+/** `down`: el estado tras parar y lo que se hizo. (`up` responde 202 con `JobCreatedResponse`.) */
+export interface LlmRuntimeDownResponse {
+  readonly runtime: RuntimeState;
+  readonly lines: readonly string[];
+}
+export type LlmRuntimeActionResponse = JobCreatedResponse | LlmRuntimeDownResponse;
 export type OfferInputBody = z.infer<typeof OfferSchema>;
 export type GenerateRequest = z.infer<typeof GenerateSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeSchema>;

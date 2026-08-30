@@ -7,6 +7,7 @@
 import type { WritableFileSystem } from '../artifact';
 import type { MasterProfile } from '../core/schema';
 import type { LlmCacheStore, LlmStatus, LlmStatusOptions, ProviderSelection, ProviderSelectionResult } from '../llm';
+import type { LlmRuntime } from '../llm/runtime';
 import type { FileSystem, SourceParser } from '../parsers';
 import type { PdfExtractionResult } from '../pdf';
 import type { TypstRenderOptions, TypstRenderResult } from '../renderers/typst';
@@ -38,6 +39,8 @@ export interface AppContext {
   readonly llmProvider: (selection: ProviderSelection) => Promise<LlmProviderResult>;
   /** Caché local de respuestas del co-piloto. */
   readonly llmCache: LlmCacheStore;
+  /** Arrancar y parar el Ollama local (T-8.8); ausente en contextos sin procesos (pruebas). */
+  readonly llmRuntime?: LlmRuntime | undefined;
   /** Reloj (por defecto, el del sistema): fechas de los ficheros de revisión. */
   readonly now?: (() => Date) | undefined;
   /** Descarga de archivos de temas (T-8.3); inyectable en las pruebas. Por defecto, `fetch` de Node. */

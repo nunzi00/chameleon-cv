@@ -10,7 +10,7 @@ import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, type ApplyOptions } from './commands/apply';
-import { runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmStatus, type LlmStatusCommandOptions } from './commands/llm';
+import { type LlmRuntimeCommandOptions, type LlmStatusCommandOptions, runLlmDown, runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmStatus, runLlmUp } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
 import { SUMMARIZE_DEFAULTS, runSummarizeCommand, type SummarizeOptions } from './commands/summarize';
 import { runThemeCreate, runThemeInstall, runThemeList, runThemePath, runThemeVerify, type ThemeCreateOptions, type ThemeInstallCliOptions, type ThemeListOptions } from './commands/theme';
@@ -307,6 +307,23 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--model <name>', 'modelo del proveedor a comprobar')
     .action(async (options: LlmStatusCommandOptions) => {
       onExit(await runLlmStatus(context, options));
+    });
+  llm
+    .command('up')
+    .description('arranca el Ollama local (ollama serve o un contenedor Docker con la imagen fijada) y descarga el modelo configurado si falta; nunca toca un Ollama ajeno')
+    .option('--model <name>', 'modelo para este arranque (por defecto, el configurado)')
+    .option('--runner <runner>', 'native o docker; por defecto native si hay ollama, si no docker')
+    .option('--no-pull', 'no descargar el modelo si falta')
+    .option('--json', 'resultado en JSON (estado, líneas de progreso y, si falla, código y mensaje)')
+    .action(async (options: LlmRuntimeCommandOptions) => {
+      onExit(await runLlmUp(context, options));
+    });
+  llm
+    .command('down')
+    .description('para el Ollama que arrancó cv (proceso propio o contenedor chameleon-ollama, que se conserva con sus modelos); nunca uno ajeno')
+    .option('--json', 'resultado en JSON')
+    .action(async (options: LlmRuntimeCommandOptions) => {
+      onExit(await runLlmDown(context, options));
     });
   const key = llm.command('key').description('claves de los proveedores remotos: se guardan en tu fichero de claves (0600) y nunca se muestran');
   key

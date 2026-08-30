@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "state": {
+    "runner": "native",
+    "managed": true,
+    "running": true,
+    "model": {
+      "name": "qwen2.5:7b-instruct",
+      "present": true
+    },
+    "log": "<TMP>/home/.cache/chameleon-cv/ollama/serve.log",
+    "detail": "Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b-instruct» presente"
+  },
+  "lines": [
+    "Ollama ya está en marcha (native, lo arrancó cv)",
+    "modelo «qwen2.5:7b-instruct» disponible"
+  ]
+}

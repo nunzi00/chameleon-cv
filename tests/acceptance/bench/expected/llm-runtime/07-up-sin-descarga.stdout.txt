@@ -1,0 +1,4 @@
+Ollama arrancado (native) · registro en <TMP>/home/.cache/chameleon-cv/ollama/serve.log
+Ollama responde en http://127.0.0.1:43117
+el modelo «llama3:8b» no está descargado (--no-pull)
+runtime: Ollama en marcha (native, lo arrancó cv) · modelo «llama3:8b» no descargado

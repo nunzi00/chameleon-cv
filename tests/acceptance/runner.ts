@@ -279,6 +279,8 @@ export async function runScenario(scenario: Scenario, options: RunnerOptions, ty
       XDG_CACHE_HOME: join(home, '.cache'),
       TZ: 'UTC',
       LANG: 'C.UTF-8',
+      // Los dobles del banco (tools/ollama) necesitan Node sin tenerlo en el PATH.
+      CV_NODE: process.execPath,
       ...(scenario.requires === 'typst' && typst !== undefined ? { CHAMELEON_TYPST: typst } : {}),
     };
     // Los temas distribuidos viven en el repositorio (dist) o en la caché materializada (ejecutable): mismo marcador.

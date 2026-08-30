@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- Arrancar y parar el Ollama local desde cv (T-8.8): `cv llm up [--model] [--runner native|docker] [--no-pull] [--json]` y `cv llm down [--json]`, `GET|POST /api/v1/llm/runtime` (arranque como trabajo `ollama-up` seguible por SSE) y el panel «Ollama local» en Ajustes con consentimiento antes de descargar el modelo. Runners `native` (`ollama serve` como proceso hijo; pid y registro 0600 en la caché de usuario) y `docker` (contenedor `chameleon-ollama` con la imagen fijada por digest, publicada solo en loopback, volumen conservado al parar). Solo se para lo que arrancó cv; deshabilitado dentro de la imagen de Compose (`CHAMELEON_CONTAINER=1`); sin shell y con el nombre del modelo validado. `cv llm status` añade la línea `runtime: …`.
+
 ### Cambiado
 
 - Interfaz web, sprint S1 del rediseño (T-8.6, `docs/gui-design/`): sistema visual nuevo (tokens claro/oscuro con contraste AA comprobado en las pruebas, clases `cv-*` de referencia), barra lateral con tres grupos (Perfil, Producir, Co-piloto) más el portal, plegable a iconos (persistente, forzada por debajo de 1024 px), cabecera de contexto presente en todas las pantallas (espacio de trabajo, chips de artefacto/Typst/co-piloto/remotos alimentados por una sola consulta, conmutador de tema claro/oscuro/sistema aplicado antes del primer render y «Apagar» con confirmación), diálogos con foco atrapado y `Esc`. La pantalla Estado ya no tiene su propio botón de apagar.

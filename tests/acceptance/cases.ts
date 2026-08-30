@@ -41,6 +41,16 @@ const NO_LLM = { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } as const;
 
 const LUMEN_OFFER = `Data Engineer\n\nRequisitos:\n- Python y SQL avanzados.\n- Spark y Airflow en producción.\n- Kafka para ingesta en tiempo real.\n\nValorable:\n- dbt y Snowflake.\n`;
 
+/**
+ * Runtime de Ollama (T-8.8) con el doble `tools/ollama` del banco: puerto propio, sin Docker (ruta inexistente,
+ * haya o no Docker en la máquina) y el binario relativo al espacio de trabajo.
+ */
+const FAKE_OLLAMA = {
+  CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:43117',
+  CHAMELEON_OLLAMA_BIN: 'tools/ollama',
+  CHAMELEON_DOCKER_BIN: 'tools/no-docker',
+} as const;
+
 export const SCENARIOS: readonly Scenario[] = [
   {
     id: 'init',
@@ -248,6 +258,26 @@ export const SCENARIOS: readonly Scenario[] = [
           { path: 'output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf', kind: 'pdf' },
         ],
       },
+    ],
+  },
+  {
+    id: 'llm-runtime',
+    description: 'cv llm up/down con el doble de ollama: arranque native, descarga del modelo, estado, parada idempotente y negativas (sin runner, modelo o runner inválidos)',
+    workspace: 'bench',
+    steps: [
+      { id: 'status-parado', args: ['llm', 'status'], env: FAKE_OLLAMA, exitCode: 2 },
+      { id: 'up', args: ['llm', 'up'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'status-en-marcha', args: ['llm', 'status'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-idempotente', args: ['llm', 'up', '--json'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'down', args: ['llm', 'down'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'down-otra-vez', args: ['llm', 'down', '--json'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-sin-descarga', args: ['llm', 'up', '--no-pull', '--model', 'llama3:8b'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-descarga-fallida', args: ['llm', 'up', '--model', 'modelo-inexistente:1b'], env: FAKE_OLLAMA, exitCode: 2 },
+      { id: 'down-final', args: ['llm', 'down'], env: FAKE_OLLAMA, exitCode: 0 },
+      { id: 'up-runner-docker', args: ['llm', 'up', '--runner', 'docker'], env: FAKE_OLLAMA, exitCode: 2 },
+      { id: 'up-modelo-invalido', args: ['llm', 'up', '--model', 'Mayúsculas'], env: FAKE_OLLAMA, exitCode: 1 },
+      { id: 'up-runner-desconocido', args: ['llm', 'up', '--runner', 'podman'], env: FAKE_OLLAMA, exitCode: 1 },
+      { id: 'sin-runner', args: ['llm', 'up', '--json'], env: { ...FAKE_OLLAMA, CHAMELEON_OLLAMA_BIN: 'tools/no-ollama' }, exitCode: 2 },
     ],
   },
 ];

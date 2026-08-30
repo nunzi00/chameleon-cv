@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "state": {
+    "runner": "native",
+    "managed": false,
+    "running": false,
+    "model": {
+      "name": "qwen2.5:7b-instruct",
+      "present": false
+    },
+    "log": "<TMP>/home/.cache/chameleon-cv/ollama/serve.log",
+    "detail": "Ollama parado · runner native disponible"
+  },
+  "lines": [
+    "Ollama no está en marcha"
+  ]
+}

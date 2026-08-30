@@ -1,0 +1,1 @@
+nombre de modelo inválido «Mayúsculas»: minúsculas, dígitos, «.», «_», «-», un «/» y una etiqueta «:tag» (máx. 128)

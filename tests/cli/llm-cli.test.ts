@@ -75,3 +75,124 @@ describe('cv llm status --provider <remoto>', () => {
     expect(error.stdout()).toContain('Remoto: No hay clave para «openai»\n');
   });
 });
+
+/* ─────────────────────────── cv llm up / down (T-8.8) ─────────────────────────── */
+
+import type { LlmRuntime, RuntimeResult, RuntimeState, RuntimeUpOptions } from '../../src/llm';
+
+const RUNNING: RuntimeState = {
+  runner: 'native',
+  managed: true,
+  running: true,
+  model: { name: 'qwen2.5:7b-instruct', present: true },
+  log: '/h/.cache/chameleon-cv/ollama/serve.log',
+  disabled: undefined,
+  detail: 'Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b-instruct» presente',
+};
+const STOPPED: RuntimeState = { ...RUNNING, managed: false, running: false, model: { name: 'qwen2.5:7b-instruct', present: false }, detail: 'Ollama parado · runner native disponible' };
+
+function fakeRuntime(up: RuntimeResult, down: RuntimeResult): LlmRuntime & { readonly ups: RuntimeUpOptions[]; downs: number } {
+  const ups: RuntimeUpOptions[] = [];
+  const runtime = {
+    ups,
+    downs: 0,
+    status: async () => RUNNING,
+    up: async (options: RuntimeUpOptions = {}) => {
+      ups.push(options);
+      if (up.ok) {
+        for (const line of up.lines) {
+          options.progress?.(line);
+        }
+      }
+      return up;
+    },
+    down: async () => {
+      runtime.downs += 1;
+      return down;
+    },
+  };
+  return runtime;
+}
+
+const RUNTIME_STATUS: LlmStatus = {
+  config: CONFIG,
+  configError: undefined,
+  health: { ok: true, version: '0.33.2', models: ['qwen2.5:7b-instruct'], modelAvailable: true },
+  keys: { openai: 'none', anthropic: 'none', groq: 'none' },
+  keysFile: '/h/.config/chameleon-cv/keys.json',
+  allowedHosts: [],
+  remote: undefined,
+  usable: true,
+  settings: NO_SETTINGS,
+  providers: [],
+};
+
+function runtimeHarness(runtime: LlmRuntime | undefined): { context: CliContext; stdout: () => string; stderr: () => string } {
+  const base = harness(RUNTIME_STATUS);
+  const err: string[] = [];
+  const context: CliContext = { ...base.context, stderr: (text) => void err.push(text), ...(runtime === undefined ? {} : { llmRuntime: runtime }) };
+  return { context, stdout: base.stdout, stderr: () => err.join('') };
+}
+
+const UP_OK: RuntimeResult = { ok: true, state: RUNNING, lines: ['Ollama arrancado (native) · registro en /h/.cache/chameleon-cv/ollama/serve.log', 'modelo «qwen2.5:7b-instruct» disponible'] };
+const DOWN_OK: RuntimeResult = { ok: true, state: STOPPED, lines: ['Ollama detenido (native)'] };
+
+describe('cv llm up / down', () => {
+  it('llm status añade la línea del runtime cuando el contexto lo tiene', async () => {
+    const h = runtimeHarness(fakeRuntime(UP_OK, DOWN_OK));
+    expect(await runCli(['llm', 'status'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('runtime: Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b-instruct» presente');
+  });
+
+  it('up: pasa modelo, runner y --no-pull, imprime el progreso y el estado final', async () => {
+    const runtime = fakeRuntime(UP_OK, DOWN_OK);
+    const h = runtimeHarness(runtime);
+    expect(await runCli(['llm', 'up', '--model', 'llama3:8b', '--runner', 'Docker', '--no-pull'], h.context)).toBe(EXIT_OK);
+    expect(runtime.ups[0]).toMatchObject({ model: 'llama3:8b', runner: 'docker', pull: false });
+    expect(h.stdout()).toBe(
+      'Ollama arrancado (native) · registro en /h/.cache/chameleon-cv/ollama/serve.log\nmodelo «qwen2.5:7b-instruct» disponible\nruntime: Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b-instruct» presente\n',
+    );
+  });
+
+  it('up --json: el resultado íntegro y ningún progreso suelto; sin opciones, todo por defecto', async () => {
+    const runtime = fakeRuntime(UP_OK, DOWN_OK);
+    const h = runtimeHarness(runtime);
+    expect(await runCli(['llm', 'up', '--json'], h.context)).toBe(EXIT_OK);
+    expect(JSON.parse(h.stdout())).toEqual(UP_OK);
+    expect(runtime.ups[0]).toMatchObject({ model: undefined, runner: undefined, pull: true });
+    expect(runtime.ups[0]?.progress).toBeUndefined();
+  });
+
+  it('up: los fallos van a stderr con salida 2 (o 1 si el modelo es inválido); --runner desconocido es un error de uso', async () => {
+    const failing = runtimeHarness(fakeRuntime({ ok: false, code: 'no-runner', message: 'no hay «ollama» ni Docker', lines: [] }, DOWN_OK));
+    expect(await runCli(['llm', 'up'], failing.context)).toBe(EXIT_FAILURE);
+    expect(failing.stderr()).toBe('no hay «ollama» ni Docker\n');
+    const invalid = runtimeHarness(fakeRuntime({ ok: false, code: 'invalid-model', message: 'nombre de modelo inválido', lines: [] }, DOWN_OK));
+    expect(await runCli(['llm', 'up', '--json'], invalid.context)).toBe(1);
+    expect(JSON.parse(invalid.stdout())).toMatchObject({ ok: false, code: 'invalid-model' });
+    const runner = runtimeHarness(fakeRuntime(UP_OK, DOWN_OK));
+    expect(await runCli(['llm', 'up', '--runner', 'podman'], runner.context)).toBe(1);
+    expect(runner.stderr()).toBe('--runner debe ser native o docker (no «podman»)\n');
+  });
+
+  it('down: imprime lo hecho y el estado; --json devuelve el resultado; un Ollama ajeno no se para', async () => {
+    const runtime = fakeRuntime(UP_OK, DOWN_OK);
+    const h = runtimeHarness(runtime);
+    expect(await runCli(['llm', 'down'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe('Ollama detenido (native)\nruntime: Ollama parado · runner native disponible\n');
+    expect(runtime.downs).toBe(1);
+    const json = runtimeHarness(fakeRuntime(UP_OK, DOWN_OK));
+    expect(await runCli(['llm', 'down', '--json'], json.context)).toBe(EXIT_OK);
+    expect(JSON.parse(json.stdout())).toEqual(DOWN_OK);
+    const foreign = runtimeHarness(fakeRuntime(UP_OK, { ok: false, code: 'not-managed', message: 'Ollama está en marcha pero no lo arrancó cv', lines: [] }));
+    expect(await runCli(['llm', 'down'], foreign.context)).toBe(EXIT_FAILURE);
+    expect(foreign.stderr()).toBe('Ollama está en marcha pero no lo arrancó cv\n');
+  });
+
+  it('sin runtime en el contexto, up y down lo dicen y fallan', async () => {
+    const h = runtimeHarness(undefined);
+    expect(await runCli(['llm', 'up'], h.context)).toBe(EXIT_FAILURE);
+    expect(await runCli(['llm', 'down'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toBe('El runtime de Ollama no está disponible en este contexto\nEl runtime de Ollama no está disponible en este contexto\n');
+  });
+});

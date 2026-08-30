@@ -379,6 +379,21 @@ describe('contexto real y errores no estándar', () => {
     context.stderr('');
   });
 
+  it('el runtime de Ollama del contexto real resuelve la configuración de cv.toml y el entorno (una URL no local la invalida, sin tocar procesos)', async () => {
+    const previous = process.env['CHAMELEON_LLM_BASE_URL'];
+    process.env['CHAMELEON_LLM_BASE_URL'] = 'http://ejemplo.com:11434';
+    try {
+      const state = await createNodeContext().llmRuntime?.status();
+      expect(state?.disabled).toContain('configuración del co-piloto inválida');
+    } finally {
+      if (previous === undefined) {
+        delete process.env['CHAMELEON_LLM_BASE_URL'];
+      } else {
+        process.env['CHAMELEON_LLM_BASE_URL'] = previous;
+      }
+    }
+  });
+
   it('el extractor de PDF del contexto real contiene la extracción en un worker', async () => {
     expect(await createNodeContext().pdfExtractor(Buffer.from('no soy un pdf', 'utf8'))).toEqual({ ok: false, code: 'invalid', message: 'Invalid PDF structure.' });
   });

@@ -53,6 +53,9 @@ docker compose -f compose.yml -f compose.ai.yml -f compose.gpu.yml run --rm cham
 
 Las claves de proveedores remotos, si las usas, llegan por `environment` en una superposición tuya (`CHAMELEON_OPENAI_API_KEY`…) o montando tu `keys.json` (0600) en `/home/cv/.config/chameleon-cv/keys.json`; el resto de reglas ([consentimiento, lista blanca, coste](/guide/copilot#proveedores-remotos-opcional)) se aplican igual.
 
+> Dentro del contenedor, `cv llm up` y `cv llm down` (y el panel «Ollama local» de Ajustes) quedan deshabilitados:
+> aquí Ollama es un servicio del propio Compose y se gestiona con `docker compose`.
+
 ## La API desde el contenedor
 
 `compose.serve.yml` arranca `cv serve` dentro del contenedor y publica el puerto **solo en el loopback del anfitrión** (`127.0.0.1:4310`): nadie más en tu red puede llegar a él. El token de sesión sale en los logs:

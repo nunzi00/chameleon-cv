@@ -171,6 +171,8 @@ test('Ajustes muestra la configuración de cv.toml con sus orígenes, comprueba 
   await model.fill('stub-model');
   await page.getByRole('button', { name: 'Guardar en cv.toml' }).click();
   await expect(page.getByText(/modelo stub-model \(cv\.toml\)/)).toBeVisible();
+  // Panel del runtime de Ollama (T-8.8): siempre presente, con su estado o el motivo por el que no aplica.
+  await expect(page.getByText('Ollama local')).toBeVisible();
 });
 
 test('la barra lateral y la cabecera de contexto (T-8.6 S1): chips en toda pantalla, tema, teclado, plegado y 1024 px', async ({ page }) => {

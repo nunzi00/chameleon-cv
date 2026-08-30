@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LlmConfigResponse } from './api/types';
-import { buildSettings, describeCheck, describeProvider, formFromConfig, isLoopbackUrl, lockedFields, describeModelOptions } from './settings';
+import { buildSettings, describeCheck, describeModelOptions, describeProvider, describeRuntime, formFromConfig, isLoopbackUrl, lockedFields } from './settings';
 
 const GROQ: LlmConfigResponse['llm']['providers'][number] = {
   id: 'groq',
@@ -109,5 +109,27 @@ describe('describeModelOptions', () => {
   it('lista los modelos con su estado y las tareas recomendadas; con uno solo no dice nada', () => {
     expect(describeModelOptions(GROQ.models)).toBe('openai/gpt-oss-120b (estable; mejorar logros, resumir) · qwen/qwen3.8-27b (preview; sugerir etiquetas, mejorar logros, resumir)');
     expect(describeModelOptions(GROQ.models.slice(0, 1))).toBeUndefined();
+  });
+});
+
+describe('describeRuntime (T-8.8)', () => {
+  const base = { runner: 'native' as const, managed: false, running: false, model: { name: 'qwen2.5:7b', present: false }, log: '/h/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
+
+  it('deshabilitado: ni arrancar ni parar, con el motivo como pista', () => {
+    const view = describeRuntime({ ...base, runner: 'none', disabled: 'dentro del contenedor de Compose…', detail: 'dentro del contenedor de Compose…' });
+    expect(view).toMatchObject({ tone: 'warn', badge: 'no disponible', canStart: false, canStop: false, startHint: 'dentro del contenedor de Compose…', needsPull: false });
+  });
+
+  it('parado: se puede arrancar si hay runner (descargando el modelo si falta); sin runner, la pista lo explica', () => {
+    expect(describeRuntime(base)).toMatchObject({ tone: 'warn', badge: 'parado', canStart: true, canStop: false, startLabel: 'Arrancar Ollama con «qwen2.5:7b»', startHint: undefined, needsPull: true });
+    expect(describeRuntime({ ...base, model: { name: 'qwen2.5:7b', present: true } }).needsPull).toBe(false);
+    expect(describeRuntime({ ...base, runner: 'none' })).toMatchObject({ canStart: false, startHint: 'No hay ollama ni Docker en esta máquina' });
+  });
+
+  it('en marcha: parar solo si lo arrancó cv; arrancar solo si falta el modelo (entonces es descargar)', () => {
+    const ready = describeRuntime({ ...base, running: true, managed: true, model: { name: 'qwen2.5:7b', present: true }, detail: 'Ollama en marcha (native, lo arrancó cv)' });
+    expect(ready).toMatchObject({ tone: 'ok', badge: 'en marcha (native, lo arrancó cv)', canStart: false, canStop: true, startHint: 'Ollama ya está en marcha con el modelo', needsPull: false });
+    const foreign = describeRuntime({ ...base, running: true, managed: false, runner: 'none', detail: 'Ollama en marcha (no lo arrancó cv)' });
+    expect(foreign).toMatchObject({ tone: 'warn', badge: 'en marcha (no lo arrancó cv)', canStart: true, canStop: false, startLabel: 'Descargar «qwen2.5:7b»', needsPull: true });
   });
 });

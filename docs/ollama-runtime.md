@@ -1,6 +1,19 @@
 # Arrancar y parar Ollama desde Chameleon CV (T-8.8) — PROPUESTA v1
 
-Estado: PROPUESTA (2026-08-30) · Encargo del Director · Pendiente de aprobación del PO
+Estado: **APROBADA por el PO (D1–D8) e IMPLEMENTADA el 2026-08-30** · Encargo del Director
+
+Desviaciones respecto a la propuesta, decididas en la implementación:
+
+- El runner y la imagen se fuerzan con `--runner` / `CHAMELEON_LLM_RUNNER` y `CHAMELEON_OLLAMA_IMAGE`; la tabla
+  `[llm.runtime]` de `cv.toml` (D1/D2) se pospone a S3 de T-8.6, cuando el formulario de Ajustes también la
+  conserve al guardar (hoy `PUT /config/llm` sustituye la tabla `[llm]` entera y la perdería).
+- Códigos de salida según la convención de la CLI (0 correcto, 1 datos inválidos, 2 fallo), no los 3/4/5 de §6.
+- `POST /api/v1/llm/runtime` con `action: "up"` responde 202 con el trabajo `ollama-up` (progreso por SSE);
+  `down` responde 200 con el estado y las líneas; los fallos usan los códigos del servidor (`invalid-data` 422,
+  `conflict` 409 para un Ollama ajeno, `environment` 503 para el resto).
+- Verificación: unidad (núcleo y adaptador de Node con procesos reales), rutas del servidor, CLI, GUI y arnés de
+  aceptación con un doble de `ollama` (`tests/acceptance/bench/tools/ollama`); la prueba con Docker y Ollama
+  reales es manual (pendiente de evidencia en la máquina del Director).
 
 ## §0 Encargo
 

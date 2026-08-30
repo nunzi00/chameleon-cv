@@ -42,7 +42,7 @@ function response(overrides: { llm?: Partial<LlmConfigResponse['llm']>; remote?:
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmRuntimeAction: vi.fn(),
     llmConfig: vi.fn(async () => response()),
     writeLlmConfig: vi.fn(async () => ({ path: '/work/cv.toml', sha256: 'def', llm: {} })),
     checkLlm: vi.fn(async () => ({ provider: 'openai-compatible', kind: 'local' as const, ok: true, models: ['qwen'], modelAvailable: true, message: undefined, quota: undefined })),
@@ -126,5 +126,73 @@ describe('Ajustes: remotos pendientes de verificación humana', () => {
     await waitFor(() => expect(screen.getByText(/Pendiente de verificación humana: pendiente de la verificación al alta/)).toBeTruthy());
     const item = screen.getByText('groq', { selector: 'strong' }).closest('li') as HTMLElement;
     expect((within(item).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe('Ajustes · Ollama local (T-8.8)', () => {
+  const STOPPED = { runner: 'native' as const, managed: false, running: false, model: { name: 'qwen2.5:7b', present: false }, log: '/h/.cache/chameleon-cv/ollama/serve.log', disabled: undefined, detail: 'Ollama parado · runner native disponible' };
+  const RUNNING = { ...STOPPED, managed: true, running: true, model: { name: 'qwen2.5:7b', present: true }, detail: 'Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b» presente' };
+
+  it('arrancar con el modelo sin descargar pide consentimiento, lanza el trabajo, lo sigue y refresca el estado', async () => {
+    let state = STOPPED;
+    const api = fakeApi({
+      llmRuntime: vi.fn(async () => ({ runtime: state })),
+      llmRuntimeAction: vi.fn(async () => ({ job: { id: 'j1', kind: 'ollama-up' as const, status: 'queued' as const, createdAt: '', startedAt: undefined, finishedAt: undefined, lines: [], result: undefined, error: undefined }, sending: {}, warnings: [] })),
+      job: vi.fn(async () => {
+        state = RUNNING;
+        return { job: { id: 'j1', kind: 'ollama-up' as const, status: 'done' as const, createdAt: '', startedAt: undefined, finishedAt: undefined, lines: ['descargando…', 'modelo disponible'], result: undefined, error: undefined } };
+      }),
+    });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByText('Ollama parado · runner native disponible')).toBeTruthy());
+    expect(screen.getByText('parado')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Parar Ollama' }) as HTMLButtonElement).disabled).toBe(true);
+    await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen2.5:7b»' }));
+    expect(screen.getByRole('dialog').textContent).toContain('registro público de Ollama');
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(api.llmRuntimeAction).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen2.5:7b»' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Descargar y arrancar' }));
+    await waitFor(() => expect(screen.getByText('Ollama en marcha (native, lo arrancó cv) · modelo «qwen2.5:7b» presente')).toBeTruthy());
+    expect(api.llmRuntimeAction).toHaveBeenCalledWith({ action: 'up' });
+    expect(document.querySelector('pre.cv-progress')?.textContent).toBe('descargando…\nmodelo disponible');
+    expect((screen.getByRole('button', { name: 'Parar Ollama' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('parar pide confirmación y muestra lo hecho; un trabajo fallido explica el error; sin runtime, el mensaje', async () => {
+    let state = RUNNING;
+    const api = fakeApi({
+      llmRuntime: vi.fn(async () => ({ runtime: state })),
+      llmRuntimeAction: vi.fn(async (body: { action: string }) => {
+        if (body.action === 'down') {
+          state = STOPPED;
+          return { runtime: STOPPED, lines: ['Ollama detenido (native)'] };
+        }
+        return { job: { id: 'j2', kind: 'ollama-up' as const, status: 'queued' as const, createdAt: '', startedAt: undefined, finishedAt: undefined, lines: [], result: undefined, error: undefined }, sending: {}, warnings: [] };
+      }),
+      job: vi.fn(async () => ({ job: { id: 'j2', kind: 'ollama-up' as const, status: 'failed' as const, createdAt: '', startedAt: undefined, finishedAt: undefined, lines: ['descargando…'], result: undefined, error: { code: 'environment', message: 'la descarga falló', lines: undefined } } })),
+    });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Parar Ollama' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Parar Ollama' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Parar' }));
+    await waitFor(() => expect(screen.getByText('Ollama detenido (native)')).toBeTruthy());
+    expect(api.llmRuntimeAction).toHaveBeenCalledWith({ action: 'down' });
+    // Ahora está parado con el modelo ausente: arrancar → consentimiento → el trabajo falla.
+    await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen2.5:7b»' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Descargar y arrancar' }));
+    await waitFor(() => expect(screen.getByText('la descarga falló')).toBeTruthy());
+    expect(screen.getByText('Ollama no quedó listo')).toBeTruthy();
+  });
+
+  it('cuando el servidor no tiene runtime (503) lo dice sin tratarlo como error; un 401 devuelve a la puerta', async () => {
+    const onsession = vi.fn();
+    const api = fakeApi({ llmRuntime: vi.fn(async () => Promise.reject(new ApiError(503, { code: 'environment', message: 'El runtime de Ollama no está disponible en este servidor' }))) });
+    render(Ajustes, { props: { api, onsession } });
+    await waitFor(() => expect(screen.getByText(/Runtime no disponible: .*no está disponible en este servidor/)).toBeTruthy());
+    expect(onsession).not.toHaveBeenCalled();
+    const expired = fakeApi({ llmRuntime: vi.fn(async () => Promise.reject(new ApiError(401, { code: 'unauthorized', message: 'Caducó' }))) });
+    render(Ajustes, { props: { api: expired, onsession } });
+    await waitFor(() => expect(onsession).toHaveBeenCalled());
   });
 });

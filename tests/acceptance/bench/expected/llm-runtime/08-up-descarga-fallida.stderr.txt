@@ -1,0 +1,1 @@
+la descarga de «modelo-inexistente:1b» falló: Error: pull model manifest: file does not exist: modelo-inexistente:1b
