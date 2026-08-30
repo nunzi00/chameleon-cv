@@ -143,6 +143,16 @@ export interface ThemeInventoryEntry {
   readonly homepage: string | undefined;
   /** Motivo por el que no se puede usar, si lo hay. */
   readonly error: string | undefined;
+  /** Origen registrado en `.origin.json` (temas instalados, T-8.3); lo añade la capa de aplicación. */
+  readonly origin?: ThemeOriginSummary | undefined;
+}
+
+export interface ThemeOriginSummary {
+  readonly source: string;
+  readonly kind: 'url' | 'archive' | 'directory';
+  readonly installedAt: string;
+  /** Solo cuando se piden las huellas (`cv theme list --verify`). */
+  readonly verified?: 'intact' | 'modified' | undefined;
 }
 
 /** Inventario para `cv theme list`: cada tema visible con su origen, descripción y validez. */

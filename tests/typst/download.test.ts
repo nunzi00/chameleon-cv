@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { DOWNLOAD_LIMITS, DownloadError, downloadToFile, fetchWithNode, type FetchedResponse, type Fetcher } from '../../src/typst';
+import { DOWNLOAD_LIMITS, DownloadError, downloadToBuffer, downloadToFile, fetchWithNode, type FetchedResponse, type Fetcher } from '../../src/typst';
 
 const PAYLOAD = Buffer.from('%PDF-contenido de prueba para la descarga verificada'.repeat(100));
 const SHA = createHash('sha256').update(PAYLOAD).digest('hex');
@@ -113,5 +113,30 @@ describe('fetchWithNode', () => {
     expect((await fetchWithNode(url.replace('/asset', '/chunked'))).contentLength).toBeUndefined();
     const error = await downloadToFile(url, join(directory, 'insecure.bin'), { expectedSha256: SHA }).catch((e: unknown) => e);
     expect(error).toMatchObject({ code: 'insecure' });
+    await expect(downloadToBuffer(url, { maxBytes: 10 })).rejects.toMatchObject({ code: 'insecure' });
+  });
+});
+
+describe('downloadToBuffer (T-8.3, archivos de temas)', () => {
+  it('descarga en memoria con las mismas comprobaciones: contenido, bytes, huella y URL final', async () => {
+    const result = await downloadToBuffer('https://example/tema.zip', { maxBytes: PAYLOAD.length, fetcher: respond() });
+    expect(result).toEqual({ bytes: PAYLOAD.length, sha256: SHA, content: PAYLOAD, url: 'https://objects.example/typst.tar.xz' });
+    expect(Buffer.from(result.content).equals(PAYLOAD)).toBe(true);
+  });
+
+  it('rechaza la URL final no https, el HTTP fallido, el tamaño anunciado o real por encima del límite y la red caída', async () => {
+    await expect(downloadToBuffer('https://example/t', { maxBytes: 1_000_000, fetcher: respond({ url: 'http://objects.example/t' }) })).rejects.toMatchObject({ code: 'insecure' });
+    await expect(downloadToBuffer('https://example/t', { maxBytes: 1_000_000, fetcher: respond({ ok: false, status: 404 }) })).rejects.toMatchObject({ code: 'http' });
+    await expect(downloadToBuffer('https://example/t', { maxBytes: 10, fetcher: respond() })).rejects.toMatchObject({ code: 'too-large', message: `El fichero anuncia ${PAYLOAD.length} bytes; el máximo admitido es 10` });
+    await expect(downloadToBuffer('https://example/t', { maxBytes: 1000, fetcher: respond({ contentLength: undefined }) })).rejects.toMatchObject({ code: 'too-large', message: 'La descarga supera el máximo admitido (1000 bytes)' });
+    await expect(downloadToBuffer('https://example/t', { maxBytes: 1000, fetcher: () => Promise.reject(new TypeError('fetch failed')) })).rejects.toMatchObject({ code: 'network' });
+    const timeouts: Array<number | undefined> = [];
+    const fetcher: Fetcher = (_url, timeoutMs) => {
+      timeouts.push(timeoutMs);
+      return respond()('x');
+    };
+    await downloadToBuffer('https://example/t', { maxBytes: PAYLOAD.length, fetcher, timeoutMs: 60_000 });
+    await downloadToBuffer('https://example/t', { maxBytes: PAYLOAD.length, fetcher });
+    expect(timeouts).toEqual([60_000, undefined]);
   });
 });

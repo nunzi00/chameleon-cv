@@ -138,7 +138,8 @@ export class MemoryFileSystem implements FileSystem, WritableFileSystem {
 
   async writeBinaryFile(path: string, bytes: Uint8Array, mode: number): Promise<void> {
     this.check('writeFile', path);
-    this.add(path, { kind: 'file', content: '', bytes, mode, mtimeMs: this.tick() });
+    // Como en el disco real, lo escrito en binario también se puede leer como texto.
+    this.add(path, { kind: 'file', content: Buffer.from(bytes).toString('utf8'), bytes, mode, mtimeMs: this.tick() });
   }
 
   async rename(from: string, to: string): Promise<void> {
