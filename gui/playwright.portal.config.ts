@@ -12,7 +12,9 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   webServer: {
+    // Base «/» explícita: en Pages el trabajo exporta DOCS_BASE=/<repo>/ y el sitio quedaría bajo esa ruta (404 en «/»).
     command: 'npm --prefix ../website run preview -- --port 4173 --host 127.0.0.1',
+    env: { DOCS_BASE: '/' },
     url: 'http://127.0.0.1:4173/',
     reuseExistingServer: false,
     timeout: 60_000,
