@@ -109,8 +109,11 @@ jobs:
           echo "CHAMELEON_TYPST=$HOME/.cache/chameleon-cv/typst/$TYPST_VERSION/typst" >> "$GITHUB_ENV"
       - name: npm run package (compilación limpia, bundles, manifiesto, node --build-sea, prueba de humo, tar.gz + sha256)
         run: npm run package
-      - name: Arnés de aceptación determinista contra el ejecutable (byte a byte, interfaz web incluida)
-        run: npm run test:acceptance:deterministic -- --binary build/sea/cv --require-typst
+      - name: Arnés de aceptación determinista contra una copia del ejecutable fuera del repositorio (byte a byte, interfaz web incluida)
+        # Fuera del árbol del repositorio: así se ve cualquier lectura de ficheros del repositorio por ruta relativa al ejecutable (defecto de la 1.6.0).
+        run: |
+          cp build/sea/cv "$RUNNER_TEMP/cv"
+          npm run test:acceptance:deterministic -- --binary "$RUNNER_TEMP/cv" --require-typst
       - name: Chromium de Playwright (caché por versión)
         id: playwright
         run: echo "version=$(node -p "require('./gui/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"

@@ -212,6 +212,8 @@ async function main(): Promise<void> {
       const bench = join(ROOT, 'tests', 'acceptance', 'bench', 'workspace');
       cpSync(join(bench, 'data', 'sources'), join(workspace, 'data', 'sources'), { recursive: true });
       cpSync(join(bench, 'offers', 'pdf', 'nexo-senior-backend.pdf'), join(workspace, 'oferta.pdf'));
+      mkdirSync(join(workspace, 'themes'));
+      cpSync(join(bench, 'themes', 'comunidad.zip'), join(workspace, 'themes', 'comunidad.zip'));
       const empty = join(temporary, 'vacio');
       mkdirSync(empty);
       const cases: Array<{ readonly args: readonly string[]; readonly cwd?: string; readonly expectStdout?: string; readonly expectFile?: string }> = [
@@ -222,6 +224,10 @@ async function main(): Promise<void> {
         { args: ['generate-cv', '-s', 'backend', '--format', 'pdf', '-o', 'output/cv.pdf'], expectFile: 'output/cv.pdf' },
         { args: ['analyze-offer', 'oferta.pdf', '-s', 'backend'] },
         { args: ['theme', 'list'] },
+        // T-8.3: el instalador lee la versión de los assets; desde fuera del repositorio no hay package.json en disco (defecto de la 1.6.0).
+        { args: ['theme', 'install', 'themes/comunidad.zip', '--dry-run'] },
+        { args: ['theme', 'install', 'themes/comunidad.zip'], expectFile: 'themes/comunidad/.origin.json' },
+        { args: ['theme', 'verify', 'comunidad'] },
         { args: ['improve', '--show-prompt'] },
         ...(env['CHAMELEON_TYPST'] === undefined ? [] : [{ args: ['generate-cv', '-s', 'backend', '--format', 'pdf', '--engine', 'typst', '--theme', 'classic', '-o', 'output/typst.pdf'], expectFile: 'output/typst.pdf' }]),
       ];

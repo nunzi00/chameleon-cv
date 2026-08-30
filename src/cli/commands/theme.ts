@@ -10,7 +10,7 @@ import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme
 import { ORIGIN_FILE, THEME_CONFIG_FILE, THEME_FONTS_DIRECTORY, THEME_TEMPLATE_FILE } from '../../themes';
 import type { CliContext } from '../context';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, pluralize, reportError } from '../output';
-import { packageVersion } from '../version';
+import { readVersion } from '../version';
 
 export { THEME_FILE_MODE } from '../../app/themes';
 
@@ -123,7 +123,8 @@ export async function runThemeInstall(context: CliContext, source: string, optio
   if (classified.source.kind === 'url' && !(await consentToDownload(context, classified.source.url, options.as, options.yes))) {
     return EXIT_FAILURE;
   }
-  const result = await installTheme(context, { source, as: options.as, sha256: options.sha256, dryRun: options.dryRun, replace: options.replace }, { toolVersion: packageVersion() });
+  // La versión sale de los assets (package.json del repositorio o del ejecutable), nunca de una ruta fija: en el binario publicado no hay package.json en disco.
+  const result = await installTheme(context, { source, as: options.as, sha256: options.sha256, dryRun: options.dryRun, replace: options.replace }, { toolVersion: readVersion(await context.assets.text('package.json')) });
   if (!result.ok) {
     return reportError(context, result.error);
   }
