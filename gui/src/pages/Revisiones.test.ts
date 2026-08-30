@@ -23,7 +23,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined }, { name: 'revision-rota.md', path: '/work/output/revision-rota.md', sha256: 'x', task: undefined, items: 0, marked: 0, error: 'sin cabecera' }] })),
     review: vi.fn(async (name: string) => ({ review: name === 'revision-rota.md' ? { ...PARSED, name, text: 'sin cabecera', review: undefined, error: 'sin cabecera' } : PARSED })),
     writeReview: vi.fn(async (name: string) => ({ name, sha256: 'sha-2' })),
-    applyReview: vi.fn(async (_name: string, body: { dryRun?: boolean }) => (body.dryRun === false ? { reviewPath: '/work/output/r.md', plan: [], written: [{ path: '/work/data/sources/experience/acme.md', backup: '/work/data/sources/experience/acme.md.bak', ids: ['ach-1'] }], deleted: false, changes: 1 } : { reviewPath: '/work/output/r.md', plan: [{ path: '/work/data/sources/experience/acme.md', edits: [{ id: 'ach-1', text: 'Reduje la latencia un 40 %.' }] }], written: [], deleted: false, changes: 0 })),
+    applyReview: vi.fn(async (_name: string, body: { dryRun?: boolean }) => (body.dryRun === false ? { reviewPath: '/work/output/r.md', plan: [], written: [{ path: '/work/data/sources/experience/acme.md', backup: '/work/data/sources/experience/acme.md.bak', ids: ['ach-1'] }], deleted: false, changes: 1 } : { reviewPath: '/work/output/r.md', plan: [{ path: '/work/data/sources/experience/acme.md', edits: [{ id: 'ach-1', text: 'Reduje la latencia un 40 %.' }], before: '---\nrole: Dev\n---\n- Reduje la latencia.\n- Otro logro.\n', after: '---\nrole: Dev\n---\n- Reduje la latencia un 40 %.\n- Otro logro.\n' }], written: [], deleted: false, changes: 0 })),
     deleteReview: vi.fn(async (name: string) => ({ deleted: name })),
     status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmRuntimeAction: vi.fn(),
     ...overrides,
@@ -49,7 +49,10 @@ describe('Revisiones', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Plan de aplicación' }));
     await waitFor(() => expect(screen.getByText(/ach-1 → Reduje la latencia un 40 %\./)).toBeTruthy());
     expect(api.applyReview).toHaveBeenCalledWith(PARSED.name, {});
-    await fireEvent.click(screen.getByRole('button', { name: 'Escribir en las fuentes' }));
+    expect(screen.getByLabelText('Antes: /work/data/sources/experience/acme.md').textContent).toContain('- Reduje la latencia.');
+    expect(screen.getByLabelText('Después: /work/data/sources/experience/acme.md').textContent).toContain('- Reduje la latencia un 40 %.');
+    expect(screen.getByText(/−1 \+1 líneas/)).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Aplicar y escribir en las fuentes' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Escribir' }));
     await waitFor(() => expect(screen.getByText('1 cambio aplicado en 1 fichero: recompila el artefacto en Estado.')).toBeTruthy());
     expect(api.applyReview).toHaveBeenLastCalledWith(PARSED.name, { dryRun: false });

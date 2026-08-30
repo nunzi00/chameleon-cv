@@ -62,3 +62,14 @@ describe('replaceLlmTable', () => {
     expect(replaceLlmTable(once, { provider: 'ollama', models: { openai: 'gpt-4o-mini' } })).toBe(once);
   });
 });
+
+describe('[llm.runtime] (T-8.8, S3 del rediseño)', () => {
+  it('se admite, se serializa como subtabla y se rechaza un runner desconocido', () => {
+    const parsed = LlmSettingsSchema.parse({ provider: 'ollama', runtime: { runner: 'docker', image: ' ollama/ollama:latest ' } });
+    expect(parsed.runtime).toEqual({ runner: 'docker', image: 'ollama/ollama:latest' });
+    expect(serializeLlmTable(parsed)).toBe('[llm]\nprovider = "ollama"\n\n[llm.runtime]\nrunner = "docker"\nimage = "ollama/ollama:latest"\n');
+    expect(serializeLlmTable({ provider: 'ollama', runtime: {} })).toBe('[llm]\nprovider = "ollama"\n');
+    expect(LlmSettingsSchema.safeParse({ runtime: { runner: 'podman' } }).success).toBe(false);
+    expect(replaceLlmTable('[theme]\nname = "classic"\n\n[llm]\nmodel = "x"\n\n[llm.runtime]\nrunner = "native"\n', { provider: 'ollama' })).toBe('[theme]\nname = "classic"\n\n[llm]\nprovider = "ollama"\n');
+  });
+});

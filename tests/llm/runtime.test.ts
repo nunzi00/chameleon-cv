@@ -3,13 +3,15 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import type { LlmConfig, LlmConfigResult } from '../../src/llm/config';
+import type { LlmConfig } from '../../src/llm/config';
 import type { LlmHealth } from '../../src/llm/provider';
 import {
   OLLAMA_CONTAINER,
   OLLAMA_IMAGE,
   RUNTIME_ENV,
   type ExecResult,
+  type RuntimeConfiguration,
+  type RuntimeRunner,
   type RuntimeSystem,
   createLlmRuntime,
   endpointOf,
@@ -147,8 +149,9 @@ function fakeSystem(w: World, env: NodeJS.ProcessEnv = {}, files: Map<string, st
     home: HOME,
     cwd: '/work',
   };
-  const configure = async (): Promise<LlmConfigResult> => ({ ok: true, config: CONFIG });
-  return { system, calls, files, runtime: createLlmRuntime(configure, system) };
+  const preferences = { runner: undefined as RuntimeRunner | undefined, image: undefined as string | undefined };
+  const configure = async (): Promise<RuntimeConfiguration> => ({ result: { ok: true, config: CONFIG }, runner: preferences.runner, image: preferences.image });
+  return { system, calls, files, preferences, runtime: createLlmRuntime(configure, system) };
 }
 
 describe('utilidades del runtime', () => {
@@ -175,11 +178,26 @@ describe('utilidades del runtime', () => {
     expect(compose).toContain(`image: ${OLLAMA_IMAGE}`);
   });
 
-  it('runtimeConfiguration: un cv.toml inválido invalida la configuración; si no, la resuelve del entorno y los ajustes', () => {
-    expect(runtimeConfiguration({}, { settingsError: 'cv.toml: [llm] provider inválido' })).toEqual({ ok: false, message: 'cv.toml: [llm] provider inválido' });
-    const resolved = runtimeConfiguration({}, { settings: { provider: 'ollama', model: 'llama3:8b' } });
-    expect(resolved.ok && resolved.config).toMatchObject({ provider: 'ollama', model: 'llama3:8b' });
-    expect(runtimeConfiguration({ CHAMELEON_LLM_BASE_URL: 'http://ejemplo.com' }, {}).ok).toBe(false);
+  it('runtimeConfiguration: un cv.toml inválido invalida la configuración; si no, la resuelve del entorno y los ajustes y lee [llm.runtime]', () => {
+    expect(runtimeConfiguration({}, { settingsError: 'cv.toml: [llm] provider inválido' })).toEqual({ result: { ok: false, message: 'cv.toml: [llm] provider inválido' }, runner: undefined, image: undefined });
+    const resolved = runtimeConfiguration({}, { settings: { provider: 'ollama', model: 'llama3:8b', runtime: { runner: 'docker', image: 'ollama/ollama:latest' } } });
+    expect(resolved.result.ok && resolved.result.config).toMatchObject({ provider: 'ollama', model: 'llama3:8b' });
+    expect(resolved).toMatchObject({ runner: 'docker', image: 'ollama/ollama:latest' });
+    expect(runtimeConfiguration({ CHAMELEON_LLM_BASE_URL: 'http://ejemplo.com' }, {}).result.ok).toBe(false);
+    expect(runtimeConfiguration({}, {}).runner).toBeUndefined();
+  });
+
+  it('las preferencias de [llm.runtime] fuerzan el runner y la imagen, y el entorno manda sobre ellas', async () => {
+    const prefer = fakeSystem(world({ ollamaBinary: true, dockerBinary: true }));
+    prefer.preferences.runner = 'docker';
+    prefer.preferences.image = 'ollama/ollama:pref';
+    expect((await prefer.runtime.up({ pull: false })).ok).toBe(true);
+    expect(prefer.calls).toContain(`docker run -d --name ${OLLAMA_CONTAINER} -p 127.0.0.1:11434:11434 -v chameleon-ollama:/root/.ollama ollama/ollama:pref`);
+    const env = fakeSystem(world({ ollamaBinary: true, dockerBinary: true }), { [RUNTIME_ENV.runner]: 'native', [RUNTIME_ENV.image]: 'ollama/ollama:env' });
+    env.preferences.runner = 'docker';
+    env.preferences.image = 'ollama/ollama:pref';
+    expect((await env.runtime.up({ pull: false })).ok).toBe(true);
+    expect(env.calls).toContain('spawn ollama serve OLLAMA_HOST=127.0.0.1:11434');
   });
 
   it('formatRuntimeState distingue disponible y deshabilitado', () => {
@@ -196,10 +214,10 @@ describe('runtime deshabilitado', () => {
     expect(await container.runtime.up()).toMatchObject({ ok: false, code: 'disabled' });
     expect(await container.runtime.down()).toMatchObject({ ok: false, code: 'disabled' });
 
-    const invalid = createLlmRuntime(async () => ({ ok: false, message: 'base_url no es loopback' }), fakeSystem(world()).system);
+    const invalid = createLlmRuntime(async () => ({ result: { ok: false, message: 'base_url no es loopback' }, runner: undefined, image: undefined }), fakeSystem(world()).system);
     expect((await invalid.status()).disabled).toBe('configuración del co-piloto inválida: base_url no es loopback');
 
-    const other = createLlmRuntime(async () => ({ ok: true, config: { ...CONFIG, provider: 'openai-compatible' } }), fakeSystem(world()).system);
+    const other = createLlmRuntime(async () => ({ result: { ok: true, config: { ...CONFIG, provider: 'openai-compatible' } }, runner: undefined, image: undefined }), fakeSystem(world()).system);
     const state = await other.status();
     expect(state.disabled).toContain('«openai-compatible»');
     expect(state.model.name).toBe('qwen2.5:7b');

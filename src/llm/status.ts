@@ -3,6 +3,7 @@
  * procedencia de las claves remotas (solo entorno/fichero/ninguna, nunca valores) y lista blanca.
  * Con `--provider <remoto>` explícito, también comprueba ese proveedor (única llamada de red aquí).
  */
+import type { LlmSettings } from './settings';
 import { DEFAULT_ALLOWED_HOSTS, allowedHosts, createProvider, isLocalProviderId, resolveLlmConfig, selectProvider, type ConfigSource, type LlmConfig, type SelectProviderOptions } from './config';
 import type { JsonHttp } from './http';
 import { KEY_ENV_VARIABLES, describeKeys, keysFilePath, type KeySource } from './keys';
@@ -27,6 +28,8 @@ export interface SettingsStatus {
   /** Hay tabla `[llm]`. */
   readonly configured: boolean;
   readonly error: string | undefined;
+  /** La tabla tal como se leyó (para que «Ajustes» la conserve entera al guardar), si es válida. */
+  readonly values?: LlmSettings | undefined;
 }
 
 /** Un proveedor remoto del registro tal como lo ven `cv llm status`, la API y «Ajustes»: nunca la clave. */
@@ -80,7 +83,7 @@ export interface LlmStatusOptions extends SelectProviderOptions {
 export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStatus> {
   const env = options.env ?? process.env;
   const keys = await describeKeys(options);
-  const settings: SettingsStatus = { path: options.settingsPath, present: options.settingsPresent ?? false, configured: options.settings !== undefined, error: options.settingsError };
+  const settings: SettingsStatus = { path: options.settingsPath, present: options.settingsPresent ?? false, configured: options.settings !== undefined, error: options.settingsError, values: options.settings };
   const ledger = options.quotaLedger ?? defaultQuotaLedger;
   const providers: RemoteProviderStatus[] = REMOTE_PROVIDERS.map((entry) => ({
     id: entry.id,

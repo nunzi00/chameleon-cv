@@ -745,7 +745,14 @@
     "settings": {
       "configured": true,
       "path": "<WS>/cv.toml",
-      "present": true
+      "present": true,
+      "values": {
+        "model": "qwen",
+        "models": {
+          "groq": "openai/gpt-oss-20b"
+        },
+        "provider": "openai-compatible"
+      }
     },
     "usable": false
   },

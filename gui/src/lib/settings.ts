@@ -18,11 +18,22 @@ export const LOCAL_PROVIDERS: readonly { readonly id: LocalProvider; readonly la
 
 export const SOURCE_LABELS: Readonly<Record<ConfigSource, string>> = { flag: 'la orden', env: 'el entorno', file: 'cv.toml', default: 'el valor por defecto' };
 
+export type RuntimeRunnerChoice = '' | 'native' | 'docker';
+
 export interface LocalForm {
   provider: LocalProvider;
   baseUrl: string;
   model: string;
+  /** `[llm.runtime]` (T-8.8): runner forzado ('' = detectar) e imagen de Ollama para el runner docker. */
+  runtimeRunner: RuntimeRunnerChoice;
+  runtimeImage: string;
 }
+
+export const RUNNER_CHOICES: readonly { readonly id: RuntimeRunnerChoice; readonly label: string }[] = [
+  { id: '', label: 'Detectar (native si hay ollama; si no, docker)' },
+  { id: 'native', label: 'native (binario ollama)' },
+  { id: 'docker', label: 'docker (contenedor chameleon-ollama)' },
+];
 
 export interface LockedFields {
   readonly provider: boolean;
@@ -48,10 +59,12 @@ export function isLoopbackUrl(url: string): boolean {
 /** El formulario parte de la configuración efectiva (o de los valores por defecto si cv.toml es inválido). */
 export function formFromConfig(config: LlmConfigResponse): LocalForm {
   const effective = config.llm.config;
+  const runtime = config.llm.settings.values?.runtime;
+  const preferences = { runtimeRunner: runtime?.runner ?? '', runtimeImage: runtime?.image ?? '' } as const;
   if (effective === undefined) {
-    return { provider: 'ollama', baseUrl: '', model: '' };
+    return { provider: 'ollama', baseUrl: '', model: '', ...preferences };
   }
-  return { provider: effective.provider, baseUrl: effective.sources.baseUrl === 'default' ? '' : effective.baseUrl, model: effective.sources.model === 'default' ? '' : effective.model };
+  return { provider: effective.provider, baseUrl: effective.sources.baseUrl === 'default' ? '' : effective.baseUrl, model: effective.sources.model === 'default' ? '' : effective.model, ...preferences };
 }
 
 /** Lo que el entorno (o la orden) fija no se puede cambiar desde cv.toml: el campo queda en solo lectura. */
@@ -70,6 +83,8 @@ export function buildSettings(form: LocalForm, models: LlmSettingsWriteRequest['
     return { ok: false, message: 'La URL base debe ser local (loopback): http://127.0.0.1:… o http://localhost:…; los proveedores remotos se eligen en cada trabajo.' };
   }
   const model = form.model.trim();
+  const image = form.runtimeImage.trim();
+  const runtime = { ...(form.runtimeRunner === '' ? {} : { runner: form.runtimeRunner }), ...(image === '' ? {} : { image }) };
   return {
     ok: true,
     value: {
@@ -77,6 +92,7 @@ export function buildSettings(form: LocalForm, models: LlmSettingsWriteRequest['
       ...(baseUrl === '' ? {} : { base_url: baseUrl }),
       ...(model === '' ? {} : { model }),
       ...(models === undefined || Object.keys(models).length === 0 ? {} : { models }),
+      ...(Object.keys(runtime).length === 0 ? {} : { runtime }),
     },
   };
 }

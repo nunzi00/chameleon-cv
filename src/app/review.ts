@@ -72,6 +72,15 @@ function planEdit(task: ReviewTask, item: ParsedReviewItem, source: ReviewSource
   return { ok: true, edit: { id: item.id, start: location.kind === 'present' ? location.range.start : location.insertAt, text, apply: (updated) => replaceSummary(updated, location, text) } };
 }
 
+/** Las ediciones de un fichero, aplicadas de atrás hacia delante para que los tramos anteriores no se muevan. */
+function applyEdits(planned: PlannedFile): string {
+  let content = planned.content;
+  for (const edit of [...planned.edits].sort((a, b) => b.start - a.start)) {
+    content = edit.apply(content);
+  }
+  return content;
+}
+
 export interface ApplyRequest {
   /** Fichero de revisión (relativo al directorio de trabajo o absoluto). */
   readonly review: string;
@@ -89,6 +98,9 @@ export interface PlannedEditSummary {
 export interface PlannedFileSummary {
   readonly path: string;
   readonly edits: readonly PlannedEditSummary[];
+  /** El fichero entero tal como está y tal como quedaría con las ediciones aplicadas (T-8.6 S3: antes y después completos). */
+  readonly before: string;
+  readonly after: string;
 }
 
 export interface WrittenFile {
@@ -175,7 +187,12 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
   if (errors.length > 0) {
     return { ok: false, error: dataError('No se ha modificado ningún fichero', [...errors, 'No se ha modificado ningún fichero']), written: [] };
   }
-  const plan: PlannedFileSummary[] = [...files.values()].map((planned) => ({ path: planned.path, edits: planned.edits.map((edit) => ({ id: edit.id, text: edit.text })) }));
+  const plan: PlannedFileSummary[] = [...files.values()].map((planned) => ({
+    path: planned.path,
+    edits: planned.edits.map((edit) => ({ id: edit.id, text: edit.text })),
+    before: planned.content,
+    after: applyEdits(planned),
+  }));
   if (request.dryRun) {
     return { ok: true, outcome: { reviewPath, plan, written: [], deleted: false, changes: 0 } };
   }
@@ -185,10 +202,7 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
   let changes = 0;
   for (const planned of files.values()) {
     const backup = await backupPath(context, planned.path);
-    let content = planned.content;
-    for (const edit of [...planned.edits].sort((a, b) => b.start - a.start)) {
-      content = edit.apply(content);
-    }
+    const content = applyEdits(planned);
     try {
       await context.artifactFileSystem.writeFile(backup, planned.content, SOURCE_MODE);
       await context.artifactFileSystem.writeFile(planned.path, content, SOURCE_MODE);

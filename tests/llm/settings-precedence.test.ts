@@ -65,7 +65,7 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
 
   it('llmStatus describe cv.toml y los orígenes; con cv.toml inválido no comprueba nada', async () => {
     const status = await llmStatus({ env: {}, http, settings: FILE, settingsPath: '/work/cv.toml', settingsPresent: true });
-    expect(status.settings).toEqual({ path: '/work/cv.toml', present: true, configured: true, error: undefined });
+    expect(status.settings).toMatchObject({ path: '/work/cv.toml', present: true, configured: true, error: undefined });
     expect(status.config?.sources).toEqual({ provider: 'file', baseUrl: 'file', model: 'file' });
     const text = formatLlmStatus(status);
     expect(text).toContain('Proveedor local: openai-compatible (http://127.0.0.1:8080; cv.toml) · modelo: del-fichero (cv.toml)');

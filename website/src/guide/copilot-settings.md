@@ -39,7 +39,16 @@ Cómo funciona:
   (la misma que `compose.ai.yml`; se cambia con `CHAMELEON_OLLAMA_IMAGE`), puerto publicado solo en `127.0.0.1`
   y volumen `chameleon-ollama` para los modelos. `cv llm down` hace `docker stop`: el contenedor y los modelos se
   conservan, así que el siguiente `up` no vuelve a descargar nada.
-- Por defecto se usa `native` si hay `ollama`, si no `docker`; `--runner` o `CHAMELEON_LLM_RUNNER` lo fuerzan.
+- Por defecto se usa `native` si hay `ollama`, si no `docker`; `--runner`, `CHAMELEON_LLM_RUNNER` o la tabla `[llm.runtime]`
+  de `cv.toml` lo fuerzan (el entorno manda sobre el fichero). La misma tabla admite `image` para el runner docker:
+
+  ```toml
+  [llm.runtime]
+  runner = "docker"
+  image = "ollama/ollama:0.33.2@sha256:…"
+  ```
+
+  En la interfaz web, «Ajustes → Co-piloto local» tiene los dos campos y los guarda con el resto de la tabla `[llm]`.
 - **Solo se para lo que arrancó cv.** Si Ollama ya responde pero lo arrancaste tú, `up` no lo toca (solo asegura
   el modelo) y `down` se niega con un mensaje claro.
 - La única salida de red es la descarga del modelo desde el registro público de Ollama (la misma que implica

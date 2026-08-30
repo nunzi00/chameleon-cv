@@ -23,6 +23,13 @@ export const LlmSettingsSchema = z.strictObject({
     .refine(isLoopbackUrl, { error: 'base_url debe ser una dirección local (loopback): los proveedores remotos exigen --provider explícito' })
     .optional(),
   model: ModelName.optional(),
+  /** `[llm.runtime]`: preferencias de `cv llm up` (T-8.8): runner forzado e imagen de Ollama para el runner docker. */
+  runtime: z
+    .strictObject({
+      runner: z.enum(['native', 'docker']).optional(),
+      image: z.string().trim().min(1).max(200).optional(),
+    })
+    .optional(),
   /** `[llm.models]`: modelo por defecto por proveedor remoto. */
   models: z.strictObject(Object.fromEntries(REMOTE_PROVIDER_IDS.map((id) => [id, ModelName.optional()])) as Record<RemoteProviderId, z.ZodOptional<typeof ModelName>>).optional(),
 });
@@ -49,6 +56,10 @@ export function serializeLlmTable(settings: LlmSettings): string {
   const models = Object.entries(settings.models ?? {}).filter((entry): entry is [string, string] => entry[1] !== undefined);
   if (models.length > 0) {
     lines.push('', '[llm.models]', ...models.map(([provider, model]) => `${provider} = ${tomlString(model)}`));
+  }
+  const runtime = Object.entries(settings.runtime ?? {}).filter((entry): entry is [string, string] => entry[1] !== undefined);
+  if (runtime.length > 0) {
+    lines.push('', '[llm.runtime]', ...runtime.map(([key, value]) => `${key} = ${tomlString(value)}`));
   }
   return `${lines.join('\n')}\n`;
 }

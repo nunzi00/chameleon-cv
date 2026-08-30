@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
 
   import Dialog from '../components/Dialog.svelte';
+  import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
   import type { ApplyResponse, ReviewResponse, ReviewsResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { plural } from '../lib/format';
+  import { diffSummary, lineDiff } from '../lib/reviews/diff';
   import { countMarks, toggleMark } from '../lib/reviews/marks';
   import type { Route } from '../lib/router';
 
@@ -23,6 +25,7 @@
   let { api, item, onsession, navigate }: Props = $props();
 
   let list = $state<readonly ReviewSummary[]>([]);
+  let loaded = $state(false);
   let file = $state<ReviewFile | undefined>(undefined);
   let text = $state('');
   let sha = $state('');
@@ -36,16 +39,23 @@
   let confirmWrite = $state(false);
   let confirmDelete = $state(false);
   const dirty = $derived(file !== undefined && text !== file.text);
+  const markedCount = $derived(countMarks(text));
   const TASKS: Readonly<Record<string, string>> = { improve: 'mejorar logros', summarize: 'resumen profesional' };
 
   function key(itemId: string, number: number): string {
     return `${itemId}#${number}`;
   }
 
+  function markedIn(itemId: string, proposals: readonly { readonly number: number }[]): number {
+    return proposals.filter((proposal) => marks[key(itemId, proposal.number)] === true).length;
+  }
+
   function fail(caught: unknown): void {
     const explained = explainError(caught);
     error = explained;
-    written = Array.isArray((caught as { details?: { written?: unknown } }).details?.written) ? ((caught as { details: { written: { path: string; backup: string }[] } }).details.written).map((entry) => `${entry.path} (copia: ${entry.backup})`) : [];
+    written = Array.isArray((caught as { details?: { written?: unknown } }).details?.written)
+      ? (caught as { details: { written: { path: string; backup: string }[] } }).details.written.map((entry) => `${entry.path} (copia en ${entry.backup})`)
+      : [];
     if (explained.kind === 'session') {
       onsession();
     }
@@ -54,6 +64,7 @@
   async function loadList(): Promise<void> {
     try {
       list = (await api.reviews()).reviews;
+      loaded = true;
     } catch (caught) {
       fail(caught);
     }
@@ -65,12 +76,12 @@
     plan = undefined;
     applied = undefined;
     try {
-      const loaded = (await api.review(name)).review;
-      file = loaded;
-      text = loaded.text;
-      sha = loaded.sha256;
+      const loadedFile = (await api.review(name)).review;
+      file = loadedFile;
+      text = loadedFile.text;
+      sha = loadedFile.sha256;
       const initial: Record<string, boolean> = {};
-      for (const entry of loaded.review?.items ?? []) {
+      for (const entry of loadedFile.review?.items ?? []) {
         for (const proposal of entry.proposals) {
           initial[key(entry.id, proposal.number)] = proposal.checked;
         }
@@ -171,73 +182,99 @@
   });
 </script>
 
-<section aria-labelledby="cv-revisiones-title">
-  <h2 id="cv-revisiones-title">Revisiones</h2>
-  {#if error !== undefined}
-    <Notice kind="error" title={error.title} lines={[...error.lines, ...written]}>{error.detail}</Notice>
-  {/if}
-  {#if message !== undefined}<Notice kind="ok">{message}</Notice>{/if}
-  <div class="cv-split">
-    <aside class="cv-card cv-tree" aria-label="Revisiones del co-piloto">
-      {#if list.length === 0}
-        <p class="cv-muted">No hay revisiones en <code>output/</code>: lánzalas desde Co-piloto.</p>
+<section class="cv-split-revisiones" aria-labelledby="cv-revisiones-title">
+  <aside class="cv-tree-pane" aria-label="Revisiones del co-piloto">
+    <div class="cv-tree-head cv-tree-head-title">
+      <h1 id="cv-revisiones-title" class="cv-generar-title">Revisiones</h1>
+      <span class="cv-muted">En <code>output/</code></span>
+    </div>
+    <div class="cv-tree cv-tree-scroll">
+      {#if loaded && list.length === 0}
+        <p class="cv-muted">Ninguna revisión en <code>output/</code>.</p>
       {:else}
-        <ul>
+        <div class="cv-tree-children">
           {#each list as entry (entry.name)}
-            <li>
-              <button type="button" aria-current={item === entry.name ? 'true' : undefined} onclick={() => navigate({ page: 'revisiones', item: entry.name })}>
-                {entry.name}
-                <span class="cv-muted">{entry.error !== undefined ? '(no interpretable)' : `· ${TASKS[entry.task ?? ''] ?? entry.task} · ${plural(entry.items, 'ítem', 'ítems')} · ${entry.marked} marcadas`}</span>
-              </button>
-            </li>
+            <button class="cv-tree-file cv-review-entry" type="button" aria-current={item === entry.name ? 'true' : undefined} onclick={() => navigate({ page: 'revisiones', item: entry.name })}>
+              <span>{entry.name}</span>
+              <small class="cv-muted">{entry.error !== undefined ? 'no interpretable' : `${TASKS[entry.task ?? ''] ?? entry.task} · ${plural(entry.items, 'ítem', 'ítems')} · ${entry.marked} marcadas`}</small>
+            </button>
           {/each}
-        </ul>
-      {/if}
-      <div class="cv-actions"><button class="cv-button" type="button" onclick={loadList}>Actualizar</button></div>
-    </aside>
-    <div class="cv-card">
-      {#if file === undefined}
-        <p class="cv-muted">Elige una revisión. Marca la propuesta que quieras de cada ítem, guarda las marcas y aplícalas: primero verás el plan; escribir en las fuentes exige confirmación y deja copias <code>.bak</code>.</p>
-      {:else}
-        <div class="cv-actions">
-          <strong><code>{file.name}</code></strong>
-          <span class="cv-muted">{dirty ? 'marcas sin guardar' : `${plural(countMarks(text), 'propuesta marcada', 'propuestas marcadas')}`}</span>
-          <button class="cv-button primary" type="button" disabled={!dirty || busy} onclick={save}>Guardar marcas</button>
-          <button class="cv-button" type="button" disabled={dirty || busy} onclick={preview}>Plan de aplicación</button>
-          <button class="cv-button danger" type="button" disabled={busy} onclick={() => (confirmDelete = true)}>Eliminar</button>
         </div>
+      {/if}
+    </div>
+    <div class="cv-tree-foot"><button class="cv-button small" type="button" onclick={loadList}>Actualizar</button></div>
+  </aside>
+  <div class="cv-editor-pane cv-review-pane">
+    {#if file === undefined}
+      {#if loaded && list.length === 0}
+        <div class="cv-empty">
+          <div class="cv-empty-inner">
+            <div class="cv-empty-icon"><Icon name="checklist" size={26} /></div>
+            <h1>Ninguna revisión pendiente</h1>
+            <p>Las revisiones son ficheros Markdown en <code>output/</code> que escribe el co-piloto: cada logro con su original y sus propuestas. Marca las que quieras y aplícalas a las fuentes con copia de seguridad.</p>
+            <div class="cv-actions"><button class="cv-button primary" type="button" onclick={() => navigate({ page: 'copiloto' })}>Lanzar un trabajo del co-piloto</button></div>
+          </div>
+        </div>
+      {:else}
+        {#if error !== undefined}<Notice kind="error" title={error.title} lines={[...error.lines, ...written]}>{error.detail}</Notice>{/if}
+        <div class="cv-empty">
+          <div class="cv-empty-inner">
+            <div class="cv-empty-icon"><Icon name="checklist" size={26} /></div>
+            <h1>Elige una revisión</h1>
+            <p>Marca la propuesta que quieras de cada ítem, guarda las marcas y aplícalas: primero verás el plan con el antes y el después completo de cada fuente; escribir exige confirmación y deja copias <code>.bak</code>.</p>
+          </div>
+        </div>
+      {/if}
+    {:else}
+      <div class="cv-editor-bar cv-review-bar">
+        <span class="cv-editor-path">{file.name}</span>
+        {#if file.review !== undefined}
+          <span class="cv-muted cv-review-meta">{TASKS[file.review.task] ?? file.review.task}{file.review.specialty === undefined ? '' : ` · especialidad ${file.review.specialty}`}{file.review.offer === undefined ? '' : ` · oferta ${file.review.offer}`}</span>
+        {/if}
+        <span class="cv-header-spacer"></span>
+        <span class={dirty ? 'cv-editor-dirty' : 'cv-muted'}>{dirty ? 'marcas sin guardar' : plural(markedCount, 'propuesta marcada', 'propuestas marcadas')}</span>
+        <button class="cv-button small" type="button" disabled={!dirty || busy} onclick={save}>Guardar marcas</button>
+        <button class="cv-button primary small" type="button" disabled={dirty || busy} title={dirty ? 'Guarda las marcas antes de aplicar' : undefined} onclick={preview}>Plan de aplicación</button>
+        <button class="cv-button danger-quiet small" type="button" disabled={busy} onclick={() => (confirmDelete = true)}>Eliminar</button>
+      </div>
+      <div class="cv-review-scroll">
+        {#if error !== undefined}<Notice kind="error" title={error.title} lines={[...error.lines, ...written]}>{error.detail}</Notice>{/if}
+        {#if message !== undefined}<Notice kind="ok">{message}</Notice>{/if}
         {#if dirty}<p class="cv-muted">Guarda las marcas antes de aplicar.</p>{/if}
         {#if file.review === undefined}
           <Notice kind="warn" title="Revisión no interpretable">{file.error ?? ''}</Notice>
           <pre class="cv-text">{file.text}</pre>
         {:else}
-          <p class="cv-muted">
-            {TASKS[file.review.task] ?? file.review.task}{file.review.specialty === undefined ? '' : ` · especialidad ${file.review.specialty}`}{file.review.offer === undefined ? '' : ` · oferta ${file.review.offer}`}{file.review.dataDir === undefined ? '' : ` · fuentes en ${file.review.dataDir}`}
-          </p>
           {#each file.review.items as entry (entry.id)}
             <article class="cv-review-item">
-              <h3><code>{entry.id}</code> <span class="cv-muted">· {entry.location}</span></h3>
+              <div class="cv-review-head">
+                <code class="cv-review-id">{entry.id}</code>
+                <span class="cv-muted">{entry.location}</span>
+                <span class="cv-header-spacer"></span>
+                <span class="cv-muted">{markedIn(entry.id, entry.proposals)} de {entry.proposals.length} marcada{entry.proposals.length === 1 ? '' : 's'}</span>
+              </div>
               {#if entry.error !== undefined}<Notice kind="error" title="Sin propuestas">{entry.error}</Notice>{/if}
               <div class="cv-compare">
                 <div class="cv-before">
-                  <h4>Antes</h4>
+                  <h4 class="cv-eyebrow">Antes</h4>
                   <p>{entry.original}</p>
                   {#if entry.impact !== undefined}<p class="cv-muted">Impacto: {entry.impact}</p>{/if}
-                  <p class="cv-muted">{entry.source === undefined ? 'Sin fuente registrada: no se puede aplicar, cópialo a mano.' : `Fuente: ${entry.source.file}:${entry.source.line}`}</p>
+                  <p class="cv-muted cv-mono">{entry.source === undefined ? 'Sin fuente registrada: no se puede aplicar, cópialo a mano.' : `Fuente: ${entry.source.file}:${entry.source.line}`}</p>
                 </div>
                 <div class="cv-after">
-                  <h4>Después</h4>
+                  <h4 class="cv-eyebrow">Después</h4>
                   {#each entry.proposals as proposal (proposal.number)}
-                    <div class="cv-proposal">
-                      {#if proposal.accepted}
-                        <label class="cv-check">
-                          <input type="checkbox" checked={marks[key(entry.id, proposal.number)] === true} onchange={(event) => toggle(entry.id, proposal.number, (event.currentTarget as HTMLInputElement).checked)} />
-                          <span>Propuesta {proposal.number}: {proposal.text}</span>
-                        </label>
-                      {:else}
-                        <p><del>Propuesta {proposal.number}: {proposal.text}</del> <span class="cv-badge error">rechazada (C2)</span></p>
-                      {/if}
-                    </div>
+                    {#if proposal.accepted}
+                      <label class="cv-proposal" data-checked={marks[key(entry.id, proposal.number)] === true ? '' : undefined}>
+                        <input type="checkbox" checked={marks[key(entry.id, proposal.number)] === true} onchange={(event) => toggle(entry.id, proposal.number, (event.currentTarget as HTMLInputElement).checked)} />
+                        <span>Propuesta {proposal.number}: {proposal.text}</span>
+                      </label>
+                    {:else}
+                      <div class="cv-proposal rejected">
+                        <Icon name="close" size={15} weight={2} />
+                        <span><del>Propuesta {proposal.number}: {proposal.text}</del> <span class="cv-badge error">rechazada (C2)</span> <span class="cv-muted">no se puede marcar: no supera la verificación contra la fuente</span></span>
+                      </div>
+                    {/if}
                   {/each}
                 </div>
               </div>
@@ -245,23 +282,49 @@
           {/each}
         {/if}
         {#if plan !== undefined}
-          <div class="cv-card">
-            <h3>Plan de aplicación</h3>
+          <div class="cv-card cv-card-tight cv-plan-card">
+            <div class="cv-card-head">
+              <h2>Plan de aplicación</h2>
+              {#if plan.plan.length > 0}
+                <span class="cv-muted">{plural(plan.plan.reduce((total, target) => total + target.edits.length, 0), 'cambio', 'cambios')} · {plural(plan.plan.length, 'fichero', 'ficheros')} · copia .bak de cada uno</span>
+              {/if}
+            </div>
             {#if plan.plan.length === 0}
               <p class="cv-muted">Nada que aplicar.</p>
             {:else}
-              <ul>
-                {#each plan.plan as target (target.path)}
-                  <li><code>{target.path}</code>: {target.edits.map((edit) => `${edit.id} → ${edit.text.replace(/\n+/g, ' ')}`).join(' · ')}</li>
-                {/each}
-              </ul>
-              <div class="cv-actions"><button class="cv-button danger" type="button" disabled={busy} onclick={() => (confirmWrite = true)}>Escribir en las fuentes</button></div>
+              {#each plan.plan as target (target.path)}
+                {@const rows = lineDiff(target.before, target.after)}
+                {@const summary = rows === undefined ? undefined : diffSummary(rows)}
+                <details class="cv-collapse cv-plan-file" open>
+                  <summary>
+                    <strong class="cv-mono">{target.path}</strong>
+                    <span class="cv-muted">· {plural(target.edits.length, 'edición', 'ediciones')}{summary === undefined ? '' : ` · −${summary.removed} +${summary.added} líneas`}</span>
+                  </summary>
+                  <ul class="cv-plan-edits">
+                    {#each target.edits as edit (edit.id)}
+                      <li class="cv-mono">{edit.id} → {edit.text.replace(/\n+/g, ' ')}</li>
+                    {/each}
+                  </ul>
+                  <div class="cv-diff-grid">
+                    <div>
+                      <h4 class="cv-eyebrow">Antes (fichero completo)</h4>
+                      <pre class="cv-diff" aria-label={`Antes: ${target.path}`}>{#if rows === undefined}{target.before}{:else}{#each rows as row, index (index)}{#if row.kind !== 'added'}<span class={`cv-diff-line ${row.kind}`}><span class="cv-diff-no">{row.line}</span>{row.text}</span>{'\n'}{/if}{/each}{/if}</pre>
+                    </div>
+                    <div>
+                      <h4 class="cv-eyebrow">Después (fichero completo)</h4>
+                      <pre class="cv-diff" aria-label={`Después: ${target.path}`}>{#if rows === undefined}{target.after}{:else}{#each rows as row, index (index)}{#if row.kind !== 'removed'}<span class={`cv-diff-line ${row.kind}`}><span class="cv-diff-no">{row.line}</span>{row.text}</span>{'\n'}{/if}{/each}{/if}</pre>
+                    </div>
+                  </div>
+                </details>
+              {/each}
+              <p class="cv-muted">Si un original ya no está tal cual en la fuente, no se escribe nada.</p>
+              <div class="cv-actions"><button class="cv-button danger" type="button" disabled={busy} onclick={() => (confirmWrite = true)}>Aplicar y escribir en las fuentes</button></div>
             {/if}
           </div>
         {/if}
         {#if applied !== undefined}
-          <div class="cv-card">
-            <h3>Aplicado</h3>
+          <div class="cv-card cv-card-tight">
+            <h2>Aplicado</h2>
             <ul>
               {#each applied.written as entry (entry.path)}
                 <li><code>{entry.path}</code> (copia de seguridad: <code>{entry.backup}</code>): {entry.ids.join(', ')}</li>
@@ -269,21 +332,21 @@
             </ul>
           </div>
         {/if}
-      {/if}
-    </div>
+      </div>
+    {/if}
   </div>
-  <Dialog open={confirmWrite} title="¿Escribir en las fuentes?">
+  <Dialog open={confirmWrite} title="¿Escribir en las fuentes?" onclose={() => (confirmWrite = false)}>
     <p>Se aplicarán solo las propuestas marcadas, con una copia <code>.bak</code> de cada fichero. Si un original ya no está tal cual en la fuente, no se escribe nada.</p>
-    <div class="cv-actions">
-      <button class="cv-button danger" type="button" onclick={write}>Escribir</button>
+    <div class="cv-dialog-actions">
       <button class="cv-button" type="button" onclick={() => (confirmWrite = false)}>Cancelar</button>
+      <button class="cv-button danger" type="button" onclick={write}>Escribir</button>
     </div>
   </Dialog>
-  <Dialog open={confirmDelete} title="¿Eliminar la revisión?">
+  <Dialog open={confirmDelete} title="¿Eliminar la revisión?" onclose={() => (confirmDelete = false)}>
     <p>Se borra el fichero de <code>output/</code>; las fuentes no cambian.</p>
-    <div class="cv-actions">
-      <button class="cv-button danger" type="button" onclick={remove}>Eliminar</button>
+    <div class="cv-dialog-actions">
       <button class="cv-button" type="button" onclick={() => (confirmDelete = false)}>Cancelar</button>
+      <button class="cv-button danger" type="button" onclick={remove}>Eliminar</button>
     </div>
   </Dialog>
 </section>

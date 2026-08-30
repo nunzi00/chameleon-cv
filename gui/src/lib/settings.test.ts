@@ -53,24 +53,24 @@ describe('ajustes del co-piloto', () => {
   });
 
   it('el formulario parte de la configuración efectiva y sabe qué fija el entorno', () => {
-    expect(formFromConfig(config())).toEqual({ provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen' });
+    expect(formFromConfig(config())).toMatchObject({ provider: 'openai-compatible', baseUrl: 'http://127.0.0.1:8080', model: 'qwen' });
     expect(lockedFields(config())).toEqual({ provider: false, baseUrl: false, model: true });
     const defaults = config({ config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen2.5:7b-instruct', sources: { provider: 'default', baseUrl: 'default', model: 'default' } } });
-    expect(formFromConfig(defaults)).toEqual({ provider: 'ollama', baseUrl: '', model: '' });
+    expect(formFromConfig(defaults)).toMatchObject({ provider: 'ollama', baseUrl: '', model: '' });
     const invalid = config({ config: undefined, configError: 'Configuración inválida' });
-    expect(formFromConfig(invalid)).toEqual({ provider: 'ollama', baseUrl: '', model: '' });
+    expect(formFromConfig(invalid)).toMatchObject({ provider: 'ollama', baseUrl: '', model: '' });
     expect(lockedFields(invalid)).toEqual({ provider: false, baseUrl: false, model: false });
     expect(lockedFields(config({ config: { provider: 'ollama', baseUrl: 'x', model: 'y', sources: { provider: 'flag', baseUrl: 'env', model: 'file' } } }))).toEqual({ provider: true, baseUrl: true, model: false });
   });
 
   it('buildSettings exige URL loopback, omite vacíos y conserva los modelos por defecto de los remotos', () => {
-    expect(buildSettings({ provider: 'ollama', baseUrl: ' ', model: '  ' }, undefined)).toEqual({ ok: true, value: { provider: 'ollama' } });
-    expect(buildSettings({ provider: 'openai-compatible', baseUrl: ' http://127.0.0.1:8080 ', model: ' qwen ' }, { groq: 'openai/gpt-oss-20b' })).toEqual({
+    expect(buildSettings({ provider: 'ollama', baseUrl: ' ', model: '  ', runtimeRunner: '', runtimeImage: '' }, undefined)).toEqual({ ok: true, value: { provider: 'ollama' } });
+    expect(buildSettings({ provider: 'openai-compatible', baseUrl: ' http://127.0.0.1:8080 ', model: ' qwen ', runtimeRunner: '', runtimeImage: '' }, { groq: 'openai/gpt-oss-20b' })).toEqual({
       ok: true,
       value: { provider: 'openai-compatible', base_url: 'http://127.0.0.1:8080', model: 'qwen', models: { groq: 'openai/gpt-oss-20b' } },
     });
-    expect(buildSettings({ provider: 'ollama', baseUrl: '', model: '' }, {})).toEqual({ ok: true, value: { provider: 'ollama' } });
-    expect(buildSettings({ provider: 'ollama', baseUrl: 'https://api.openai.com', model: '' }, undefined)).toMatchObject({ ok: false, message: expect.stringMatching(/loopback/) as string });
+    expect(buildSettings({ provider: 'ollama', baseUrl: '', model: '', runtimeRunner: '', runtimeImage: '' }, {})).toEqual({ ok: true, value: { provider: 'ollama' } });
+    expect(buildSettings({ provider: 'ollama', baseUrl: 'https://api.openai.com', model: '', runtimeRunner: '', runtimeImage: '' }, undefined)).toMatchObject({ ok: false, message: expect.stringMatching(/loopback/) as string });
   });
 
   it('describe cada proveedor (clave, plan, cuota publicada y viva) y el resultado de comprobar', () => {
@@ -131,5 +131,25 @@ describe('describeRuntime (T-8.8)', () => {
     expect(ready).toMatchObject({ tone: 'ok', badge: 'en marcha (native, lo arrancó cv)', canStart: false, canStop: true, startHint: 'Ollama ya está en marcha con el modelo', needsPull: false });
     const foreign = describeRuntime({ ...base, running: true, managed: false, runner: 'none', detail: 'Ollama en marcha (no lo arrancó cv)' });
     expect(foreign).toMatchObject({ tone: 'warn', badge: 'en marcha (no lo arrancó cv)', canStart: true, canStop: false, startLabel: 'Descargar «qwen2.5:7b»', needsPull: true });
+  });
+});
+
+describe('[llm.runtime] en el formulario (T-8.8, S3)', () => {
+  const config = {
+    llm: {
+      config: { provider: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen', sources: { provider: 'file', baseUrl: 'default', model: 'file' } },
+      settings: { path: '/w/cv.toml', present: true, configured: true, error: undefined, values: { provider: 'ollama', model: 'qwen', models: { groq: 'openai/gpt-oss-120b' }, runtime: { runner: 'docker', image: 'ollama/ollama:x' } } },
+    },
+  } as unknown as LlmConfigResponse;
+
+  it('el formulario parte de [llm.runtime] y el guardado lo conserva junto a [llm.models]', () => {
+    const form = formFromConfig(config);
+    expect(form).toMatchObject({ runtimeRunner: 'docker', runtimeImage: 'ollama/ollama:x' });
+    const built = buildSettings(form, config.llm.settings.values?.models);
+    expect(built.ok && built.value).toEqual({ provider: 'ollama', model: 'qwen', models: { groq: 'openai/gpt-oss-120b' }, runtime: { runner: 'docker', image: 'ollama/ollama:x' } });
+    const cleared = buildSettings({ ...form, runtimeRunner: '', runtimeImage: '  ' }, undefined);
+    expect(cleared.ok && 'runtime' in cleared.value).toBe(false);
+    const noValues = formFromConfig({ ...config, llm: { ...config.llm, settings: { ...config.llm.settings, values: undefined } } } as LlmConfigResponse);
+    expect(noValues).toMatchObject({ runtimeRunner: '', runtimeImage: '' });
   });
 });

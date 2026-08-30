@@ -7,7 +7,7 @@
   import type { LlmConfigResponse, RuntimeState } from '../lib/api/types';
   import { isFinished } from '../lib/copilot/jobs';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { LOCAL_PROVIDERS, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, describeRuntime, formFromConfig, lockedFields, type LocalForm, describeModelOptions } from '../lib/settings';
+  import { LOCAL_PROVIDERS, RUNNER_CHOICES, SOURCE_LABELS, buildSettings, describeCheck, describeProvider, describeRuntime, formFromConfig, lockedFields, type LocalForm, describeModelOptions } from '../lib/settings';
 
   interface Props {
     api: ApiClient;
@@ -16,7 +16,7 @@
   let { api, onsession }: Props = $props();
 
   let config = $state<LlmConfigResponse | undefined>(undefined);
-  let form = $state<LocalForm>({ provider: 'ollama', baseUrl: '', model: '' });
+  let form = $state<LocalForm>({ provider: 'ollama', baseUrl: '', model: '', runtimeRunner: '', runtimeImage: '' });
   let error = $state<ExplainedError | undefined>(undefined);
   let message = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
@@ -52,7 +52,8 @@
     if (config === undefined) {
       return;
     }
-    const built = buildSettings(form, config.llm.config === undefined ? undefined : undefined);
+    // Lo que no está en el formulario ([llm.models]) se conserva tal como se leyó.
+    const built = buildSettings(form, config.llm.settings.values?.models);
     if (!built.ok) {
       error = { kind: 'other', title: 'Ajustes no válidos', detail: built.message, lines: [] };
       return;
@@ -194,6 +195,16 @@
         <label class="cv-field">
           <span>Modelo{locked.model ? ' (fijado por el entorno)' : ''}</span>
           <input name="model" bind:value={form.model} placeholder="el del proveedor" disabled={locked.model} />
+        </label>
+        <label class="cv-field">
+          <span>Runner de Ollama ([llm.runtime])</span>
+          <select name="runtimeRunner" bind:value={form.runtimeRunner}>
+            {#each RUNNER_CHOICES as choice (choice.id)}<option value={choice.id}>{choice.label}</option>{/each}
+          </select>
+        </label>
+        <label class="cv-field">
+          <span>Imagen Docker de Ollama</span>
+          <input name="runtimeImage" class="mono" bind:value={form.runtimeImage} placeholder="la fijada por digest en el producto" />
         </label>
       </div>
       {#if config.llm.config !== undefined}

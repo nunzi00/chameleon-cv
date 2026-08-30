@@ -132,12 +132,22 @@ export interface LlmRuntime {
   readonly down: () => Promise<RuntimeResult>;
 }
 
-/** La configuración efectiva del co-piloto para el runtime: un `cv.toml` inválido la invalida entera. */
+/** Lo que el runtime necesita de `cv.toml` y el entorno: la configuración efectiva del co-piloto y las preferencias de `[llm.runtime]`. */
+export interface RuntimeConfiguration {
+  readonly result: LlmConfigResult;
+  readonly runner: RuntimeRunner | undefined;
+  readonly image: string | undefined;
+}
+
+/** Un `cv.toml` inválido invalida la configuración entera; `[llm.runtime]` solo se lee si es válido. */
 export function runtimeConfiguration(
   env: NodeJS.ProcessEnv,
   snapshot: { readonly settings?: LlmSettings | undefined; readonly settingsError?: string | undefined },
-): LlmConfigResult {
-  return snapshot.settingsError === undefined ? resolveLlmConfig(env, { settings: snapshot.settings }) : { ok: false, message: snapshot.settingsError };
+): RuntimeConfiguration {
+  if (snapshot.settingsError !== undefined) {
+    return { result: { ok: false, message: snapshot.settingsError }, runner: undefined, image: undefined };
+  }
+  return { result: resolveLlmConfig(env, { settings: snapshot.settings }), runner: snapshot.settings?.runtime?.runner, image: snapshot.settings?.runtime?.image };
 }
 
 export function isRuntimeRunner(value: string): value is RuntimeRunner {
@@ -173,13 +183,15 @@ interface Managed {
   readonly pid: number | undefined;
 }
 
-export function createLlmRuntime(configure: () => Promise<LlmConfigResult>, system: RuntimeSystem): LlmRuntime {
+export function createLlmRuntime(configure: () => Promise<RuntimeConfiguration>, system: RuntimeSystem): LlmRuntime {
   const directory = runtimeDirectory(system.env, system.platform, system.home);
   const pidPath = join(directory, 'ollama.pid');
   const logPath = join(directory, 'serve.log');
   const ollama = (): string => binary(system, RUNTIME_ENV.ollama, 'ollama');
   const docker = (): string => binary(system, RUNTIME_ENV.docker, 'docker');
-  const image = (): string => system.env[RUNTIME_ENV.image]?.trim() || OLLAMA_IMAGE;
+  /** Preferencias de la última configuración leída (`[llm.runtime]`); el entorno manda sobre ellas. */
+  let preferred: { runner: RuntimeRunner | undefined; image: string | undefined } = { runner: undefined, image: undefined };
+  const image = (): string => system.env[RUNTIME_ENV.image]?.trim() || preferred.image || OLLAMA_IMAGE;
   const quick = { timeoutMs: RUNTIME_LIMITS.execTimeoutMs } as const;
 
   async function nativeAvailable(): Promise<boolean> {
@@ -210,7 +222,7 @@ export function createLlmRuntime(configure: () => Promise<LlmConfigResult>, syst
       return option;
     }
     const fromEnv = system.env[RUNTIME_ENV.runner]?.trim().toLowerCase();
-    return fromEnv !== undefined && isRuntimeRunner(fromEnv) ? fromEnv : undefined;
+    return fromEnv !== undefined && isRuntimeRunner(fromEnv) ? fromEnv : preferred.runner;
   }
 
   /** ¿Hay un Ollama arrancado por cv? Un pid guardado que ya no vive se olvida. */
@@ -231,7 +243,9 @@ export function createLlmRuntime(configure: () => Promise<LlmConfigResult>, syst
     if (system.env[RUNTIME_ENV.container] === '1') {
       return { reason: 'dentro del contenedor de Compose, Ollama es un servicio del propio Compose: gestiónalo con «docker compose»', model: '' };
     }
-    const resolved = await configure();
+    const configuration = await configure();
+    preferred = { runner: configuration.runner, image: configuration.image };
+    const resolved = configuration.result;
     if (!resolved.ok) {
       return { reason: `configuración del co-piloto inválida: ${resolved.message}`, model: '' };
     }

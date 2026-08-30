@@ -546,3 +546,30 @@ details.cv-collapse > .cv-form, details.cv-collapse > .cv-stack, details.cv-coll
 /* Los campos de una rejilla no deben desbordar su columna. */
 .cv-form .cv-field, .cv-step .cv-field { min-width: 0; }
 .cv-field input, .cv-field select, .cv-field textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+/* Revisiones (T-8.6 S3): lista a la izquierda, barra pegajosa y comparación antes/después. */
+.cv-split-revisiones { display: grid; grid-template-columns: 280px 1fr; flex: 1; min-height: 0; }
+@media (max-width: 1024px) { .cv-split-revisiones { grid-template-columns: 220px 1fr; } }
+.cv-tree-head-title { align-items: baseline; flex-wrap: wrap; }
+.cv-tree-head-title .cv-generar-title { font-size: 18px; }
+.cv-review-entry { flex-direction: column; align-items: flex-start; gap: 2px; }
+.cv-review-entry small { font: var(--cv-size-xs)/1.3 var(--cv-font); }
+.cv-review-pane { background: var(--cv-bg); }
+.cv-review-bar { position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+.cv-review-meta { font-size: var(--cv-size-sm); }
+.cv-review-scroll { flex: 1; overflow: auto; padding: 14px 18px 40px; display: grid; gap: 12px; align-content: start; }
+.cv-review-id { font-weight: 600; }
+.cv-review-item .cv-compare > div > h4 { margin: 0 0 8px; }
+.cv-proposal { align-items: flex-start; }
+.cv-proposal input { margin-top: 3px; }
+.cv-proposal.rejected svg { flex: none; color: var(--cv-error); margin-top: 2px; }
+.cv-plan-card { border-color: var(--cv-accent); }
+.cv-plan-edits { margin: 0 0 12px; padding-left: 18px; font-size: 13px; }
+.cv-plan-file summary strong { font-weight: 600; }
+.cv-diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 1180px) { .cv-diff-grid { grid-template-columns: 1fr; } }
+.cv-diff-grid h4 { margin: 0 0 6px; }
+pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); border-radius: var(--cv-radius); background: var(--cv-surface-2); font: var(--cv-size-xs)/1.7 var(--cv-mono); white-space: pre-wrap; word-break: break-word; max-height: 60vh; overflow: auto; }
+.cv-diff-line { display: inline-block; width: 100%; padding: 0 10px 0 0; }
+.cv-diff-line.removed { background: var(--cv-error-soft); }
+.cv-diff-line.added { background: var(--cv-ok-soft); }
+.cv-diff-no { display: inline-block; width: 40px; padding-right: 10px; text-align: right; color: var(--cv-muted); opacity: .7; user-select: none; }
