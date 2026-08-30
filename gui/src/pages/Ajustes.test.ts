@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError, type ApiClient } from '../lib/api/client';
@@ -124,7 +124,7 @@ describe('Ajustes: remotos pendientes de verificación humana', () => {
     const api = fakeApi({ llmConfig: vi.fn(async () => response({ llm: { providers: [pending] }, remote: { allowed: true } })) });
     render(Ajustes, { props: { api, onsession: vi.fn() } });
     await waitFor(() => expect(screen.getByText(/Pendiente de verificación humana: pendiente de la verificación al alta/)).toBeTruthy());
-    const check = screen.getAllByRole('button', { name: 'Comprobar' }).at(-1) as HTMLButtonElement;
-    expect(check.disabled).toBe(true);
+    const item = screen.getByText('groq', { selector: 'strong' }).closest('li') as HTMLElement;
+    expect((within(item).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
   });
 });
