@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Tarea** | T-8.4 · [I+D] Spike de importación desde PDF (Hito 8) |
-| **Estado** | PROPUESTA v1 (2026-08-30), pendiente de aprobación por el Director de Ingeniería y Producto |
+| **Estado** | **CERRADA el 2026-08-30 con veredicto «Go limitado»** · PROPUESTA v1 (2026-08-30), pendiente de aprobación por el Director de Ingeniería y Producto |
 | **Autor** | Claude (Director Técnico) |
 | **Base** | `docs/pdf-integration.md` (extracción de texto de PDF con `pdfjs-dist` en un worker contenido: 10 MiB, 50 páginas, 1 MiB de texto, 20 s, 512 MiB); `docs/portability.md` (T-8.1: `MasterProfile` JSON como formato de intercambio y `cv import` con plan, auto-chequeo y copia `.bak`); `docs/llm-integration.md` (cánones C1–C15: local por defecto, verificación por código, el usuario escribe sus fuentes); `tests/acceptance/bench/` (perfil sintético con verdad conocida); `src/renderers/` (pdfkit y Typst producen PDF desde ese mismo perfil) |
 
@@ -135,6 +135,7 @@ Este documento (evidencia y decisión, §11), una entrada en el ROADMAP con el v
 
 - 2026-08-30: PROPUESTA v1 redactada tras la aprobación del S3 de T-8.3 y enviada al Director con las releases v1.5.0 y v1.6.0 ya en marcha.
 - 2026-08-30: **APROBADA** por el Director de Ingeniería y Producto «en su totalidad»: las ocho decisiones de §10 confirmadas y los umbrales de §4.4 **fijados** («no se modificarán»). El S1 comienza cuando las dos releases estén verificadas.
+- 2026-08-30: **VEREDICTO del Director de Ingeniería y Producto: Go limitado** («apruebo tu propuesta en su totalidad»: P3 núcleo determinista; P2 descartado para el flujo por defecto por tiempo y falsos positivos). **T-8.4 cerrada.** T-8.4b «Importar desde PDF» se redactará después de T-8.5; corpus de PDF reales de terceros medido con este arnés antes de implementar (innegociable).
 - 2026-08-30: **S2 entregado**: P3 y P2 implementados y medidos, grupo B completo, siete ajustes de la heurística, métrica corregida (Anexo B); **veredicto propuesto: Go limitado** (P3 núcleo determinista; P2 fuera del flujo por defecto por tiempo, falsos positivos de atribución y no determinismo); enviado al Product Owner para su veredicto.
 - 2026-08-30: **S1 entregado (corpus y medida)**: corpus A/B/C reproducible (B con dos de las cuatro maquetaciones), arnés de métricas con pruebas al 100 %, P0 y P1 medidos, tablas preliminares en el Anexo A. Informe intermedio enviado al Director; pendiente de su veredicto para el S2.
 
