@@ -151,18 +151,29 @@ export default defineConfig({
           '/en/': [
             {
               text: 'User guide',
-              items: [{ text: 'Quickstart', link: '/en/guide/quickstart' }],
+              items: [
+                { text: 'Quickstart', link: '/en/guide/quickstart' },
+                { text: 'Concepts', link: '/en/guide/concepts' },
+                { text: 'Source format', link: '/en/guide/sources' },
+                { text: 'Generating the CV', link: '/en/guide/generate' },
+                { text: 'Security and privacy', link: '/en/guide/security' },
+              ],
             },
             {
               // Se enlaza marcado «(es)» a propósito: prometer una página en inglés que no existe es peor que
               // decir en qué idioma está. Cada página traducida sale de aquí y entra arriba (T-9.7).
+              // La referencia se GENERA de la ayuda de la CLI, que habla castellano por decisión del PO
+              // (31-ago-2026): se queda marcada «(es)» mientras eso no cambie.
               text: 'Not translated yet (Spanish)',
               items: [
                 { text: 'Command reference (es)', link: '/reference/' },
                 { text: 'Tutorials (es)', link: '/tutorials/' },
-                { text: 'Source format (es)', link: '/guide/sources' },
+                { text: 'Importing an existing CV (es)', link: '/guide/import' },
+                { text: 'Tailoring to a job offer (es)', link: '/guide/offers' },
+                { text: 'Typst and themes (es)', link: '/guide/typst-themes' },
                 { text: 'AI co-pilot (es)', link: '/guide/copilot' },
-                { text: 'Security and privacy (es)', link: '/guide/security' },
+                { text: 'The web interface (es)', link: '/guide/web' },
+                { text: 'Docker (es)', link: '/guide/docker' },
                 { text: 'Architecture (es)', link: '/developers/architecture' },
               ],
             },

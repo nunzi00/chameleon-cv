@@ -23,6 +23,8 @@ hero:
 
 ::: warning The English portal is being translated
 Chameleon CV is written in Spanish, and the Spanish documentation is the one kept in step with the code. The
-English guide starts here with the quickstart; pages that are not translated yet are linked **marked `(es)`**
-rather than hidden, so you always know which language you are about to land in.
+English guide covers the essential path — quickstart, concepts, source format, generating the CV and the
+privacy model — and grows page by page. Whatever is not translated yet is linked **marked `(es)`** rather than
+hidden, so you always know which language you are about to land in. The command reference is generated from the
+CLI's own help, which speaks Spanish, so it stays in Spanish.
 :::
