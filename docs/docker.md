@@ -187,7 +187,7 @@ En macOS y Windows (Docker Desktop) la propiedad de los ficheros la gestiona el 
 
 La especificación completa de T-7.3 está en `docs/ghcr-publication.md` (PROPUESTA v1, 2026-08-29); este apartado conserva el esbozo aprobado con T-7.2.
 
-Desde `release.yml`, tras `package-linux-x64`: `docker/login-action`, `docker/metadata-action` y `docker/build-push-action` (fijadas por SHA) construyen y publican `ghcr.io/nunzi00/chameleon-cv` con etiquetas `1.0.0`, `1.0` y `latest` (`latest` solo para versiones sin sufijo), `provenance: true` y `sbom: true`, atestación de procedencia sobre el digest (`actions/attest-build-provenance` con `subject-name`/`subject-digest`), permisos `packages: write`, y `workflow_dispatch` como ensayo sin publicar (`push: false`). Solo `linux/amd64` mientras no exista el ejecutable arm64. Detalle en su propia especificación.
+Desde `release.yml`, tras `package-linux-x64`: `docker/login-action`, `docker/metadata-action` y `docker/build-push-action` (fijadas por SHA) construyen y publican `ghcr.io/nunzi00/chameleon-cv` con etiquetas `1.0.0`, `1.0` y `latest` (`latest` solo para versiones sin sufijo), `provenance: true` y `sbom: true`, atestación de procedencia sobre el digest (`actions/attest-build-provenance` con `subject-name`/`subject-digest`), permisos `packages: write`, y `workflow_dispatch` como ensayo sin publicar (`push: false`). Multi-arquitectura (`linux/amd64` y `linux/arm64`), cada una construida en su runner nativo; desde T-9.6 el tar.gz también. Detalle en su propia especificación.
 
 ## 9. Riesgos
 

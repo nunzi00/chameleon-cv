@@ -1,5 +1,5 @@
 # Release (T-6.3, docs/packaging-and-release.md §6; imagen en GHCR en T-7.3, docs/ghcr-publication.md §3.4):
-# un tag «vX.Y.Z» dispara verify → package-linux-x64 → release, y en paralelo docker-build (por arquitectura,
+# un tag «vX.Y.Z» dispara verify → package (x64 y arm64) → release, y en paralelo docker-build (por arquitectura,
 # humo antes de empujar por digest) → docker-publish (índice multi-arquitectura, etiquetas, atestación).
 # «workflow_dispatch» sin entradas ensaya todo sin publicar nada; con «tag» (una release existente) y «push»
 # publica la imagen de esa versión. Permisos mínimos por trabajo, acciones fijadas por SHA, sin secretos.
@@ -82,10 +82,20 @@ jobs:
           { echo '## Arnés de aceptación determinista'; echo '```'; tail -c 60000 arnes.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -E '✗|esperados|^ {4,}[-+] ' arnes.log | head -10 | while IFS= read -r line; do printf '::error title=Arnés de aceptación::%s\n' "$line"; done
 
-  package-linux-x64:
-    name: Empaquetar linux-x64 y aceptar el binario
+  package:
+    name: Empaquetar linux-${{ matrix.arch }} y aceptar el binario
     needs: verify
-    runs-on: ubuntu-24.04
+    # El ejecutable SEA se inyecta en el Node de la plataforma: no hay compilación cruzada, cada arquitectura
+    # se construye en su propio runner (T-9.6). El nombre del archivo lo pone process.arch, no el workflow.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -115,22 +125,30 @@ jobs:
         run: |
           cp build/sea/cv "$RUNNER_TEMP/cv"
           npm run test:acceptance:deterministic -- --binary "$RUNNER_TEMP/cv" --require-typst
+      # La interfaz web es JavaScript idéntico en las dos arquitecturas y el arnés de arriba ya la ejercita contra
+      # el ejecutable arm64; el E2E con navegador se queda en x64 para no doblar el tiempo de la release.
       - name: Chromium de Playwright (caché por versión)
+        if: matrix.arch == 'x64'
         id: playwright
         run: echo "version=$(node -p "require('./gui/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: matrix.arch == 'x64'
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ steps.playwright.outputs.version }}-${{ runner.os }}
-      - run: npx --prefix gui playwright install --with-deps chromium
+      - if: matrix.arch == 'x64'
+        run: npx --prefix gui playwright install --with-deps chromium
       - name: E2E de la interfaz web con Playwright contra el ejecutable empaquetado
+        if: matrix.arch == 'x64'
         run: CV_BINARY=build/sea/cv npm run gui:e2e
+      # Las notas viajan una sola vez: son las mismas para las dos arquitecturas y «merge-multiple» las fundiría.
       - name: Notas de la release desde CHANGELOG.md (viajan con el artefacto)
+        if: matrix.arch == 'x64'
         run: npm run --silent release:notes -- "$(node -p "require('./package.json').version")" > build/release/RELEASE-NOTES.md
       - name: Archivar el artefacto de lanzamiento
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: chameleon-cv-linux-x64
+          name: chameleon-cv-linux-${{ matrix.arch }}
           path: |
             build/release/*.tar.gz
             build/release/*.sha256
@@ -141,7 +159,7 @@ jobs:
   release:
     name: Publicar la release en GitHub
     if: github.ref_type == 'tag'
-    needs: package-linux-x64
+    needs: package
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

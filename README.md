@@ -17,7 +17,7 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 - **Salida** en Markdown (plantillas Handlebars) o PDF: pdfkit sin dependencias, o Typst con veintisiete temas de calidad editorial —nueve organizaciones del contenido (cronológica, funcional, híbrida, skills-first, portfolio de proyectos, una página, formación primero, impacto primero y eje temporal único) y dieciocho estilos— o los tuyos.
 - **Co-piloto de IA** que sugiere y nunca decide: reescrituras, resúmenes y etiquetas verificados por código, local por defecto y con consentimiento explícito para cualquier proveedor remoto.
 - **Interfaz web local** (`cv serve --open`): las mismas tareas sin terminal —fuentes, validación, generación con visor de PDF, análisis de ofertas—, servida desde el propio ejecutable solo en `127.0.0.1`, con token de sesión y sin nada externo.
-- **Distribución cuidada**: ejecutable autónomo para linux-x64 con `sha256` y atestación de procedencia, imagen Docker con Compose (incluido un modelo de IA local opcional), o directamente desde el repositorio. Licencia MIT.
+- **Distribución cuidada**: ejecutable autónomo para linux-x64 y linux-arm64 con `sha256` y atestación de procedencia, imagen Docker con Compose (incluido un modelo de IA local opcional), o directamente desde el repositorio. Licencia MIT.
 
 ## Requisitos
 
@@ -27,7 +27,7 @@ data/sources/ (tú editas)  ──cv build──►  data/dist/profile.json  ─
 
 ## Instalación
 
-**Ejecutable autónomo** (recomendado): un único fichero que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Descarga de [la página de *Releases*](https://github.com/nunzi00/chameleon-cv/releases) el archivo `chameleon-cv-<versión>-linux-x64.tar.gz` y su `.sha256`, verifica y extrae:
+**Ejecutable autónomo** (recomendado): un único fichero que lleva dentro el runtime, los temas, las fuentes, las plantillas y los prompts. Descarga de [la página de *Releases*](https://github.com/nunzi00/chameleon-cv/releases) el archivo de tu arquitectura —`chameleon-cv-<versión>-linux-x64.tar.gz` o `-linux-arm64.tar.gz`— y su `.sha256`, verifica y extrae:
 
 ```bash
 sha256sum -c chameleon-cv-<versión>-linux-x64.tar.gz.sha256      # «OK»: el archivo es exactamente el publicado

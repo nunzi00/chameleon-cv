@@ -11,7 +11,7 @@ En menos de cinco minutos: instalar `cv`, crear un espacio de trabajo con un per
 
 ## 1. Instala el ejecutable
 
-Descarga de [la página de *Releases*](https://github.com/nunzi00/chameleon-cv/releases) el archivo `chameleon-cv-<versión>-linux-x64.tar.gz` y su `.sha256` (Linux x86-64 con glibc ≥ 2.28, `libstdc++` y `libatomic`, presentes en cualquier distribución de escritorio; no necesita Node), verifica y extrae:
+Descarga de [la página de *Releases*](https://github.com/nunzi00/chameleon-cv/releases) el archivo de tu arquitectura —`chameleon-cv-<versión>-linux-x64.tar.gz` o `-linux-arm64.tar.gz`— y su `.sha256` (Linux con glibc ≥ 2.28, `libstdc++` y `libatomic`, presentes en cualquier distribución de escritorio; no necesita Node), verifica y extrae:
 
 ```bash
 sha256sum -c chameleon-cv-1.0.0-linux-x64.tar.gz.sha256      # «OK»: el archivo es exactamente el publicado
