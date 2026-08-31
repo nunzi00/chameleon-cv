@@ -61,12 +61,13 @@ const base: LlmProvider = {
 /** Espera a que lo cancelen. */
 const slow: LlmProvider = { ...base, complete: (request) => new Promise((resolve) => request.signal?.addEventListener('abort', () => resolve({ ok: false, code: 'cancelled', message: 'cancelada' }))) };
 const remote: LlmProvider = { ...base, id: 'openai', kind: 'remote', baseUrl: 'https://api.openai.com', model: 'gpt-x' };
+const gemini: LlmProvider = { ...base, id: 'gemini', kind: 'remote', baseUrl: 'https://generativelanguage.googleapis.com', model: 'g-x' };
 const sick: LlmProvider = { ...base, health: () => Promise.resolve({ ok: false, code: 'unreachable', message: 'Ollama no responde' }) };
 const modelless: LlmProvider = { ...base, health: () => Promise.resolve({ ok: true, version: undefined, models: [], modelAvailable: false }) };
 const otherModel: LlmProvider = { ...base, health: () => Promise.resolve({ ok: true, version: undefined, models: ['llama3'], modelAvailable: false }) };
 
 function llmProvider(selection: ProviderSelection): Promise<{ ok: true; provider: LlmProvider } | { ok: false; message: string }> {
-  const providers: Record<string, LlmProvider> = { lento: slow, remoto: remote, enfermo: sick, 'sin-modelo': modelless, 'otro-modelo': otherModel };
+  const providers: Record<string, LlmProvider> = { lento: slow, remoto: remote, gemini, enfermo: sick, 'sin-modelo': modelless, 'otro-modelo': otherModel };
   if (selection.provider === 'ninguno') {
     return Promise.resolve({ ok: false, message: 'sin proveedor configurado' });
   }
@@ -296,6 +297,11 @@ describe('cv serve --allow-remote: consentimiento de coste en dos pasos', () => 
     const tags = await post('/jobs/suggest-tags', { provider: 'remoto', text: 'Migré la plataforma a Kubernetes' });
     expect(tags.status).toBe(409);
     expect((await tags.json()) as object).toMatchObject({ error: { code: 'consent-required', estimate: { requests: 1 } } });
+    const geminiTags = await post('/jobs/suggest-tags', { provider: 'gemini', text: 'Migré la plataforma a Kubernetes' });
+    expect(geminiTags.status).toBe(409);
+    const geminiBody = (await geminiTags.json()) as { error: { code: string; dataNote: string } };
+    expect(geminiBody.error.code).toBe('consent-required');
+    expect(geminiBody.error.dataNote).toContain('Google');
     const undeletable = await fetch(`${server.url}api/v1/reviews/revision-b.md`, { method: 'DELETE', headers: { Authorization: `Bearer ${TOKEN}` } });
     expect(undeletable.status).toBe(503);
     expect((await undeletable.json()) as object).toMatchObject({ error: { code: 'environment', message: 'No se pudo eliminar la revisión «revision-b.md»: EROFS: solo lectura' } });

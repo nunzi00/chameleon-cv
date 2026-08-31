@@ -55,7 +55,7 @@ describe('claves de API (canon C5 y §5: solo CHAMELEON_* o fichero 0600, nunca 
     expect(keysFilePath({}, 'win32', 'C:\\Users\\ada')).toBe(join('C:\\Users\\ada', 'AppData', 'Roaming', 'chameleon-cv', 'keys.json'));
     expect(keysFilePath().endsWith(join('chameleon-cv', 'keys.json'))).toBe(true);
     expect(await resolveApiKey('openai', { env: { [KEY_ENV_VARIABLES.openai]: ' sk-env ' }, keysFile: '/no/existe.json' })).toEqual({ ok: true, key: 'sk-env', source: 'env' });
-    expect(KEY_ENV_VARIABLES).toEqual({ openai: 'CHAMELEON_OPENAI_API_KEY', anthropic: 'CHAMELEON_ANTHROPIC_API_KEY', groq: 'CHAMELEON_GROQ_API_KEY' });
+    expect(KEY_ENV_VARIABLES).toEqual({ openai: 'CHAMELEON_OPENAI_API_KEY', anthropic: 'CHAMELEON_ANTHROPIC_API_KEY', groq: 'CHAMELEON_GROQ_API_KEY', gemini: 'CHAMELEON_GEMINI_API_KEY' });
   });
 
   it('lee el fichero de claves solo si tiene permisos 0600; rechaza permisos abiertos y contenido inválido; explica la ausencia', async () => {
@@ -65,11 +65,11 @@ describe('claves de API (canon C5 y §5: solo CHAMELEON_* o fichero 0600, nunca 
     await writeFile(file, JSON.stringify({ openai: 'sk-file', anthropic: 'ant-file' }), { mode: 0o600 });
     expect(await resolveApiKey('openai', { env: {}, keysFile: file })).toEqual({ ok: true, key: 'sk-file', source: 'file' });
     expect(await resolveApiKey('anthropic', { env: {}, keysFile: file, platform: 'linux' })).toEqual({ ok: true, key: 'ant-file', source: 'file' });
-    expect(await describeKeys({ env: { [KEY_ENV_VARIABLES.openai]: 'x' }, keysFile: file })).toEqual({ openai: 'env', anthropic: 'file', groq: 'none' });
+    expect(await describeKeys({ env: { [KEY_ENV_VARIABLES.openai]: 'x' }, keysFile: file })).toEqual({ openai: 'env', anthropic: 'file', groq: 'none', gemini: 'none' });
 
     await chmod(file, 0o644);
     expect(await resolveApiKey('openai', { env: {}, keysFile: file })).toMatchObject({ ok: false, code: 'insecure-file', message: expect.stringContaining('permisos 644') });
-    expect(await describeKeys({ env: {}, keysFile: file })).toEqual({ openai: 'insecure-file', anthropic: 'insecure-file', groq: 'insecure-file' });
+    expect(await describeKeys({ env: {}, keysFile: file })).toEqual({ openai: 'insecure-file', anthropic: 'insecure-file', groq: 'insecure-file', gemini: 'insecure-file' });
     // En Windows no hay bits POSIX: no se comprueba el modo.
     expect(await resolveApiKey('openai', { env: {}, keysFile: file, platform: 'win32' })).toEqual({ ok: true, key: 'sk-file', source: 'file' });
     await chmod(file, 0o600);
@@ -77,14 +77,14 @@ describe('claves de API (canon C5 y §5: solo CHAMELEON_* o fichero 0600, nunca 
     const partial = join(directory, 'partial.json');
     await writeFile(partial, JSON.stringify({ openai: 'sk-only' }), { mode: 0o600 });
     expect(await resolveApiKey('anthropic', { env: {}, keysFile: partial })).toMatchObject({ ok: false, code: 'missing', message: expect.stringContaining('define CHAMELEON_ANTHROPIC_API_KEY o añádela a') });
-    expect(await describeKeys({ env: {}, keysFile: partial })).toEqual({ openai: 'file', anthropic: 'none', groq: 'none' });
+    expect(await describeKeys({ env: {}, keysFile: partial })).toEqual({ openai: 'file', anthropic: 'none', groq: 'none', gemini: 'none' });
 
     const invalid = join(directory, 'invalid.json');
     await writeFile(invalid, '{"openai": 1}', { mode: 0o600 });
     expect(await resolveApiKey('openai', { env: {}, keysFile: invalid })).toMatchObject({ ok: false, code: 'invalid-file' });
     await writeFile(invalid, 'no json', { mode: 0o600 });
     expect(await resolveApiKey('openai', { env: {}, keysFile: invalid })).toMatchObject({ ok: false, code: 'invalid-file' });
-    expect(await describeKeys({ env: {}, keysFile: invalid })).toEqual({ openai: 'invalid-file', anthropic: 'invalid-file', groq: 'invalid-file' });
+    expect(await describeKeys({ env: {}, keysFile: invalid })).toEqual({ openai: 'invalid-file', anthropic: 'invalid-file', groq: 'invalid-file', gemini: 'invalid-file' });
     expect(await resolveApiKey('openai', { env: {}, keysFile: join(directory, 'missing.json') })).toMatchObject({ ok: false, code: 'missing' });
     expect(await resolveApiKey('openai', { env: {}, platform: 'linux', home: root })).toMatchObject({ ok: false, code: 'missing' });
   });
@@ -182,12 +182,13 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
     expect(await selectProvider({ provider: ' Openai-Compatible ', model: ' mistral ' }, { env: {}, http })).toMatchObject({ ok: true, provider: { id: 'openai-compatible', kind: 'local', baseUrl: 'http://127.0.0.1:8080', model: 'mistral' } });
     expect(await selectProvider({ provider: '', model: '' }, { env: { CHAMELEON_LLM_MODEL: 'del-entorno' }, http })).toMatchObject({ ok: true, provider: { id: 'ollama', model: 'del-entorno' } });
     expect(await selectProvider({}, { env: { CHAMELEON_LLM_BASE_URL: 'http://192.168.1.2:11434' }, http })).toMatchObject({ ok: false, message: expect.stringContaining('no es una dirección local') });
-    expect(await selectProvider({ provider: 'gemini' }, { env: {}, http })).toEqual({ ok: false, message: '--provider «gemini» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic, groq)' });
+    expect(await selectProvider({ provider: 'grok' }, { env: {}, http })).toEqual({ ok: false, message: '--provider «grok» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic, groq, gemini)' });
   });
 
   it('un remoto pendiente de verificación humana se rechaza antes de mirar la clave (T-8.2 §9; Groq quedó verificado el 30-ago-2026)', async () => {
     expect(AVAILABLE_REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
-    expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
+    expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq', 'gemini']);
+    expect(await selectProvider({ provider: 'gemini' }, { env: { CHAMELEON_GEMINI_API_KEY: 'g-1' } })).toMatchObject({ ok: false, message: expect.stringContaining('pendiente de la verificación al alta') as string });
     const pendingRegistry = [{ ...remoteProvider('groq'), availability: 'pending-verification' as const, availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces' }];
     expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk-1' }, registry: pendingRegistry })).toEqual({
       ok: false,
@@ -203,7 +204,7 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
     expect(openai).toMatchObject({ ok: true, keySource: 'env', provider: { id: 'openai', kind: 'remote', baseUrl: 'https://api.openai.com', model: 'gpt-4o-mini' } });
     if (openai.ok) {
       await openai.provider.health();
-      expect(calls[0]).toMatchObject({ url: 'https://api.openai.com/v1/models', headers: { authorization: 'Bearer sk-1', hosts: 'api.openai.com,api.anthropic.com,api.groq.com' } });
+      expect(calls[0]).toMatchObject({ url: 'https://api.openai.com/v1/models', headers: { authorization: 'Bearer sk-1', hosts: 'api.openai.com,api.anthropic.com,api.groq.com,generativelanguage.googleapis.com' } });
     }
     const anthropic = await selectProvider({ provider: 'anthropic', model: 'claude-z' }, { env: { CHAMELEON_ANTHROPIC_API_KEY: 'ant-1', CHAMELEON_ANTHROPIC_BASE_URL: 'https://proxy.empresa.com/', CHAMELEON_LLM_ALLOWED_HOSTS: 'proxy.empresa.com' }, remoteHttp: capture(calls) });
     expect(anthropic).toMatchObject({ ok: true, provider: { id: 'anthropic', kind: 'remote', baseUrl: 'https://proxy.empresa.com', model: 'claude-z' } });
@@ -211,7 +212,7 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
     expect(remoteBaseUrl('openai', { CHAMELEON_OPENAI_BASE_URL: ' https://alt.example/v1/ ' })).toBe('https://alt.example/v1');
     expect(remoteBaseUrl('anthropic', { CHAMELEON_ANTHROPIC_BASE_URL: '' })).toBe('https://api.anthropic.com');
     const outside = await selectProvider({ provider: 'openai' }, { env: { CHAMELEON_OPENAI_API_KEY: 'sk-1', CHAMELEON_OPENAI_BASE_URL: 'https://alt.example' } });
-    expect(outside).toMatchObject({ ok: false, message: expect.stringContaining('no es https o su host no está en la lista blanca (api.openai.com, api.anthropic.com, api.groq.com)') });
+    expect(outside).toMatchObject({ ok: false, message: expect.stringContaining('no es https o su host no está en la lista blanca (api.openai.com, api.anthropic.com, api.groq.com, generativelanguage.googleapis.com)') });
     const plainHttp = await selectProvider({ provider: 'openai' }, { env: { CHAMELEON_OPENAI_API_KEY: 'sk-1', CHAMELEON_OPENAI_BASE_URL: 'http://api.openai.com' } });
     expect(plainHttp.ok).toBe(false);
     // Sin remoteHttp inyectado se construye el cliente real (https + lista blanca), sin llamar a nadie.

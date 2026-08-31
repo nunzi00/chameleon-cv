@@ -1,3 +1,4 @@
+import type { JsonHttpRequest } from '../../src/llm/http';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -100,6 +101,12 @@ describe('proveedor Ollama (nativo)', () => {
     const defaults = await provider.complete(REQUEST);
     expect(defaults.ok).toBe(true);
     expect(recorded[1]?.body).toMatchObject({ options: { temperature: 0, seed: 7, num_ctx: 16384 } });
+    // Rutas propias (Gemini): el dialecto compatible sin el prefijo /v1.
+    const flat: JsonHttpRequest[] = [];
+    const gem = createOpenAiCompatibleProvider({ baseUrl: base, model: 'gemini-2.5-flash', chatPath: '/chat/completions', modelsPath: '/models', http: (request) => { flat.push(request); return Promise.resolve({ ok: true, status: 200, data: request.method === 'GET' ? { data: [{ id: 'gemini-2.5-flash' }] } : { choices: [{ message: { content: '{"ok":true}' } }] } }); } });
+    await gem.complete(REQUEST);
+    await gem.health();
+    expect(flat.map((request) => request.url.replace(base, ''))).toEqual(['/chat/completions', '/models']);
     const tuned = createOllamaProvider({ baseUrl: base, model: 'qwen2.5:7b-instruct', contextLength: 32768 });
     expect((await tuned.complete(REQUEST)).ok).toBe(true);
     expect(recorded[2]?.body).toMatchObject({ options: { num_ctx: 32768 } });

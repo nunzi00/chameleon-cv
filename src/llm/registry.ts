@@ -7,7 +7,7 @@
  * `docs/copilot-providers.md`.
  */
 
-export type RemoteProviderId = 'openai' | 'anthropic' | 'groq';
+export type RemoteProviderId = 'openai' | 'anthropic' | 'groq' | 'gemini';
 
 /** Con qué dialecto se habla: el cliente compatible con OpenAI (`/v1/chat/completions`) o Messages de Anthropic. */
 export type RemoteApi = 'openai-chat' | 'anthropic-messages';
@@ -66,6 +66,10 @@ export interface RemoteProviderEntry {
   readonly host: string;
   /** URL base a la que el cliente añade sus rutas (`/v1/chat/completions`, `/v1/models`, `/v1/messages`). */
   readonly baseUrl: string;
+  /** Rutas propias cuando el dialecto compatible no usa el prefijo `/v1` (Gemini: `/chat/completions`, `/models`). */
+  readonly paths?: { readonly chat?: string; readonly models?: string };
+  /** Aviso permanente sobre el uso de datos por el proveedor; se muestra en status, Ajustes y el consentimiento. */
+  readonly dataNote?: string;
   readonly defaultModel: string;
   /** Modelos seleccionables (`--model` o `[llm.models]`); el primero es el de por defecto. */
   readonly models: readonly RemoteModelOption[];
@@ -187,8 +191,48 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
     },
     rateLimitHeaders: ['x-ratelimit-limit-requests', 'x-ratelimit-remaining-requests', 'x-ratelimit-reset-requests', 'x-ratelimit-limit-tokens', 'x-ratelimit-remaining-tokens', 'x-ratelimit-reset-tokens', 'retry-after'],
   },
+  {
+    id: 'gemini',
+    availability: 'pending-verification',
+    availabilityNote: 'pendiente de la verificación al alta (docs/gemini-provider.md §2.4, protocolo de docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
+    api: 'openai-chat',
+    host: 'generativelanguage.googleapis.com',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    // La compatibilidad de Gemini NO usa el prefijo /v1 (ai.google.dev/gemini-api/docs/openai, leído el 2026-08-30).
+    paths: { chat: '/chat/completions', models: '/models' },
+    dataNote: 'el plan gratuito de Gemini usa las peticiones para mejorar los productos de Google: no envíes lo que no quieras compartir',
+    defaultModel: 'gemini-2.5-flash',
+    models: [
+      {
+        id: 'gemini-2.5-flash',
+        status: 'production',
+        recommendedFor: [],
+        note: 'rápido y barato; sin evaluar con el arnés en español todavía (sin recommendedFor hasta entonces, decisión D3 de docs/gemini-provider.md)',
+        sourceUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        verifiedAt: '2026-08-31',
+      },
+      {
+        id: 'gemini-2.5-pro',
+        status: 'production',
+        recommendedFor: [],
+        note: 'más capaz y caro; sin evaluar con el arnés en español todavía',
+        sourceUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        verifiedAt: '2026-08-31',
+      },
+    ],
+    keyEnv: 'CHAMELEON_GEMINI_API_KEY',
+    baseUrlEnv: 'CHAMELEON_GEMINI_BASE_URL',
+    plan: 'free',
+    quota: undefined,
+    rateLimitsUrl: 'https://ai.google.dev/gemini-api/docs/rate-limits',
+    c7: {
+      sourceUrl: 'https://ai.google.dev/gemini-api/docs/openai',
+      verifiedAt: '2026-08-31',
+      quote: 'base_url="https://generativelanguage.googleapis.com/v1beta/openai/" — chat/completions y models sin el prefijo /v1; structured outputs con Zod',
+    },
+    rateLimitHeaders: [],
+  },
 ];
-
 export const REMOTE_PROVIDER_IDS: readonly RemoteProviderId[] = REMOTE_PROVIDERS.map((entry) => entry.id);
 
 /** Los remotos que se pueden seleccionar hoy. */
@@ -244,7 +288,13 @@ export function recommendedModel(entry: RemoteProviderEntry, task: CopilotTask):
 
 /** Los modelos de un proveedor en una línea: «id (estado; tareas)». */
 export function describeModels(models: readonly RemoteModelOption[]): string {
-  return models.map((model) => `${model.id} (${model.status === 'production' ? 'estable' : 'preview'}; ${model.recommendedFor.join(', ')})`).join(' · ');
+  return models
+    .map((model) => {
+      const estado = model.status === 'production' ? 'estable' : 'preview';
+      const tareas = model.recommendedFor.join(', ');
+      return `${model.id} (${estado}${tareas === '' ? '' : `; ${tareas}`})`;
+    })
+    .join(' · ');
 }
 
 /* ─────────────────────────── Modelos locales (T-8.13) ─────────────────────────── */

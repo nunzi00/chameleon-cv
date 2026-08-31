@@ -28,7 +28,7 @@ import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme
 import { importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
-import { outputTokensFloorFor } from '../llm/registry';
+import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
@@ -830,9 +830,11 @@ async function launchJob<P>(state: ServerState, body: CopilotBody, launch: Launc
     if (body.consent === undefined || !state.consents.redeem(body.consent.estimateId, launch.kind)) {
       const estimate = await launch.estimate(planned.plan);
       const estimateId = state.consents.issue(launch.kind);
+      const dataNote = REMOTE_PROVIDERS.find((entry) => entry.id === body.provider)?.dataNote;
       return errorResponse('consent-required', 'Proveedor remoto: revisa el coste estimado y repite la petición con consent.estimateId para confirmar', {
         estimateId,
         estimate,
+        ...(dataNote === undefined ? {} : { dataNote }),
         warning: formatCostWarning(`${provider.id} (${provider.baseUrl}; modelo ${provider.model})`, estimate),
         sending,
         warnings: planned.warnings,

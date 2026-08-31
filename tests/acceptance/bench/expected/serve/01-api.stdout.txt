@@ -625,7 +625,8 @@
     "allowedHosts": [
       "api.openai.com",
       "api.anthropic.com",
-      "api.groq.com"
+      "api.groq.com",
+      "generativelanguage.googleapis.com"
     ],
     "config": {
       "baseUrl": "http://127.0.0.1:9",
@@ -648,6 +649,7 @@
     },
     "keys": {
       "anthropic": "none",
+      "gemini": "none",
       "groq": "none",
       "openai": "none"
     },
@@ -760,6 +762,41 @@
           "verifiedAt": "2026-08-30"
         },
         "rateLimitsUrl": "https://console.groq.com/docs/rate-limits"
+      },
+      {
+        "availability": "pending-verification",
+        "availabilityNote": "pendiente de la verificación al alta (docs/gemini-provider.md §2.4, protocolo de docs/copilot-providers.md §9): no se puede seleccionar hasta entonces",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "c7": {
+          "quote": "base_url=\"https://generativelanguage.googleapis.com/v1beta/openai/\" — chat/completions y models sin el prefijo /v1; structured outputs con Zod",
+          "sourceUrl": "https://ai.google.dev/gemini-api/docs/openai",
+          "verifiedAt": "2026-08-31"
+        },
+        "dataNote": "el plan gratuito de Gemini usa las peticiones para mejorar los productos de Google: no envíes lo que no quieras compartir",
+        "defaultModel": "gemini-2.5-flash",
+        "host": "generativelanguage.googleapis.com",
+        "id": "gemini",
+        "keyPresence": "none",
+        "models": [
+          {
+            "id": "gemini-2.5-flash",
+            "note": "rápido y barato; sin evaluar con el arnés en español todavía (sin recommendedFor hasta entonces, decisión D3 de docs/gemini-provider.md)",
+            "recommendedFor": [],
+            "sourceUrl": "https://ai.google.dev/gemini-api/docs/models",
+            "status": "production",
+            "verifiedAt": "2026-08-31"
+          },
+          {
+            "id": "gemini-2.5-pro",
+            "note": "más capaz y caro; sin evaluar con el arnés en español todavía",
+            "recommendedFor": [],
+            "sourceUrl": "https://ai.google.dev/gemini-api/docs/models",
+            "status": "production",
+            "verifiedAt": "2026-08-31"
+          }
+        ],
+        "plan": "free",
+        "rateLimitsUrl": "https://ai.google.dev/gemini-api/docs/rate-limits"
       }
     ],
     "settings": {
@@ -820,7 +857,8 @@
     "allowedHosts": [
       "api.openai.com",
       "api.anthropic.com",
-      "api.groq.com"
+      "api.groq.com",
+      "generativelanguage.googleapis.com"
     ],
     "config": {
       "baseUrl": "http://127.0.0.1:9",
@@ -843,6 +881,7 @@
     },
     "keys": {
       "anthropic": "none",
+      "gemini": "none",
       "groq": "none",
       "openai": "none"
     },
@@ -955,6 +994,41 @@
           "verifiedAt": "2026-08-30"
         },
         "rateLimitsUrl": "https://console.groq.com/docs/rate-limits"
+      },
+      {
+        "availability": "pending-verification",
+        "availabilityNote": "pendiente de la verificación al alta (docs/gemini-provider.md §2.4, protocolo de docs/copilot-providers.md §9): no se puede seleccionar hasta entonces",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "c7": {
+          "quote": "base_url=\"https://generativelanguage.googleapis.com/v1beta/openai/\" — chat/completions y models sin el prefijo /v1; structured outputs con Zod",
+          "sourceUrl": "https://ai.google.dev/gemini-api/docs/openai",
+          "verifiedAt": "2026-08-31"
+        },
+        "dataNote": "el plan gratuito de Gemini usa las peticiones para mejorar los productos de Google: no envíes lo que no quieras compartir",
+        "defaultModel": "gemini-2.5-flash",
+        "host": "generativelanguage.googleapis.com",
+        "id": "gemini",
+        "keyPresence": "none",
+        "models": [
+          {
+            "id": "gemini-2.5-flash",
+            "note": "rápido y barato; sin evaluar con el arnés en español todavía (sin recommendedFor hasta entonces, decisión D3 de docs/gemini-provider.md)",
+            "recommendedFor": [],
+            "sourceUrl": "https://ai.google.dev/gemini-api/docs/models",
+            "status": "production",
+            "verifiedAt": "2026-08-31"
+          },
+          {
+            "id": "gemini-2.5-pro",
+            "note": "más capaz y caro; sin evaluar con el arnés en español todavía",
+            "recommendedFor": [],
+            "sourceUrl": "https://ai.google.dev/gemini-api/docs/models",
+            "status": "production",
+            "verifiedAt": "2026-08-31"
+          }
+        ],
+        "plan": "free",
+        "rateLimitsUrl": "https://ai.google.dev/gemini-api/docs/rate-limits"
       }
     ],
     "settings": {

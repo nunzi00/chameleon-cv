@@ -3,7 +3,7 @@ import { ApiError } from '../api/client';
 
 export type LaunchProblem =
   | { readonly kind: 'remote-disabled'; readonly message: string }
-  | { readonly kind: 'consent-required'; readonly message: string; readonly estimateId: string; readonly warning: string; readonly estimate: readonly string[] };
+  | { readonly kind: 'consent-required'; readonly message: string; readonly estimateId: string; readonly warning: string; readonly estimate: readonly string[]; readonly dataNote: string };
 
 function estimateLines(value: unknown): readonly string[] {
   if (typeof value !== 'object' || value === null) {
@@ -29,6 +29,7 @@ export function launchProblem(error: unknown): LaunchProblem | undefined {
       estimateId: error.details['estimateId'],
       warning: typeof error.details['warning'] === 'string' ? error.details['warning'] : '',
       estimate: estimateLines(error.details['estimate']),
+      dataNote: typeof error.details['dataNote'] === 'string' ? error.details['dataNote'] : '',
     };
   }
   return undefined;

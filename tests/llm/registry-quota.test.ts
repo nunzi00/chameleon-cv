@@ -11,7 +11,7 @@ const NOW = new Date('2026-08-30T12:00:00.000Z');
 
 describe('registro de proveedores', () => {
   it('cada remoto lleva host https, modelo por defecto, variables CHAMELEON_ y evidencia C7 con URL, fecha y cita; los ids y hosts son únicos', () => {
-    expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
+    expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq', 'gemini']);
     expect(new Set(REMOTE_PROVIDERS.map((entry) => entry.host)).size).toBe(REMOTE_PROVIDERS.length);
     for (const entry of REMOTE_PROVIDERS) {
       expect(entry.baseUrl.startsWith(`https://${entry.host}`)).toBe(true);
@@ -23,16 +23,19 @@ describe('registro de proveedores', () => {
       expect(entry.c7.quote.split(/\s+/).length).toBeLessThanOrEqual(40);
       expect(entry.rateLimitsUrl).toMatch(/^https:\/\//);
       expect(entry.rateLimitHeaders.every((name) => name === name.toLowerCase())).toBe(true);
-      if (entry.plan === 'free') {
+      // Gemini no publica límites por modelo (solo «view in AI Studio», docs/gemini-provider.md §1): la fuente vive en rateLimitsUrl.
+      if (entry.plan === 'free' && entry.id !== 'gemini') {
         expect(entry.quota).toBeDefined();
         expect(entry.quota?.sourceUrl).toMatch(/^https:\/\//);
       }
     }
-    expect(registryHosts()).toEqual(['api.openai.com', 'api.anthropic.com', 'api.groq.com']);
+    expect(registryHosts()).toEqual(['api.openai.com', 'api.anthropic.com', 'api.groq.com', 'generativelanguage.googleapis.com']);
     expect(isRemoteProviderId('groq')).toBe(true);
-    expect(isRemoteProviderId('gemini')).toBe(false);
+    expect(isRemoteProviderId('gemini')).toBe(true);
+    expect(isRemoteProviderId('grok')).toBe(false);
     expect(remoteProvider('groq')).toMatchObject({ api: 'openai-chat', baseUrl: 'https://api.groq.com/openai', plan: 'free' });
-    expect(() => remoteProvider('gemini' as never)).toThrow(/sin registrar/);
+    expect(remoteProvider('gemini')).toMatchObject({ availability: 'pending-verification', paths: { chat: '/chat/completions', models: '/models' } });
+    expect(() => remoteProvider('grok' as never)).toThrow(/sin registrar/);
   });
 
   it('cada remoto lista sus modelos seleccionables con estado, tareas y evidencia; el de por defecto está entre ellos; Groq ofrece gpt-oss-120b y qwen3.8-27b', () => {
@@ -41,7 +44,10 @@ describe('registro de proveedores', () => {
       expect(new Set(entry.models.map((model) => model.id)).size).toBe(entry.models.length);
       expect(entry.models.map((model) => model.id)).toContain(entry.defaultModel);
       for (const model of entry.models) {
-        expect(model.recommendedFor.length).toBeGreaterThan(0);
+        // D3 de docs/gemini-provider.md: sin recommendedFor hasta pasar el arnés en español.
+        if (entry.id !== 'gemini') {
+          expect(model.recommendedFor.length).toBeGreaterThan(0);
+        }
         expect(model.sourceUrl).toMatch(/^https:\/\//);
         expect(model.verifiedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         expect(model.note.length).toBeGreaterThan(0);

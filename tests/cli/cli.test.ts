@@ -422,7 +422,7 @@ describe('contexto real y errores no estándar', () => {
       expect(createNodeContext({ interactive: true }).confirm).toBeTypeOf('function');
       expect(createNodeContext({ interactive: false }).confirm).toBeUndefined();
       process.env['CHAMELEON_LLM_PROVIDER'] = 'gemini';
-      expect(await createNodeContext().llmProvider({})).toMatchObject({ ok: false, message: expect.stringContaining('no es un proveedor conocido') });
+      expect(await createNodeContext().llmProvider({})).toMatchObject({ ok: false, message: expect.stringContaining('es un proveedor remoto: los remotos exigen --provider explícito') });
     } finally {
       if (previous === undefined) {
         delete process.env['CHAMELEON_LLM_PROVIDER'];

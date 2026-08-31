@@ -7,6 +7,8 @@ Proveedores remotos (solo con --provider explícito):
   anthropic → clave ninguna · plan de pago (límites según la cuenta) · api.anthropic.com · modelo por defecto claude-sonnet-4-5
   groq → clave ninguna · plan gratuito: 30 req/min, 1000 req/día, 8000 tokens/min, 200000 tokens/día (https://console.groq.com/docs/rate-limits, 2026-08-30) · api.groq.com · modelo por defecto openai/gpt-oss-120b
     modelos (--model o [llm.models]): openai/gpt-oss-120b (estable; improve, summarize) · qwen/qwen3.8-27b (preview; suggest-tags, improve, summarize)
+  gemini → clave ninguna · plan gratuito (límites según la cuenta) · generativelanguage.googleapis.com · modelo por defecto gemini-2.5-flash · AVISO: el plan gratuito de Gemini usa las peticiones para mejorar los productos de Google: no envíes lo que no quieras compartir · PENDIENTE DE VERIFICACIÓN: pendiente de la verificación al alta (docs/gemini-provider.md §2.4, protocolo de docs/copilot-providers.md §9): no se puede seleccionar hasta entonces
+    modelos (--model o [llm.models]): gemini-2.5-flash (estable) · gemini-2.5-pro (estable)
 Fichero de claves: <TMP>/home/.config/chameleon-cv/keys.json
-Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com
+Lista blanca de hosts: api.openai.com, api.anthropic.com, api.groq.com, generativelanguage.googleapis.com
 runtime: Ollama parado · no hay «ollama» (no se encontró el binario «ollama») ni Docker (Docker no responde («docker»)): instala Ollama o Docker

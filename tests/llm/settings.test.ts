@@ -20,7 +20,7 @@ describe('LlmSettingsSchema', () => {
     const url = LlmSettingsSchema.safeParse({ base_url: 'https://api.openai.com' });
     expect(!url.success && url.error.issues[0]?.message).toMatch(/loopback/);
     expect(LlmSettingsSchema.safeParse({ modelo: 'x' }).success).toBe(false);
-    expect(LlmSettingsSchema.safeParse({ models: { gemini: 'x' } }).success).toBe(false);
+    expect(LlmSettingsSchema.safeParse({ models: { grok: 'x' } }).success).toBe(false);
     expect(LlmSettingsSchema.safeParse({ model: '' }).success).toBe(false);
   });
 });

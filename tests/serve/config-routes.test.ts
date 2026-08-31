@@ -50,7 +50,7 @@ describe('cv serve: GET/PUT /config/llm y POST /config/llm/check', () => {
     expect(response.headers.get('etag')).toBe(`"${body.file.sha256}"`);
     expect(body.llm.settings).toMatchObject({ present: true, configured: false });
     expect(body.llm.config.sources).toEqual({ provider: 'default', baseUrl: 'default', model: 'default', think: 'default', context: 'default' });
-    expect(body.llm.providers.map((provider) => provider.id)).toEqual(['openai', 'anthropic', 'groq']);
+    expect(body.llm.providers.map((provider) => provider.id)).toEqual(['openai', 'anthropic', 'groq', 'gemini']);
     expect(body.llm.providers[2]).toMatchObject({ plan: 'free', live: { remainingRequests: 28 } });
     expect(JSON.stringify(body)).not.toContain('sk-');
     expect(body.remote.allowed).toBe(false);
@@ -101,7 +101,7 @@ describe('cv serve: GET/PUT /config/llm y POST /config/llm/check', () => {
     expect(noKey.status).toBe(200);
     expect(await noKey.json()).toMatchObject({ provider: 'openai', kind: 'remote', ok: false, message: expect.stringContaining('No hay clave para «openai»') as string });
     const unknown = await post(remoteServer, '/config/llm/check', { provider: 'gemini' });
-    expect(await unknown.json()).toMatchObject({ provider: 'gemini', kind: 'remote', ok: false, message: expect.stringContaining('no es un proveedor conocido') as string });
+    expect(await unknown.json()).toMatchObject({ provider: 'gemini', kind: 'remote', ok: false, message: expect.stringContaining('pendiente de la verificación al alta') as string });
     expect((await post(server, '/config/llm/check', { provider: '' })).status).toBe(400);
     env = { CHAMELEON_OPENAI_API_KEY: 'sk' };
     const remoteMissing = await post(remoteServer, '/config/llm/check', { provider: 'openai' });

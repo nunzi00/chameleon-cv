@@ -72,7 +72,7 @@ describe('cv llm key', () => {
 
     const list = harness();
     expect(await runCli(['llm', 'key', 'list'], list.context)).toBe(EXIT_OK);
-    expect(list.stdout()).toBe(`Fichero de claves: ${keysFile()}\nopenai: fichero de claves\nanthropic: fichero de claves\ngroq: ninguna\n`);
+    expect(list.stdout()).toBe(`Fichero de claves: ${keysFile()}\nopenai: fichero de claves\nanthropic: fichero de claves\ngroq: ninguna\ngemini: ninguna\n`);
 
     const remove = harness();
     expect(await runCli(['llm', 'key', 'remove', 'openai'], remove.context)).toBe(EXIT_OK);
@@ -84,9 +84,9 @@ describe('cv llm key', () => {
 
   it('errores: proveedor desconocido (1), clave vacía (2), fichero inseguro (2) y list con permisos abiertos', async () => {
     const unknown = harness('sk');
-    expect(await runCli(['llm', 'key', 'set', 'gemini'], unknown.context)).toBe(EXIT_DATA_ERROR);
-    expect(unknown.stderr()).toBe('«gemini» no es un proveedor remoto conocido (openai, anthropic, groq)\n');
-    expect(await runCli(['llm', 'key', 'remove', 'gemini'], unknown.context)).toBe(EXIT_DATA_ERROR);
+    expect(await runCli(['llm', 'key', 'set', 'grok'], unknown.context)).toBe(EXIT_DATA_ERROR);
+    expect(unknown.stderr()).toBe('«grok» no es un proveedor remoto conocido (openai, anthropic, groq, gemini)\n');
+    expect(await runCli(['llm', 'key', 'remove', 'grok'], unknown.context)).toBe(EXIT_DATA_ERROR);
     const empty = harness('   \n');
     expect(await runCli(['llm', 'key', 'set', 'openai'], empty.context)).toBe(EXIT_FAILURE);
     expect(empty.stderr()).toBe('La clave está vacía\n');
@@ -106,7 +106,7 @@ describe('cv llm key', () => {
     expect(createNodeContext({ interactive: false }).readSecret).toBeUndefined();
     expect(typeof createNodeContext({ interactive: true }).readSecret).toBe('function');
     const selection = await createNodeContext({ interactive: false }).llmProvider({ provider: 'gemini' });
-    expect(selection).toMatchObject({ ok: false, message: expect.stringContaining('no es un proveedor conocido') as string });
+    expect(selection).toMatchObject({ ok: false, message: expect.stringContaining('pendiente de la verificación al alta') as string });
     const status = await createNodeContext({ interactive: false }).llmStatus({ env: { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } });
     expect(status.settings.path).toBe(join(process.cwd(), 'cv.toml'));
   });

@@ -344,6 +344,7 @@
   <Dialog open={problem?.kind === 'consent-required'} title="Proveedor remoto: confirma el coste" onclose={() => (problem = undefined)}>
     {#if problem?.kind === 'consent-required'}
       <p>{problem.warning === '' ? problem.message : problem.warning}</p>
+      {#if problem?.kind === 'consent-required' && problem.dataNote !== ''}<p class="cv-muted">⚠ {problem.dataNote}</p>{/if}
       <dl class="cv-consent">
         <dt>Destino</dt><dd>{plan.destination}</dd>
         <dt>Se envía</dt><dd>{plan.sends}</dd>

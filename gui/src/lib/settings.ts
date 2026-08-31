@@ -115,6 +115,8 @@ export interface ProviderView {
   readonly key: string;
   readonly hasKey: boolean;
   readonly plan: string;
+  /** Aviso permanente de datos del proveedor (Gemini free), si lo hay. */
+  readonly dataNote: string | undefined;
   readonly quota: string | undefined;
   readonly live: string | undefined;
 }
@@ -148,6 +150,7 @@ export function describeProvider(provider: ProviderStatus): ProviderView {
     key: KEY_LABELS[provider.keyPresence],
     hasKey: provider.keyPresence === 'env' || provider.keyPresence === 'file',
     plan: provider.plan === 'free' ? 'plan gratuito' : 'plan de pago (límites según la cuenta)',
+    dataNote: provider.dataNote,
     quota: provider.quota === undefined ? undefined : describePublished(provider.quota),
     live: provider.live === undefined ? undefined : describeLive(provider.live),
   };

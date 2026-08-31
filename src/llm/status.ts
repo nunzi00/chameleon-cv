@@ -37,6 +37,8 @@ export interface RemoteProviderStatus {
   /** `pending-verification`: registrado pero no seleccionable hasta la verificación humana (docs/copilot-providers.md §9). */
   readonly availability: ProviderAvailability;
   readonly availabilityNote: string | undefined;
+  /** Aviso permanente sobre el uso de datos del proveedor (Gemini free), si lo hay. */
+  readonly dataNote: string | undefined;
   readonly id: RemoteProviderId;
   readonly plan: 'free' | 'paid';
   readonly host: string;
@@ -89,6 +91,7 @@ export async function llmStatus(options: LlmStatusOptions = {}): Promise<LlmStat
     id: entry.id,
     availability: entry.availability,
     availabilityNote: entry.availabilityNote,
+    dataNote: entry.dataNote,
     plan: entry.plan,
     host: entry.host,
     baseUrl: entry.baseUrl,
@@ -176,9 +179,10 @@ export function formatLlmStatus(status: LlmStatus): string {
   lines.push('Proveedores remotos (solo con --provider explícito):');
   for (const provider of status.providers) {
     const published = provider.quota === undefined ? 'límites según la cuenta' : `${describeQuota(provider.quota)} (${provider.quota.sourceUrl}, ${provider.quota.verifiedAt})`;
-    const plan = provider.plan === 'free' ? `plan gratuito: ${published}` : `plan de pago (${published})`;
+    const plan = provider.plan === 'free' ? (provider.quota === undefined ? `plan gratuito (${published})` : `plan gratuito: ${published}`) : `plan de pago (${published})`;
     const pending = provider.availability === 'available' ? '' : ` · PENDIENTE DE VERIFICACIÓN: ${provider.availabilityNote ?? 'no disponible'}`;
-    lines.push(`  ${provider.id} → clave ${describeKey(status.keys[provider.id], KEY_ENV_VARIABLES[provider.id])} · ${plan} · ${provider.host} · modelo por defecto ${provider.defaultModel}${pending}`);
+    const aviso = provider.dataNote === undefined ? '' : ` · AVISO: ${provider.dataNote}`;
+    lines.push(`  ${provider.id} → clave ${describeKey(status.keys[provider.id], KEY_ENV_VARIABLES[provider.id])} · ${plan} · ${provider.host} · modelo por defecto ${provider.defaultModel}${aviso}${pending}`);
     if (provider.models.length > 1) {
       lines.push(`    modelos (--model o [llm.models]): ${describeModels(provider.models)}`);
     }

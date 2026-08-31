@@ -28,7 +28,7 @@ describe('writeApiKey / removeApiKey', () => {
     expect(await writeApiKey('openai', 'sk-segunda', options)).toEqual({ ok: true, file: keysFile });
     expect(JSON.parse(await readFile(keysFile, 'utf8'))).toEqual({ openai: 'sk-segunda', anthropic: 'sk-ant' });
     expect(await resolveApiKey('openai', options)).toEqual({ ok: true, key: 'sk-segunda', source: 'file' });
-    expect(await describeKeys(options)).toEqual({ openai: 'file', anthropic: 'file', groq: 'none' });
+    expect(await describeKeys(options)).toEqual({ openai: 'file', anthropic: 'file', groq: 'none', gemini: 'none' });
     expect(await removeApiKey('openai', options)).toEqual({ ok: true, file: keysFile, removed: true });
     expect(await removeApiKey('openai', options)).toEqual({ ok: true, file: keysFile, removed: false });
     expect(JSON.parse(await readFile(keysFile, 'utf8'))).toEqual({ anthropic: 'sk-ant' });

@@ -239,6 +239,6 @@ export async function selectProvider(selection: ProviderSelection = {}, options:
   const provider =
     entry.api === 'anthropic-messages'
       ? createAnthropicProvider({ apiKey: key.key, http, baseUrl, model })
-      : createOpenAiCompatibleProvider({ id: entry.id, kind: 'remote', baseUrl, model, http, headers: { authorization: `Bearer ${key.key}` }, outputTokensFloor: entry.models.find((candidate) => candidate.id === model)?.outputTokensFloor });
+      : createOpenAiCompatibleProvider({ id: entry.id, kind: 'remote', baseUrl, model, http, headers: { authorization: `Bearer ${key.key}` }, outputTokensFloor: entry.models.find((candidate) => candidate.id === model)?.outputTokensFloor, chatPath: entry.paths?.chat, modelsPath: entry.paths?.models });
   return { ok: true, provider, keySource: key.source };
 }

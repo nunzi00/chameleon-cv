@@ -45,6 +45,15 @@ aviso de datos delante del usuario. Con ese consentimiento informado, encaja en 
 
 La API nativa de Gemini (`generateContent`), *grounding*, ficheros; cualquier selección automática de remoto.
 
+## §3.5 Estado
+
+**IMPLEMENTADO el 31-ago-2026 (tras la 1.9.0)**: entrada `gemini` en el registro (`pending-verification`, rutas
+propias `paths.chat`/`paths.models` sin `/v1`, `dataNote` permanente, modelos sin `recommendedFor` por D3), el
+cliente compatible acepta rutas por proveedor, el aviso de datos viaja en `cv llm status`, en la ficha de Ajustes y
+en el 409 de consentimiento de los trabajos (`dataNote` en los detalles, pintado en el diálogo del Co-piloto), y la
+lista blanca y las variables de clave crecen solas desde el registro. Pendiente: el protocolo de verificación §2.4
+con la clave del Director y el cambio de datos a `available`.
+
 ## §4 Decisiones que se piden al PO
 
 1. **D1** Alta de `gemini` como remoto explícito con el aviso de datos permanente.

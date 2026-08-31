@@ -31,6 +31,9 @@ export interface OpenAiCompatibleOptions {
   readonly headers?: Readonly<Record<string, string>> | undefined;
   /** Suelo de tokens de salida del modelo (registro), para modelos que razonan. */
   readonly outputTokensFloor?: number | undefined;
+  /** Rutas propias del dialecto (Gemini no usa el prefijo /v1); por defecto, las estándar. */
+  readonly chatPath?: string | undefined;
+  readonly modelsPath?: string | undefined;
 }
 
 export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions = {}): LlmProvider {
@@ -48,7 +51,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
     async complete(request: LlmRequest): Promise<LlmCompletion> {
       const started = Date.now();
       const result = await http({
-        url: `${baseUrl}/v1/chat/completions`,
+        url: `${baseUrl}${options.chatPath ?? '/v1/chat/completions'}`,
         method: 'POST',
         headers,
         timeoutMs: request.timeoutMs,
@@ -85,7 +88,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
       };
     },
     async health(): Promise<LlmHealth> {
-      const result = await http({ url: `${baseUrl}/v1/models`, method: 'GET', headers, timeoutMs: LLM_HTTP_LIMITS.healthTimeoutMs });
+      const result = await http({ url: `${baseUrl}${options.modelsPath ?? '/v1/models'}`, method: 'GET', headers, timeoutMs: LLM_HTTP_LIMITS.healthTimeoutMs });
       if (!result.ok) {
         return { ok: false, code: httpErrorToLlm(result.code), message: `El servidor compatible con OpenAI no responde en ${baseUrl}: ${result.message}` };
       }

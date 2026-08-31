@@ -4,6 +4,14 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- Proveedor remoto **Gemini** registrado como `pending-verification` (T-8.15, aprobado D1–D5): API compatible de Google con **rutas propias sin `/v1`** (campo `paths` por proveedor, aditivo), modelos `gemini-2.5-flash` y `gemini-2.5-pro` sin tareas recomendadas hasta evaluarlos en español, clave `CHAMELEON_GEMINI_API_KEY`, y **aviso permanente de datos** en `cv llm status`, en Ajustes y dentro del consentimiento de coste de cada trabajo (el plan gratuito de Gemini usa las peticiones para mejorar productos de Google). No se puede seleccionar hasta la verificación al alta (§9/§11 de copilot-providers).
+
+### Cambiado
+
+- `cv llm status`: la línea de modelos ya no deja un «; » colgante cuando un modelo no tiene tareas recomendadas, y un plan gratuito sin cuota publicada se describe entre paréntesis como los de pago.
+
 ## [1.9.0] - 2026-08-31
 
 ### Añadido

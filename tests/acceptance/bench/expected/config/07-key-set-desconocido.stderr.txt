@@ -1,1 +1,1 @@
-«gemini» no es un proveedor remoto conocido (openai, anthropic, groq)
+«grok» no es un proveedor remoto conocido (openai, anthropic, groq, gemini)

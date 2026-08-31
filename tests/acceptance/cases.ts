@@ -239,7 +239,7 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'llm-status-groq-sin-clave', args: ['llm', 'status', '--provider', 'groq'], env: NO_LLM, exitCode: 2 },
       { id: 'key-set-groq', args: ['llm', 'key', 'set', 'groq'], stdin: 'gsk_clave_de_prueba\n', exitCode: 0 },
       { id: 'key-list-con-groq', args: ['llm', 'key', 'list'], exitCode: 0 },
-      { id: 'key-set-desconocido', args: ['llm', 'key', 'set', 'gemini'], stdin: 'x\n', exitCode: 1 },
+      { id: 'key-set-desconocido', args: ['llm', 'key', 'set', 'grok'], stdin: 'x\n', exitCode: 1 },
       { id: 'key-set-vacia', args: ['llm', 'key', 'set', 'openai'], stdin: '\n', exitCode: 2 },
       { id: 'key-remove-groq', args: ['llm', 'key', 'remove', 'groq'], exitCode: 0 },
       { id: 'key-remove-otra-vez', args: ['llm', 'key', 'remove', 'groq'], exitCode: 0 },
