@@ -143,7 +143,7 @@ export function findJobPosting(html: string): JobPosting | undefined {
     }
     for (const candidate of candidates(parsed)) {
       if (candidate['@type'] === 'JobPosting') {
-        return candidate as JobPosting;
+        return candidate;
       }
     }
   }

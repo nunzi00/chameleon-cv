@@ -298,7 +298,7 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
           }
           await h.context.artifactFileSystem.writeFile(path, content, mode);
         },
-      } as CliContext['artifactFileSystem'],
+      },
     };
     expect(await runCli(['improve', 'apply', 'output/ok.md'], sourceFails)).toBe(EXIT_FAILURE);
     expect(h.stderr()).toBe(`No se pudo escribir ${SOURCES}/experience/acme.md: fuente de solo lectura\n`);

@@ -46,7 +46,7 @@ export type ImproveOutput = z.output<typeof ImproveOutputSchema>;
 
 /** JSON Schema de la salida, derivado del mismo esquema zod que la valida. */
 export function improveJsonSchema(): Record<string, unknown> {
-  return z.toJSONSchema(ImproveOutputSchema) as Record<string, unknown>;
+  return z.toJSONSchema(ImproveOutputSchema);
 }
 
 export interface FragmentOptions {

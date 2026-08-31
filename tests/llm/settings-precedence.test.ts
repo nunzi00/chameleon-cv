@@ -39,7 +39,7 @@ describe('precedencia orden > entorno > cv.toml > defecto', () => {
   });
 
   it('un cv.toml con URL no local o proveedor remoto falla con el origen en el mensaje', () => {
-    expect(resolveLlmConfig({}, { settings: { base_url: 'http://192.168.1.2:11434' } as never })).toEqual({
+    expect(resolveLlmConfig({}, { settings: { base_url: 'http://192.168.1.2:11434' } })).toEqual({
       ok: false,
       message: 'cv.toml [llm].base_url=«http://192.168.1.2:11434» no es una dirección local (loopback): los proveedores remotos exigen --provider explícito',
     });

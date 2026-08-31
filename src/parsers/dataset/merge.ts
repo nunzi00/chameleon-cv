@@ -87,5 +87,5 @@ export function mergeContributions(sources: readonly ContributionSource[]): Merg
 
   return errors.length > 0
     ? { ok: false, errors }
-    : { ok: true, profile: merged as ProfileContribution, provenance };
+    : { ok: true, profile: merged, provenance };
 }

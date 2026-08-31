@@ -35,7 +35,7 @@ export interface NodeContextOptions {
 }
 
 export function createNodeContext(options: NodeContextOptions = {}): CliContext {
-  const interactive = options.interactive ?? process.stdin.isTTY === true;
+  const interactive = options.interactive ?? process.stdin.isTTY === true; // el tipo dice boolean, pero en una tubería es undefined
   const assets = defaultAssets();
   const datasetFileSystem = new NodeFileSystem();
   const cwd = process.cwd();

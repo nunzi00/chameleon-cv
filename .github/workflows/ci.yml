@@ -20,7 +20,7 @@ env:
 
 jobs:
   verify:
-    name: Verificar (typecheck, cobertura 100 %, aceptación determinista)
+    name: Verificar (typecheck, lint, cobertura 100 %, aceptación determinista)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
@@ -34,6 +34,7 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix gui
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm run build
       - name: Interfaz web construida (el escenario serve del arnés la pide)
         run: npm run gui:build

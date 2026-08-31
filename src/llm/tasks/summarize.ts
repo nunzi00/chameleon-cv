@@ -60,7 +60,7 @@ export type SummarizeInput = z.output<typeof SummarizeInputSchema>;
 export type SummarizeOutput = z.output<typeof SummarizeOutputSchema>;
 
 export function summarizeJsonSchema(): Record<string, unknown> {
-  return z.toJSONSchema(SummarizeOutputSchema) as Record<string, unknown>;
+  return z.toJSONSchema(SummarizeOutputSchema);
 }
 
 export interface SummarizeFragmentOptions {

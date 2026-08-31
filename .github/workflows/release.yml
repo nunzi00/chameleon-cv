@@ -60,6 +60,7 @@ jobs:
       - name: CHANGELOG.md debe tener la sección de la versión, con fecha y contenido (notas de la release)
         run: npm run --silent release:notes -- "$(node -p "require('./package.json').version")" > /dev/null
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm run build
       - run: npm run gui:build
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

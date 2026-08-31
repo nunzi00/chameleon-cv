@@ -3,7 +3,7 @@
  * opcional, nodos anteriores al primer encabezado y secciones `## …`. La interpretación
  * (qué secciones se admiten, qué contienen) la hace cada tipo de fichero.
  */
-import type { List, Nodes, Root, RootContent } from 'mdast';
+import type { List, Nodes, RootContent } from 'mdast';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
@@ -59,7 +59,7 @@ export function onlyList(nodes: readonly RootContent[]): List | undefined {
 }
 
 export function parseMarkdownDocument(source: string, file: string): DocumentResult {
-  const root = processor.parse(source) as Root;
+  const root = processor.parse(source);
   const errors: DatasetError[] = [];
   let frontmatter: MarkdownDocument['frontmatter'];
   const leading: RootContent[] = [];

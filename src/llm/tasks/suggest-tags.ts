@@ -47,7 +47,7 @@ export function suggestTagsJsonSchema(dictionary: readonly string[]): Record<str
   const strict = z.strictObject({
     suggestions: z.array(z.strictObject({ tag: z.enum(dictionary as [string, ...string[]]), reason: z.string().max(200) })).max(20),
   });
-  return z.toJSONSchema(strict) as Record<string, unknown>;
+  return z.toJSONSchema(strict);
 }
 
 export interface TagTarget {
