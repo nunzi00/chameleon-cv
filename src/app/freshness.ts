@@ -20,7 +20,13 @@ export type AppWarning =
   /** `--skills`/`--projects`: nombres o ids que no existen en el perfil (se ignoran). */
   | { readonly kind: 'unknown-selection'; readonly section: 'skills' | 'projects'; readonly names: readonly string[] }
   /** El historial de ofertas (`output/historial-ofertas.json`) no se pudo escribir; la orden se completó igualmente. */
-  | { readonly kind: 'history-unwritable'; readonly message: string };
+  | { readonly kind: 'history-unwritable'; readonly message: string }
+  /**
+   * La oferta trae texto de sobra pero apenas requisitos reconocibles. Suele significar que sus requisitos están
+   * en OTRA página —«check our careers repository: <url>»— y entonces una adecuación del 100 % sobre un solo
+   * requisito engaña más que informa. Medido con una oferta real el 1-sep-2026.
+   */
+  | { readonly kind: 'offer-without-requirements'; readonly words: number; readonly recognized: number; readonly link?: string | undefined };
 
 export async function checkArtifactFreshness(fs: FileSystem, artifactPath: string, sourcesRoot: string): Promise<Freshness> {
   let artifactMtime: number;

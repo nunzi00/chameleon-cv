@@ -30,6 +30,10 @@ export interface OfferAnalysis {
   readonly suggestedSpecialty: SuggestedSpecialty | undefined;
 }
 
+/** Umbrales del aviso «oferta sin requisitos»: texto de sobra y casi nada reconocido. */
+const REQUIREMENTS_EXPECTED_WORDS = 200;
+const REQUIREMENTS_TOO_FEW = 3;
+
 export type AnalyzeResult =
   | { readonly ok: true; readonly analysis: OfferAnalysis; readonly history: readonly HistoryEntry[]; readonly warnings: readonly AppWarning[] }
   | { readonly ok: false; readonly error: AppError; readonly warnings: readonly AppWarning[] };
@@ -68,9 +72,17 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
   if (failure !== undefined) {
     warnings.push({ kind: 'history-unwritable', message: failure });
   }
+  const summary = summarizeMatch(scored.report, scored.profile);
+  const words = read.offer.text.split(/\s+/).filter((word) => word !== '').length;
+  // Mucho texto y casi nada reconocido: casi siempre los requisitos están en otra página. Se avisa con el enlace
+  // si la oferta lo lleva, porque es lo que hay que ir a buscar.
+  if (words >= REQUIREMENTS_EXPECTED_WORDS && summary.recognized <= REQUIREMENTS_TOO_FEW) {
+    const link = /https?:\/\/\S+/.exec(read.offer.text.replace(/^#.*$/gm, ''))?.[0];
+    warnings.push({ kind: 'offer-without-requirements', words, recognized: summary.recognized, link });
+  }
   return {
     ok: true,
-    analysis: { offerName: read.offer.name, requirements, scored, summary: summarizeMatch(scored.report, scored.profile), suggestedSpecialty: suggestSpecialty(loaded.profile, requirements) },
+    analysis: { offerName: read.offer.name, requirements, scored, summary, suggestedSpecialty: suggestSpecialty(loaded.profile, requirements) },
     history,
     warnings,
   };

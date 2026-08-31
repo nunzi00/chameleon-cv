@@ -2,6 +2,16 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Corregido
+
+- **Una oferta que escribe «CI/CD» ya cubre una tag `ci-cd` del perfil**: los separadores de un término compuesto (`/`, `_`) se unifican al normalizar, así que la puntuación deja de decidir si un requisito está cubierto. Medido con ofertas reales: una pasa de 28 a 30 términos reconocidos y de 4 carencias a 2; en el banco de pruebas, la adecuación de una oferta sube de 8/9 a 9/10 con los imprescindibles de 7/7 a 8/8. La sustitución es de igual longitud a propósito —el informe cita la evidencia por posición— y no toca el punto (separa versiones) ni el «·» (separa campos).
+
+### Añadido
+
+- **Aviso cuando una oferta no declara sus requisitos**: si trae texto de sobra y apenas se reconoce nada, casi siempre es que su stack está en otra página. Antes eso daba una adecuación del 100 % calculada sobre un único requisito, que engaña más que informa; ahora se avisa, **con el enlace si la oferta lo lleva**, y se dice que el porcentaje se calcula sobre lo poco que declara.
+
 ## [1.13.1] - 2026-09-01
 
 ### Añadido

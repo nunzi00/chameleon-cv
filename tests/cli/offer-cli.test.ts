@@ -176,6 +176,21 @@ describe('cv generate-cv --from-job-offer', () => {
   });
 });
 
+describe('cv analyze-offer: una oferta que no declara sus requisitos', () => {
+  it('avisa con el enlace en vez de dar una adecuación del 100 % sobre un solo requisito', async () => {
+    // Caso real (1-sep-2026): una oferta de 545 palabras cuyo stack vive en un enlace («check our careers
+    // repository: …»). Reconocía 2 términos y presumía de 1/1 imprescindibles: un 100 % que engaña.
+    const relleno = 'Buscamos talento con pasión y compromiso para crear producto de calidad en un gran ambiente. '.repeat(20);
+    const h = compiled({
+      '/work/offers/sin-requisitos.txt': `Senior Backend Developer\n\n${relleno}\nMás detalle del stack en https://example.org/careers/openings/backend.md\n${relleno}`,
+    });
+    expect(await runCli(['analyze-offer', 'offers/sin-requisitos.txt'], h.context)).toBe(EXIT_OK);
+    const aviso = h.stderr();
+    expect(aviso).toContain('solo se reconocen');
+    expect(aviso).toContain('https://example.org/careers/openings/backend.md');
+  });
+});
+
 describe('cv analyze-offer', () => {
   it('imprime el resumen de adecuación sin escribir ningún CV (solo anota el historial)', async () => {
     const h = compiled();

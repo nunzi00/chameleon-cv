@@ -1,9 +1,19 @@
-/** Normalización compartida por vocabulario y oferta: minúsculas y sin diacríticos. */
+/**
+ * Normalización compartida por vocabulario y oferta: minúsculas, sin diacríticos y con los separadores de un
+ * término compuesto unificados. Lo último importa más de lo que parece: una oferta escribe «CI/CD» y un perfil
+ * etiqueta `ci-cd`, y sin unificarlos el requisito se daba por NO cubierto teniéndolo (medido el 1-sep-2026 con
+ * ofertas reales). La sustitución es de IGUAL LONGITUD a propósito: el informe cita la evidencia por
+ * desplazamiento dentro de la línea, y quitar caracteres la descolocaría.
+ *
+ * Solo `/` y `_`, y solo entre alfanuméricos: el punto se deja porque separa versiones («8.3») y frases, y el
+ * «·» porque en este proyecto separa campos distintos («Rol · Empresa»), no partes de un mismo término.
+ */
 export function normalizeText(text: string): string {
   return text
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/(?<=[\p{L}\p{N}])[/_](?=[\p{L}\p{N}])/gu, '-');
 }
 
 /** Una línea o un término: normalizados y con los espacios colapsados. */

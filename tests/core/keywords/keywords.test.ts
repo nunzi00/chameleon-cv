@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  normalizeText,
   JobRequirementsSchema,
   buildVocabulary,
   classifyLines,
@@ -203,5 +204,25 @@ describe('extractJobRequirements', () => {
     expect(profile).toEqual(snapshot);
     expect(new Map([...vocabulary].map(([term, tags]) => [term, [...tags]]))).toEqual(before);
     expect(parseMasterProfile(snapshot)).toEqual(profile);
+  });
+});
+
+describe('separadores de un término compuesto', () => {
+  it('una oferta que escribe «CI/CD» cubre una tag «ci-cd» del perfil', () => {
+    // Medido con ofertas reales el 1-sep-2026: el requisito se daba por NO cubierto teniéndolo, solo porque la
+    // oferta usa barra y el perfil guion. Es puntuación, no semántica.
+    expect(containsTerm(normalizeLine('Experiencia con CI/CD en producción'), 'ci-cd')).toBe(true);
+    expect(containsTerm(normalizeLine('pipelines ci_cd automatizados'), 'ci-cd')).toBe(true);
+    // Y la sustitución es de igual longitud: el informe cita la evidencia por desplazamiento en la línea.
+    expect(normalizeText('CI/CD')).toBe('ci-cd');
+    expect(normalizeText('CI/CD')).toHaveLength('CI/CD'.length);
+  });
+
+  it('no une lo que no es un término compuesto', () => {
+    // «·» separa campos distintos en este proyecto, y el punto separa versiones y frases: no se tocan.
+    expect(containsTerm(normalizeLine('Rol · Empresa'), 'rol-empresa')).toBe(false);
+    expect(normalizeText('PHP 8.3')).toBe('php 8.3');
+    // Una barra que no está entre alfanuméricos tampoco: una URL no se convierte en un término.
+    expect(normalizeText('https://ejemplo.com')).toBe('https://ejemplo.com');
   });
 });
