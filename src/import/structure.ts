@@ -145,6 +145,17 @@ function isContinuation(previous: string, text: string): boolean {
   return !/[.!?)]$/.test(previous) || /^[a-záéíóúñ(]/.test(text);
 }
 
+/**
+ * Marcas de centro educativo. Sirve para decidir el reparto cuando la formación llega en dos líneas: unas
+ * plantillas ponen la titulación primero y el centro debajo, y otras al revés. Solo decide cuando UNA de las dos
+ * lleva marca y la otra no; sin marca clara no se toca nada, que es mejor que invertirlo al azar.
+ */
+const INSTITUTION = /\b(?:i\.?e\.?s|universi(?:dad|ty|tat|dade|té)|college|school|escuela|instituto|facultad|academia|polit[eé]cnico|colegio)\b/i;
+
+function looksLikeInstitution(text: string): boolean {
+  return INSTITUTION.test(text);
+}
+
 function looksLikeLocation(text: string): boolean {
   return text !== '' && text.length <= 48 && !/[.:;]/.test(text) && !isBullet(text) && findDateRange(text) === undefined && !/\d{4}/.test(text);
 }
@@ -326,19 +337,25 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       entry.needsTitle = true;
       return;
     }
-    const parsed = parseTitle(first.text, kind === 'education');
+    // «I.E.S Muralla Romana» / «C.S. Desarrollo de Aplicaciones Web»: aquí el centro va ARRIBA y la titulación
+    // debajo, al revés de lo habitual. Con una marca de centro en una sola de las dos líneas se sabe cuál es cuál.
+    const swap =
+      kind === 'education' && second !== undefined && looksLikeInstitution(first.text) && !looksLikeInstitution(second.text) && !SEPARATORS.test(first.text);
+    const [titleLine, subtitleLine] = swap ? [second, first] : [first, second];
+    const parsed = parseTitle(titleLine.text, kind === 'education');
     entry.title = parsed.title;
     entry.subtitle = parsed.subtitle;
     entry.location ??= parsed.location;
-    entry.provenance = provenance(first);
-    if (second !== undefined) {
-      const continuation = trimSeparators(second.text);
+    entry.provenance = provenance(titleLine);
+    const second_ = subtitleLine;
+    if (second_ !== undefined) {
+      const continuation = trimSeparators(second_.text);
       if (parsed.subtitle !== undefined && startsLowercase(continuation)) {
         entry.subtitle = `${parsed.subtitle} ${continuation}`;
       } else if (parsed.subtitle === undefined) {
         entry.subtitle = continuation;
       } else {
-        unparsed.push(provenance(second));
+        unparsed.push(provenance(second_));
       }
     }
   };
@@ -734,6 +751,12 @@ export function structureCv(text: string): DraftProfile {
   // Un título espaciado puede venir partido en dos líneas («E D U C A C I Ó N» / «P R E V I A»): la segunda es la
   // cola de la primera, no una cabecera desconocida, y tratarla como tal cerraría la sección recién abierta.
   let justOpened = false;
+  // Cuando el documento espacia letra a letra CASI TODO —entradas, fechas y hasta el cuerpo—, el espaciado deja
+  // de decir nada sobre si algo es una cabecera: es el estilo de la plantilla. La regla de abajo, que cierra la
+  // sección ante una cabecera espaciada desconocida, solo tiene sentido cuando espaciar es la EXCEPCIÓN; si no,
+  // cada nombre de empresa espaciado cerraría su propia sección y el CV entero acabaría sin situar.
+  const spacedLines = lines.filter((line) => isSpacedHeading(line.text)).length;
+  const spacingIsStyle = spacedLines >= 6 && spacedLines >= lines.length * 0.08;
   for (const line of lines) {
     const heading = detectHeading(line.text);
     if (heading !== undefined) {
@@ -749,7 +772,7 @@ export function structureCv(text: string): DraftProfile {
       continue;
     }
     justOpened = false;
-    if (isSpacedHeading(line.text)) {
+    if (!spacingIsStyle && isSpacedHeading(line.text)) {
       currentSection = undefined;
       ignoring = true;
       dropped.push(line);

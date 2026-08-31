@@ -398,3 +398,48 @@ describe('títulos de sección espaciados partidos en dos líneas (B-10)', () =>
     expect(draft.unparsed.map((line) => line.text)).toContain('Otra cosa');
   });
 });
+
+describe('cuando espaciar es el estilo de la plantilla, no una marca de título (B-10)', () => {
+  const spaced = (text: string): string => [...text].join(' ');
+
+  it('un nombre de empresa espaciado ya no cierra su propia sección', () => {
+    const cv = [
+      'Lucas Nunzi',
+      spaced('EXPERIENCIA'),
+      'Soporte técnico',
+      spaced('RAIOLA'),
+      'SEPTIEMBRE 2017 - PRESENTE',
+      'Desarrollador',
+      spaced('CONCELLO'),
+      'SEPTIEMBRE 2016 - MAYO 2017',
+      spaced('EDUCACION'),
+      'I.E.S Muralla Romana',
+      spaced('CICLO'),
+      '2011 - 2013',
+      spaced('otra linea espaciada'),
+      spaced('y una mas todavia'),
+    ].join('\n');
+    const draft = structureCv(cv);
+    expect(draft.experience).toHaveLength(2);
+    // El nombre sigue espaciado y así se queda: la frontera entre palabras no existe en lo que entrega pdf.js,
+    // y recomponerla sería inventarla. Lo que importa es que la entrada EXISTA, con su puesto y sus fechas.
+    expect(draft.experience[0]).toMatchObject({ title: 'Soporte técnico', subtitle: 'R A I O L A', start: '2017-09', current: true });
+  });
+
+  it('con el espaciado como excepción, la cabecera desconocida sigue cerrando la sección', () => {
+    const cv = ['Lucas Nunzi', 'Experiencia', 'Desarrollador · Acme', '2016 - 2017', spaced('CAMPUS INVOLVMENT'), 'Tesorero del club', '2018 - 2019'].join('\n');
+    const draft = structureCv(cv);
+    expect(draft.experience).toHaveLength(1);
+    expect(draft.unparsed.map((line) => line.text)).toContain('Tesorero del club');
+  });
+
+  it('la formación con el centro arriba y la titulación debajo se reparte al derecho', () => {
+    const draft = structureCv(['Lucas Nunzi', 'Estudios', 'I.E.S Muralla Romana', 'C.S. Desarrollo de Aplicaciones Web', '2011 - 2013'].join('\n'));
+    expect(draft.education[0]).toMatchObject({ title: 'C.S. Desarrollo de Aplicaciones Web', subtitle: 'I.E.S Muralla Romana' });
+  });
+
+  it('sin marca de centro en ninguna de las dos, el orden no se toca', () => {
+    const draft = structureCv(['Lucas Nunzi', 'Estudios', 'Grado en Filología', 'INGABAD', '2011 - 2013'].join('\n'));
+    expect(draft.education[0]).toMatchObject({ title: 'Grado en Filología', subtitle: 'INGABAD' });
+  });
+});

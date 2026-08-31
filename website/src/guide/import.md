@@ -87,12 +87,33 @@ Si tu CV vive en LinkedIn, la vía es su **exportación oficial de datos**, no l
 el muro de acceso, y el `robots.txt` de LinkedIn prohíbe el acceso automatizado. La exportación, además, da mejor
 resultado, porque entrega los datos **estructurados** en CSV y aquí no hay maquetación que adivinar.
 
-1. En LinkedIn: **Ajustes → Privacidad de datos → Obtener una copia de tus datos**. Con el archivo básico basta.
-2. Cuando te llegue el correo, descarga el zip y pásaselo a `cv`:
+### Cómo pedir la exportación
+
+1. Entra en LinkedIn desde el navegador (esto no se puede hacer desde la app móvil).
+2. Pulsa tu foto arriba a la derecha → **Configuración y privacidad** (*Settings & Privacy*).
+3. En la columna de la izquierda, **Privacidad de datos** (*Data privacy*).
+4. Abre **Obtener una copia de tus datos** (*Get a copy of your data*).
+5. Elige la **segunda** opción, «Selecciona los datos que quieres», y marca al menos: **Positions**,
+   **Education**, **Skills**, **Languages**, **Certifications**, **Projects**, **Profile**, **Email Addresses**
+   y **Phone Numbers**. La primera opción («archivo más grande») también vale, pero tarda más y trae decenas de
+   ficheros de mensajes y conexiones que no son un CV.
+6. **Solicitar archivo** y confirma con tu contraseña.
+7. LinkedIn te avisa por correo: la selección concreta suele estar lista en **unos diez minutos**; el archivo
+   completo puede tardar **hasta 24 horas**. Descarga el zip desde ese correo o desde la misma pantalla.
+
+::: tip Comprueba qué traes antes de importar
+`unzip -l ~/Downloads/Basic_LinkedInDataExport.zip` te lista los CSV. Si no ves `Positions.csv`, vuelve al
+paso 5: la selección se quedó corta.
+:::
+
+Después, pásaselo a `cv` sin más:
 
 ```bash
 cv import-linkedin ~/Downloads/Basic_LinkedInDataExport.zip
 ```
+
+Los nombres de los ficheros dentro del zip varían con el idioma de la interfaz y con la versión, así que `cv`
+los busca por su nombre base y **no le importa que vengan dentro de una carpeta**.
 
 Se lee `Profile.csv` (nombre, titular, resumen, ubicación, enlaces), `Positions.csv` (experiencia; sin fecha de
 fin, el puesto queda «en curso»), `Education.csv`, `Certifications.csv`, `Projects.csv`, `Skills.csv`,
