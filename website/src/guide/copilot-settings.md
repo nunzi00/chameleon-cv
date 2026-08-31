@@ -69,7 +69,18 @@ cv llm key list            # de dónde sale cada clave: entorno, fichero o ningu
 cv llm key remove groq
 ```
 
-Se guardan en `~/.config/chameleon-cv/keys.json` con permisos `0600` (directorio `0700`); una variable `CHAMELEON_<PROVEEDOR>_API_KEY` tiene prioridad. Las claves no se pasan como argumento, no se imprimen, no viajan por HTTP y no se escriben desde la interfaz web: la pantalla Ajustes solo sabe *si* hay clave y *dónde*.
+También desde **Ajustes → Proveedores externos**, donde cada proveedor tiene su campo «Clave de …» con
+«Guardar clave» y «Borrar clave».
+
+Se guardan en `~/.config/chameleon-cv/keys.json` con permisos `0600` (directorio `0700`); una variable
+`CHAMELEON_<PROVEEDOR>_API_KEY` tiene prioridad sobre el fichero, y la página te lo dice si guardas una clave que
+la variable va a tapar.
+
+Lo que **no** cambia: las claves no se pasan como argumento, no se imprimen y **no se leen nunca**. Al guardarla
+desde la web viaja una sola vez, en el cuerpo de la petición, por el `127.0.0.1` del servidor y con el token de
+tu sesión; a partir de ahí ninguna respuesta la devuelve —tampoco enmascarada—, el campo se vacía solo y tanto
+Ajustes como la API dicen únicamente *si* hay clave y *de dónde* sale. Si prefieres que ni siquiera pase por el
+navegador, la terminal sigue estando ahí.
 
 ## Proveedores externos y cuotas
 

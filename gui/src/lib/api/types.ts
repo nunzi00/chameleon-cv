@@ -47,6 +47,7 @@ export type {
   ImportCvResponse,
   ImportApplyRequestBody,
   ImportApplyResponse,
+  LlmKeyResponse,
   OffersListResponse,
   OfferFetchRequest,
   OfferFetchResponse,

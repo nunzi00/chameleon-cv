@@ -114,6 +114,45 @@
     }
   }
 
+  // Guardar la clave desde aquí (petición del PO): viaja SOLO en el cuerpo de PUT /config/llm/keys/{proveedor},
+  // por el loopback y con el token de sesión, y se escribe en el fichero de claves 0600. Ninguna respuesta la
+  // devuelve, así que el campo se vacía en cuanto se guarda: esta página nunca tiene una clave que enseñar.
+  let keyDraft = $state<Record<string, string>>({});
+  let keyNote = $state<Record<string, string>>({});
+
+  async function saveKey(provider: string): Promise<void> {
+    const key = (keyDraft[provider] ?? '').trim();
+    if (key === '') {
+      return;
+    }
+    busy = `Guardando la clave de ${provider}…`;
+    try {
+      const result = await api.setLlmKey(provider, key);
+      keyDraft = { ...keyDraft, [provider]: '' };
+      keyNote = { ...keyNote, [provider]: result.source === 'env' ? 'Guardada, pero manda la variable de entorno' : 'Clave guardada' };
+      await load();
+    } catch (caught) {
+      const explained = explainError(caught);
+      keyNote = { ...keyNote, [provider]: explained.detail === '' ? explained.title : explained.detail };
+    } finally {
+      busy = undefined;
+    }
+  }
+
+  async function dropKey(provider: string): Promise<void> {
+    busy = `Borrando la clave de ${provider}…`;
+    try {
+      const result = await api.removeLlmKey(provider);
+      keyNote = { ...keyNote, [provider]: result.removed === true ? 'Clave borrada' : 'No había clave que borrar' };
+      await load();
+    } catch (caught) {
+      const explained = explainError(caught);
+      keyNote = { ...keyNote, [provider]: explained.detail === '' ? explained.title : explained.detail };
+    } finally {
+      busy = undefined;
+    }
+  }
+
   async function check(provider: string | undefined, model: string | undefined): Promise<void> {
     const key = provider ?? 'local';
     busy = `Comprobando ${key}…`;
@@ -324,7 +363,7 @@
         <span class={`cv-chip ${config.remote.allowed ? 'warn' : 'quiet'}`}><Icon name="shield" size={13} weight={1.8} />{config.remote.allowed ? 'remotos permitidos' : 'sin remotos: nada sale de esta máquina'}</span>
       </div>
       <p class="cv-muted">
-        Solo con clave y eligiéndolos <strong>en cada trabajo</strong> (Co-piloto → Trabajos → selector «Proveedor»); en esta página únicamente se comprueban. Las claves se guardan desde la terminal (<code>cv llm key set &lt;proveedor&gt;</code>) en <code>{config.llm.keysFile}</code>; nunca pasan por esta página.
+        Solo con clave y eligiéndolos <strong>en cada trabajo</strong> (Co-piloto → Trabajos → selector «Proveedor»). Las claves se guardan en <code>{config.llm.keysFile}</code> con permisos 0600, aquí o desde la terminal (<code>cv llm key set &lt;proveedor&gt;</code>): se escriben, pero <strong>no se leen nunca</strong> —ni esta página ni la API las devuelven, solo dicen de dónde salen—.
         {config.remote.allowed ? 'Este servidor admite remotos.' : 'Este servidor no envía nada a remotos.'}
       </p>
       <div class="cv-remote-toggle">
@@ -361,6 +400,15 @@
               {/if}
             </dl>
             <p class="cv-muted cv-provider-foot">Sin entrenamiento con tus datos según <a href={provider.c7.sourceUrl} target="_blank" rel="noreferrer">{provider.c7.sourceUrl}</a> ({provider.c7.verifiedAt}); límites en <a href={provider.rateLimitsUrl} target="_blank" rel="noreferrer">{provider.rateLimitsUrl}</a>.</p>
+            <div class="cv-key-row">
+              <label class="cv-key-field">
+                <span class="cv-muted">Clave de {provider.id}</span>
+                <input type="password" autocomplete="off" spellcheck="false" placeholder={view.hasKey ? 'Sustituir la clave guardada' : 'Pegar la clave'} bind:value={keyDraft[provider.id]} />
+              </label>
+              <button class="cv-button small" type="button" disabled={busy !== undefined || (keyDraft[provider.id] ?? '').trim() === ''} onclick={() => void saveKey(provider.id)}>Guardar clave</button>
+              <button class="cv-button small" type="button" disabled={busy !== undefined || !view.hasKey} onclick={() => void dropKey(provider.id)}>Borrar clave</button>
+              {#if keyNote[provider.id] !== undefined}<span class="cv-muted">{keyNote[provider.id]}</span>{/if}
+            </div>
             <div class="cv-actions">
               <button class="cv-button small" type="button" disabled={busy !== undefined || !view.hasKey || !config.remote.allowed || provider.availability !== 'available'} title={!view.hasKey ? 'Sin clave' : !config.remote.allowed ? 'El servidor no admite remotos' : provider.availability !== 'available' ? 'Pendiente de verificación humana' : undefined} onclick={() => check(provider.id, undefined)}>Comprobar {provider.id}</button>
               {#if checks[provider.id] !== undefined}<span>{checks[provider.id]}</span>{/if}

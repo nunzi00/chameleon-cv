@@ -24,7 +24,7 @@ import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { applyImportProposal } from '../app/import-apply';
 import { executeImportMap, importMapEstimate, planImportMap, type ImportMapPlan } from '../app/import-map';
 import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
-import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../llm';
+import { describeKeys, isRemoteProviderId, removeApiKey, writeApiKey, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
 import { importCvDraft } from '../app/import-cv';
@@ -36,7 +36,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -687,6 +687,50 @@ export function createRouter(): Router<ServerState> {
       await state.context.artifactFileSystem.mkdir(dirname(target));
       await state.context.artifactFileSystem.writeFile(target, header + parsed.value.text + '\n', 0o600);
       return json(201, { path: `offers/${raw}` } satisfies OfferSaveResponse);
+    },
+  });
+
+  router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/config/llm/keys/{provider}`,
+    summary:
+      'Guarda la clave de un proveedor remoto en el fichero de claves (0600), igual que «cv llm key set». La clave viaja SOLO en este cuerpo: la respuesta devuelve su procedencia, nunca su valor, y ninguna otra ruta la expone.',
+    writes: true,
+    body: LlmKeySchema,
+    handler: async (request) => {
+      const provider = String(request.params['provider']);
+      if (!isRemoteProviderId(provider)) {
+        return appErrorResponse(dataError(`«${provider}» no es un proveedor remoto conocido`));
+      }
+      const parsed = parseJsonBody(request.body, LlmKeySchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const written = await writeApiKey(provider, parsed.value.key);
+      if (!written.ok) {
+        return appErrorResponse(dataError(written.message));
+      }
+      const sources = await describeKeys();
+      return json(200, { provider, source: sources[provider], keysFile: written.file } satisfies LlmKeyResponse);
+    },
+  });
+
+  router.add({
+    method: 'DELETE',
+    path: `${API_PREFIX}/config/llm/keys/{provider}`,
+    summary: 'Elimina la clave de un proveedor remoto del fichero de claves; dice si había algo que borrar y de dónde sale la clave a partir de ahora.',
+    writes: true,
+    handler: async (request) => {
+      const provider = String(request.params['provider']);
+      if (!isRemoteProviderId(provider)) {
+        return appErrorResponse(dataError(`«${provider}» no es un proveedor remoto conocido`));
+      }
+      const result = await removeApiKey(provider);
+      if (!result.ok) {
+        return appErrorResponse(dataError(result.message));
+      }
+      const sources = await describeKeys();
+      return json(200, { provider, source: sources[provider], keysFile: result.file, removed: result.removed } satisfies LlmKeyResponse);
     },
   });
 

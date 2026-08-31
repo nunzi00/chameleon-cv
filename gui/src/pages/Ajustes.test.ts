@@ -42,7 +42,7 @@ function response(overrides: { llm?: Partial<LlmConfigResponse['llm']>; remote?:
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), applyImportProposal: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
     llmConfig: vi.fn(async () => response()),
     writeLlmConfig: vi.fn(async () => ({ path: '/work/cv.toml', sha256: 'def', llm: {} })),
     checkLlm: vi.fn(async () => ({ provider: 'openai-compatible', kind: 'local' as const, ok: true, models: ['qwen'], modelAvailable: true, message: undefined, quota: undefined })),
@@ -140,7 +140,8 @@ describe('Ajustes: remotos pendientes de verificación humana', () => {
     render(Ajustes, { props: { api, onsession: vi.fn() } });
     await waitFor(() => expect(screen.getByText(/Pendiente de verificación humana: pendiente de la verificación al alta/)).toBeTruthy());
     const item = screen.getByText('groq', { selector: 'strong' }).closest('article') as HTMLElement;
-    expect((within(item).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
+    // La tarjeta tiene ahora también los botones de la clave: se nombra el que interesa, el de comprobar.
+    expect((within(item).getByRole('button', { name: /^Comprobar/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
 
@@ -280,5 +281,50 @@ describe('Ajustes · catálogo de modelos locales (T-8.13)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen3:8b»' })).toBeTruthy());
     await fireEvent.click(screen.getByRole('button', { name: 'Arrancar Ollama con «qwen3:8b»' }));
     expect(screen.getByRole('dialog').textContent).toContain('se descarga el espejo «hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M» desde huggingface.co');
+  });
+
+});
+
+describe('Ajustes · claves de proveedores remotos', () => {
+  it('guarda la clave de un proveedor desde la página y limpia el campo (nunca hay clave que enseñar)', async () => {
+    const setLlmKey = vi.fn(async () => ({ provider: 'groq', source: 'file', keysFile: '/home/lucas/.config/chameleon-cv/keys.json' }));
+    const api = fakeApi({ setLlmKey });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    const field = await waitFor(() => screen.getByLabelText('Clave de groq') as HTMLInputElement);
+    // El campo es de contraseña y sin autocompletado: la clave no se muestra ni la guarda el navegador.
+    expect(field.type).toBe('password');
+    expect(field.autocomplete).toBe('off');
+    await fireEvent.input(field, { target: { value: '  sk-secreta  ' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar clave' }));
+    await waitFor(() => expect(screen.getByText('Clave guardada')).toBeTruthy());
+    // Se envía sin los espacios de alrededor y el campo queda vacío.
+    expect(setLlmKey).toHaveBeenCalledWith('groq', 'sk-secreta');
+    expect((screen.getByLabelText('Clave de groq') as HTMLInputElement).value).toBe('');
+  });
+
+  it('avisa cuando la variable de entorno sigue mandando, y borrar lo dice aunque no hubiera clave', async () => {
+    const setLlmKey = vi.fn(async () => ({ provider: 'groq', source: 'env', keysFile: '/k.json' }));
+    const removeLlmKey = vi.fn(async () => ({ provider: 'groq', source: 'none', keysFile: '/k.json', removed: false }));
+    const api = fakeApi({ setLlmKey, removeLlmKey, llmConfig: vi.fn(async () => response({ llm: { providers: [{ ...PROVIDER, keyPresence: 'file' }] } })) });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    const field = await waitFor(() => screen.getByLabelText('Clave de groq'));
+    await fireEvent.input(field, { target: { value: 'sk-otra' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar clave' }));
+    await waitFor(() => expect(screen.getByText('Guardada, pero manda la variable de entorno')).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Borrar clave' }));
+    await waitFor(() => expect(screen.getByText('No había clave que borrar')).toBeTruthy());
+  });
+
+  it('un fallo al guardar la clave se explica en su sitio y no se pierde lo escrito', async () => {
+    const setLlmKey = vi.fn(async () => {
+      throw new ApiError(422, { code: 'invalid-data', message: 'La clave no puede contener saltos de línea' });
+    });
+    const api = fakeApi({ setLlmKey });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    const field = await waitFor(() => screen.getByLabelText('Clave de groq'));
+    await fireEvent.input(field, { target: { value: 'mala' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar clave' }));
+    await waitFor(() => expect(screen.getByText(/saltos de línea/)).toBeTruthy());
+    expect((screen.getByLabelText('Clave de groq') as HTMLInputElement).value).toBe('mala');
   });
 });

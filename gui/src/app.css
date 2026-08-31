@@ -602,6 +602,9 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 .cv-field-row .cv-field { flex: 1 1 240px; }
 /* Aviso dentro de la ficha de un proveedor: uso de datos o verificación pendiente. */
 .cv-provider-warning { margin: 4px 0 0; font-size: var(--cv-size-sm); color: var(--cv-warn); }
+/* Guardar la clave del proveedor desde Ajustes: el campo y sus dos botones en una fila que se parte en pantallas estrechas. */
+.cv-key-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--cv-space-2); margin-top: var(--cv-space-2); }
+.cv-key-field { display: grid; gap: 2px; flex: 1 1 220px; min-width: 0; }
 .cv-remote-toggle { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
 .cv-remote-toggle .cv-muted { flex: 1 1 320px; }
 .cv-provider[data-pending] { opacity: .72; }

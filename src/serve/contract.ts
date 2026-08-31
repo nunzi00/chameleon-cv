@@ -129,6 +129,24 @@ export interface ImportMapJobResult {
 }
 
 /**
+ * `PUT /config/llm/keys/{provider}`: guarda la clave de un proveedor remoto en el fichero de claves (0600), el
+ * mismo que escribe `cv llm key set`. La clave **solo viaja en este cuerpo**: ninguna respuesta la devuelve, ni
+ * siquiera enmascarada, y `GET /config/llm` sigue dando únicamente su procedencia.
+ */
+export const LlmKeySchema = z.object({ key: z.string().min(1).max(500) });
+export type LlmKeyRequest = z.infer<typeof LlmKeySchema>;
+
+/** Lo que se responde tras guardar o borrar: de dónde sale ahora la clave, nunca su valor. */
+export interface LlmKeyResponse {
+  readonly provider: string;
+  /** «env», «file» o «none»; «env» significa que una variable de entorno sigue teniendo precedencia. */
+  readonly source: string;
+  readonly keysFile: string;
+  /** Solo al borrar: si había algo que borrar. */
+  readonly removed?: boolean | undefined;
+}
+
+/**
  * `POST /import/apply` (T-9.5): mueve UNA línea sin situar del borrador a la sección propuesta. Síncrona y sin
  * modelo: el co-piloto ya propuso, aquí decide y aplica la persona (C2). `fields` trae lo que el esquema exige y
  * la línea no puede dar (empresa, puesto, nivel de idioma…): nada se rellena por defecto.
