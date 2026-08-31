@@ -384,3 +384,17 @@ describe('«Empresa: Puesto», la convención con dos puntos (B-8)', () => {
     expect(prosa.experience[0]).toMatchObject({ title: 'Nexo Pagos' });
   });
 });
+
+describe('títulos de sección espaciados partidos en dos líneas (B-10)', () => {
+  it('la segunda línea espaciada es la cola del título, no una cabecera que cierre la sección', () => {
+    const cv = ['Lucas Nunzi', 'E D U C A C I Ó N', 'P R E V I A', 'I.E.S Muralla Romana', '2011 - 2013'].join('\n');
+    expect(structureCv(cv).education).toHaveLength(1);
+  });
+
+  it('una cabecera espaciada desconocida sigue cerrando la sección en curso', () => {
+    const cv = ['Lucas Nunzi', 'E D U C A C I Ó N', 'I.E.S Muralla Romana', '2011 - 2013', 'C A M P U S I N V O L V M E N T', 'Otra cosa', '2014 - 2015'].join('\n');
+    const draft = structureCv(cv);
+    expect(draft.education).toHaveLength(1);
+    expect(draft.unparsed.map((line) => line.text)).toContain('Otra cosa');
+  });
+});

@@ -731,14 +731,24 @@ export function structureCv(text: string): DraftProfile {
   // Una cabecera espaciada que no está en el diccionario («C A M P U S  I N V O L V M E N T») cierra la sección
   // en curso: sin esto, su contenido se cuela como entradas de la sección anterior.
   let ignoring = false;
+  // Un título espaciado puede venir partido en dos líneas («E D U C A C I Ó N» / «P R E V I A»): la segunda es la
+  // cola de la primera, no una cabecera desconocida, y tratarla como tal cerraría la sección recién abierta.
+  let justOpened = false;
   for (const line of lines) {
     const heading = detectHeading(line.text);
     if (heading !== undefined) {
       currentSection = { kind: heading, line: line.number, title: line.text, lines: [] };
       sections.push(currentSection);
       ignoring = false;
+      justOpened = true;
       continue;
     }
+    if (justOpened && isSpacedHeading(line.text) && currentSection !== undefined) {
+      currentSection.title = `${currentSection.title} ${line.text}`;
+      justOpened = false;
+      continue;
+    }
+    justOpened = false;
     if (isSpacedHeading(line.text)) {
       currentSection = undefined;
       ignoring = true;

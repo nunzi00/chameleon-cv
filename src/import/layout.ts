@@ -117,7 +117,7 @@ export function pageLines(items: readonly TextItem[], options: LayoutOptions = {
     // ya sabe qué es una viñeta, y sin esto la celda parece contenido y rompe la detección de columnas.
     const clean = (text: string): string => {
       const trimmed = text.replace(/\s+/g, ' ').trim();
-      return /^[\uE000-\uF8FF]$/u.test(trimmed) ? '•' : trimmed;
+      return /^[\uE000-\uF8FF]$/u.test(trimmed) ? '•' : collapseSpacedDigits(trimmed);
     };
     return { y: group[0]!.y, segments: segments.map((segment) => ({ ...segment, text: clean(segment.text) })).filter((segment) => segment.text !== '') };
   });
@@ -181,6 +181,34 @@ export function detectColumns(lines: readonly Line[]): { readonly split: number 
     return undefined;
   }
   return stacked / (leftLines.length - 1) >= LAYOUT_DEFAULTS.continuity ? { split } : undefined;
+}
+
+/**
+ * Algunas plantillas escriben con las letras separadas («S E P T I E M B R E  2 0 1 7 - P R E S E N T E»), y pdf.js
+ * las entrega con un único espacio entre cada letra: la frontera entre palabras se pierde ahí dentro y ya no se
+ * puede recuperar sin inventarla. Lo que sí se recompone sin inventar nada es lo que no depende de saber dónde
+ * acaba una palabra —las cifras y el salto de letra a cifra—, que es justo lo que hace falta para reconocer las
+ * fechas y abrir las entradas. Por eso solo se toca la línea espaciada que TRAE CIFRAS: un título espaciado sin
+ * ellas se queda como está, porque «D E S A R R O L L A D O R  W E B» sin fronteras sería «DESARROLLADORWEB».
+ */
+export function collapseSpacedDigits(text: string): string {
+  const tokens = text.split(' ');
+  if (tokens.length < 4 || !/\d/.test(text) || tokens.filter((token) => token.length === 1).length < tokens.length * 0.8) {
+    return text;
+  }
+  let out = '';
+  for (const token of tokens) {
+    const previous = out.at(-1);
+    const boundary =
+      previous === undefined ||
+      previous === ' ' ||
+      // Separadores de rango y saltos entre letras y cifras: ahí sí se sabe que acaba algo y empieza otra cosa.
+      /[-–—/|]/.test(token) ||
+      /[-–—/|]/.test(previous) ||
+      /\d/.test(previous) !== /\d/.test(token);
+    out += (boundary && out !== '' ? ' ' : '') + token;
+  }
+  return out.replace(/\s+/g, ' ').trim();
 }
 
 /** Las celdas de una línea se unen con « | », separador que la heurística entiende (tablas: «Periodo | Puesto | Empresa»). */

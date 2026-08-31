@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LAYOUT_DEFAULTS, detectColumns, isBulletCell, layoutText, pageLines, startsWithLabel, type TextItem } from '../../src/import/layout';
+import { LAYOUT_DEFAULTS, collapseSpacedDigits, detectColumns, isBulletCell, layoutText, pageLines, startsWithLabel, type TextItem } from '../../src/import/layout';
 
 const item = (text: string, x: number, y: number, extra: Partial<TextItem> = {}): TextItem => ({ page: 1, text, x, y, width: text.length * 5, fontSize: 10, ...extra });
 const stack = (texts: readonly string[], x: number, options: { top?: number; pitch?: number; page?: number } = {}): TextItem[] =>
@@ -148,5 +148,22 @@ describe('viñetas y glifos superpuestos (B-8 y B-9)', () => {
       return [item('•', 40, y, { width: 5 }), item(`200${index} - 201${index}.`, 103, y), item(`Titulación ${index}`, 260, y)];
     }).flat();
     expect(detectColumns(pageLines(items))).toBeUndefined();
+  });
+});
+
+describe('texto espaciado letra a letra (B-10)', () => {
+  it('recompone lo que no depende de saber dónde acaba una palabra: cifras y saltos letra/cifra', () => {
+    expect(collapseSpacedDigits('2 0 1 1 - 2 0 1 3')).toBe('2011 - 2013');
+    expect(collapseSpacedDigits('1 9 9 9')).toBe('1999');
+    expect(collapseSpacedDigits('S E P T I E M B R E 2 0 1 7 - P R E S E N T E')).toBe('SEPTIEMBRE 2017 - PRESENTE');
+  });
+
+  it('no toca lo que no puede recomponer sin inventarse la frontera entre palabras', () => {
+    // Sin cifras no hay nada que delate dónde acaba una palabra: «DESARROLLADORWEB» sería peor que dejarlo.
+    expect(collapseSpacedDigits('D E S A R R O L L A D O R W E B')).toBe('D E S A R R O L L A D O R W E B');
+    // Ni el texto normal, aunque lleve cifras.
+    expect(collapseSpacedDigits('Migración de macros a LibreOffice en 2016')).toBe('Migración de macros a LibreOffice en 2016');
+    expect(collapseSpacedDigits('2011 - 2013')).toBe('2011 - 2013');
+    expect(collapseSpacedDigits('a 1 b')).toBe('a 1 b');
   });
 });
