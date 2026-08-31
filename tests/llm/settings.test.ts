@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LlmSettingsSchema, replaceLlmTable, serializeLlmTable } from '../../src/llm/settings';
+import { LlmSettingsSchema, ServeSettingsSchema, replaceLlmTable, replaceServeTable, serializeLlmTable, serializeServeTable } from '../../src/llm/settings';
 
 describe('LlmSettingsSchema', () => {
   it('admite proveedor local, URL loopback, modelo y modelos por defecto de los remotos', () => {
@@ -79,5 +79,19 @@ describe('[llm.runtime] (T-8.8, S3 del rediseño)', () => {
     expect(serializeLlmTable({ provider: 'ollama', runtime: {} })).toBe('[llm]\nprovider = "ollama"\n');
     expect(LlmSettingsSchema.safeParse({ runtime: { runner: 'podman' } }).success).toBe(false);
     expect(replaceLlmTable('[theme]\nname = "classic"\n\n[llm]\nmodel = "x"\n\n[llm.runtime]\nrunner = "native"\n', { provider: 'ollama' })).toBe('[theme]\nname = "classic"\n\n[llm]\nprovider = "ollama"\n');
+  });
+});
+
+describe('[serve] allow_remote (T-8.17)', () => {
+  it('se serializa, sustituye solo su tabla, se añade al final si falta y rechaza lo que no es booleano', () => {
+    expect(ServeSettingsSchema.parse({ allow_remote: true })).toEqual({ allow_remote: true });
+    expect(ServeSettingsSchema.safeParse({ allow_remote: 'sí' }).success).toBe(false);
+    expect(ServeSettingsSchema.safeParse({ otra: true }).success).toBe(false);
+    expect(serializeServeTable({ allow_remote: false })).toBe('[serve]\nallow_remote = false\n');
+    expect(serializeServeTable({})).toBe('[serve]\n');
+    expect(replaceServeTable('', { allow_remote: true })).toBe('[serve]\nallow_remote = true\n');
+    expect(replaceServeTable('[llm]\nmodel = "qwen"\n', { allow_remote: true })).toBe('[llm]\nmodel = "qwen"\n\n[serve]\nallow_remote = true\n');
+    // Sustituye su tabla y deja intacto el resto del fichero, comentarios incluidos.
+    expect(replaceServeTable('# mío\n[serve]\nallow_remote = true\n\n[llm]\nmodel = "qwen"\n', { allow_remote: false })).toBe('# mío\n[serve]\nallow_remote = false\n\n[llm]\nmodel = "qwen"\n');
   });
 });

@@ -1,0 +1,48 @@
+# Tema «slate» de Chameleon CV (T-8.16): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from slate`) y genera con `--theme mio`.
+
+[theme]
+name = "slate"
+description = "Grises azulados fríos con los títulos de sección sobre una banda suave: sobrio, legible y sin estridencias, pensado para sectores clásicos"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1f2933"
+primary = "#1f2933"
+secondary = "#5c6b7a"
+accent = "#2f6690"
+rule = "#cbd5de"
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 25
+headline = 11
+contact = 9.2
+section = 8.8
+title = 10.8
+meta = 9.2
+body = 10
+footer = 8.4
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.56
+paragraph = 0.7
+list = 0.42
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 18
+right = 19
+bottom = 16
+left = 19

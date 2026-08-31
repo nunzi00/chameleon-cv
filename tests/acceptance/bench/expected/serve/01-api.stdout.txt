@@ -42,6 +42,17 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Una sola columna sin filetes, sin tablas y con una única tipografía: el formato más digerible para los lectores automáticos de CV (ATS) y para copiar y pegar",
+        "directory": "<BUILTIN_THEMES>/ats-plain",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "ats-plain",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
         "directory": "<BUILTIN_THEMES>/awesome",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -157,12 +168,45 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Aire de prensa clásica: nombre entre dos filetes, antetítulo centrado y secciones con doble regla fina; serif en los títulos y sans en el cuerpo",
+        "directory": "<BUILTIN_THEMES>/gazette",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "gazette",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Híbrida: resumen y competencias clave en un panel sombreado arriba; después la cronología completa con logros, proyectos, formación y certificaciones",
         "directory": "<BUILTIN_THEMES>/hybrid",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
         "kind": "organization",
         "license": "MIT",
         "name": "hybrid",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Abre con tres cifras de impacto destacadas, tomadas de los logros anclados, y sigue con la cronología completa: para cuando lo primero que debe verse es el resultado",
+        "directory": "<BUILTIN_THEMES>/impact-first",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "impact-first",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Azules profundos sobre papel claro, con el nombre y los títulos en azul noche y las secciones subrayadas por un filete grueso: pensado para leerse en pantalla",
+        "directory": "<BUILTIN_THEMES>/midnight",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "midnight",
         "shadows": false
       },
       {
@@ -185,6 +229,17 @@
         "kind": "style",
         "license": "MIT",
         "name": "modern",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Monoespaciada de arriba abajo con la rejilla a la vista: títulos entre corchetes, periodos alineados y viñetas con guion, con aire de terminal",
+        "directory": "<BUILTIN_THEMES>/mono-grid",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "mono-grid",
         "shadows": false
       },
       {
@@ -245,12 +300,45 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Estilo editorial en serif: Libertinus para el cuerpo y los títulos, versalitas suaves en las secciones, cifras del periodo en cursiva y un filete fino bajo el nombre",
+        "directory": "<BUILTIN_THEMES>/serif-editorial",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "serif-editorial",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Organización con columna lateral izquierda: contacto, habilidades, formación, certificaciones e idiomas al margen, y la experiencia y los proyectos en la columna ancha",
+        "directory": "<BUILTIN_THEMES>/sidebar-left",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "sidebar-left",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Skills-first: matriz de competencias por categoría con nivel y años antes que nada; después la experiencia completa, proyectos, logros y formación",
         "directory": "<BUILTIN_THEMES>/skills-first",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
         "kind": "organization",
         "license": "MIT",
         "name": "skills-first",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Grises azulados fríos con los títulos de sección sobre una banda suave: sobrio, legible y sin estridencias, pensado para sectores clásicos",
+        "directory": "<BUILTIN_THEMES>/slate",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "slate",
         "shadows": false
       },
       {
@@ -278,12 +366,34 @@
       {
         "author": "Chameleon CV",
         "builtin": true,
+        "description": "Acento cálido de tierra cocida en el nombre, los títulos y las viñetas, sobre un gris cálido: cercano sin perder formalidad",
+        "directory": "<BUILTIN_THEMES>/terracotta",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "style",
+        "license": "MIT",
+        "name": "terracotta",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
         "description": "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas",
         "directory": "<BUILTIN_THEMES>/timeline",
         "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
         "kind": "style",
         "license": "MIT",
         "name": "timeline",
+        "shadows": false
+      },
+      {
+        "author": "Chameleon CV",
+        "builtin": true,
+        "description": "Dos columnas equilibradas de arriba abajo: la organización más densa del catálogo, pensada para trayectorias largas que deben caber en una o dos páginas",
+        "directory": "<BUILTIN_THEMES>/two-column-dense",
+        "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+        "kind": "organization",
+        "license": "MIT",
+        "name": "two-column-dense",
         "shadows": false
       },
       {
@@ -807,7 +917,8 @@
     "usable": false
   },
   "remote": {
-    "allowed": false
+    "allowed": false,
+    "pending": false
   }
 }
 
@@ -1046,7 +1157,8 @@
     "usable": false
   },
   "remote": {
-    "allowed": false
+    "allowed": false,
+    "pending": false
   }
 }
 
@@ -4826,6 +4938,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Una sola columna sin filetes, sin tablas y con una única tipografía: el formato más digerible para los lectores automáticos de CV (ATS) y para copiar y pegar",
+      "directory": "<BUILTIN_THEMES>/ats-plain",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "ats-plain",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
       "directory": "<BUILTIN_THEMES>/awesome",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -4941,12 +5064,45 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Aire de prensa clásica: nombre entre dos filetes, antetítulo centrado y secciones con doble regla fina; serif en los títulos y sans en el cuerpo",
+      "directory": "<BUILTIN_THEMES>/gazette",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "gazette",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Híbrida: resumen y competencias clave en un panel sombreado arriba; después la cronología completa con logros, proyectos, formación y certificaciones",
       "directory": "<BUILTIN_THEMES>/hybrid",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "organization",
       "license": "MIT",
       "name": "hybrid",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Abre con tres cifras de impacto destacadas, tomadas de los logros anclados, y sigue con la cronología completa: para cuando lo primero que debe verse es el resultado",
+      "directory": "<BUILTIN_THEMES>/impact-first",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "impact-first",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Azules profundos sobre papel claro, con el nombre y los títulos en azul noche y las secciones subrayadas por un filete grueso: pensado para leerse en pantalla",
+      "directory": "<BUILTIN_THEMES>/midnight",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "midnight",
       "shadows": false
     },
     {
@@ -4969,6 +5125,17 @@
       "kind": "style",
       "license": "MIT",
       "name": "modern",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Monoespaciada de arriba abajo con la rejilla a la vista: títulos entre corchetes, periodos alineados y viñetas con guion, con aire de terminal",
+      "directory": "<BUILTIN_THEMES>/mono-grid",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "mono-grid",
       "shadows": false
     },
     {
@@ -5029,12 +5196,45 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Estilo editorial en serif: Libertinus para el cuerpo y los títulos, versalitas suaves en las secciones, cifras del periodo en cursiva y un filete fino bajo el nombre",
+      "directory": "<BUILTIN_THEMES>/serif-editorial",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "serif-editorial",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Organización con columna lateral izquierda: contacto, habilidades, formación, certificaciones e idiomas al margen, y la experiencia y los proyectos en la columna ancha",
+      "directory": "<BUILTIN_THEMES>/sidebar-left",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "sidebar-left",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Skills-first: matriz de competencias por categoría con nivel y años antes que nada; después la experiencia completa, proyectos, logros y formación",
       "directory": "<BUILTIN_THEMES>/skills-first",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "organization",
       "license": "MIT",
       "name": "skills-first",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Grises azulados fríos con los títulos de sección sobre una banda suave: sobrio, legible y sin estridencias, pensado para sectores clásicos",
+      "directory": "<BUILTIN_THEMES>/slate",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "slate",
       "shadows": false
     },
     {
@@ -5062,12 +5262,34 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Acento cálido de tierra cocida en el nombre, los títulos y las viñetas, sobre un gris cálido: cercano sin perder formalidad",
+      "directory": "<BUILTIN_THEMES>/terracotta",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "terracotta",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas",
       "directory": "<BUILTIN_THEMES>/timeline",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "style",
       "license": "MIT",
       "name": "timeline",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Dos columnas equilibradas de arriba abajo: la organización más densa del catálogo, pensada para trayectorias largas que deben caber en una o dos páginas",
+      "directory": "<BUILTIN_THEMES>/two-column-dense",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "two-column-dense",
       "shadows": false
     },
     {
@@ -5405,6 +5627,17 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Una sola columna sin filetes, sin tablas y con una única tipografía: el formato más digerible para los lectores automáticos de CV (ATS) y para copiar y pegar",
+      "directory": "<BUILTIN_THEMES>/ats-plain",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "ats-plain",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Estilo Awesome-CV: cabecera centrada con nombre en dos pesos, titular en versalitas de color, secciones con las tres primeras letras en acento y filete, entradas en rejilla 2×2",
       "directory": "<BUILTIN_THEMES>/awesome",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
@@ -5520,12 +5753,45 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Aire de prensa clásica: nombre entre dos filetes, antetítulo centrado y secciones con doble regla fina; serif en los títulos y sans en el cuerpo",
+      "directory": "<BUILTIN_THEMES>/gazette",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "gazette",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Híbrida: resumen y competencias clave en un panel sombreado arriba; después la cronología completa con logros, proyectos, formación y certificaciones",
       "directory": "<BUILTIN_THEMES>/hybrid",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "organization",
       "license": "MIT",
       "name": "hybrid",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Abre con tres cifras de impacto destacadas, tomadas de los logros anclados, y sigue con la cronología completa: para cuando lo primero que debe verse es el resultado",
+      "directory": "<BUILTIN_THEMES>/impact-first",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "impact-first",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Azules profundos sobre papel claro, con el nombre y los títulos en azul noche y las secciones subrayadas por un filete grueso: pensado para leerse en pantalla",
+      "directory": "<BUILTIN_THEMES>/midnight",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "midnight",
       "shadows": false
     },
     {
@@ -5548,6 +5814,17 @@
       "kind": "style",
       "license": "MIT",
       "name": "modern",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Monoespaciada de arriba abajo con la rejilla a la vista: títulos entre corchetes, periodos alineados y viñetas con guion, con aire de terminal",
+      "directory": "<BUILTIN_THEMES>/mono-grid",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "mono-grid",
       "shadows": false
     },
     {
@@ -5608,12 +5885,45 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Estilo editorial en serif: Libertinus para el cuerpo y los títulos, versalitas suaves en las secciones, cifras del periodo en cursiva y un filete fino bajo el nombre",
+      "directory": "<BUILTIN_THEMES>/serif-editorial",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "serif-editorial",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Organización con columna lateral izquierda: contacto, habilidades, formación, certificaciones e idiomas al margen, y la experiencia y los proyectos en la columna ancha",
+      "directory": "<BUILTIN_THEMES>/sidebar-left",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "sidebar-left",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Skills-first: matriz de competencias por categoría con nivel y años antes que nada; después la experiencia completa, proyectos, logros y formación",
       "directory": "<BUILTIN_THEMES>/skills-first",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "organization",
       "license": "MIT",
       "name": "skills-first",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Grises azulados fríos con los títulos de sección sobre una banda suave: sobrio, legible y sin estridencias, pensado para sectores clásicos",
+      "directory": "<BUILTIN_THEMES>/slate",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "slate",
       "shadows": false
     },
     {
@@ -5641,12 +5951,34 @@
     {
       "author": "Chameleon CV",
       "builtin": true,
+      "description": "Acento cálido de tierra cocida en el nombre, los títulos y las viñetas, sobre un gris cálido: cercano sin perder formalidad",
+      "directory": "<BUILTIN_THEMES>/terracotta",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "style",
+      "license": "MIT",
+      "name": "terracotta",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
       "description": "Línea de tiempo: periodos a la izquierda sobre un raíl con puntos, contenido a la derecha; pensado para trayectorias progresivas",
       "directory": "<BUILTIN_THEMES>/timeline",
       "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
       "kind": "style",
       "license": "MIT",
       "name": "timeline",
+      "shadows": false
+    },
+    {
+      "author": "Chameleon CV",
+      "builtin": true,
+      "description": "Dos columnas equilibradas de arriba abajo: la organización más densa del catálogo, pensada para trayectorias largas que deben caber en una o dos páginas",
+      "directory": "<BUILTIN_THEMES>/two-column-dense",
+      "homepage": "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery",
+      "kind": "organization",
+      "license": "MIT",
+      "name": "two-column-dense",
       "shadows": false
     },
     {
@@ -5867,6 +6199,36 @@
   "error": {
     "code": "not-found",
     "message": "No existe la ruta"
+  }
+}
+
+### PUT /config/serve → 428
+{
+  "error": {
+    "code": "precondition-required",
+    "message": "Falta la cabecera If-Match: la huella actual de cv.toml, o «*» para crearlo"
+  }
+}
+
+### PUT /config/serve → 409
+{
+  "error": {
+    "code": "conflict",
+    "message": "<WS>/cv.toml cambió desde que se leyó (huella a2d29efdfef4…): vuelve a cargarlo"
+  }
+}
+
+### PUT /config/serve → 400
+{
+  "error": {
+    "code": "bad-request",
+    "issues": [
+      {
+        "message": "Entrada inválida: se esperaba booleano, recibido texto",
+        "path": "allow_remote"
+      }
+    ],
+    "message": "El cuerpo no cumple el esquema"
   }
 }
 

@@ -39,6 +39,8 @@ import type {
   LlmConfigResponse,
   LlmConfigWriteResponse,
   LlmSettingsWriteRequest,
+  ServeConfigWriteResponse,
+  ServeSettingsWriteRequest,
   OutputListResponse,
   ProfileResponse,
   ReviewDeleteResponse,
@@ -157,6 +159,8 @@ export interface ApiClient {
   llmConfig(): Promise<LlmConfigResponse>;
   /** Guarda la tabla [llm] de cv.toml con la huella leída (o «*» si no existe). */
   writeLlmConfig(body: LlmSettingsWriteRequest, ifMatch: string): Promise<LlmConfigWriteResponse>;
+  /** Guarda la tabla [serve] de cv.toml (permiso de remotos); NO cambia el proceso en marcha: se aplica al reiniciar. */
+  writeServeConfig(body: ServeSettingsWriteRequest, ifMatch: string): Promise<ServeConfigWriteResponse>;
   /** Una llamada de salud explícita a un proveedor (los remotos exigen --allow-remote en el servidor). */
   checkLlm(body: LlmCheckRequest): Promise<LlmCheckResponse>;
   /** El Ollama local: si responde, si lo arrancó cv, si el modelo está descargado y con qué runner arrancaría (T-8.8). */
@@ -304,6 +308,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     importProfile: (body) => request('POST', '/import', { body }),
     llmConfig: () => request('GET', '/config/llm'),
     writeLlmConfig: (body, ifMatch) => requestWithHeaders('PUT', '/config/llm', body, { 'If-Match': ifMatchHeader(ifMatch) }),
+    writeServeConfig: (body, ifMatch) => requestWithHeaders('PUT', '/config/serve', body, { 'If-Match': ifMatchHeader(ifMatch) }),
     checkLlm: (body) => request('POST', '/config/llm/check', { body }),
     llmRuntime: () => request('GET', '/llm/runtime'),
     llmModels: () => request('GET', '/llm/models'),

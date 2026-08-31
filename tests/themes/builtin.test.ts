@@ -17,7 +17,7 @@ import { NodeFileSystem, loadDataset } from '../../src/parsers/dataset';
 import type { MasterProfile } from '../../src/core/schema';
 
 /** Las seis organizaciones (T-8.12, docs/theme-catalog.md D1), por orden alfabético como las lista la CLI. */
-const ORGANIZATIONS: readonly string[] = ['achievements-first', 'chronological', 'education-first', 'functional', 'hybrid', 'one-page', 'project-portfolio', 'skills-first', 'unified-timeline'];
+const ORGANIZATIONS: readonly string[] = ['achievements-first', 'ats-plain', 'chronological', 'education-first', 'functional', 'hybrid', 'impact-first', 'one-page', 'project-portfolio', 'sidebar-left', 'skills-first', 'two-column-dense', 'unified-timeline'];
 const BENCH_SOURCES = 'tests/acceptance/bench/workspace/data/sources';
 
 /** El perfil del banco de pruebas: cinco puestos con hasta seis logros, tres proyectos y dieciséis skills con nivel y años. */
@@ -30,9 +30,9 @@ async function benchProfile(): Promise<MasterProfile> {
 }
 
 /** Los temas de la galería (T-8.3) y las organizaciones (T-8.12) declaran autoría; los de T-5.1 no la necesitan. */
-const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS, 'bold', 'compact-grid', 'elegant', 'europass-like', 'monochrome', 'warm', 'newspaper', 'pastel', 'swiss'];
+const GALLERY_THEMES: readonly string[] = ['modern', 'academic', 'minimal', 'awesome', 'executive', 'tech', 'timeline', ...ORGANIZATIONS, 'bold', 'compact-grid', 'elegant', 'europass-like', 'monochrome', 'warm', 'newspaper', 'pastel', 'swiss', 'gazette', 'midnight', 'mono-grid', 'serif-editorial', 'slate', 'terracotta'];
 const HOMEPAGE = 'https://nunzi00.github.io/chameleon-cv/guide/theme-gallery';
-const STYLES: readonly string[] = ['academic', 'awesome', 'bold', 'classic', 'compact-grid', 'default', 'elegant', 'europass-like', 'executive', 'minimal', 'modern', 'monochrome', 'newspaper', 'pastel', 'swiss', 'tech', 'timeline', 'warm'];
+const STYLES: readonly string[] = ['academic', 'awesome', 'bold', 'classic', 'compact-grid', 'default', 'elegant', 'europass-like', 'executive', 'gazette', 'midnight', 'minimal', 'modern', 'mono-grid', 'monochrome', 'newspaper', 'pastel', 'serif-editorial', 'slate', 'swiss', 'tech', 'terracotta', 'timeline', 'warm'];
 
 async function builtinThemes(): Promise<LoadedTheme[]> {
   const themes: LoadedTheme[] = [];

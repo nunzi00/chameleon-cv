@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadLlmSettings, projectConfigPath, readConfigFile, renderLlmSettings, writeLlmSettings } from '../../src/app/settings';
+import { loadLlmSettings, loadServeSettings, projectConfigPath, readConfigFile, renderLlmSettings, renderServeSettings, writeLlmSettings, writeServeSettings } from '../../src/app/settings';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -28,6 +28,37 @@ describe('renderLlmSettings', () => {
     const dotted = renderLlmSettings('llm.provider = "ollama"\n', { provider: 'ollama' });
     expect(dotted.ok).toBe(false);
     expect(!dotted.ok && dotted.message).toMatch(/^El cv\.toml resultante no sería válido; no se escribe nada:\n  - /);
+  });
+});
+
+describe('[serve] de cv.toml (T-8.17)', () => {
+  it('carga la tabla, ignora su ausencia y explica un fichero inválido', async () => {
+    expect(await loadServeSettings('/work', new MemoryFileSystem())).toEqual({ path: '/work/cv.toml', settings: undefined, present: false, error: undefined });
+    expect(await loadServeSettings('/work', new MemoryFileSystem({ '/work/cv.toml': '[llm]\nmodel = "qwen"\n' }))).toMatchObject({ settings: undefined, present: true });
+    expect(await loadServeSettings('/work', new MemoryFileSystem({ '/work/cv.toml': '[serve]\nallow_remote = true\n' }))).toMatchObject({ settings: { allow_remote: true }, present: true });
+    const broken = await loadServeSettings('/work', new MemoryFileSystem({ '/work/cv.toml': '[serve]\nallow_remote = "sí"\n' }));
+    expect(broken.settings).toBeUndefined();
+    expect(broken.error).toBeDefined();
+  });
+
+  it('renderiza la tabla y rechaza un resultado que no volvería a validar', () => {
+    expect(renderServeSettings(undefined, { allow_remote: true })).toEqual({ ok: true, text: '[serve]\nallow_remote = true\n' });
+    const dotted = renderServeSettings('serve.allow_remote = true\n', { allow_remote: false });
+    expect(dotted.ok).toBe(false);
+    expect(!dotted.ok && dotted.message).toMatch(/^El cv\.toml resultante no sería válido; no se escribe nada:\n  - /);
+  });
+
+  it('escribe con huella y permisos 0600, y conserva el resto del fichero', async () => {
+    const fs = new MemoryFileSystem({ '/work/cv.toml': '[llm]\nmodel = "qwen"\n' });
+    const context = appContext(fs);
+    const current = await readConfigFile(context);
+    expect('error' in current).toBe(false);
+    const sha = 'error' in current ? '' : (current.sha256 ?? '*');
+    const written = await writeServeSettings(context, { settings: { allow_remote: true }, expectedSha256: sha });
+    expect(written).toMatchObject({ ok: true, path: '/work/cv.toml', settings: { allow_remote: true } });
+    expect(fs.file('/work/cv.toml')).toMatchObject({ mode: 0o600, content: '[llm]\nmodel = "qwen"\n\n[serve]\nallow_remote = true\n' });
+    const stale = await writeServeSettings(context, { settings: { allow_remote: false }, expectedSha256: 'viejo' });
+    expect(stale.ok).toBe(false);
   });
 });
 

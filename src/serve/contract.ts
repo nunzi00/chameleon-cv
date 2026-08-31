@@ -29,7 +29,7 @@ import type { SourceHistoryEntry, SourceHistoryFile } from '../app/source-histor
 export type { SourceHistoryEntry, SourceHistoryFile };
 
 export type { LocalModelsState, RuntimeState };
-import { LlmSettingsSchema, type LlmSettings } from '../llm/settings';
+import { LlmSettingsSchema, ServeSettingsSchema, type LlmSettings, type ServeSettings } from '../llm/settings';
 import type { ServerErrorCode } from './http';
 import type { JobSnapshot } from './jobs';
 
@@ -139,8 +139,9 @@ export const ImportSchema = z.object({
 export type ImportRequest = z.infer<typeof ImportSchema>;
 
 /** PUT /config/llm: la tabla `[llm]` de cv.toml (solo local; los remotos solo como modelo por defecto). */
-export { LlmSettingsSchema };
+export { LlmSettingsSchema, ServeSettingsSchema };
 export type LlmSettingsWriteRequest = LlmSettings;
+export type ServeSettingsWriteRequest = ServeSettings;
 
 export const LlmCheckSchema = z.object({
   /** Proveedor a comprobar (local o del registro); sin él, el local efectivo. */
@@ -229,12 +230,22 @@ export type ExportResponse = MasterProfile;
 export interface LlmConfigResponse {
   readonly llm: LlmStatus;
   readonly file: { readonly path: string; readonly present: boolean; readonly sha256: string | undefined };
-  readonly remote: { readonly allowed: boolean };
+  /**
+   * `allowed`: lo que rige AHORA en el proceso. `configured`: lo que dice `[serve] allow_remote` de cv.toml
+   * (`undefined` si no está). `pending`: la configuración difiere de lo vigente y hace falta reiniciar (T-8.17).
+   */
+  readonly remote: { readonly allowed: boolean; readonly configured: boolean | undefined; readonly pending: boolean };
 }
 export interface LlmConfigWriteResponse {
   readonly path: string;
   readonly sha256: string;
   readonly llm: LlmSettings;
+}
+/** PUT /config/serve: la tabla `[serve]` de cv.toml (T-8.17); se aplica al reiniciar el servidor. */
+export interface ServeConfigWriteResponse {
+  readonly path: string;
+  readonly sha256: string;
+  readonly serve: ServeSettings;
 }
 /** POST /config/llm/check: una llamada de salud, sin datos del usuario. */
 export interface LlmCheckResponse {

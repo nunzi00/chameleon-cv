@@ -1,0 +1,48 @@
+# Tema «sidebar-left» de Chameleon CV (T-8.16): organización propia (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from sidebar-left`) y genera con `--theme mio`.
+
+[theme]
+name = "sidebar-left"
+description = "Organización con columna lateral izquierda: contacto, habilidades, formación, certificaciones e idiomas al margen, y la experiencia y los proyectos en la columna ancha"
+version = 1
+kind = "organization"   # organización: cambia el orden y la maquetación del contenido (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1b1f24"
+primary = "#1b1f24"
+secondary = "#5b6570"
+accent = "#2563eb"
+rule = "#d5dbe2"
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 24
+headline = 11
+contact = 8.8
+section = 8.6
+title = 10.6
+meta = 8.8
+body = 9.8
+footer = 8.2
+code = 9
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.42
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 16
+right = 17
+bottom = 15
+left = 17

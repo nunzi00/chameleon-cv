@@ -40,6 +40,17 @@ export const LlmSettingsSchema = z.strictObject({
 
 export type LlmSettings = z.output<typeof LlmSettingsSchema>;
 
+/**
+ * La tabla `[serve]` de `cv.toml` (T-8.17): hoy solo `allow_remote`, el permiso de salida a proveedores
+ * remotos que `cv serve` lee **al arrancar**. La bandera de la CLI siempre gana (D2) y la frontera C3 se
+ * mantiene: un proceso arrancado sin permiso no puede dárselo a sí mismo en caliente.
+ */
+export const ServeSettingsSchema = z.strictObject({
+  allow_remote: z.boolean().optional(),
+});
+
+export type ServeSettings = z.output<typeof ServeSettingsSchema>;
+
 /** Cadena básica de TOML (las secuencias de escape de JSON son válidas en TOML). */
 function tomlString(value: string): string {
   return JSON.stringify(value);
@@ -74,8 +85,19 @@ export function serializeLlmTable(settings: LlmSettings): string {
   return `${lines.join('\n')}\n`;
 }
 
+/** El texto de la tabla `[serve]`, con salto final; solo las claves presentes. */
+export function serializeServeTable(settings: ServeSettings): string {
+  const lines = ['[serve]'];
+  if (settings.allow_remote !== undefined) {
+    lines.push(`allow_remote = ${settings.allow_remote ? 'true' : 'false'}`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
 const LLM_HEADER = /^[ \t]*\[[ \t]*llm[ \t]*\][ \t]*(?:#.*)?$/;
 const LLM_SUBTABLE_HEADER = /^[ \t]*\[[ \t]*llm[ \t]*\.[^\]]*\][ \t]*(?:#.*)?$/;
+const SERVE_HEADER = /^[ \t]*\[[ \t]*serve[ \t]*\][ \t]*(?:#.*)?$/;
+const SERVE_SUBTABLE_HEADER = /^[ \t]*\[[ \t]*serve[ \t]*\.[^\]]*\][ \t]*(?:#.*)?$/;
 const ANY_HEADER = /^[ \t]*\[\[?[^\]]*\]\]?[ \t]*(?:#.*)?$/;
 
 /**
@@ -84,9 +106,17 @@ const ANY_HEADER = /^[ \t]*\[\[?[^\]]*\]\]?[ \t]*(?:#.*)?$/;
  * una línea en blanco. Devuelve el texto nuevo.
  */
 export function replaceLlmTable(text: string, settings: LlmSettings): string {
-  const table = serializeLlmTable(settings);
+  return replaceTable(text, serializeLlmTable(settings), LLM_HEADER, LLM_SUBTABLE_HEADER);
+}
+
+/** Sustituye la tabla `[serve]` (sin subtablas) por la nueva, o la añade al final; el resto no cambia. */
+export function replaceServeTable(text: string, settings: ServeSettings): string {
+  return replaceTable(text, serializeServeTable(settings), SERVE_HEADER, SERVE_SUBTABLE_HEADER);
+}
+
+function replaceTable(text: string, table: string, header: RegExp, subtable: RegExp): string {
   const lines = text.split('\n');
-  const start = lines.findIndex((line) => LLM_HEADER.test(line));
+  const start = lines.findIndex((line) => header.test(line));
   if (start === -1) {
     if (text === '') {
       return table;
@@ -94,7 +124,7 @@ export function replaceLlmTable(text: string, settings: LlmSettings): string {
     const separator = text.endsWith('\n\n') ? '' : text.endsWith('\n') ? '\n' : '\n\n';
     return `${text}${separator}${table}`;
   }
-  const next = lines.slice(start + 1).findIndex((line) => ANY_HEADER.test(line) && !LLM_SUBTABLE_HEADER.test(line));
+  const next = lines.slice(start + 1).findIndex((line) => ANY_HEADER.test(line) && !subtable.test(line));
   const end = next === -1 ? lines.length : start + 1 + next;
   // Las líneas en blanco finales del bloque antiguo se conservan como separación con la tabla siguiente.
   let keep = end;

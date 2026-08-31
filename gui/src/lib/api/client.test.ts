@@ -140,7 +140,9 @@ describe('cliente de la API', () => {
     await api.writeLlmConfig({ provider: 'ollama', model: 'qwen' }, 'abc');
     await api.writeLlmConfig({}, '*');
     await api.checkLlm({ provider: 'groq' });
-    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/config/llm', 'PUT /api/v1/config/llm', 'PUT /api/v1/config/llm', 'POST /api/v1/config/llm/check']);
+    await api.writeServeConfig({ allow_remote: true }, 'abc');
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/config/llm', 'PUT /api/v1/config/llm', 'PUT /api/v1/config/llm', 'POST /api/v1/config/llm/check', 'PUT /api/v1/config/serve']);
+    expect(calls[4]).toMatchObject({ headers: { 'If-Match': '"abc"' }, body: '{"allow_remote":true}' });
     expect(calls[1]).toMatchObject({ headers: { 'If-Match': '"abc"' }, body: '{"provider":"ollama","model":"qwen"}' });
     expect(calls[2]).toMatchObject({ headers: { 'If-Match': '*' } });
     expect(calls[3]?.body).toBe('{"provider":"groq"}');

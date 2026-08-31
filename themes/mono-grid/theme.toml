@@ -1,0 +1,48 @@
+# Tema «mono-grid» de Chameleon CV (T-8.16): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from mono-grid`) y genera con `--theme mio`.
+
+[theme]
+name = "mono-grid"
+description = "Monoespaciada de arriba abajo con la rejilla a la vista: títulos entre corchetes, periodos alineados y viñetas con guion, con aire de terminal"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#14181d"
+primary = "#14181d"
+secondary = "#5f6b76"
+accent = "#0f766e"
+rule = "#d3dae0"
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "DejaVu Sans Mono"
+heading = "DejaVu Sans Mono"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 21
+headline = 9.8
+contact = 8.4
+section = 8.4
+title = 9.6
+meta = 8.4
+body = 8.9
+footer = 7.8
+code = 8.6
+
+[spacing]              # en «em» del cuerpo
+leading = 0.6
+paragraph = 0.75
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 16
+right = 16
+bottom = 14
+left = 16

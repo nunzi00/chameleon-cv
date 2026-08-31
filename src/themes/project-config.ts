@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
 
 import { z } from 'zod';
 
-import { LlmSettingsSchema } from '../llm/settings';
+import { LlmSettingsSchema, ServeSettingsSchema } from '../llm/settings';
 import type { FileSystem } from '../parsers';
 import { describeError } from '../shared/errors';
 import type { LoadedTheme } from './loader';
@@ -38,6 +38,8 @@ export const ProjectConfigSchema = z.strictObject({
   theme: ThemeOverridesSchema.optional(),
   /** El co-piloto: proveedor local y modelo, y modelos por defecto de los remotos (T-8.2). */
   llm: LlmSettingsSchema.optional(),
+  /** El servidor local: hoy solo el permiso de salida a remotos, leído al arrancar (T-8.17). */
+  serve: ServeSettingsSchema.optional(),
 });
 
 export type ThemeOverrides = z.output<typeof ThemeOverridesSchema>;

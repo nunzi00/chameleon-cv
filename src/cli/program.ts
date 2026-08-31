@@ -320,9 +320,12 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--api-only', 'sin la página de inicio: solo /api/v1', false)
     .option('--open', 'abre el navegador con la URL y el token', false)
     .option('--allowed-hosts <hosts>', 'valores de Host admitidos además de 127.0.0.1 y localhost (separados por comas)')
-    .option('--allow-remote', 'permite proveedores remotos en los trabajos del co-piloto (cada uno exige confirmar el coste estimado)', false)
-    .action(async (options: ServeCommandOptions) => {
-      onExit(await runServe(context, options));
+    .option('--allow-remote', 'permite proveedores remotos en los trabajos del co-piloto (cada uno exige confirmar el coste estimado)')
+    .option('--no-allow-remote', 'los prohíbe aunque cv.toml los permita: la bandera siempre gana sobre [serve] allow_remote')
+    .action(async (options: ServeCommandOptions, command: Command) => {
+      // Sin bandera explícita, `runServe` consulta `[serve] allow_remote` de cv.toml (T-8.17).
+      const explicit = command.getOptionValueSource('allowRemote') === 'cli';
+      onExit(await runServe(context, { ...options, allowRemote: explicit ? options.allowRemote === true : undefined }));
     });
 
   const history = program.command('history').description('histórico de versiones de las fuentes (output/historial-fuentes): lo que cv improve apply y cv history restore dejaron antes de escribir');

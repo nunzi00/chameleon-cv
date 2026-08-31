@@ -8,7 +8,7 @@ import { dirname, resolve } from 'node:path';
 import { isMissingFile } from '../artifact';
 import { describeError } from '../shared/errors';
 
-import { replaceLlmTable, type LlmSettings } from '../llm/settings';
+import { replaceLlmTable, replaceServeTable, type LlmSettings, type ServeSettings } from '../llm/settings';
 import type { FileSystem } from '../parsers';
 import { PROJECT_CONFIG_FILE, loadProjectConfig, parseProjectConfig } from '../themes/project-config';
 import type { AppContext } from './context';
@@ -35,6 +35,23 @@ export async function loadLlmSettings(cwd: string, fileSystem: FileSystem): Prom
   return { path: loaded.path, settings: loaded.config?.llm, present: loaded.config !== undefined, error: undefined };
 }
 
+export interface ServeSettingsSnapshot {
+  readonly path: string;
+  /** `undefined` si no hay fichero o no tiene `[serve]`. */
+  readonly settings: ServeSettings | undefined;
+  readonly present: boolean;
+  readonly error: string | undefined;
+}
+
+/** `[serve]` de `<cwd>/cv.toml`; la ausencia del fichero o de la tabla no es un error (T-8.17). */
+export async function loadServeSettings(cwd: string, fileSystem: FileSystem): Promise<ServeSettingsSnapshot> {
+  const loaded = await loadProjectConfig(cwd, fileSystem);
+  if (!loaded.ok) {
+    return { path: loaded.path, settings: undefined, present: true, error: loaded.message };
+  }
+  return { path: loaded.path, settings: loaded.config?.serve, present: loaded.config !== undefined, error: undefined };
+}
+
 export type RenderedSettings = { readonly ok: true; readonly text: string } | { readonly ok: false; readonly message: string };
 
 /**
@@ -44,6 +61,16 @@ export type RenderedSettings = { readonly ok: true; readonly text: string } | { 
  */
 export function renderLlmSettings(currentText: string | undefined, settings: LlmSettings): RenderedSettings {
   const text = replaceLlmTable(currentText ?? '', settings);
+  const parsed = parseProjectConfig(text);
+  if (!parsed.ok) {
+    return { ok: false, message: `El ${PROJECT_CONFIG_FILE} resultante no sería válido; no se escribe nada:\n${parsed.errors.map((error) => `  - ${error}`).join('\n')}` };
+  }
+  return { ok: true, text };
+}
+
+/** Como `renderLlmSettings`, para la tabla `[serve]`. */
+export function renderServeSettings(currentText: string | undefined, settings: ServeSettings): RenderedSettings {
+  const text = replaceServeTable(currentText ?? '', settings);
   const parsed = parseProjectConfig(text);
   if (!parsed.ok) {
     return { ok: false, message: `El ${PROJECT_CONFIG_FILE} resultante no sería válido; no se escribe nada:\n${parsed.errors.map((error) => `  - ${error}`).join('\n')}` };
@@ -90,6 +117,27 @@ export type WriteLlmSettingsResult = { readonly ok: true; readonly path: string;
  * comprobación de la huella y del resultado; escritura atómica con permisos 0600 (T-8.2, decisión 7).
  */
 export async function writeLlmSettings(context: AppContext, request: WriteLlmSettingsRequest): Promise<WriteLlmSettingsResult> {
+  const written = await writeTable(context, request.expectedSha256, (text) => renderLlmSettings(text, request.settings));
+  return written.ok ? { ok: true, path: written.path, sha256: written.sha256, settings: request.settings } : written;
+}
+
+export interface WriteServeSettingsRequest {
+  readonly settings: ServeSettings;
+  readonly expectedSha256: string;
+}
+
+export type WriteServeSettingsResult = { readonly ok: true; readonly path: string; readonly sha256: string; readonly settings: ServeSettings } | { readonly ok: false; readonly error: AppError };
+
+/** Escribe la tabla `[serve]` con las mismas garantías que `[llm]`: huella, validación del resultado y escritura atómica. */
+export async function writeServeSettings(context: AppContext, request: WriteServeSettingsRequest): Promise<WriteServeSettingsResult> {
+  const written = await writeTable(context, request.expectedSha256, (text) => renderServeSettings(text, request.settings));
+  return written.ok ? { ok: true, path: written.path, sha256: written.sha256, settings: request.settings } : written;
+}
+
+type WriteTableResult = { readonly ok: true; readonly path: string; readonly sha256: string } | { readonly ok: false; readonly error: AppError };
+
+async function writeTable(context: AppContext, expectedSha256: string, render: (text: string | undefined) => RenderedSettings): Promise<WriteTableResult> {
+  const request = { expectedSha256 };
   const current = await readConfigFile(context);
   if ('error' in current) {
     return { ok: false, error: current.error };
@@ -104,7 +152,7 @@ export async function writeLlmSettings(context: AppContext, request: WriteLlmSet
   } else if (request.expectedSha256 !== '*') {
     return { ok: false, error: conflictError(`No existe ${current.path}: envía «*» como huella para crearlo`) };
   }
-  const rendered = renderLlmSettings(current.text, request.settings);
+  const rendered = render(current.text);
   if (!rendered.ok) {
     return { ok: false, error: dataError(rendered.message) };
   }
@@ -116,5 +164,5 @@ export async function writeLlmSettings(context: AppContext, request: WriteLlmSet
   } catch (error) {
     return { ok: false, error: environmentError(`No se pudo escribir ${current.path}: ${describeError(error)}`) };
   }
-  return { ok: true, path: current.path, sha256: contentHash(rendered.text), settings: request.settings };
+  return { ok: true, path: current.path, sha256: contentHash(rendered.text) };
 }

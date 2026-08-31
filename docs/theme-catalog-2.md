@@ -1,6 +1,6 @@
 # Diez temas más (T-8.16) — PROPUESTA v1
 
-Estado: BORRADOR para el PO · Encargo del Director del 31-ago («quiero 10 temas más para los pdfs») · Mecánica de T-8.12
+Estado: **APROBADA (D1–D3) e IMPLEMENTADA el 31-ago-2026** · Encargo del Director del 31-ago («quiero 10 temas más para los pdfs») · Mecánica de T-8.12
 
 ## §1 Reparto propuesto (27 → 37)
 
@@ -22,3 +22,17 @@ Estado: BORRADOR para el PO · Encargo del Director del 31-ago («quiero 10 tema
 1. **D1** La lista de §1 tal cual (o los cambios que prefieras).
 2. **D2** Entrega en una sola parte (los cimientos de T-8.12 hacen el coste marginal pequeño).
 3. **D3** Versión: 1.10.0.
+
+
+## §4 Entrega (31-ago-2026)
+
+Los diez están en `themes/` y en la galería: 37 temas = 13 organizaciones + 24 estilos. Verificación: los 37 compilan
+con Typst 0.15.1 en español e inglés con el nombre, las etiquetas del idioma y el texto extraíble (`tests/themes`),
+galería regenerada con ficha e imagen de cada uno, inventarios y goldens del arnés al día.
+
+Dos lecciones tipográficas, ambas medidas y no supuestas:
+
+- `gazette` partía «EX PERIENCIA» en la extracción del PDF: el `tracking` sobre mayúsculas en serif rompe el texto.
+  Los títulos de ese tema van sin espaciado entre letras (la doble regla ya le da identidad).
+- `mono-grid` mostraba el nombre en una proporcional: DejaVu Sans Mono no tiene semibold y Typst caía a otra familia.
+  El nombre usa el peso regular, que sí existe en la familia.

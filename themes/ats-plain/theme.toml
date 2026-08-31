@@ -1,0 +1,48 @@
+# Tema «ats-plain» de Chameleon CV (T-8.16): organización propia (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from ats-plain`) y genera con `--theme mio`.
+
+[theme]
+name = "ats-plain"
+description = "Una sola columna sin filetes, sin tablas y con una única tipografía: el formato más digerible para los lectores automáticos de CV (ATS) y para copiar y pegar"
+version = 1
+kind = "organization"   # organización: cambia el orden y la maquetación del contenido (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#000000"
+primary = "#000000"
+secondary = "#3d3d3d"
+accent = "#000000"
+rule = "#000000"
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 20
+headline = 11
+contact = 10
+section = 11
+title = 11
+meta = 10
+body = 10.5
+footer = 9
+code = 10
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.42
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 20
+right = 20
+bottom = 20
+left = 20

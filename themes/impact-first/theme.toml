@@ -1,0 +1,48 @@
+# Tema «impact-first» de Chameleon CV (T-8.16): organización propia (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from impact-first`) y genera con `--theme mio`.
+
+[theme]
+name = "impact-first"
+description = "Abre con tres cifras de impacto destacadas, tomadas de los logros anclados, y sigue con la cronología completa: para cuando lo primero que debe verse es el resultado"
+version = 1
+kind = "organization"   # organización: cambia el orden y la maquetación del contenido (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#191c20"
+primary = "#191c20"
+secondary = "#5d6570"
+accent = "#b45309"
+rule = "#dcdfe4"
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Source Sans 3"
+heading = "Source Sans 3"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 26
+headline = 11.2
+contact = 9.2
+section = 8.8
+title = 10.8
+meta = 9.2
+body = 10
+footer = 8.5
+code = 9.2
+
+[spacing]              # en «em» del cuerpo
+leading = 0.55
+paragraph = 0.7
+list = 0.42
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 17
+right = 19
+bottom = 16
+left = 19

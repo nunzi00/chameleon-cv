@@ -111,6 +111,39 @@ describe('cv serve', () => {
     expect(stderr()).toContain('Proveedores remotos permitidos (--allow-remote): cada trabajo exigirá confirmar el coste estimado\n');
   });
 
+  it('sin bandera, [serve] allow_remote de cv.toml decide; la bandera siempre gana y un cv.toml inválido prohíbe (T-8.17)', async () => {
+    const run = async (tree: Record<string, string>, allowRemote: boolean | undefined): Promise<{ started: boolean | undefined; stderr: string }> => {
+      const { context, stderr } = harness({ ...datasetTree(), ...tree });
+      const { handle } = fakeHandle();
+      let started: Parameters<ServeDeps['start']>[0] | undefined;
+      const deps: ServeDeps = {
+        start: (options) => {
+          started = options;
+          return Promise.resolve(handle);
+        },
+        openBrowser: () => undefined,
+        onInterrupt: (handler) => setTimeout(handler, 1),
+      };
+      expect(await runServe(context, { ...OPTIONS, allowRemote }, deps)).toBe(EXIT_OK);
+      return { started: started?.allowRemote, stderr: stderr() };
+    };
+
+    const permitted = await run({ '/work/cv.toml': '[serve]\nallow_remote = true\n' }, undefined);
+    expect(permitted.started).toBe(true);
+    expect(permitted.stderr).toContain('Proveedores remotos permitidos ([serve] allow_remote de /work/cv.toml)');
+
+    // La bandera manda en ambos sentidos.
+    expect((await run({ '/work/cv.toml': '[serve]\nallow_remote = true\n' }, false)).started).toBe(false);
+    expect((await run({ '/work/cv.toml': '[serve]\nallow_remote = false\n' }, true)).started).toBe(true);
+
+    // Sin clave, sin fichero o con un cv.toml ilegible, los remotos quedan prohibidos.
+    expect((await run({ '/work/cv.toml': '[llm]\nmodel = "qwen"\n' }, undefined)).started).toBe(false);
+    expect((await run({}, undefined)).started).toBe(false);
+    const broken = await run({ '/work/cv.toml': '[serve]\nallow_remote = "sí"\n' }, undefined);
+    expect(broken.started).toBe(false);
+    expect(broken.stderr).toContain('Aviso: no se pudo leer /work/cv.toml');
+  });
+
   it('rechaza un espacio de trabajo inexistente o que no es un directorio, y un arranque fallido', async () => {
     const { context, stderr } = harness();
     const deps: ServeDeps = { start: () => Promise.reject(new Error('EADDRINUSE')), openBrowser: () => undefined, onInterrupt: () => undefined };
@@ -154,8 +187,9 @@ describe('cv serve', () => {
   });
 
   it('a través de commander: un servidor real en un puerto efímero que se para con POST /shutdown', async () => {
-    const { context, stderr } = harness();
-    const pending = runCli(['serve', '--port', '0', '--api-only'], context);
+    const { context, stderr } = harness({ ...datasetTree(), '/work/cv.toml': '[serve]\nallow_remote = false\n' });
+    // Con la bandera explícita (T-8.17): manda sobre cv.toml, que aquí pide prohibirlos.
+    const pending = runCli(['serve', '--port', '0', '--api-only', '--allow-remote'], context);
     for (let attempt = 0; attempt < 100 && !stderr().includes('Token:'); attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
@@ -166,6 +200,18 @@ describe('cv serve', () => {
     expect(status.status).toBe(200);
     expect((await fetch(`${base}api/v1/shutdown`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })).status).toBe(202);
     expect(await pending).toBe(EXIT_OK);
+    expect(stderr()).toContain('Proveedores remotos permitidos (--allow-remote)');
     expect(stderr()).toContain('Servidor detenido');
+
+    // Y sin bandera manda cv.toml, que aquí los prohíbe (la otra rama del tri-estado, T-8.17).
+    const second = harness({ ...datasetTree(), '/work/cv.toml': '[serve]\nallow_remote = false\n' });
+    const running = runCli(['serve', '--port', '0', '--api-only'], second.context);
+    for (let attempt = 0; attempt < 100 && !second.stderr().includes('Token:'); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    const other = /Token: (http:\/\/127\.0\.0\.1:\d+\/)#token=(\S+)/.exec(second.stderr()) as RegExpExecArray;
+    expect(second.stderr()).not.toContain('Proveedores remotos permitidos');
+    expect((await fetch(`${other[1]}api/v1/shutdown`, { method: 'POST', headers: { Authorization: `Bearer ${other[2]}` } })).status).toBe(202);
+    expect(await running).toBe(EXIT_OK);
   });
 });

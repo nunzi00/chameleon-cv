@@ -86,6 +86,13 @@ El flujo de eventos (`text/event-stream`) repite al conectar el estado completo 
 
 Las opciones son las de la CLI (`specialty`, `offer`, `topN`, `only`, `proposals`, `maxLength`, `maxItems`, `redactCompanies`, `locale`, `output`, `cache`, `provider`, `model`), sin rutas: la oferta va como `{ "text": "…" }` o `{ "workspaceFile": "ofertas/acme.txt" }`, y `output` es solo el nombre del fichero dentro de `output/`.
 
+### Permitir los remotos desde la configuración
+
+`PUT /config/serve` guarda la tabla `[serve]` de `cv.toml` (hoy solo `allow_remote`) con el mismo `If-Match` que
+`/config/llm`. **No cambia el proceso en marcha**: se lee al arrancar, así que hay que reiniciar `cv serve`. `GET
+/config/llm` devuelve `remote: { allowed, configured, pending }` — lo vigente, lo que pide el fichero y si falta
+reiniciar.
+
 ### Proveedores remotos: `--allow-remote` y consentimiento
 
 Por defecto el servidor **no envía nada fuera de tu máquina**: un trabajo que pida un proveedor remoto (`"provider": "openai"`) recibe `403 remote-disabled`. Si arrancas con `cv serve --allow-remote`, cada trabajo remoto pasa por el mismo puente levadizo que la CLI, en dos pasos:

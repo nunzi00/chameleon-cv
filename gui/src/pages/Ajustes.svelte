@@ -95,6 +95,25 @@
     }
   }
 
+  /** Escribe `[serve] allow_remote` en cv.toml; el proceso en marcha NO cambia: se aplica al reiniciar (C3, T-8.17). */
+  async function saveRemote(allowed: boolean): Promise<void> {
+    if (config === undefined) {
+      return;
+    }
+    busy = allowed ? 'Permitiendo remotos…' : 'Prohibiendo remotos…';
+    error = undefined;
+    message = undefined;
+    try {
+      const written = await api.writeServeConfig({ allow_remote: allowed }, config.file.sha256 ?? '*');
+      message = `Guardado en ${written.path}: [serve] allow_remote = ${allowed ? 'true' : 'false'}. Reinicia «cv serve» para que surta efecto.`;
+      await load();
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      busy = undefined;
+    }
+  }
+
   async function check(provider: string | undefined, model: string | undefined): Promise<void> {
     const key = provider ?? 'local';
     busy = `Comprobando ${key}…`;
@@ -302,12 +321,21 @@
     <div class="cv-card cv-card-tight">
       <div class="cv-card-head">
         <h2>Proveedores externos</h2>
-        <span class={`cv-chip ${config.remote.allowed ? 'warn' : 'quiet'}`}><Icon name="shield" size={13} weight={1.8} />{config.remote.allowed ? 'remotos permitidos (--allow-remote)' : 'sin remotos: nada sale de esta máquina'}</span>
+        <span class={`cv-chip ${config.remote.allowed ? 'warn' : 'quiet'}`}><Icon name="shield" size={13} weight={1.8} />{config.remote.allowed ? 'remotos permitidos' : 'sin remotos: nada sale de esta máquina'}</span>
       </div>
       <p class="cv-muted">
         Solo con clave y eligiéndolos <strong>en cada trabajo</strong> (Co-piloto → Trabajos → selector «Proveedor»); en esta página únicamente se comprueban. Las claves se guardan desde la terminal (<code>cv llm key set &lt;proveedor&gt;</code>) en <code>{config.llm.keysFile}</code>; nunca pasan por esta página.
-        {config.remote.allowed ? 'Este servidor admite remotos (--allow-remote).' : 'Este servidor no envía nada a remotos: arráncalo con «cv serve --allow-remote» para permitirlo.'}
+        {config.remote.allowed ? 'Este servidor admite remotos.' : 'Este servidor no envía nada a remotos.'}
       </p>
+      <div class="cv-remote-toggle">
+        <button class="cv-button" type="button" disabled={busy !== undefined} onclick={() => saveRemote(!(config?.remote.configured ?? config?.remote.allowed ?? false))}>
+          {(config.remote.configured ?? config.remote.allowed) ? 'Prohibir proveedores remotos' : 'Permitir proveedores remotos'}
+        </button>
+        <span class="cv-muted">
+          Guarda <code>[serve] allow_remote</code> en <code>cv.toml</code> y <strong>se aplica al reiniciar</strong> el servidor: un proceso arrancado sin permiso no puede dárselo a sí mismo. La bandera <code>--allow-remote</code> de la orden siempre manda sobre el fichero.
+        </span>
+        {#if config.remote.pending}<span class="cv-chip warn"><Icon name="shield" size={13} weight={1.8} />cv.toml pide {config.remote.configured ? 'permitirlos' : 'prohibirlos'}: reinicia «cv serve»</span>{/if}
+      </div>
       <div class="cv-providers">
         {#each config.llm.providers as provider (provider.id)}
           {@const view = describeProvider(provider)}

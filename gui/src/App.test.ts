@@ -8,7 +8,7 @@ import { memoryStorage } from './lib/storage';
 import { THEME_KEY } from './lib/theme';
 
 const STATUS = { version: '1.2.0', workspace: '/work', artifact: { status: 'fresh', detail: undefined, specialties: [] }, typst: { required: '0.15.1', candidates: [], selected: undefined, usable: false }, llm: { config: undefined, configError: undefined, health: undefined, keys: {}, keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined }, providers: [] }, themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] } };
-const LLM_CONFIG = { llm: STATUS.llm, file: { path: '/work/cv.toml', present: false, sha256: undefined }, remote: { allowed: true } };
+const LLM_CONFIG = { llm: STATUS.llm, file: { path: '/work/cv.toml', present: false, sha256: undefined }, remote: { allowed: true, configured: undefined, pending: false } };
 const REVIEWS = { reviews: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] };
 
 let calls: string[] = [];

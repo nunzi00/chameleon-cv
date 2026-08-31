@@ -36,7 +36,7 @@ function config(
       })),
     },
     file: { path: '/work/cv.toml', present: false, sha256: undefined },
-    remote: { allowed },
+    remote: { allowed, configured: undefined, pending: false },
   };
 }
 

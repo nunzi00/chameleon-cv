@@ -8,6 +8,7 @@ import { resolve } from 'node:path';
 
 import { InvalidArgumentError } from 'commander';
 
+import { loadServeSettings } from '../../app/settings';
 import { readVersion } from '../../app/workspace';
 import { describeError } from '../../shared/errors';
 import { startServer, type ServeOptions as StartOptions, type ServerHandle } from '../../serve/server';
@@ -23,8 +24,11 @@ export interface ServeCommandOptions {
   readonly apiOnly: boolean;
   readonly open: boolean;
   readonly allowedHosts?: string | undefined;
-  /** `--allow-remote`: los trabajos del co-piloto pueden usar proveedores remotos (con consentimiento de coste). */
-  readonly allowRemote: boolean;
+  /**
+   * `--allow-remote` / `--no-allow-remote`: los trabajos del co-piloto pueden usar proveedores remotos (con
+   * consentimiento de coste). Sin bandera (`undefined`) manda `[serve] allow_remote` de `cv.toml`; sin clave, no.
+   */
+  readonly allowRemote?: boolean | undefined;
 }
 
 export interface ServeDeps {
@@ -76,6 +80,18 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
     context.stderr(`No se puede usar el espacio de trabajo «${workspace}»: ${describeError(error)}\n`);
     return EXIT_FAILURE;
   }
+  // El permiso de salida a remotos: la bandera de la CLI manda; sin ella, `[serve] allow_remote` de cv.toml (T-8.17).
+  let allowRemote = options.allowRemote ?? false;
+  let allowRemoteOrigin = options.allowRemote === undefined ? 'por defecto' : '--allow-remote';
+  if (options.allowRemote === undefined) {
+    const settings = await loadServeSettings(workspace, context.datasetFileSystem);
+    if (settings.error !== undefined) {
+      context.stderr(`Aviso: no se pudo leer ${settings.path} (${settings.error}); los proveedores remotos quedan prohibidos\n`);
+    } else if (settings.settings?.allow_remote === true) {
+      allowRemote = true;
+      allowRemoteOrigin = `[serve] allow_remote de ${settings.path}`;
+    }
+  }
   const version = readVersion(await context.assets.text('package.json'));
   let handle: ServerHandle;
   try {
@@ -88,7 +104,7 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
       version,
       apiOnly: options.apiOnly,
       allowedHosts: options.allowedHosts === undefined ? [] : options.allowedHosts.split(','),
-      allowRemote: options.allowRemote,
+      allowRemote,
     });
   } catch (error) {
     context.stderr(`No se pudo arrancar el servidor en ${options.host}:${options.port}: ${describeError(error)}\n`);
@@ -96,8 +112,8 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
   }
   context.stderr(`Chameleon CV ${version} · espacio de trabajo ${workspace}\n`);
   context.stderr(`API: ${handle.url}api/v1/ (Authorization: Bearer <token>)\n`);
-  if (options.allowRemote) {
-    context.stderr('Proveedores remotos permitidos (--allow-remote): cada trabajo exigirá confirmar el coste estimado\n');
+  if (allowRemote) {
+    context.stderr(`Proveedores remotos permitidos (${allowRemoteOrigin}): cada trabajo exigirá confirmar el coste estimado\n`);
   }
   context.stderr(`${options.apiOnly ? 'Token' : 'Interfaz'}: ${handle.url}#token=${handle.token}\n`);
   context.stderr('Ctrl-C para parar (o POST /api/v1/shutdown)\n');

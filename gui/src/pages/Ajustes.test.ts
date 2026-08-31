@@ -36,13 +36,13 @@ function response(overrides: { llm?: Partial<LlmConfigResponse['llm']>; remote?:
       ...overrides.llm,
     },
     file: overrides.file ?? { path: '/work/cv.toml', present: true, sha256: 'abc' },
-    remote: overrides.remote ?? { allowed: false },
+    remote: overrides.remote ?? { allowed: false, configured: undefined, pending: false },
   };
 }
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
     llmConfig: vi.fn(async () => response()),
     writeLlmConfig: vi.fn(async () => ({ path: '/work/cv.toml', sha256: 'def', llm: {} })),
     checkLlm: vi.fn(async () => ({ provider: 'openai-compatible', kind: 'local' as const, ok: true, models: ['qwen'], modelAvailable: true, message: undefined, quota: undefined })),
@@ -68,6 +68,21 @@ describe('Ajustes', () => {
     expect(screen.getByText(/Cuota publicada: 30 peticiones\/min/)).toBeTruthy();
     expect((screen.getByRole('button', { name: 'Comprobar groq' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/no envía nada a remotos/)).toBeTruthy();
+  });
+
+  it('el conmutador de remotos escribe [serve] allow_remote, avisa del reinicio y muestra el pendiente (T-8.17)', async () => {
+    const api = fakeApi({ writeServeConfig: vi.fn(async () => ({ path: '/work/cv.toml', sha256: 'def', serve: { allow_remote: true } })) });
+    render(Ajustes, { props: { api, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Permitir proveedores remotos' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Permitir proveedores remotos' }));
+    await waitFor(() => expect(screen.getByText(/\[serve\] allow_remote = true\. Reinicia «cv serve»/)).toBeTruthy());
+    expect(api.writeServeConfig).toHaveBeenCalledWith({ allow_remote: true }, 'abc');
+
+    // Con la clave ya escrita y el proceso todavía sin permiso, la página avisa de que hay que reiniciar.
+    const pending = fakeApi({ llmConfig: vi.fn(async () => response({ remote: { allowed: false, configured: true, pending: true } })) });
+    render(Ajustes, { props: { api: pending, onsession: vi.fn() } });
+    await waitFor(() => expect(screen.getByText(/cv\.toml pide permitirlos: reinicia «cv serve»/)).toBeTruthy());
+    expect(screen.getAllByRole('button', { name: 'Prohibir proveedores remotos' }).length).toBeGreaterThan(0);
   });
 
   it('rechaza una URL que no es loopback, muestra el 409 al guardar, bloquea lo fijado por el entorno y avisa del 401', async () => {
@@ -99,7 +114,7 @@ describe('Ajustes', () => {
     const api = fakeApi({
       llmConfig: vi.fn(async () => {
         calls += 1;
-        return response({ llm: { config: undefined, configError: 'Configuración inválida (/work/cv.toml)', settings: { path: '/work/cv.toml', present: true, configured: false, error: 'inválido' }, providers: [{ ...PROVIDER, keyPresence: 'env', live: calls > 1 ? live : undefined }] }, remote: { allowed: true }, file: { path: '/work/cv.toml', present: false, sha256: undefined } });
+        return response({ llm: { config: undefined, configError: 'Configuración inválida (/work/cv.toml)', settings: { path: '/work/cv.toml', present: true, configured: false, error: 'inválido' }, providers: [{ ...PROVIDER, keyPresence: 'env', live: calls > 1 ? live : undefined }] }, remote: { allowed: true, configured: undefined, pending: false }, file: { path: '/work/cv.toml', present: false, sha256: undefined } });
       }),
       checkLlm: vi.fn(async () => ({ provider: 'groq', kind: 'remote' as const, ok: true, models: ['openai/gpt-oss-120b'], modelAvailable: true, message: undefined, quota: live })),
     });
@@ -121,7 +136,7 @@ describe('Ajustes', () => {
 describe('Ajustes: remotos pendientes de verificación humana', () => {
   it('muestra el aviso del registro y no deja comprobar el proveedor aunque haya clave y remotos permitidos', async () => {
     const pending = { ...PROVIDER, keyPresence: 'env' as const, availability: 'pending-verification' as const, availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces' };
-    const api = fakeApi({ llmConfig: vi.fn(async () => response({ llm: { providers: [pending] }, remote: { allowed: true } })) });
+    const api = fakeApi({ llmConfig: vi.fn(async () => response({ llm: { providers: [pending] }, remote: { allowed: true, configured: undefined, pending: false } })) });
     render(Ajustes, { props: { api, onsession: vi.fn() } });
     await waitFor(() => expect(screen.getByText(/Pendiente de verificación humana: pendiente de la verificación al alta/)).toBeTruthy());
     const item = screen.getByText('groq', { selector: 'strong' }).closest('article') as HTMLElement;

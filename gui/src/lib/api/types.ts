@@ -40,6 +40,8 @@ export type {
   LlmCheckResponse,
   LlmConfigResponse,
   LlmConfigWriteResponse,
+  ServeConfigWriteResponse,
+  ServeSettingsWriteRequest,
   ImportCvResponse,
   OffersListResponse,
   OfferFetchRequest,

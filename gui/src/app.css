@@ -597,6 +597,8 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 /* Ajustes (T-8.6 S3): una columna de 940 px; proveedores externos como fichas. */
 .cv-ajustes { max-width: 940px; }
 .cv-providers { display: grid; gap: 10px; }
+.cv-remote-toggle { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.cv-remote-toggle .cv-muted { flex: 1 1 320px; }
 .cv-provider[data-pending] { opacity: .72; }
 .cv-provider .cv-card-head { margin-bottom: 8px; }
 .cv-provider-foot { margin: 8px 0; font-size: var(--cv-size-xs); }

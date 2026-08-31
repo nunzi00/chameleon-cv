@@ -1,0 +1,48 @@
+# Tema «serif-editorial» de Chameleon CV (T-8.16): estilo sobre la organización cronológica (véase la cabecera de template.typ).
+# Copia este directorio a themes/<mi-tema>/ en tu proyecto (`cv theme create mio --from serif-editorial`) y genera con `--theme mio`.
+
+[theme]
+name = "serif-editorial"
+description = "Estilo editorial en serif: Libertinus para el cuerpo y los títulos, versalitas suaves en las secciones, cifras del periodo en cursiva y un filete fino bajo el nombre"
+version = 1
+kind = "style"          # estilo sobre la organización cronológica (T-8.12)
+author = "Chameleon CV"
+license = "MIT"
+homepage = "https://nunzi00.github.io/chameleon-cv/guide/theme-gallery"
+
+[colors]
+text = "#1c1a17"
+primary = "#1c1a17"
+secondary = "#6f6659"
+accent = "#7d4b2b"
+rule = "#ddd5c8"
+
+[fonts]                # familias disponibles: Source Sans 3 (templates/fonts) y las embebidas en Typst (Libertinus Serif, DejaVu Sans Mono)
+body = "Libertinus Serif"
+heading = "Libertinus Serif"
+mono = "DejaVu Sans Mono"
+
+[sizes]                # en puntos
+name = 26
+headline = 11.5
+contact = 9.5
+section = 9
+title = 11
+meta = 9.5
+body = 10.5
+footer = 8.6
+code = 9.4
+
+[spacing]              # en «em» del cuerpo
+leading = 0.6
+paragraph = 0.75
+list = 0.45
+
+[page]
+paper = "a4"           # a4, a5, a3, us-letter, us-legal
+
+[page.margins]         # en milímetros
+top = 20
+right = 21
+bottom = 18
+left = 21

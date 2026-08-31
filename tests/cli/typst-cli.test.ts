@@ -134,7 +134,7 @@ describe('cv generate-cv --theme (T-5.1)', () => {
 
     const unknown = harness(OK);
     expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'typst', '--theme', 'nada'], unknown.context)).toBe(EXIT_DATA_ERROR);
-    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: academic, achievements-first, awesome, bold, chronological, classic, compact-grid, default, education-first, elegant, europass-like, executive, functional, hybrid, minimal, modern, monochrome, newspaper, one-page, pastel, project-portfolio, skills-first, swiss, tech, timeline, unified-timeline, warm\n$/);
+    expect(unknown.stderr()).toMatch(/^No existe el tema «nada» \(buscado en \/work\/themes, .*\); disponibles: academic, achievements-first, ats-plain, awesome, bold, chronological, classic, compact-grid, default, education-first, elegant, europass-like, executive, functional, gazette, hybrid, impact-first, midnight, minimal, modern, mono-grid, monochrome, newspaper, one-page, pastel, project-portfolio, serif-editorial, sidebar-left, skills-first, slate, swiss, tech, terracotta, timeline, two-column-dense, unified-timeline, warm\n$/);
     expect(unknown.calls).toEqual([]);
 
     const invalid = harness(OK, { '/work/themes/feo/theme.toml': themeToml('feo').replace('body = 10', 'body = 1'), '/work/themes/feo/template.typ': '' });

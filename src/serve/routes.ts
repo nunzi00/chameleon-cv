@@ -21,7 +21,7 @@ import { isSafeSourcePath } from '../app/paths';
 import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
-import { readConfigFile, writeLlmSettings } from '../app/settings';
+import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
 import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
@@ -34,7 +34,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -244,7 +244,13 @@ export function createRouter(): Router<ServerState> {
         return appErrorResponse(file.error);
       }
       const llm = await state.context.llmStatus({});
-      const payload = { llm, file: { path: file.path, present: file.present, sha256: file.sha256 }, remote: { allowed: state.allowRemote } } satisfies LlmConfigResponse;
+      const configured = (await loadServeSettings(state.context.cwd, state.context.datasetFileSystem)).settings?.allow_remote;
+      const payload = {
+        llm,
+        file: { path: file.path, present: file.present, sha256: file.sha256 },
+        // `pending`: cv.toml pide otra cosa que lo vigente; se aplica al reiniciar (la CLI siempre gana, T-8.17).
+        remote: { allowed: state.allowRemote, configured, pending: configured !== undefined && configured !== state.allowRemote },
+      } satisfies LlmConfigResponse;
       return json(200, payload, file.sha256 === undefined ? undefined : { ETag: `"${file.sha256}"` });
     },
   });
@@ -268,6 +274,29 @@ export function createRouter(): Router<ServerState> {
       const result = await writeLlmSettings(state.context, { settings: parsed.value, expectedSha256: ifMatch.trim().replace(/^"|"$/g, '') });
       return result.ok
         ? json(200, { path: result.path, sha256: result.sha256, llm: result.settings } satisfies LlmConfigWriteResponse, { ETag: `"${result.sha256}"` })
+        : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/config/serve`,
+    summary:
+      'Guarda la tabla [serve] de cv.toml —hoy solo allow_remote, el permiso de salida a proveedores remotos— con sustitución quirúrgica; exige If-Match como /config/llm. NO cambia el proceso en marcha: se aplica al reiniciar (C3).',
+    writes: true,
+    body: ServeSettingsSchema,
+    handler: async (request, state) => {
+      const ifMatch = request.headers['if-match'];
+      if (ifMatch === undefined) {
+        return errorResponse('precondition-required', 'Falta la cabecera If-Match: la huella actual de cv.toml, o «*» para crearlo');
+      }
+      const parsed = parseJsonBody(request.body, ServeSettingsSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await writeServeSettings(state.context, { settings: parsed.value, expectedSha256: ifMatch.trim().replace(/^"|"$/g, '') });
+      return result.ok
+        ? json(200, { path: result.path, sha256: result.sha256, serve: result.settings } satisfies ServeConfigWriteResponse, { ETag: `"${result.sha256}"` })
         : appErrorResponse(result.error);
     },
   });

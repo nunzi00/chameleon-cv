@@ -116,6 +116,10 @@ const CALLS: readonly Call[] = [
   { method: 'GET', path: '<script>', site: true, anonymous: true, headersOnly: true },
   { method: 'GET', path: '/index.html', site: true, anonymous: true },
   { method: 'GET', path: '/assets/nope.js', site: true, anonymous: true },
+  // El permiso de remotos persistido (T-8.17): exige If-Match como /config/llm y NO cambia el proceso en marcha.
+  { method: 'PUT', path: '/config/serve', body: { allow_remote: true } },
+  { method: 'PUT', path: '/config/serve', body: { allow_remote: true }, headers: { 'If-Match': '"0000000000000000000000000000000000000000000000000000000000000000"' } },
+  { method: 'PUT', path: '/config/serve', body: { allow_remote: 'sí' }, headers: { 'If-Match': '*' } },
 ];
 
 /** `/assets/index-Bi0q-oYA.js` → `/assets/index-<HASH>.js`. */

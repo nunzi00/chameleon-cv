@@ -84,6 +84,30 @@ describe('cv serve: GET/PUT /config/llm y POST /config/llm/check', () => {
     expect(fs.file('/work/cv.toml')?.content).toBe(`${CONFIG}\n[llm]\nmodel = "otro"\n`);
   });
 
+  it('PUT /config/serve escribe [serve] allow_remote con las mismas garantías, y el GET dice si falta reiniciar (T-8.17)', async () => {
+    // El estado del fichero pertenece a la prueba anterior: se restaura al terminar.
+    const before = fs.file('/work/cv.toml')?.content ?? CONFIG;
+    await fs.writeFile('/work/cv.toml', CONFIG, 0o600);
+    expect((await put('/config/serve', { allow_remote: true })).status).toBe(428);
+    expect((await put('/config/serve', { allow_remote: true }, { 'If-Match': '"nope"' })).status).toBe(409);
+    expect((await put('/config/serve', { allow_remote: 'sí' }, { 'If-Match': '*' })).status).toBe(400);
+    const current = (await (await call(server, '/config/llm')).json()) as { file: { sha256: string }; remote: { allowed: boolean; configured: boolean | undefined; pending: boolean } };
+    expect(current.remote).toEqual({ allowed: false, configured: undefined, pending: false });
+    const written = await put('/config/serve', { allow_remote: true }, { 'If-Match': `"${current.file.sha256}"` });
+    expect(written.status).toBe(200);
+    const body = (await written.json()) as { path: string; sha256: string; serve: unknown };
+    expect(body).toMatchObject({ path: '/work/cv.toml', serve: { allow_remote: true } });
+    expect(written.headers.get('etag')).toBe(`"${body.sha256}"`);
+    expect(fs.file('/work/cv.toml')).toMatchObject({ mode: 0o600, content: `${CONFIG}\n[serve]\nallow_remote = true\n` });
+
+    // El proceso en marcha NO cambia (C3): el GET lo dice y pide reiniciar.
+    const after = (await (await call(server, '/config/llm')).json()) as { remote: { allowed: boolean; configured: boolean; pending: boolean } };
+    expect(after.remote).toEqual({ allowed: false, configured: true, pending: true });
+    const permissive = (await (await call(remoteServer, '/config/llm')).json()) as { remote: { pending: boolean } };
+    expect(permissive.remote.pending).toBe(false);
+    await fs.writeFile('/work/cv.toml', before, 0o600);
+  });
+
   it('check comprueba el local por defecto, rechaza los remotos sin --allow-remote y con él explica la clave ausente o el id desconocido', async () => {
     const local = await post(server, '/config/llm/check', {});
     expect(local.status).toBe(200);

@@ -39,7 +39,7 @@ function config(overrides: Partial<LlmConfigResponse['llm']> = {}): LlmConfigRes
       ...overrides,
     },
     file: { path: '/work/cv.toml', present: true, sha256: 'abc' },
-    remote: { allowed: false },
+    remote: { allowed: false, configured: undefined, pending: false },
   };
 }
 
