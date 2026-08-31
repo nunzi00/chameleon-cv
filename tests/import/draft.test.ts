@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { draftFiles, draftReport, mapLanguageLevel, unplacedFromReport, withProposals } from '../../src/import/draft';
+import { draftFiles, draftReport, mapLanguageLevel, unplacedFromReport, withApplied, withProposals } from '../../src/import/draft';
 import type { DraftProfile } from '../../src/import/structure';
 
 const EMPTY: DraftProfile = {
@@ -182,5 +182,55 @@ describe('informe del borrador: lectura y actualización (T-8.18)', () => {
     expect(withProposals(added, [{ n: 4, section: 'habilidad', reason: '', text: 'Inglés C1' }])).toContain('- línea 4 → **habilidad**: Inglés C1');
     // Un informe sin salto final también termina con exactamente uno.
     expect(withProposals('# Informe', [{ n: 1, section: 'resumen', reason: '', text: 'Perfil' }])).toBe('# Informe\n\n## Propuestas del co-piloto (no aplicadas)\n\nEl co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.\n\n- línea 1 → **resumen**: Perfil\n');
+  });
+});
+
+describe('withApplied (T-9.5)', () => {
+  const report = [
+    '# Informe del borrador importado',
+    '',
+    '- Origen: cv.pdf',
+    '',
+    '## Propuestas del co-piloto (no aplicadas)',
+    '',
+    'El co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.',
+    '',
+    '- línea 9 → **habilidad**: Kubernetes',
+    '- línea 10 → **logro**: Bajó el coste',
+    '',
+    '## Sin situar (revísalo a mano)',
+    '',
+    '- línea 9: Kubernetes',
+    '- línea 10: Bajó el coste',
+    '',
+  ].join('\n');
+
+  it('saca la línea de lo pendiente y la registra con su destino, antes de lo que queda por mirar', () => {
+    const once = withApplied(report, { n: 9, section: 'habilidad', text: 'Kubernetes', file: 'skills.csv' });
+    expect(once).toContain('- línea 9 → **habilidad**: Kubernetes → skills.csv');
+    expect(once).not.toContain('- línea 9: Kubernetes');
+    expect(once).not.toContain('- línea 9 → **habilidad**: Kubernetes\n');
+    expect(once.indexOf('## Aplicado')).toBeLessThan(once.indexOf('## Propuestas'));
+    // La segunda se añade a la sección que ya existe, sin duplicar el título ni perder la primera.
+    const twice = withApplied(once, { n: 10, section: 'descartar', text: 'Bajó el coste', file: '' });
+    expect(twice.match(/## Aplicado/g)).toHaveLength(1);
+    expect(twice).toContain('- línea 9 → **habilidad**: Kubernetes → skills.csv');
+    expect(twice).toContain('- línea 10 → **descartar**: Bajó el coste → descartada (no se escribió en ningún fichero)');
+    // Vaciadas las dos, sus títulos ya no aportan nada y desaparecen.
+    expect(twice).not.toContain('## Sin situar');
+    expect(twice).not.toContain('## Propuestas del co-piloto');
+  });
+
+  it('sin secciones pendientes el registro va al final del informe', () => {
+    const plain = withApplied('# Informe\n\n- Origen: cv.pdf\n', { n: 3, section: 'resumen', text: 'Perfil', file: 'profile.md' });
+    expect(plain).toBe('# Informe\n\n- Origen: cv.pdf\n\n## Aplicado\n\n- línea 3 → **resumen**: Perfil → profile.md\n');
+    // Un informe sin salto final también termina con exactamente uno.
+    expect(withApplied('# Informe', { n: 1, section: 'logro', text: 'Algo', file: 'achievements.md' })).toBe('# Informe\n\n## Aplicado\n\n- línea 1 → **logro**: Algo → achievements.md\n');
+  });
+
+  it('una línea que ya no está pendiente no rompe el informe: solo se registra', () => {
+    const once = withApplied(report, { n: 99, section: 'habilidad', text: 'Nada', file: 'skills.csv' });
+    expect(once).toContain('- línea 99 → **habilidad**: Nada → skills.csv');
+    expect(once).toContain('- línea 9: Kubernetes');
   });
 });

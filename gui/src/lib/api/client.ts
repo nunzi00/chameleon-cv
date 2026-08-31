@@ -5,6 +5,8 @@
  */
 import type {
   ImportCvResponse,
+  ImportApplyRequestBody,
+  ImportApplyResponse,
   OffersListResponse,
   OfferFetchRequest,
   OfferFetchResponse,
@@ -124,6 +126,8 @@ export interface ApiClient {
   extractOffer(pdf: Blob): Promise<ExtractResponse>;
   /** POST /import-cv (T-8.4b): el CV (PDF/DOCX) como borrador en import/<nombre>/; 409 conflict si ya existe sin replace. */
   importCv(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
+  /** POST /import/apply (T-9.5): mueve UNA línea sin situar del borrador a la sección indicada; 422 si falta un dato. */
+  applyImportProposal(body: ImportApplyRequestBody): Promise<ImportApplyResponse>;
   /** GET /offers (T-8.5 S2): el listado de offers/ para el selector de Generar. */
   offers(): Promise<OffersListResponse>;
   /** POST /offers/fetch: 409 consent-required con estimateId la primera vez; repetir con consent para descargar. */
@@ -283,6 +287,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       const response = await raw('POST', '/import-cv', { body: file, contentType: 'application/pdf', headers });
       return (await response.json()) as ImportCvResponse;
     },
+    applyImportProposal: (body) => request('POST', '/import/apply', { body }),
     themes: () => request('GET', '/themes'),
     createTheme: (body) => request('POST', '/themes', { body }),
     installTheme: (body) => request('POST', '/themes/install', { body }),

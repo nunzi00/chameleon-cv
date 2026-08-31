@@ -45,6 +45,8 @@ export type {
   ServeConfigWriteResponse,
   ServeSettingsWriteRequest,
   ImportCvResponse,
+  ImportApplyRequestBody,
+  ImportApplyResponse,
   OffersListResponse,
   OfferFetchRequest,
   OfferFetchResponse,

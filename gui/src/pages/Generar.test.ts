@@ -44,7 +44,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     analyze: vi.fn(async () => ANALYSIS),
     offerHistory: vi.fn(async () => ({ entries: [] })),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
-    importCv: vi.fn(),
+    applyImportProposal: vi.fn(), importCv: vi.fn(),
     offers: vi.fn(),
     offerFetch: vi.fn(),
     offerSave: vi.fn(),

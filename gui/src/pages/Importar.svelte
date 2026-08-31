@@ -33,6 +33,78 @@
   const remotes = $derived(remoteProviderOptions(config));
   const refining = $derived(job !== undefined && !isFinished(job.status));
 
+  // Aplicar una propuesta (T-9.5): el modelo no escribe nada; escribe este botón cuando la persona confirma (C2).
+  // Lo que el esquema exige y la línea no puede dar se pide aquí; la regla de verdad la tiene el servidor, que
+  // responde 422 con lo que falta si algo se queda corto.
+  const EXTRA_FIELDS: Readonly<Record<string, readonly string[]>> = {
+    experiencia: ['company', 'role', 'start', 'end'],
+    formacion: ['institution', 'degree', 'start', 'end'],
+    idioma: ['level'],
+    contacto: ['contact', 'label'],
+  };
+  const FIELD_LABEL: Readonly<Record<string, string>> = {
+    company: 'Empresa',
+    role: 'Puesto',
+    institution: 'Institución',
+    degree: 'Titulación',
+    start: 'Desde (AAAA, AAAA-MM o AAAA-MM-DD)',
+    end: 'Hasta (vacío = en curso)',
+    level: 'Nivel MCER (A1–C2 o native)',
+    contact: 'Campo de contacto',
+    label: 'Etiqueta del enlace (opcional)',
+  };
+  const CONTACT_OPTIONS = [
+    { value: 'email', label: 'Correo' },
+    { value: 'phone', label: 'Teléfono' },
+    { value: 'location', label: 'Ubicación' },
+    { value: 'link', label: 'Enlace' },
+  ];
+
+  type Proposal = ImportMapJobResult['proposals'][number];
+  let pending = $state<Proposal | undefined>(undefined);
+  let fields = $state<Record<string, string>>({});
+  let applyError = $state<string | undefined>(undefined);
+  let applying = $state(false);
+  let applied = $state<string[]>([]);
+
+  function askApply(proposal: Proposal): void {
+    pending = proposal;
+    fields = {};
+    applyError = undefined;
+  }
+
+  async function confirmApply(): Promise<void> {
+    if (pending === undefined || result === undefined) {
+      return;
+    }
+    const proposal = pending;
+    const extra = Object.fromEntries(Object.entries(fields).filter(([, value]) => value.trim() !== ''));
+    applying = true;
+    applyError = undefined;
+    try {
+      const outcome = await api.applyImportProposal({
+        name: result.name,
+        line: proposal.n,
+        section: proposal.section,
+        ...(Object.keys(extra).length === 0 ? {} : { fields: extra }),
+      });
+      result = { ...result, readme: outcome.report };
+      if (refined !== undefined) {
+        refined = { ...refined, proposals: refined.proposals.filter((item) => item.n !== proposal.n) };
+      }
+      applied = [...applied, outcome.written.length === 0 ? `línea ${outcome.line}: descartada` : `línea ${outcome.line} → ${outcome.written.join(', ')}`];
+      pending = undefined;
+    } catch (caught) {
+      const explained = explainError(caught);
+      applyError = explained.detail === '' ? explained.title : explained.detail;
+      if (explained.kind === 'session') {
+        onsession();
+      }
+    } finally {
+      applying = false;
+    }
+  }
+
   function pick(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     file = input.files?.[0];
@@ -206,8 +278,16 @@
               {#if refined.proposals.length > 0}
                 <ul class="cv-refine-proposals">
                   {#each refined.proposals as proposal (proposal.n)}
-                    <li><strong>{proposal.section}</strong> · línea {proposal.n}: {proposal.text}{proposal.reason === '' ? '' : ` (${proposal.reason})`}</li>
+                    <li>
+                      <span><strong>{proposal.section}</strong> · línea {proposal.n}: {proposal.text}{proposal.reason === '' ? '' : ` (${proposal.reason})`}</span>
+                      <button class="cv-button" type="button" onclick={() => askApply(proposal)}>Mover al borrador</button>
+                    </li>
                   {/each}
+                </ul>
+              {/if}
+              {#if applied.length > 0}
+                <ul class="cv-refine-applied" aria-label="Propuestas aplicadas">
+                  {#each applied as line, index (index)}<li>{line}</li>{/each}
                 </ul>
               {/if}
               {#if refined.rejected > 0}<p class="cv-muted">{plural(refined.rejected, 'propuesta rechazada', 'propuestas rechazadas')} por el código (sección desconocida, línea inexistente o repetida).</p>{/if}
@@ -220,6 +300,34 @@
       <pre class="cv-text" aria-label="Informe del borrador">{result.readme}</pre>
     </div>
   {/if}
+
+  <Dialog open={pending !== undefined} title="Mover la línea al borrador" onclose={() => (pending = undefined)}>
+    {#if pending !== undefined}
+      <p>
+        La línea <strong>{pending.n}</strong> pasará a <strong>{pending.section}</strong> del borrador
+        <span class="cv-mono">import/{result?.name}</span>, y quedará registrada en su informe.
+      </p>
+      <p class="cv-quote">{pending.text}</p>
+      {#each EXTRA_FIELDS[pending.section] ?? [] as field (field)}
+        <label class="cv-field">
+          <span>{FIELD_LABEL[field]}</span>
+          {#if field === 'contact'}
+            <select bind:value={fields[field]}>
+              <option value="">Elige el campo…</option>
+              {#each CONTACT_OPTIONS as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+            </select>
+          {:else}
+            <input type="text" bind:value={fields[field]} />
+          {/if}
+        </label>
+      {/each}
+      {#if applyError !== undefined}<p class="cv-warning">{applyError}</p>{/if}
+      <div class="cv-dialog-actions">
+        <button class="cv-button" type="button" onclick={() => (pending = undefined)}>Cancelar</button>
+        <button class="cv-button primary" type="button" disabled={applying} onclick={() => void confirmApply()}>{applying ? 'Moviendo…' : 'Mover'}</button>
+      </div>
+    {/if}
+  </Dialog>
 
   <Dialog open={problem?.kind === 'remote-disabled'} title="Este servidor no admite proveedores remotos" onclose={() => (problem = undefined)}>
     <p>{problem?.message}</p>
@@ -279,6 +387,31 @@
     padding-left: 1.1em;
     display: grid;
     gap: 2px;
+  }
+  /* La propuesta a la izquierda y su botón a la derecha: la decisión se lee junto a lo que decide (T-9.5). */
+  .cv-refine-proposals li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--cv-space-2);
+  }
+  .cv-refine-applied {
+    margin: var(--cv-space-2) 0 0;
+    padding-left: 1.1em;
+    color: var(--cv-muted);
+    font-size: var(--cv-size-sm);
+  }
+  /* El texto tal cual de la línea que se va a mover: se lee como una cita, no como prosa del diálogo. */
+  .cv-quote {
+    margin: var(--cv-space-2) 0;
+    padding-left: var(--cv-space-2);
+    border-left: 2px solid var(--cv-border);
+    color: var(--cv-muted);
+  }
+  .cv-warning {
+    margin: var(--cv-space-2) 0 0;
+    color: var(--cv-warn);
+    font-size: var(--cv-size-sm);
   }
   .cv-refine-log {
     color: var(--cv-muted);

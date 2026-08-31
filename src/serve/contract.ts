@@ -128,6 +128,44 @@ export interface ImportMapJobResult {
   readonly report: string;
 }
 
+/**
+ * `POST /import/apply` (T-9.5): mueve UNA línea sin situar del borrador a la sección propuesta. Síncrona y sin
+ * modelo: el co-piloto ya propuso, aquí decide y aplica la persona (C2). `fields` trae lo que el esquema exige y
+ * la línea no puede dar (empresa, puesto, nivel de idioma…): nada se rellena por defecto.
+ */
+export const ImportApplySchema = z.object({
+  /** Carpeta del borrador dentro de `import/`. */
+  name: z.string().trim().min(1).max(120),
+  /** Número de línea tal como aparece en «Sin situar» del informe. */
+  line: z.int().min(0),
+  section: z.string().trim().min(1).max(40),
+  fields: z
+    .strictObject({
+      company: z.string().max(160).optional(),
+      role: z.string().max(160).optional(),
+      institution: z.string().max(160).optional(),
+      degree: z.string().max(160).optional(),
+      start: z.string().max(20).optional(),
+      end: z.string().max(20).optional(),
+      level: z.string().max(20).optional(),
+      contact: z.string().max(20).optional(),
+      label: z.string().max(60).optional(),
+    })
+    .optional(),
+});
+export type ImportApplyRequestBody = z.infer<typeof ImportApplySchema>;
+
+/** El resultado de aplicar: qué se movió, a qué ficheros y el informe ya actualizado. */
+export interface ImportApplyResponse {
+  readonly name: string;
+  readonly section: string;
+  readonly line: number;
+  readonly text: string;
+  /** Ficheros del borrador que cambiaron; vacío al descartar. */
+  readonly written: readonly string[];
+  readonly report: string;
+}
+
 export const SuggestTagsJobSchema = z.object({
   ...ProviderSchema,
   /** Texto suelto; sin él se etiquetan logros del perfil. */

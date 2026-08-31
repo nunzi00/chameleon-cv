@@ -48,7 +48,7 @@ export function mapLanguageLevel(level: string | undefined): string | undefined 
 }
 
 /** Identificador estable y único: `exp-<slug>`, `exp-<slug>-2`… (el slug puede quedar vacío con títulos no latinos). */
-function identifier(prefix: string, text: string, used: Set<string>): string {
+export function identifier(prefix: string, text: string, used: Set<string>): string {
   const base = `${prefix}-${slugify(text).slice(0, 48)}`.replace(/-+$/, '');
   let candidate = base === prefix ? `${prefix}-1` : base;
   for (let n = 2; used.has(candidate); n += 1) {
@@ -290,6 +290,90 @@ export function draftReport(result: DraftFiles, origin: string, importedAt: stri
 }
 
 
+
+/** Lo que el informe registra al aplicar una propuesta (T-9.5, docs/cv-import.md §7.2). */
+export interface AppliedRecord {
+  readonly n: number;
+  readonly section: string;
+  readonly text: string;
+  /** Fichero del borrador donde acabó la línea; vacío cuando se descartó (no se escribe en ninguno). */
+  readonly file: string;
+}
+
+const APPLIED_HEADING = '## Aplicado';
+const PROPOSAL_LINE = /^- línea (\d+) → /;
+
+function appliedLine(record: AppliedRecord): string {
+  const target = record.file === '' ? 'descartada (no se escribió en ningún fichero)' : record.file;
+  return `- línea ${record.n} → **${record.section}**: ${record.text.slice(0, 120)} → ${target}`;
+}
+
+/** Las líneas de una sección del informe (sin su título), y dónde empieza y acaba dentro de `lines`. */
+function section(lines: readonly string[], heading: string): { readonly start: number; readonly end: number } | undefined {
+  const start = lines.indexOf(heading);
+  if (start === -1) {
+    return undefined;
+  }
+  const after = lines.slice(start + 1).findIndex((line) => line.startsWith('## '));
+  return { start, end: after === -1 ? lines.length : start + 1 + after };
+}
+
+/** Borra de una sección la línea numerada `n`; devuelve si borró algo (para no dejar títulos huérfanos). */
+function dropLine(lines: string[], heading: string, n: number, pattern: RegExp): boolean {
+  const found = section(lines, heading);
+  if (found === undefined) {
+    return false;
+  }
+  for (let i = found.end - 1; i > found.start; i -= 1) {
+    const match = pattern.exec(lines[i]!);
+    if (match !== null && Number(match[1]) === n) {
+      lines.splice(i, 1);
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Una sección sin más contenido que su título (y líneas en blanco) sobra: se retira entera. */
+function dropEmptySection(lines: string[], heading: string): void {
+  const found = section(lines, heading);
+  if (found !== undefined && lines.slice(found.start + 1, found.end).every((line) => line.trim() === '' || !line.startsWith('- '))) {
+    lines.splice(found.start, found.end - found.start);
+  }
+}
+
+/**
+ * El informe tras aplicar una propuesta: la línea sale de «Sin situar» y de las propuestas del co-piloto —ya no
+ * está pendiente de nada— y entra en «Aplicado» con su destino. Es el registro que pide T-9.5 y lo único que
+ * permite revertirlo a mano, así que se escribe siempre, también al descartar.
+ */
+export function withApplied(report: string, record: AppliedRecord): string {
+  const lines = report.split('\n');
+  dropLine(lines, UNPLACED_HEADING, record.n, UNPLACED_LINE);
+  dropLine(lines, PROPOSALS_HEADING, record.n, PROPOSAL_LINE);
+  dropEmptySection(lines, UNPLACED_HEADING);
+  dropEmptySection(lines, PROPOSALS_HEADING);
+  const existing = section(lines, APPLIED_HEADING);
+  if (existing !== undefined) {
+    let last = existing.start;
+    for (let i = existing.start + 1; i < existing.end; i += 1) {
+      if (lines[i]!.startsWith('- ')) {
+        last = i;
+      }
+    }
+    lines.splice(last + 1, 0, appliedLine(record));
+    return lines.join('\n');
+  }
+  const block = [APPLIED_HEADING, '', appliedLine(record), ''];
+  // Se lee antes que lo que queda pendiente: primero lo resuelto, después lo que aún hay que mirar.
+  const before = lines.indexOf(PROPOSALS_HEADING) === -1 ? lines.indexOf(UNPLACED_HEADING) : lines.indexOf(PROPOSALS_HEADING);
+  if (before === -1) {
+    const trimmed = lines.at(-1) === '' ? lines.slice(0, -1) : lines;
+    return `${[...trimmed, '', ...block].join('\n').replace(/\n+$/, '')}\n`;
+  }
+  lines.splice(before, 0, ...block);
+  return lines.join('\n');
+}
 
 /** Las líneas sin situar de un informe ya escrito: el formato lo genera `draftReport` (T-8.18, docs/cv-import.md §2.2). */
 export function unplacedFromReport(report: string): ReadonlyArray<{ readonly line: number; readonly text: string }> {

@@ -62,6 +62,25 @@ con un selector de proveedor. El refinado es un trabajo del co-piloto como los d
 proveedor remoto pide antes confirmar el coste y las propuestas verificadas se añaden al `README.md` del borrador —que
 la página recarga— sin aplicarse. Funciona con cualquier borrador de `import/`, no solo con el que acabas de subir.
 
+### Mover una propuesta al borrador
+
+Cada propuesta trae un botón **«Mover al borrador»**. El co-piloto sigue sin escribir nada: mueve el botón, y solo la
+línea que le señalas. Antes de tocar el borrador se abre una confirmación con la línea a la vista y, cuando la sección
+lo exige, los campos que el esquema pide y la línea no puede dar:
+
+| Sección propuesta | Lo que se te pide |
+| --- | --- |
+| habilidad, logro, resumen, proyecto, certificación, descartar | nada: la línea basta |
+| idioma | el nivel MCER, ya relleno si la línea lo declara («Inglés — C1») |
+| contacto | a qué campo va: correo, teléfono, ubicación o enlace |
+| experiencia | empresa, puesto y fecha de inicio (el fin, en blanco, significa «en curso») |
+| formación | institución y titulación; las fechas son opcionales |
+
+Al confirmar, la línea se escribe en el fichero que le corresponde (`skills.csv`, `experience/<entrada>.md`…), sale de
+«Sin situar» y queda registrada en el `README.md` bajo **«Aplicado»** con su destino. Ese registro es lo que te permite
+deshacerlo a mano. Si algo no cumpliera el esquema no se escribe nada y el diálogo te dice qué falta: el borrador que
+sale de aplicar una propuesta sigue validando con `cv build --data`.
+
 ## Después de importar
 
 1. Lee el `README.md` y corrige lo señalado.

@@ -2,6 +2,12 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **Botón «Mover al borrador» en cada propuesta del co-piloto** (T-9.5): hasta ahora el co-piloto proponía a qué sección iba cada línea sin situar y moverla era copiar y pegar. Ahora cada propuesta trae su botón; antes de tocar nada se abre una confirmación con la línea a la vista y, cuando la sección lo exige, los campos que el esquema pide y la línea no puede dar —el nivel MCER de un idioma (ya relleno si la línea lo declara), a qué campo va un dato de contacto, empresa/puesto/fecha de una experiencia, institución y titulación de una formación—. Habilidad, logro, resumen, proyecto, certificación y descartar se aplican con un clic. El modelo sigue sin escribir nada: mueve el botón, y solo la línea que se le señala (C2). La línea se escribe en el fichero que le toca, sale de «Sin situar» y queda registrada en el `README.md` bajo «Aplicado» con su destino; si algo no cumpliera el esquema no se escribe nada y se dice qué falta, así que el borrador que sale de aplicar una propuesta sigue validando con `cv build --data`. Nueva ruta `POST /api/v1/import/apply`, síncrona y sin modelo.
+
 ## [1.12.0] - 2026-08-31
 
 ### Añadido

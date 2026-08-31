@@ -33,7 +33,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), cancelJob: vi.fn(), outputs: vi.fn(), output: vi.fn(),
     offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(),
-    importCv: vi.fn(async () => RESULT),
+    applyImportProposal: vi.fn(), importCv: vi.fn(async () => RESULT),
     startJob: vi.fn(async () => ({ job: JOB, sending: { destination: 'ollama (local)', items: 1, words: 2, redactCompanies: false }, warnings: [] })),
     jobEvents: vi.fn(() => events([{ event: 'line', data: { line: 'Enviando 1 línea(s) sin situar a ollama (qwen3:8b)' }, raw: '' }, { event: 'status', data: DONE, raw: '' }])),
     ...overrides,
@@ -100,6 +100,59 @@ describe('Importar', () => {
     expect(screen.getByText(/2 líneas sin situar fuera del lote/)).toBeTruthy();
     // El informe de la página queda como lo dejó el trabajo.
     expect(screen.getByLabelText('Informe del borrador').textContent).toContain('## Propuestas del co-piloto (no aplicadas)');
+  });
+
+  it('mueve una propuesta al borrador tras confirmar, pidiendo lo que el esquema exige (T-9.5)', async () => {
+    const applyImportProposal = vi.fn(async () => ({
+      name: 'ada-ejemplo',
+      section: 'experiencia',
+      line: 9,
+      text: 'algo suelto',
+      written: ['experience/acme-dev.md'],
+      report: '# Informe\n\n## Aplicado\n\n- línea 9 → **experiencia**: algo suelto → experience/acme-dev.md',
+    }));
+    const api = fakeApi({ applyImportProposal });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await pickFile();
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar como borrador' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refinar con el co-piloto' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Refinar con el co-piloto' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Mover al borrador' })).toBeTruthy());
+    // Nada se aplica al pulsar: primero el diálogo con la línea a la vista y los campos que el esquema exige.
+    await fireEvent.click(screen.getByRole('button', { name: 'Mover al borrador' }));
+    await waitFor(() => expect(screen.getByLabelText('Empresa')).toBeTruthy());
+    expect(applyImportProposal).not.toHaveBeenCalled();
+    await fireEvent.input(screen.getByLabelText('Empresa'), { target: { value: 'Acme' } });
+    await fireEvent.input(screen.getByLabelText('Puesto'), { target: { value: 'Dev' } });
+    await fireEvent.input(screen.getByLabelText(/^Desde/), { target: { value: '2020' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Mover' }));
+    await waitFor(() => expect(screen.getByLabelText('Propuestas aplicadas')).toBeTruthy());
+    expect(applyImportProposal).toHaveBeenCalledWith({ name: 'ada-ejemplo', line: 9, section: 'experiencia', fields: { company: 'Acme', role: 'Dev', start: '2020' } });
+    // La propuesta desaparece de la lista y el informe de la página es el que devolvió el servidor.
+    expect(screen.queryByRole('button', { name: 'Mover al borrador' })).toBeNull();
+    expect(screen.getByText(/línea 9 → experience\/acme-dev\.md/)).toBeTruthy();
+    expect(screen.getByLabelText('Informe del borrador').textContent).toContain('## Aplicado');
+  });
+
+  it('si al mover falta un dato, el servidor lo dice y el diálogo sigue abierto (T-9.5)', async () => {
+    const applyImportProposal = vi.fn(async () => {
+      throw new ApiError(422, { code: 'invalid-data', message: 'una experiencia exige empresa, puesto y fecha de inicio' });
+    });
+    const api = fakeApi({ applyImportProposal });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await pickFile();
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar como borrador' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refinar con el co-piloto' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Refinar con el co-piloto' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Mover al borrador' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Mover al borrador' }));
+    await waitFor(() => expect(screen.getByLabelText('Empresa')).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Mover' }));
+    await waitFor(() => expect(screen.getByText(/exige empresa, puesto y fecha de inicio/)).toBeTruthy());
+    expect(screen.getByLabelText('Empresa')).toBeTruthy();
+    // Cancelar cierra sin haber tocado el borrador.
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByLabelText('Empresa')).toBeNull());
   });
 
   it('un servidor sin remotos lo explica y un remoto pide confirmar el coste antes de enviar (T-8.18)', async () => {

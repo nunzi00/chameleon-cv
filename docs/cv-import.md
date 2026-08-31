@@ -72,3 +72,49 @@ métrica del spike como prueba con umbrales; el asistente del co-piloto con el d
 - **`--copilot` ENTREGADO (31-ago)**: nueva tarea `import map` (`src/llm/tasks/import-map.ts`, prompt `import-map.v1`) que envía SOLO las líneas sin situar (hasta 40, seudonimizadas con la redacción de improve/summarize) y recibe una sección de un **vocabulario cerrado** de diez valores; el código verifica cada propuesta (línea enviada, sección del vocabulario, una por línea) y rechaza el resto con aviso en el informe. Las propuestas se listan en el `README.md` bajo «Propuestas del co-piloto (no aplicadas)»: **nada se escribe en el borrador**. Con proveedor remoto, consentimiento de coste antes de enviar (`--yes` en scripts). Verificado en vivo con `qwen3:8b` sobre `janedoe-csuci`: «descartar» para la cabecera y «experiencia» para las dos entradas de CAMPUS INVOLVEMENT.
 - **Desviación respecto a §2.2**: las propuestas NO viajan como fichero de revisión de `cv improve apply`. Ese formato aplica mejoras de texto a entidades que ya existen (con su id), y aquí las líneas sin situar todavía no pertenecen a ninguna entidad: no hay nada a lo que `apply` pueda aplicarlas. Se entregan en el informe del borrador, que es donde vive el resto de la revisión manual.
 - **Botón «Refinar con el co-piloto» ENTREGADO (T-8.18, 31-ago)**: `POST /api/v1/jobs/import-map`, un trabajo del sistema de trabajos como improve/summarize/suggest-tags (progreso por SSE, cancelable, 403 sin permiso de remotos y 409 de consentimiento). Decisiones aprobadas por el PO: **D1** trabajo aparte en vez de una cabecera en `POST /import-cv` —esa ruta es síncrona y de cuerpo binario, sin sitio para el consentimiento en dos pasos y con riesgo de agotar la espera con modelos lentos—; **D2** el trabajo relee el `README.md` del borrador y extrae su sección «Sin situar», así se puede refinar cualquier borrador y el navegador no reenvía el CV; **D3** las propuestas se escriben en ese mismo informe (se sustituyen si se repite el refinado), igual que la CLI. En la pantalla: selector de proveedor, progreso, diálogo de consentimiento y las propuestas en la propia página.
+
+## §7 Aplicar una propuesta al borrador (T-9.5)
+
+Encargo del PO del 31-ago-2026: «el co-piloto propone, pero mover las líneas es manual». Hoy T-8.18 deja las
+propuestas en el informe y aplicarlas es copiar y pegar. **D3 del Hito 9, aprobada por el PO**: un botón por
+propuesta **mueve** esa línea a la sección propuesta, con confirmación explícita y registro en el informe. El
+modelo sigue sin aplicar nada (C2): propone el modelo, aplica el botón, y solo lo que se le pide.
+
+### §7.1 Qué exige cada sección del vocabulario
+
+El vocabulario cerrado de `import map` tiene diez valores y el esquema maestro decide cuáles se pueden aplicar
+con la línea sola. La línea nunca se completa por el código: lo que falta, lo pone la persona.
+
+| Sección | De la línea sale | Falta | Destino |
+| --- | --- | --- | --- |
+| `habilidad` | `name` | — | `skills.csv` |
+| `logro` | `text` | — | `achievements.md` |
+| `resumen` | se añade a `personal.summary` | — | `profile.md` |
+| `proyecto` | `name` | — | `projects/<slug>.md` |
+| `certificacion` | `name` | — | `certifications.csv` |
+| `descartar` | — | — | ningún fichero: sale de «Sin situar» |
+| `idioma` | `name` | `level` (MCER) | `profile.md` |
+| `contacto` | el valor | qué campo es (correo, teléfono, ubicación, enlace) | `profile.md` |
+| `experiencia` | — | `company`, `role`, `dates.start` | `experience/<slug>.md` |
+| `formacion` | — | `institution`, `degree` | `education/<slug>.md` |
+
+Las seis primeras se aplican con un clic. Las cuatro últimas abren un formulario mínimo con la línea a la vista y
+los campos que el esquema exige; sin completarlos no se aplica nada. `idioma` llega precargado cuando la línea
+declara un nivel reconocible (`mapLanguageLevel`), que es lo que ya hace el importador determinista.
+
+### §7.2 Cómo se aplica
+
+Un solo camino, en el núcleo, compartido por la CLI y la API (C14): leer el borrador con `loadSources` —el mismo
+cargador que valida `cv build --data`—, añadir la entidad al perfil, replanificar los ficheros con `planFiles` y
+escribir **solo los que cambian**. Así el borrador que sale de aplicar una propuesta es, por construcción, un
+borrador que valida: si la entidad nueva no cumpliera el esquema, la operación falla entera y no se escribe nada.
+
+El informe se actualiza en la misma operación: la línea desaparece de «Sin situar» y de «Propuestas del
+co-piloto», y aparece bajo **«## Aplicado»** con qué se movió, a qué sección y a qué fichero. Es el registro que
+pide el encargo y lo que permite deshacerlo a mano.
+
+### §7.3 Fuera de alcance
+
+Deshacer desde la interfaz (el registro del informe y el historial de fuentes bastan para revertirlo a mano);
+aplicar varias propuestas de una vez (una decisión por línea es justo lo que C2 pide); y editar la línea antes de
+moverla, que es lo que hace el editor de fuentes una vez aplicada.
