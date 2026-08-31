@@ -21,6 +21,7 @@ export * from './settings';
 export * from './status';
 export * from './suggest-tags-run';
 export * from './summarize-run';
+export * from './tasks/import-map';
 export * from './tasks/improve';
 export * from './tasks/suggest-tags';
 export * from './tasks/summarize';

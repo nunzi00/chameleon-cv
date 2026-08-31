@@ -157,6 +157,9 @@ export function draftFiles(draft: DraftProfile): DraftFiles {
       if (section === 'experience' && entry.subtitle === undefined) {
         issues.push({ reason: `experiencia sin empresa reconocida: «${entry.title}» lleva «Empresa pendiente»`, provenance: entry.provenance });
       }
+      if (section === 'education' && entry.singleDate === true) {
+        issues.push({ reason: `formación con una sola fecha: «${entry.title}» la toma como inicio; ajústala si era la de graduación`, provenance: entry.provenance });
+      }
       if (section === 'education' && entry.subtitle === undefined) {
         issues.push({ reason: `formación sin centro reconocido: «${entry.title}» lleva «Centro pendiente»`, provenance: entry.provenance });
       }
@@ -238,7 +241,14 @@ export function draftFiles(draft: DraftProfile): DraftFiles {
 }
 
 /** El informe del borrador: qué se reconoció, qué se degradó y qué quedó sin situar (con líneas del texto). */
-export function draftReport(result: DraftFiles, origin: string, importedAt: string): string {
+export interface ReportProposal {
+  readonly n: number;
+  readonly section: string;
+  readonly reason: string;
+  readonly text: string;
+}
+
+export function draftReport(result: DraftFiles, origin: string, importedAt: string, proposals: readonly ReportProposal[] = []): string {
   const { profile } = result;
   const lines = [
     `# Informe del borrador importado`,
@@ -253,6 +263,12 @@ export function draftReport(result: DraftFiles, origin: string, importedAt: stri
     lines.push('', '## Degradado o avisado', '');
     for (const issue of result.issues) {
       lines.push(`- ${issue.reason}${issue.provenance === undefined ? '' : ` (línea ${issue.provenance.line}: «${issue.provenance.text.slice(0, 80)}»)`}`);
+    }
+  }
+  if (proposals.length > 0) {
+    lines.push('', '## Propuestas del co-piloto (no aplicadas)', '', 'El co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.', '');
+    for (const proposal of proposals) {
+      lines.push(`- línea ${proposal.n} → **${proposal.section}**: ${proposal.text.slice(0, 120)}${proposal.reason === '' ? '' : ` _(${proposal.reason})_`}`);
     }
   }
   if (result.unparsed.length > 0) {

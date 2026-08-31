@@ -50,6 +50,7 @@ export default defineConfig({
             { text: 'Chameleon CV en Docker', link: '/guide/docker' },
             { text: 'Conceptos', link: '/guide/concepts' },
             { text: 'Formato de las fuentes', link: '/guide/sources' },
+            { text: 'Importar un CV que ya tienes', link: '/guide/import' },
             { text: 'Generar el CV', link: '/guide/generate' },
             { text: 'Adaptar el CV a una oferta', link: '/guide/offers' },
             { text: 'Typst y temas', link: '/guide/typst-themes' },

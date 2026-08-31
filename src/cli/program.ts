@@ -128,6 +128,10 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .argument('<fichero>', 'el CV a importar (.pdf o .docx)')
     .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
     .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .option('--copilot', 'pide al co-piloto que PROPONGA sección para las líneas sin situar (van al README, no se aplican)', false)
+    .option('--provider <id>', 'proveedor del co-piloto para --copilot (por defecto, el configurado)')
+    .option('--model <modelo>', 'modelo del co-piloto para --copilot')
+    .option('--yes', 'con --copilot y un proveedor remoto, confirma el envío por adelantado', false)
     .action(async (file: string, options: ImportCvOptions) => {
       onExit(await runImportCv(context, file, options));
     });

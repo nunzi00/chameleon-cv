@@ -6,10 +6,12 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ### Añadido
 
+- Importación de CV, fase 2 (T-8.4b F2): `cv import-cv --copilot` pide al modelo que **proponga** a qué sección pertenecen las líneas que quedaron sin situar —seudonimizadas, con un **vocabulario cerrado** de diez secciones y verificación por código de cada propuesta (se rechazan secciones inventadas, líneas que no se enviaron y repetidas)—; las propuestas se listan en el `README.md` del borrador y **nunca se aplican solas**. Con un proveedor remoto se pide antes el consentimiento de coste (`--yes` para scripts). Nuevos **avisos de calidad de la extracción** en el informe: escaneo con OCR de baja calidad (citando fragmentos), plantilla sin rellenar, texto demasiado corto (imagen sin capa de texto) y «ninguna entrada reconocida». Guía nueva del portal: «Importar un CV que ya tienes».
 - Proveedor remoto **Gemini** registrado como `pending-verification` (T-8.15, aprobado D1–D5): API compatible de Google con **rutas propias sin `/v1`** (campo `paths` por proveedor, aditivo), modelos `gemini-2.5-flash` y `gemini-2.5-pro` sin tareas recomendadas hasta evaluarlos en español, clave `CHAMELEON_GEMINI_API_KEY`, y **aviso permanente de datos** en `cv llm status`, en Ajustes y dentro del consentimiento de coste de cada trabajo (el plan gratuito de Gemini usa las peticiones para mejorar productos de Google). No se puede seleccionar hasta la verificación al alta (§9/§11 de copilot-providers).
 
 ### Cambiado
 
+- Importación de CV, precisión (T-8.4b F2, medida con cuatro CV rellenos de terceros): los títulos de sección admiten **matices** («Relevant Experience», «Otra formación») y su variante con letras espaciadas; una **cabecera espaciada desconocida** («C A M P U S  I N V O L V M E N T») cierra la sección en curso en lugar de colar su contenido en la anterior; la formación abre con una **fecha de graduación suelta** cuando cierra la línea tras un separador (con aviso de que se toma como inicio); y las habilidades ya no se parten por las comas dentro de paréntesis o corchetes. En el CV de referencia, el reconocimiento pasa de 0 experiencias y 4 formaciones falsas a las 2 experiencias y 1 formación reales.
 - `cv llm status`: la línea de modelos ya no deja un «; » colgante cuando un modelo no tiene tareas recomendadas, y un plan gratuito sin cuota publicada se describe entre paréntesis como los de pago.
 
 ## [1.9.0] - 2026-08-31

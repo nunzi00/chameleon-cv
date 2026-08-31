@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { findDateRange, findSingleDate, parsePoint } from '../../src/import/dates';
-import { detectHeading, headingKey, skillCategory } from '../../src/import/headings';
+import { detectHeading, headingKey, isSpacedHeading, skillCategory } from '../../src/import/headings';
 import { alphanumeric, contains, normalize, similarity } from '../../src/import/text';
 
 describe('texto', () => {
@@ -78,6 +78,17 @@ describe('títulos de sección', () => {
     expect(detectHeading('')).toBeUndefined();
     expect(detectHeading('x'.repeat(41))).toBeUndefined();
     expect(detectHeading('W ork Experience')).toBe('experience');
+    expect(detectHeading('Relevant Experience')).toBe('experience');
+    expect(detectHeading('R E L E V A N T E X P E R I E N C E')).toBe('experience');
+    expect(detectHeading('Otra formación')).toBe('education');
+    expect(detectHeading('Additional Certifications')).toBe('certifications');
+    expect(detectHeading('S K I L L S S U M M A R Y')).toBe('summary');
+    expect(detectHeading('Improved Experience')).toBeUndefined();
+    expect(detectHeading('relevante para el puesto')).toBeUndefined();
+    expect(isSpacedHeading('C A M P U S I N V O L V M E N T')).toBe(true);
+    expect(isSpacedHeading('Experiencia profesional')).toBe(false);
+    expect(isSpacedHeading('A B')).toBe(false);
+    expect(isSpacedHeading(Array.from({ length: 40 }, () => 'x').join(' '))).toBe(false);
   });
 
   it('traduce las etiquetas de categorías de habilidades al esquema', () => {

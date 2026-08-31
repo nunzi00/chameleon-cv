@@ -286,3 +286,38 @@ describe('structureCv · reapertura sin subtítulo y título vacío', () => {
     expect(draft.education.map((entry) => [entry.title, entry.start])).toEqual([['', '2009']]);
   });
 });
+
+describe('structureCv · fecha de graduación suelta (T-8.4b F2)', () => {
+  it('abre la formación cuando la fecha cierra la línea tras un separador, y no con cualquier año suelto', () => {
+    const draft = structureCv(
+      [
+        'Jane Doe',
+        'Education',
+        'Bachelor of Arts in English with an Emphasis in Creative Writing | May 2014',
+        'CSU Channel Islands, Camarillo, CA',
+        'Scholarship 2002',
+        'Beca de estudios en 2019 concedida por la fundación',
+        'promoción de honor, 2001',
+        'MBA | 2016',
+        'Ingeniería, 2015',
+      ].join('\n'),
+    );
+    expect(draft.education.map((entry) => [entry.title, entry.start, entry.singleDate])).toEqual([['Bachelor of Arts in English with an Emphasis in Creative Writing', '2014-05', true]]);
+  });
+});
+
+describe('structureCv · cabecera espaciada desconocida (T-8.4b F2)', () => {
+  it('cierra la sección en curso y manda su contenido al informe en vez de colarlo en la anterior', () => {
+    const draft = structureCv(['Jane Doe', 'Experiencia', 'Recepcionista · Salón mar 2016 – jul 2018', 'C A M P U S  I N V O L V M E N T', 'Finance Chair, Green Club sept 2018 – actualidad', 'Formación', 'Grado en Filología · UV 2009 – 2013'].join('\n'));
+    expect(draft.experience.map((entry) => entry.title)).toEqual(['Recepcionista']);
+    expect(draft.education.map((entry) => entry.title)).toEqual(['Grado en Filología']);
+    expect(draft.unparsed.map((item) => item.text)).toEqual(['C A M P U S I N V O L V M E N T', 'Finance Chair, Green Club sept 2018 – actualidad']);
+  });
+});
+
+describe('structureCv · habilidades con paréntesis (T-8.4b F2)', () => {
+  it('no parte un nombre por las comas de dentro de un paréntesis o un corchete', () => {
+    const draft = structureCv(['Jane Doe', 'Habilidades', 'Lenguajes: PHP (Symfony, Laravel), Python [pandas, numpy], Go)'].join('\n'));
+    expect(draft.skills.map((group) => [group.category, group.names])).toEqual([['language', ['PHP (Symfony, Laravel)', 'Python [pandas, numpy]', 'Go)']]]);
+  });
+});

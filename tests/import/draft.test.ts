@@ -133,4 +133,23 @@ describe('draftReport', () => {
     expect(report).toContain('línea 9: algo suelto');
     expect(report).toContain('## Degradado o avisado');
   });
+
+  it('lista las propuestas del co-piloto sin aplicarlas, con y sin justificación (T-8.4b F2)', () => {
+    const result = draftFiles({ ...EMPTY, unparsed: [{ line: 9, text: 'algo suelto' }] });
+    const report = draftReport(result, 'cv.pdf', '2026-08-30T21:00:00.000Z', [
+      { n: 9, section: 'experiencia', reason: 'entidad con fechas', text: 'algo suelto' },
+      { n: 10, section: 'descartar', reason: '', text: 'C A B E C E R A' },
+    ]);
+    expect(report).toContain('## Propuestas del co-piloto (no aplicadas)');
+    expect(report).toContain('- línea 9 → **experiencia**: algo suelto _(entidad con fechas)_');
+    expect(report).toContain('- línea 10 → **descartar**: C A B E C E R A\n');
+  });
+
+  it('avisa de la formación abierta con una sola fecha (T-8.4b F2)', () => {
+    const result = draftFiles({
+      ...EMPTY,
+      education: [{ title: 'Grado en Filología', subtitle: 'Universitat de València', start: '2014-05', singleDate: true, technologies: [], achievements: [], provenance: { line: 14, text: 'Grado en Filología | may 2014' } }],
+    });
+    expect(result.issues.map((issue) => issue.reason)).toContain('formación con una sola fecha: «Grado en Filología» la toma como inicio; ajústala si era la de graduación');
+  });
 });

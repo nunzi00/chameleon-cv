@@ -7,7 +7,9 @@
 import { basename, dirname, resolve } from 'node:path';
 
 import { DEFAULT_PDF_LIMITS } from '../pdf';
-import { createItemsRunner, draftFiles, draftReport, extractDocxText, extractItems, itemsWorkerSource, layoutText, structureCv, type DraftFiles } from '../import';
+import { createItemsRunner, draftFiles, draftReport, extractDocxText, extractItems, itemsWorkerSource, layoutText, qualityWarnings, structureCv, type DraftFiles } from '../import';
+import { importMapFragment, runImportMap, type ImportMapLine, type ImportMapProposal } from '../llm/tasks/import-map';
+import type { LlmProvider } from '../llm/provider';
 import type { MasterProfile } from '../core/schema';
 import type { AppContext } from './context';
 import { conflictError, dataError, environmentError, type AppError } from './errors';
@@ -20,11 +22,22 @@ function startsWith(bytes: Uint8Array, magic: readonly number[]): boolean {
   return magic.every((byte, index) => bytes[index] === byte);
 }
 
+/** El co-piloto propone secciones para las líneas sin situar; nunca escribe en el borrador (C2, docs/cv-import.md §2.2). */
+export interface ImportCopilotOptions {
+  readonly provider: LlmProvider;
+  readonly prompt: string;
+  readonly locale?: string | undefined;
+  readonly timeoutMs?: number | undefined;
+  readonly signal?: AbortSignal | undefined;
+}
+
 export interface ImportCvOptions {
   /** Carpeta destino dentro de `import/`; sin él, el nombre del perfil o del fichero de origen. */
   readonly name?: string | undefined;
   /** Sustituir un borrador existente con el mismo nombre. */
   readonly replace?: boolean | undefined;
+  /** Con él, las líneas sin situar se envían al co-piloto para que PROPONGA sección (nada se aplica). */
+  readonly copilot?: ImportCopilotOptions | undefined;
 }
 
 export interface ImportedDraft {
@@ -36,6 +49,8 @@ export interface ImportedDraft {
   readonly issues: DraftFiles['issues'];
   readonly unparsed: DraftFiles['unparsed'];
   readonly readme: string;
+  /** Propuestas del co-piloto verificadas por código; vacío sin `copilot`. */
+  readonly proposals: readonly ImportMapProposal[];
 }
 
 export type ImportCvResult = { readonly ok: true; readonly draft: ImportedDraft } | { readonly ok: false; readonly error: AppError };
@@ -63,7 +78,26 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
 
   const draft = structureCv(text);
   const importedAt = (context.now?.() ?? new Date()).toISOString();
-  const result = draftFiles(draft);
+  const plain = draftFiles(draft);
+  // Los avisos de calidad del texto encabezan los del borrador: explican por qué falta lo que falta.
+  const entries = plain.profile.experience.length + plain.profile.projects.length + plain.profile.education.length + plain.profile.certifications.length;
+  const warnings = [...qualityWarnings({ text, entries }).map((reason) => ({ reason }))];
+  const proposals: ImportMapProposal[] = [];
+  const unplaced: ImportMapLine[] = plain.unparsed.map((item) => ({ n: item.line, text: item.text })).filter((line) => line.text.trim() !== '');
+  if (options.copilot !== undefined && unplaced.length > 0) {
+    // Con líneas no vacías el fragmento siempre existe (solo devuelve `undefined` cuando no queda texto que enviar).
+    const fragment = importMapFragment(unplaced, { fullName: plain.profile.personal.fullName, locale: options.copilot.locale ?? plain.profile.meta.locale })!;
+    const mapped = await runImportMap(options.copilot.provider, fragment, unplaced, options.copilot.prompt, options.copilot.timeoutMs, options.copilot.signal);
+    if (mapped.ok) {
+      proposals.push(...mapped.proposals);
+      if (mapped.rejected > 0) {
+        warnings.push({ reason: `el co-piloto propuso ${mapped.rejected} línea(s) que el código rechazó (sección desconocida, línea inexistente o repetida)` });
+      }
+    } else {
+      warnings.push({ reason: `el co-piloto no pudo proponer secciones (${mapped.code}): ${mapped.message}` });
+    }
+  }
+  const result: DraftFiles = { ...plain, issues: [...warnings, ...plain.issues] };
 
   // slugify reduce a [a-z0-9-]: el nombre no puede contener separadores ni «..», así que siempre queda dentro de import/.
   const name = slugify(options.name ?? result.profile.personal.fullName) || slugify(basename(origin).replace(/\.[a-z0-9]+$/i, '')) || 'cv-importado';
@@ -80,7 +114,7 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
     return { ok: false, error: conflictError(`Ya existe import/${name}; usa --replace para sustituirlo o --name para otro destino`) };
   }
 
-  const readme = draftReport(result, basename(origin), importedAt);
+  const readme = draftReport(result, basename(origin), importedAt, proposals);
   try {
     for (const planned of [...result.files, { path: 'README.md', content: readme }]) {
       const destination = resolve(target, planned.path);
@@ -91,5 +125,5 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
     return { ok: false, error: environmentError(`No se pudo escribir el borrador en import/${name}: ${error instanceof Error ? error.message : String(error)}`) };
   }
 
-  return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme } };
+  return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme, proposals } };
 }

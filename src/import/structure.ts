@@ -11,7 +11,7 @@
  * «(emisor), fecha» en la línea siguiente; nombre y titular pegados o separados por raya.
  */
 import { findDateRange, findSingleDate } from './dates';
-import { SKILL_CATEGORY_LABELS, detectHeading, skillCategory, type SectionKind } from './headings';
+import { SKILL_CATEGORY_LABELS, detectHeading, isSpacedHeading, skillCategory, type SectionKind } from './headings';
 import { normalize, similarity } from './text';
 
 export interface Provenance {
@@ -38,6 +38,8 @@ export interface DraftEntry {
   readonly current?: boolean | undefined;
   /** Fecha única (certificaciones). */
   readonly date?: string | undefined;
+  /** La formación abrió con una sola fecha (graduación): se tomó como inicio y hay que revisarla. */
+  readonly singleDate?: boolean | undefined;
   readonly url?: string | undefined;
   readonly summary?: string | undefined;
   readonly technologies: readonly string[];
@@ -219,6 +221,7 @@ function parseDegree(text: string): { readonly degree: string; readonly field: s
 type EntryKind = 'experience' | 'projects' | 'education';
 
 interface OpenEntry {
+  singleDate?: boolean;
   title: string;
   subtitle: string | undefined;
   location: string | undefined;
@@ -246,6 +249,26 @@ function achievementsFromInline(body: string, line: Line): Array<{ text: string;
 /** Entradas con rango de fechas (experiencia, proyectos, formación). */
 /** Similitud mínima entre una línea y «título subtítulo» de una entrada cerrada para tratarla como su bloque de detalle. */
 const REPEATED_TITLE = 0.75;
+
+/** Separadores que anuncian una fecha de graduación tras el título («Grado en Filología | mayo 2014»). */
+const DATE_GLUE = ['|', '·', ',', '\u2013', '\u2014', '-', '(', '\u2010', '\u2011'];
+
+/**
+ * Si una fecha suelta abre una formación: cierra la línea, va tras un separador y
+ * el título que queda delante tiene cuerpo. Sin esto, cualquier año dentro de una guía abre una entrada falsa.
+ */
+function opensWithSingleDate(text: string, single: NonNullable<ReturnType<typeof findSingleDate>>): boolean {
+  const line = text.trim();
+  if (!line.endsWith(single.text)) {
+    return false;
+  }
+  const before = line.slice(0, single.index);
+  const title = trimSeparators(before);
+  if (title.length < 10 || title.split(/\s+/).length < 2 || !/^\p{Lu}/u.test(title)) {
+    return false;
+  }
+  return DATE_GLUE.includes(before.trimEnd().slice(-1));
+}
 
 function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provenance[]): DraftEntry[] {
   const entries: DraftEntry[] = [];
@@ -278,6 +301,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       start: current.start,
       end: current.end,
       current: current.current,
+      ...(current.singleDate === true ? { singleDate: true } : {}),
       summary: current.summary.length === 0 ? undefined : current.summary.join(' '),
       technologies: current.technologies,
       achievements: current.achievements,
@@ -309,7 +333,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
       }
     }
   };
-  const open = (line: Line, range: NonNullable<ReturnType<typeof findDateRange>>): void => {
+  const open = (line: Line, range: NonNullable<ReturnType<typeof findDateRange>>, singleDate = false): void => {
     flush();
     let before = trimSeparators(line.text.slice(0, range.index));
     let after = trimSeparators(line.text.slice(range.index + range.text.length));
@@ -355,6 +379,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
         entry.summary.push(body);
       }
     }
+    entry.singleDate = singleDate;
     current = entry;
   };
   const dateAt = lines.map((line) => findDateRange(line.text) !== undefined);
@@ -363,6 +388,12 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
     const range = findDateRange(line.text);
     if (range !== undefined) {
       open(line, range);
+      continue;
+    }
+    // «Grado en Filología | mayo 2014»: en formación la fecha de graduación viene sola; se toma como inicio y se avisa.
+    const single = kind === 'education' ? findSingleDate(line.text) : undefined;
+    if (single !== undefined && titleLike(line) && opensWithSingleDate(line.text, single)) {
+      open(line, { start: single.value, end: undefined, current: false, text: single.text, index: single.index }, true);
       continue;
     }
     if (current === undefined) {
@@ -489,8 +520,25 @@ function parseCertifications(lines: readonly Line[]): DraftEntry[] {
   return entries;
 }
 
+/** Trocea «PHP (Symfony, Laravel), Python»: los separadores dentro de paréntesis pertenecen al nombre. */
 function splitNames(text: string): string[] {
-  return text.split(/\s*[,;·]\s*/).map((name) => trimSeparators(stripBullet(name.trim()))).filter((name) => name !== '');
+  const parts: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const char of text) {
+    if (char === '(' || char === '[') {
+      depth += 1;
+    } else if ((char === ')' || char === ']') && depth > 0) {
+      depth -= 1;
+    } else if (depth === 0 && (char === ',' || char === ';' || char === '·')) {
+      parts.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  parts.push(current);
+  return parts.map((name) => trimSeparators(stripBullet(name.trim()))).filter((name) => name !== '');
 }
 
 /** «Lenguajes PHP, Python» (etiqueta sin dos puntos, como en un margen): la etiqueta conocida al principio. */
@@ -605,14 +653,27 @@ export function structureCv(text: string): DraftProfile {
   const sections: Array<{ kind: SectionKind; line: number; title: string; lines: Line[] }> = [];
   const header: Line[] = [];
   let currentSection: { kind: SectionKind; line: number; title: string; lines: Line[] } | undefined;
+  const dropped: Line[] = [];
+  // Una cabecera espaciada que no está en el diccionario («C A M P U S  I N V O L V M E N T») cierra la sección
+  // en curso: sin esto, su contenido se cuela como entradas de la sección anterior.
+  let ignoring = false;
   for (const line of lines) {
     const heading = detectHeading(line.text);
     if (heading !== undefined) {
       currentSection = { kind: heading, line: line.number, title: line.text, lines: [] };
       sections.push(currentSection);
+      ignoring = false;
       continue;
     }
-    if (currentSection === undefined) {
+    if (isSpacedHeading(line.text)) {
+      currentSection = undefined;
+      ignoring = true;
+      dropped.push(line);
+      continue;
+    }
+    if (ignoring) {
+      dropped.push(line);
+    } else if (currentSection === undefined) {
       header.push(line);
     } else {
       currentSection.lines.push(line);
@@ -620,6 +681,7 @@ export function structureCv(text: string): DraftProfile {
   }
 
   const unparsed: Provenance[] = [];
+  unparsed.push(...dropped.map((line) => provenance(line)));
   const contact: ContactDraft = { links: [], leftovers: [] };
   let fullName: string | undefined;
   let headline: string | undefined;

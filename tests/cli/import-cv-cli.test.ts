@@ -154,3 +154,126 @@ describe('cv import-cv (T-8.4b)', () => {
     expect(sinNada.stdout()).toBe('import/cv-importado\n');
   });
 });
+
+describe('cv import-cv · informe sin avisos', () => {
+  it('un CV limpio con una línea sin situar resume solo lo sin situar', async () => {
+    const clean: ItemsResult = {
+      ok: true,
+      pages: 1,
+      items: [
+        { page: 1, text: 'Ada Ejemplo — Backend', x: 40, y: 700, width: 200, fontSize: 16 },
+        { page: 1, text: 'Ingeniera de software con once años construyendo plataformas de pago en equipos pequeños, con foco en fiabilidad, observabilidad y entrega continua; ha liderado equipos de hasta ocho personas sin dejar de escribir código a diario.', x: 40, y: 680, width: 400, fontSize: 10 },
+        { page: 1, text: 'Experiencia', x: 40, y: 660, width: 100, fontSize: 13 },
+        { page: 1, text: 'Backend Senior · Acme · Valencia', x: 40, y: 630, width: 220, fontSize: 11 },
+        { page: 1, text: 'mar 2020 – actualidad', x: 40, y: 615, width: 120, fontSize: 10 },
+        { page: 1, text: '• Migré 14 servicios a Kubernetes.', x: 40, y: 600, width: 220, fontSize: 10 },
+        { page: 1, text: 'V O L U N T A R I A D O', x: 40, y: 560, width: 180, fontSize: 12 },
+        { page: 1, text: 'Cruz Roja, Valencia | 2019 – 2020', x: 40, y: 545, width: 200, fontSize: 10 },
+      ],
+    };
+    const h = harness({}, { itemsExtractor: async () => clean });
+    expect(await runCli(['import-cv', 'cv.pdf'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Revisa el README.md del borrador: 0 avisos y 2 líneas sin situar');
+
+    // Y sin nada que revisar (ni avisos ni líneas sueltas), el resumen no invita a abrir el informe.
+    const perfect: ItemsResult = { ok: true, pages: 1, items: clean.ok ? clean.items.slice(0, 6) : [] };
+    const clear = harness({}, { itemsExtractor: async () => perfect });
+    expect(await runCli(['import-cv', 'cv.pdf'], clear.context)).toBe(EXIT_OK);
+    expect(clear.stderr()).not.toContain('Revisa el README.md del borrador');
+  });
+});
+
+describe('cv import-cv --copilot (T-8.4b F2)', () => {
+  const copilotProvider = (json: unknown, floor?: number): CliContext['llmProvider'] => () =>
+    Promise.resolve({
+      ok: true as const,
+      provider: {
+        id: 'ollama',
+        kind: 'local' as const,
+        baseUrl: 'http://127.0.0.1:11434',
+        model: 'qwen3:8b',
+        ...(floor === undefined ? {} : { outputTokensFloor: floor }),
+        complete: () => Promise.resolve({ ok: true as const, json, raw: JSON.stringify(json), model: 'qwen3:8b', usage: {}, elapsedMs: 3 }),
+        health: () => Promise.resolve({ ok: true as const, version: undefined, models: ['qwen3:8b'], modelAvailable: true }),
+      },
+    });
+
+  /** Un CV con una línea que el núcleo determinista no sabe situar. */
+  const UNPLACED: ItemsResult = { ok: true, pages: 1, items: [...ITEMS.ok ? ITEMS.items : [], { page: 1, text: 'V O L U N T A R I A D O', x: 40, y: 560, width: 180, fontSize: 12 }, { page: 1, text: 'Cruz Roja, Valencia | 2019 – 2020', x: 40, y: 545, width: 200, fontSize: 10 }] };
+
+  it('propone sección para las líneas sin situar y las deja en el README sin aplicarlas', async () => {
+    const h = harness({}, { itemsExtractor: async () => UNPLACED, llmProvider: copilotProvider({ proposals: [{ n: 7, section: 'experiencia', reason: 'entidad con fechas' }] }) });
+    expect(await runCli(['import-cv', 'cv.pdf', '--copilot'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('saldrán hacia ollama');
+    expect(h.stderr()).toContain('El co-piloto propuso sección para 1 línea(s) sin situar');
+    const readme = h.fs.file('/work/import/ada-ejemplo/README.md')?.content ?? '';
+    expect(readme).toContain('## Propuestas del co-piloto (no aplicadas)');
+    expect(readme).toContain('→ **experiencia**: Cruz Roja, Valencia | 2019 – 2020');
+    expect(h.fs.file('/work/import/ada-ejemplo/experience/cruz-roja.md')).toBeUndefined();
+  });
+
+  it('avisa en el informe de las propuestas que el código rechaza y de los fallos del proveedor', async () => {
+    const rejected = harness({}, { itemsExtractor: async () => UNPLACED, llmProvider: copilotProvider({ proposals: [{ n: 7, section: 'aficiones', reason: 'inventada' }] }) });
+    expect(await runCli(['import-cv', 'cv.pdf', '--copilot'], rejected.context)).toBe(EXIT_OK);
+    expect(rejected.fs.file('/work/import/ada-ejemplo/README.md')?.content).toContain('el co-piloto propuso 1 línea(s) que el código rechazó');
+    const broken = harness(
+      {},
+      {
+        itemsExtractor: async () => UNPLACED,
+        llmProvider: () =>
+          Promise.resolve({
+            ok: true as const,
+            provider: {
+              id: 'ollama',
+              kind: 'local' as const,
+              baseUrl: 'http://127.0.0.1:11434',
+              model: 'qwen3:8b',
+              complete: () => Promise.resolve({ ok: false as const, code: 'timeout' as const, message: 'tardó demasiado' }),
+              health: () => Promise.resolve({ ok: true as const, version: undefined, models: ['qwen3:8b'], modelAvailable: true }),
+            },
+          }),
+      },
+    );
+    expect(await runCli(['import-cv', 'cv.pdf', '--copilot'], broken.context)).toBe(EXIT_OK);
+    expect(broken.fs.file('/work/import/ada-ejemplo/README.md')?.content).toContain('el co-piloto no pudo proponer secciones (timeout)');
+  });
+
+  it('con un proveedor remoto pide consentimiento de coste antes de enviar y aborta sin confirmación', async () => {
+    const remote: CliContext['llmProvider'] = () =>
+      Promise.resolve({
+        ok: true as const,
+        provider: {
+          id: 'groq',
+          kind: 'remote' as const,
+          baseUrl: 'https://api.groq.com/openai',
+          model: 'llama-3.3-70b-versatile',
+          complete: () => Promise.reject(new Error('no debe enviarse')),
+          health: () => Promise.resolve({ ok: true as const, version: undefined, models: [], modelAvailable: true }),
+        },
+      });
+    const h = harness({}, { itemsExtractor: async () => UNPLACED, llmProvider: remote });
+    expect(await runCli(['import-cv', 'cv.pdf', '--copilot'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('Aviso de coste: 1 petición a groq');
+    expect(h.stderr()).toContain('sin terminal interactiva, confirma con --yes');
+    expect(h.fs.file('/work/import/ada-ejemplo/README.md')).toBeUndefined();
+  });
+
+  it('sin líneas sin situar no se envía nada, y un proveedor no disponible aborta con su código', async () => {
+    let asked = 0;
+    const quiet = harness(
+      {},
+      {
+        llmProvider: () => {
+          asked += 1;
+          return copilotProvider({ proposals: [] })({ provider: undefined, model: undefined });
+        },
+      },
+    );
+    expect(await runCli(['import-cv', 'cv.pdf', '--copilot'], quiet.context)).toBe(EXIT_OK);
+    expect(asked).toBe(1);
+    expect(quiet.fs.file('/work/import/ada-ejemplo/README.md')?.content).not.toContain('Propuestas del co-piloto');
+    const missing = harness({}, { llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor configurado' }) });
+    expect(await runCli(['import-cv', 'cv.pdf', '--copilot'], missing.context)).toBe(EXIT_FAILURE);
+    expect(missing.stderr()).toContain('sin proveedor configurado');
+  });
+});
