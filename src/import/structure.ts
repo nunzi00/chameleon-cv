@@ -199,6 +199,15 @@ function parseTitle(text: string, keepParenthesis = false): { readonly title: st
   if (rest === '') {
     return { title: '', subtitle: undefined, location: undefined };
   }
+  // «Concello de Lugo: Desarrollador» — con dos puntos el orden español es «dónde: qué», al revés que con «·»,
+  // así que la parte derecha es el puesto (o la titulación) y la izquierda la empresa (o el centro). Solo con un
+  // par limpio: dos lados con cuerpo, sin más signos y sin la longitud de una frase.
+  // La prosa se reconoce por la DERECHA («Funciones: llevé la pasarela. Nada más.»); a la izquierda los puntos son
+  // siglas del centro o de la empresa («I.E.S. Muralla Romana»), así que ahí no se puede exigir lo mismo.
+  const colon = /^([^:]{2,80}?)\s*:\s*([^:]{2,80}?)\.?$/.exec(rest);
+  if (colon !== null && !PROSE.test(colon[2]!)) {
+    return { title: trimSeparators(colon[2]!), subtitle: trimSeparators(colon[1]!), location: undefined };
+  }
   let location: string | undefined;
   const parenthesized = keepParenthesis ? null : /^(.*?\S)\s*\((.+)\)$/.exec(rest);
   if (parenthesized !== null) {

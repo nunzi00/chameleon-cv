@@ -362,3 +362,25 @@ describe('structureCv · el nombre no es «la primera línea» (T-9.1)', () => {
     expect(guia.fullName).toBeUndefined();
   });
 });
+
+describe('«Empresa: Puesto», la convención con dos puntos (B-8)', () => {
+  const CV = [
+    'Lucía Ferrer Montalbán',
+    'Ingeniera de software',
+    'Experiencia laboral.',
+    '09/2016 – 05/2017 | Concello de Lugo: Desarrolladora.',
+    'Estudios.',
+    '2011 - 2013. | I.E.S. Muralla Romana: Ciclo Superior de Desarrollo Web.',
+  ].join('\n');
+
+  it('con dos puntos el orden es «dónde: qué», al revés que con «·»', () => {
+    const draft = structureCv(CV);
+    expect(draft.experience[0]).toMatchObject({ title: 'Desarrolladora', subtitle: 'Concello de Lugo' });
+    expect(draft.education[0]).toMatchObject({ title: 'Ciclo Superior de Desarrollo Web', subtitle: 'I.E.S. Muralla Romana' });
+  });
+
+  it('no parte por los dos puntos lo que es una frase, ni lo que trae varios', () => {
+    const prosa = structureCv(['Lucía Ferrer', 'Experiencia laboral.', '09/2016 – 05/2017 | Nexo Pagos', 'Funciones: llevé la pasarela. Nada más.'].join('\n'));
+    expect(prosa.experience[0]).toMatchObject({ title: 'Nexo Pagos' });
+  });
+});

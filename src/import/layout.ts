@@ -42,6 +42,34 @@ export interface Line {
 
 export const LAYOUT_DEFAULTS = { lineTolerance: 0.45, cellGap: 14, fontJump: 1.35, clusterWidth: 24, minColumnGap: 60, continuity: 0.5, rowBound: 0.5 } as const;
 
+/**
+ * Una celda que es solo una viñeta: los símbolos habituales o un carácter del área de uso privado, que es lo que
+ * emite Word cuando la lista usa Symbol o Wingdings (U+F0B7 y vecinos). Sin esto, esa celda parece contenido.
+ */
+export function isBulletCell(text: string): boolean {
+  return /^(?:[•▸◦‣▪■●○*\-–—]|[\uE000-\uF8FF])$/u.test(text.trim());
+}
+
+/**
+ * Un glifo pintado DENTRO del tramo del item anterior no es la celda siguiente: es un acento que el PDF dibuja
+ * sobre el hueco que el texto base deja («Lucas Nunzi L pez» + «ó» en x=125,4 dentro de 56,8–146,5). Se coloca en
+ * su sitio, deducido de la geometría, y solo si ahí hay un hueco que ocupar; si no cuadra, se deja como estaba.
+ */
+function withOverlay(base: { readonly text: string; readonly x: number; readonly end: number }, item: TextItem): string | undefined {
+  const span = base.end - base.x;
+  if (span <= 0 || item.text.trim().length > 2) {
+    return undefined;
+  }
+  const index = Math.round(((item.x - base.x) / span) * base.text.length);
+  // El hueco puede caer un carácter a un lado por el redondeo de la anchura media.
+  for (const at of [index, index - 1, index + 1]) {
+    if (base.text[at] === ' ') {
+      return `${base.text.slice(0, at)}${item.text}${base.text.slice(at + 1)}`;
+    }
+  }
+  return undefined;
+}
+
 /** Dos items que se tocan son una palabra partida por el kerning («L» + «anguages»), salvo entre letra y cifra («Universitat» + «2014»: celdas contiguas). */
 function joinTexts(left: string, right: string, gap: number, fontSize: number): string {
   if (/\s$/.test(left) || /^\s/.test(right)) {
@@ -74,14 +102,24 @@ export function pageLines(items: readonly TextItem[], options: LayoutOptions = {
       const last = segments.at(-1);
       const gap = last === undefined ? 0 : item.x - last.end;
       const jump = last !== undefined && (item.fontSize / last.fontSize >= fontJump || last.fontSize / item.fontSize >= fontJump);
-      if (last !== undefined && gap <= cellGap && !jump) {
+      // Superpuesto sobre el anterior (empieza y acaba dentro de su tramo): acento pintado aparte, no celda nueva.
+      const overlaid = last !== undefined && item.x < last.end && item.x + item.width <= last.end + 0.25 * item.fontSize ? withOverlay(last, item) : undefined;
+      if (last !== undefined && overlaid !== undefined) {
+        last.text = overlaid;
+      } else if (last !== undefined && gap <= cellGap && !jump) {
         last.text = joinTexts(last.text, item.text, gap, Math.min(last.fontSize, item.fontSize));
         last.end = Math.max(last.end, item.x + item.width);
       } else {
         segments.push({ x: item.x, end: item.x + item.width, text: item.text, fontSize: item.fontSize });
       }
     }
-    return { y: group[0]!.y, segments: segments.map((segment) => ({ ...segment, text: segment.text.replace(/\s+/g, ' ').trim() })).filter((segment) => segment.text !== '') };
+    // La viñeta del área de uso privado (Word con Symbol/Wingdings) se normaliza a «•»: el resto del importador
+    // ya sabe qué es una viñeta, y sin esto la celda parece contenido y rompe la detección de columnas.
+    const clean = (text: string): string => {
+      const trimmed = text.replace(/\s+/g, ' ').trim();
+      return /^[\uE000-\uF8FF]$/u.test(trimmed) ? '•' : trimmed;
+    };
+    return { y: group[0]!.y, segments: segments.map((segment) => ({ ...segment, text: clean(segment.text) })).filter((segment) => segment.text !== '') };
   });
 }
 
@@ -136,7 +174,8 @@ export function detectColumns(lines: readonly Line[]): { readonly split: number 
     if (findDateRange(first) !== undefined || findSingleDate(first) !== undefined) {
       return true;
     }
-    return line.segments.length > 1 ? detectHeading(first) !== undefined || skillCategory(first) !== undefined : startsWithLabel(first);
+    // Una fila de varias celdas cuya primera es solo una viñeta es justo eso, una fila: nunca una columna de prosa.
+    return line.segments.length > 1 ? isBulletCell(first) || detectHeading(first) !== undefined || skillCategory(first) !== undefined : startsWithLabel(first);
   }).length;
   if (rowBound / leftLines.length >= LAYOUT_DEFAULTS.rowBound) {
     return undefined;

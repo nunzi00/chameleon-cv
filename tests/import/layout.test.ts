@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LAYOUT_DEFAULTS, detectColumns, layoutText, pageLines, startsWithLabel, type TextItem } from '../../src/import/layout';
+import { LAYOUT_DEFAULTS, detectColumns, isBulletCell, layoutText, pageLines, startsWithLabel, type TextItem } from '../../src/import/layout';
 
 const item = (text: string, x: number, y: number, extra: Partial<TextItem> = {}): TextItem => ({ page: 1, text, x, y, width: text.length * 5, fontSize: 10, ...extra });
 const stack = (texts: readonly string[], x: number, options: { top?: number; pitch?: number; page?: number } = {}): TextItem[] =>
@@ -107,5 +107,46 @@ describe('layoutText', () => {
     const text = layoutText([...sidebar(1), ...sidebar(2, 300)]);
     expect(text.split('\n\n')).toHaveLength(2);
     expect(text.indexOf('Lateral 2 · 1')).toBeGreaterThan(text.indexOf('Cuerpo 1 · 20'));
+  });
+});
+
+describe('viñetas y glifos superpuestos (B-8 y B-9)', () => {
+  it('reconoce como viñeta los símbolos y el área de uso privado que emite Word', () => {
+    expect(isBulletCell('•')).toBe(true);
+    expect(isBulletCell(' ▪ ')).toBe(true);
+    // U+F0B7: el bullet de Symbol/Wingdings con el que Word maqueta sus listas.
+    expect(isBulletCell('\uF0B7')).toBe(true);
+    expect(isBulletCell('• y algo')).toBe(false);
+    expect(isBulletCell('2011')).toBe(false);
+  });
+
+  it('la viñeta del área de uso privado se normaliza a « • » para que el resto la entienda', () => {
+    const lines = pageLines([item('\uF0B7', 40, 700, { width: 5 }), item('2011 - 2013.', 80, 700)]);
+    expect(texts(lines)).toEqual([['•', '2011 - 2013.']]);
+  });
+
+  it('un acento pintado dentro del tramo anterior se coloca en su hueco, no al final', () => {
+    // Firma real de «Nuevo2 Curriculum Lucas.pdf»: el texto deja el hueco y la «ó» se pinta encima.
+    const base = item('Lucas Nunzi L pez', 56.8, 790, { width: 89.7 });
+    const accent = item('ó', 125.4, 790, { width: 5.4 });
+    expect(texts(pageLines([base, accent]))).toEqual([['Lucas Nunzi López']]);
+  });
+
+  it('si en la posición calculada no hay hueco que ocupar, no se inventa nada', () => {
+    const base = item('Lucas Nunzi Lopez', 56.8, 790, { width: 89.7 });
+    const accent = item('ó', 125.4, 790, { width: 5.4 });
+    expect(texts(pageLines([base, accent]))).toEqual([['Lucas Nunzi Lopezó']]);
+    // Tampoco cuando lo superpuesto es una palabra: eso no es un acento.
+    const word = item('largo', 125.4, 790, { width: 5.4 });
+    expect(texts(pageLines([item('Lucas Nunzi L pez', 56.8, 790, { width: 89.7 }), word]))).toEqual([['Lucas Nunzi L pezlargo']]);
+  });
+
+  it('una fila cuya primera celda es una viñeta no convierte la página en dos columnas', () => {
+    // Ocho filas «viñeta | fecha | contenido»: es una tabla, no una barra lateral.
+    const items = Array.from({ length: 8 }, (_, index) => {
+      const y = 700 - index * 14;
+      return [item('•', 40, y, { width: 5 }), item(`200${index} - 201${index}.`, 103, y), item(`Titulación ${index}`, 260, y)];
+    }).flat();
+    expect(detectColumns(pageLines(items))).toBeUndefined();
   });
 });
