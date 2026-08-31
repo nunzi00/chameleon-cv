@@ -290,3 +290,45 @@ Efecto en el CV: en ACME, el logro de latencia (2.25) precede al de Kubernetes (
 6. **Sin `natural`** en esta fase (§8). Recomendación: aprobar.
 
 Aprobados los seis puntos sin modificaciones. Precisiones registradas tras la implementación: encabezados de sección (§4.3), años solo en líneas de experiencia (§4.4) y el término `backend` del título en el ejemplo (§6).
+
+## 11. El co-piloto como segunda fuente de `JobRequirements` (T-9.10, encargo del PO del 1-sep-2026)
+
+Encargo: «cuando se facilita una oferta para generar el CV, ¿se puede meter un LLM para poder decidir?». La
+respuesta acordada es **sí, pero leyendo la oferta, no decidiendo el CV**, y es exactamente el gancho que §8 dejó
+anotado desde el primer día: `extractJobRequirements` gana una implementación alternativa por modelo que devuelve
+el **mismo** `JobRequirements`; el *scoring*, la selección y el informe no cambian ni una línea.
+
+### 11.1 Por qué el modelo no decide
+
+Tres razones, y ninguna es de principios abstractos:
+
+1. **Explicabilidad.** Hoy `--explain` dice, ítem a ítem, por qué entró: `universal`, `match`,
+   `via-achievements`, `pinned`. Si decidiera el modelo, la respuesta sería «porque sí» — y un CV se defiende
+   línea a línea en una entrevista.
+2. **Reproducibilidad.** La misma oferta y el mismo perfil dan hoy el mismo CV. El arnés determinista lo
+   comprueba con 202 pasos byte a byte; con un modelo decidiendo, ese arnés deja de existir.
+3. **C2.** La IA propone y la persona decide. Qué va en tu CV es justo la línea que no se cruza.
+
+### 11.2 El hueco que sí llena
+
+El matcher es **literal**: si la oferta pide «arquitectura orientada a eventos» y tus skills dicen «Kafka», no hay
+coincidencia salvo que exista un alias. Ahí el modelo aporta lo que el código no puede: **tender el puente
+semántico** entre el lenguaje de la oferta y el tuyo.
+
+### 11.3 Forma acordada (misma mecánica que `suggest tags` e `import map`)
+
+- Al modelo se le envía el texto de la oferta y **tu vocabulario cerrado** (tags, nombres y alias de tus skills).
+- Devuelve **solo tags que ya existen en tu perfil**, con su peso.
+- **El código verifica** cada una contra ese vocabulario: lo que no esté, se rechaza y se cuenta en el informe.
+  El modelo no puede inventarte una habilidad que no tienes; solo puede decir «esto que la oferta pide lo
+  demuestra *esta* tag tuya».
+- El resultado se valida con `JobRequirementsSchema` y entra por la misma puerta que la extracción determinista.
+- **Opt-in por orden** (`--copilot`), con el consentimiento de coste y el egreso explícito del resto del
+  co-piloto. Sin la opción, cero red y el comportamiento de hoy, intacto.
+- `--explain` debe distinguir **qué término vino del modelo y cuál del matcher**: sin eso se pierde la mitad del
+  valor de la explicación.
+
+### 11.4 Antes de construirlo
+
+**Medir el hueco**: cuántos requisitos de ofertas reales quedan hoy sin casar por falta de alias. Si son pocos,
+un puñado de alias en `skills.csv` sale mucho más barato que un hito, y conviene saberlo antes de empezar.
