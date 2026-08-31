@@ -345,9 +345,9 @@
               <strong>{provider.id}</strong>
               <span class={`cv-badge ${view.hasKey ? 'ok' : ''}`}>{view.key}</span>
               <span class="cv-muted">· {view.plan} · {provider.host}</span>
-              {#if view.dataNote !== undefined}<p class="cv-muted cv-provider-warning">⚠ {view.dataNote}</p>{/if}
+              {#if view.dataNote !== undefined}<p class="cv-provider-warning">⚠ {view.dataNote}</p>{/if}
             </div>
-            {#if provider.availability !== 'available'}<div class="cv-warning">Pendiente de verificación humana: {provider.availabilityNote}</div>{/if}
+            {#if provider.availability !== 'available'}<p class="cv-provider-warning">Pendiente de verificación humana: {provider.availabilityNote}</p>{/if}
             <dl class="cv-kv cv-kv-rows">
               <dt>Modelo por defecto</dt><dd><code>{provider.defaultModel}</code></dd>
               {#if describeModelOptions(provider.models) !== undefined}<dt>Modelos</dt><dd class="cv-muted">Modelos (<code>--model</code> o <code>[llm.models]</code>): {describeModelOptions(provider.models)}</dd>{/if}

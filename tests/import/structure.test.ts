@@ -1,7 +1,7 @@
 /** P1, el estructurador heurístico (T-8.4): del texto plano de un CV al borrador con procedencia. */
 import { describe, expect, it } from 'vitest';
 
-import { structureCv } from '../../src/import/structure';
+import { nameScore, structureCv } from '../../src/import/structure';
 
 const DEFAULT_LAYOUT = `Lucía Ferrer Montalbán
 Ingeniera de software · plataformas de pago y datos
@@ -163,12 +163,18 @@ Unknown stuff
   });
 
   it('sin secciones ni fechas no inventa nada: todo queda como cabecera o sin asignar', () => {
+    // Una línea que no se parece a un nombre de persona ya no se toma como tal (T-9.1): va al titular y el
+    // borrador avisa de que no se reconoció el nombre, en vez de bautizar el perfil con un título de página.
     const draft = structureCv('Solo un nombre\n\nUna frase que no es contacto ni titular porque termina en punto.\n');
-    expect(draft.fullName).toBe('Solo un nombre');
-    expect(draft.headline).toBeUndefined();
+    expect(draft.fullName).toBeUndefined();
+    expect(draft.headline).toBe('Solo un nombre');
     expect(draft.summary).toBe('Una frase que no es contacto ni titular porque termina en punto.');
     expect(draft.experience).toEqual([]);
     expect(draft.sections).toEqual([]);
+    // Con un nombre reconocible, la misma entrada sí lo identifica y la frase queda de resumen.
+    const conNombre = structureCv('Ada Ejemplo\n\nUna frase que no es contacto ni titular porque termina en punto.\n');
+    expect(conNombre.fullName).toBe('Ada Ejemplo');
+    expect(conNombre.summary).toBe('Una frase que no es contacto ni titular porque termina en punto.');
     const empty = structureCv('');
     expect(empty.fullName).toBeUndefined();
     expect(empty.unparsed).toEqual([]);
@@ -319,5 +325,40 @@ describe('structureCv · habilidades con paréntesis (T-8.4b F2)', () => {
   it('no parte un nombre por las comas de dentro de un paréntesis o un corchete', () => {
     const draft = structureCv(['Jane Doe', 'Habilidades', 'Lenguajes: PHP (Symfony, Laravel), Python [pandas, numpy], Go)'].join('\n'));
     expect(draft.skills.map((group) => [group.category, group.names])).toEqual([['language', ['PHP (Symfony, Laravel)', 'Python [pandas, numpy]', 'Go)']]]);
+  });
+});
+
+describe('structureCv · el nombre no es «la primera línea» (T-9.1)', () => {
+  it('puntúa los candidatos de la cabecera: dos o tres palabras capitalizadas, sin cifras ni palabras de documento', () => {
+    expect(nameScore('Jane Doe')).toBe(3);
+    expect(nameScore('Lucía Ferrer Montalbán')).toBe(3);
+    expect(nameScore('MARY SMITH')).toBe(3);
+    expect(nameScore('María de la Cruz Pérez')).toBe(2);
+    // Títulos de documento, de institución y datos de contacto: nunca son el nombre de la persona.
+    expect(nameScore('EXAMPLE RESUME')).toBe(0);
+    expect(nameScore('RESUMES/COVER LETTERS')).toBe(0);
+    expect(nameScore('Purdue University')).toBe(0);
+    expect(nameScore('Current Address')).toBe(0);
+    expect(nameScore('Chronological')).toBe(0);
+    expect(nameScore('jdoe@gmail.com x')).toBe(0);
+    expect(nameScore('Calle Mayor 14')).toBe(0);
+    expect(nameScore('Una frase larga que desde luego no es el nombre de nadie')).toBe(0);
+    expect(nameScore('Ada')).toBe(0);
+  });
+
+  it('elige el mejor candidato aunque no sea la primera línea, y parte la línea por sus separadores', () => {
+    // El caso real del corpus: la plantilla pone su categoría arriba y el nombre en la segunda línea, con «| Resume».
+    const csuci = structureCv(['Chronological', 'Jane Doe | Resume', '(805) 123-4567', 'jdoe@gmail.com'].join('\n'));
+    expect(csuci.fullName).toBe('Jane Doe');
+    expect(csuci.headline).toBeUndefined();
+    const plymouth = structureCv(['EXAMPLE RESUME', 'Jane Doe', '234 FAKE STREET. MODESTO, CA'].join('\n'));
+    expect(plymouth.fullName).toBe('Jane Doe');
+    // El titular que acompaña al nombre sí se conserva.
+    expect(structureCv('Ada Ejemplo · Ingeniera de plataforma\n').headline).toBe('Ingeniera de plataforma');
+  });
+
+  it('sin ningún candidato no inventa un nombre: el borrador lo avisa', () => {
+    const guia = structureCv(['Centro de Orientación e Información de Empleo', 'Universidad Complutense de Madrid', 'Información general'].join('\n'));
+    expect(guia.fullName).toBeUndefined();
   });
 });

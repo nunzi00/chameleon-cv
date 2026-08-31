@@ -597,6 +597,11 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 /* Ajustes (T-8.6 S3): una columna de 940 px; proveedores externos como fichas. */
 .cv-ajustes { max-width: 940px; }
 .cv-providers { display: grid; gap: 10px; }
+/* Campo y botón en la misma fila (el selector de ofertas y el guardado desde una URL). */
+.cv-field-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.cv-field-row .cv-field { flex: 1 1 240px; }
+/* Aviso dentro de la ficha de un proveedor: uso de datos o verificación pendiente. */
+.cv-provider-warning { margin: 4px 0 0; font-size: var(--cv-size-sm); color: var(--cv-warn); }
 .cv-remote-toggle { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
 .cv-remote-toggle .cv-muted { flex: 1 1 320px; }
 .cv-provider[data-pending] { opacity: .72; }

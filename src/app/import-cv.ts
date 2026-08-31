@@ -100,7 +100,9 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
   const result: DraftFiles = { ...plain, issues: [...warnings, ...plain.issues] };
 
   // slugify reduce a [a-z0-9-]: el nombre no puede contener separadores ni «..», así que siempre queda dentro de import/.
-  const name = slugify(options.name ?? result.profile.personal.fullName) || slugify(basename(origin).replace(/\.[a-z0-9]+$/i, '')) || 'cv-importado';
+  // Sin nombre reconocido el perfil lleva «Nombre pendiente» (T-9.1): la carpeta se nombra por el fichero, no por el aviso.
+  const recognized = result.profile.personal.fullName === 'Nombre pendiente' ? undefined : result.profile.personal.fullName;
+  const name = slugify(options.name ?? recognized ?? '') || slugify(basename(origin).replace(/\.[a-z0-9]+$/i, '')) || 'cv-importado';
   const root = resolve(context.cwd, 'import');
   const target = resolve(root, name);
   let exists = false;

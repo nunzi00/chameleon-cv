@@ -634,6 +634,47 @@ function parseAchievements(lines: readonly Line[], unparsed: Provenance[]): Draf
   return achievements;
 }
 
+/**
+ * Palabras que descartan un candidato a nombre: títulos de documento y de institución. Salen del corpus real
+ * (T-9.1): «Chronological», «EXAMPLE RESUME», «SAMPLE RESUMES», «Purdue University», «Centro de Orientación…»
+ * se tomaban como el nombre de la persona, y el nombre de verdad acababa en el titular o perdido.
+ */
+const NAME_STOPWORDS: ReadonlySet<string> = new Set([
+  'resume', 'resumen', 'curriculum', 'vitae', 'cv', 'sample', 'samples', 'template', 'plantilla',
+  'chronological', 'functional', 'combination', 'hybrid', 'guide', 'guia', 'handout', 'copyright', 'page', 'pagina',
+  'university', 'universidad', 'college', 'instituto', 'institute', 'centro', 'center', 'vicerrectorado', 'facultad', 'department', 'departamento', 'school', 'oficina', 'office', 'hall',
+  'student', 'estudiante', 'employee', 'empleo', 'cover', 'letter', 'letters', 'carta', 'cartas', 'address', 'direccion',
+]);
+
+/** Partículas que van en minúscula dentro de un nombre («María de la Cruz Pérez»). */
+const NAME_PARTICLES: ReadonlySet<string> = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'das', 'dos', 'di', 'du', 'van', 'von', 'of', 'the']);
+
+/**
+ * Cuánto se parece un fragmento al nombre de una persona: 0 si no lo parece. Dos o tres palabras capitalizadas
+ * (con partículas en minúscula) puntúan más que cuatro o cinco; nada con cifras, arrobas, enlaces o palabras
+ * de documento.
+ */
+export function nameScore(text: string): number {
+  const trimmed = trimSeparators(text).trim();
+  if (trimmed.length < 4 || trimmed.length > 60 || /[0-9@]|https?:/i.test(trimmed)) {
+    return 0;
+  }
+  // «RESUMES/COVER LETTERS»: la barra separa palabras, así que se parte también por ella para juzgarlas.
+  const words = trimmed.split(/[\s/]+/);
+  if (words.length < 2 || words.length > 5) {
+    return 0;
+  }
+  const plain = words.map((word) => normalize(word).replace(/[^a-z]/g, ''));
+  if (plain.some((word) => NAME_STOPWORDS.has(word))) {
+    return 0;
+  }
+  const shaped = words.every((word, index) => /^\p{Lu}/u.test(word) || (index > 0 && NAME_PARTICLES.has(plain[index]!)));
+  if (!shaped) {
+    return 0;
+  }
+  return words.length <= 3 ? 3 : 2;
+}
+
 /** La primera línea puede traer nombre y titular pegados («Nombre — Titular», o sin salto de línea entre una banda y otra). */
 function splitNameLine(text: string): { readonly name: string; readonly headline: string | undefined } {
   const dashed = /^(.{3,80}?)\s+[—–]\s+(.+)$/.exec(text);
@@ -645,6 +686,30 @@ function splitNameLine(text: string): { readonly name: string; readonly headline
     return { name: glued[1]!, headline: glued[2]! };
   }
   return { name: text, headline: undefined };
+}
+
+/**
+ * El mejor candidato a nombre entre las primeras líneas de la cabecera: cada línea se trocea por sus separadores
+ * («Jane Doe | Resume») y, si no los tiene, se prueba también la partición de nombre y titular pegados. Gana la
+ * puntuación más alta y, a igualdad, la línea más arriba.
+ */
+function chooseName(header: readonly Line[]): { readonly line: number; readonly name: string; readonly headline: string | undefined } | undefined {
+  let best: { line: number; name: string; headline: string | undefined; score: number } | undefined;
+  for (const line of header.filter((candidate) => !isContactLine(candidate.text)).slice(0, 6)) {
+    const parts = line.text.split(/\s*[|·]\s*/).map((part) => part.trim()).filter((part) => part !== '');
+    const candidates: Array<{ name: string; headline: string | undefined }> = [
+      ...(parts.length > 1 ? parts.map((part, index) => ({ name: part, headline: parts.filter((_, other) => other !== index).join(' · ') })) : [{ name: line.text, headline: undefined }]),
+      splitNameLine(line.text),
+    ];
+    for (const candidate of candidates) {
+      const score = nameScore(candidate.name);
+      if (score > 0 && (best === undefined || score > best.score)) {
+        const rest = candidate.headline === undefined || candidate.headline.split(/\s+/).every((word) => NAME_STOPWORDS.has(normalize(word).replace(/[^a-z]/g, ''))) ? undefined : candidate.headline;
+        best = { line: line.number, name: trimSeparators(candidate.name).trim(), headline: rest, score };
+      }
+    }
+  }
+  return best === undefined ? undefined : { line: best.line, name: best.name, headline: best.headline };
 }
 
 /** Del texto plano de un CV a un borrador de perfil con procedencia. */
@@ -687,11 +752,23 @@ export function structureCv(text: string): DraftProfile {
   let headline: string | undefined;
   const summaryLines: string[] = [];
   const contactLines: string[] = [];
+  // El nombre no es «la primera línea», sino el mejor candidato de la cabecera (T-9.1): así «Chronological» o
+  // «EXAMPLE RESUME» dejan de bautizar el borrador y el nombre real —a veces en la segunda línea, o junto a un
+  // separador— se reconoce. Si ninguno convence, no se inventa: el borrador queda con «Nombre pendiente».
+  const chosen = chooseName(header);
   for (const line of header) {
-    if (fullName === undefined && !isContactLine(line.text)) {
-      const split = splitNameLine(line.text);
-      fullName = split.name;
-      headline = split.headline;
+    if (chosen !== undefined && line.number === chosen.line) {
+      fullName = chosen.name;
+      headline = chosen.headline;
+      continue;
+    }
+    if (fullName === undefined && chosen === undefined && !isContactLine(line.text)) {
+      // Sin candidato claro, las líneas de cabecera siguen su curso (titular o resumen), sin nombre inventado.
+      if (headline === undefined && line.text.length <= 120 && !/[.]$/.test(line.text)) {
+        headline = line.text;
+      } else {
+        summaryLines.push(line.text);
+      }
       continue;
     }
     if (isContactLine(line.text)) {
