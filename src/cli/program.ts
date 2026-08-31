@@ -6,6 +6,7 @@ import { Command, CommanderError } from 'commander';
 
 import { runAnalyzeOffer, type AnalyzeOfferOptions } from './commands/analyze-offer';
 import { runImportCv, type ImportCvOptions } from './commands/import-cv';
+import { runImportLinkedIn, type ImportLinkedInOptions } from './commands/import-linkedin';
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
@@ -134,6 +135,16 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--yes', 'con --copilot y un proveedor remoto, confirma el envío por adelantado', false)
     .action(async (file: string, options: ImportCvOptions) => {
       onExit(await runImportCv(context, file, options));
+    });
+
+  program
+    .command('import-linkedin')
+    .description('importa la exportación oficial de datos de LinkedIn (el zip de «Obtener una copia de tus datos») como borrador en import/<nombre>/; datos estructurados, sin red y sin adivinar maquetación')
+    .argument('<archivo>', 'el zip de la exportación de LinkedIn')
+    .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .action(async (file: string, options: ImportLinkedInOptions) => {
+      onExit(await runImportLinkedIn(context, file, options));
     });
 
   program

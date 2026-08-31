@@ -4,6 +4,7 @@ export * from './draft';
 export * from './headings';
 export * from './items';
 export * from './layout';
+export * from './linkedin';
 export * from './quality';
 export * from './structure';
 export * from './text';

@@ -99,6 +99,22 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
   }
   const result: DraftFiles = { ...plain, issues: [...warnings, ...plain.issues] };
 
+  return writeDraft(context, result, origin, importedAt, proposals, options);
+}
+
+/**
+ * Del `DraftFiles` ya validado al borrador escrito en `import/<nombre>/`. Compartido por todos los orígenes
+ * —PDF, DOCX y la exportación de LinkedIn— para que el destino, el nombre de la carpeta, los permisos y el
+ * informe sean exactamente los mismos vengan de donde vengan (C14).
+ */
+export async function writeDraft(
+  context: AppContext,
+  result: DraftFiles,
+  origin: string,
+  importedAt: string,
+  proposals: readonly ImportMapProposal[],
+  options: Pick<ImportCvOptions, 'name' | 'replace'>,
+): Promise<ImportCvResult> {
   // slugify reduce a [a-z0-9-]: el nombre no puede contener separadores ni «..», así que siempre queda dentro de import/.
   // Sin nombre reconocido el perfil lleva «Nombre pendiente» (T-9.1): la carpeta se nombra por el fichero, no por el aviso.
   const recognized = result.profile.personal.fullName === 'Nombre pendiente' ? undefined : result.profile.personal.fullName;

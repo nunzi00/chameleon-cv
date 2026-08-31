@@ -118,3 +118,48 @@ pide el encargo y lo que permite deshacerlo a mano.
 Deshacer desde la interfaz (el registro del informe y el historial de fuentes bastan para revertirlo a mano);
 aplicar varias propuestas de una vez (una decisión por línea es justo lo que C2 pide); y editar la línea antes de
 moverla, que es lo que hace el editor de fuentes una vez aplicada.
+
+## §8 Importar desde LinkedIn (T-9.8)
+
+Encargo del PO del 31-ago-2026: «a partir de la URL de LinkedIn que se descargue el CV, lo analice y lo use como
+fuente». La URL **no** es viable y conviene dejar dicho por qué, con lo medido ese mismo día:
+
+- El `robots.txt` de LinkedIn dice `User-agent: *` → `Disallow: /`, con un aviso explícito de que el acceso
+  automatizado sin permiso está prohibido.
+- Una URL de perfil responde 200, pero lo que llega es el **muro de acceso** con una vista pública recortada
+  («Sign in» 21 veces, «Join now» 9), no el CV.
+
+**Decisión del PO (31-ago)**: la vía es la **exportación oficial de datos** —Ajustes → Privacidad de datos →
+Obtener una copia de tus datos—, que además es la de más fidelidad: LinkedIn entrega CSV **estructurados**, así
+que no hay maquetación que adivinar y nada queda «sin situar».
+
+### §8.1 Qué se lee
+
+`cv import-linkedin <archivo.zip>` busca por nombre base (la exportación a veces los envuelve en una carpeta):
+
+| Fichero | A dónde va |
+| --- | --- |
+| `Profile.csv` | nombre, titular, resumen, ubicación y enlaces |
+| `Positions.csv` | experiencia (`Finished On` vacío = en curso) |
+| `Education.csv` | formación |
+| `Certifications.csv` | certificaciones |
+| `Projects.csv` | proyectos |
+| `Skills.csv` | habilidades |
+| `Languages.csv` | idiomas, con los cinco niveles de LinkedIn traducidos a MCER |
+| `Email Addresses.csv` | el correo marcado como principal |
+| `PhoneNumbers.csv` | teléfono |
+
+Las fechas (`Mar 2022`, `2013`) pasan por el mismo `parsePoint` que el importador de PDF, que ya entiende los
+meses en inglés. Falta un CSV, no pasa nada: lo que no está, no aparece.
+
+### §8.2 Por qué comparte camino con el importador de PDF
+
+El módulo produce el **mismo `DraftProfile`** que `structureCv`, y la escritura del borrador es literalmente la
+misma función (`writeDraft`, extraída de `import-cv.ts` en esta tarea). Así el destino, el nombre de la carpeta,
+los permisos, el informe y la validación entidad a entidad son idénticos vengan de donde vengan los datos (C14),
+y lo único propio de LinkedIn es el mapeo de columnas.
+
+### §8.3 Fuera de alcance
+
+Descargar desde la URL (§8, decidido); la exportación «completa» de LinkedIn, que trae decenas de CSV de
+mensajes, anuncios y conexiones que no son un CV; y la pantalla web, que iría después con el mismo núcleo.

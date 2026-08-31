@@ -81,6 +81,28 @@ Al confirmar, la línea se escribe en el fichero que le corresponde (`skills.csv
 deshacerlo a mano. Si algo no cumpliera el esquema no se escribe nada y el diálogo te dice qué falta: el borrador que
 sale de aplicar una propuesta sigue validando con `cv build --data`.
 
+## Desde LinkedIn
+
+Si tu CV vive en LinkedIn, la vía es su **exportación oficial de datos**, no la URL del perfil: esa URL devuelve
+el muro de acceso, y el `robots.txt` de LinkedIn prohíbe el acceso automatizado. La exportación, además, da mejor
+resultado, porque entrega los datos **estructurados** en CSV y aquí no hay maquetación que adivinar.
+
+1. En LinkedIn: **Ajustes → Privacidad de datos → Obtener una copia de tus datos**. Con el archivo básico basta.
+2. Cuando te llegue el correo, descarga el zip y pásaselo a `cv`:
+
+```bash
+cv import-linkedin ~/Downloads/Basic_LinkedInDataExport.zip
+```
+
+Se lee `Profile.csv` (nombre, titular, resumen, ubicación, enlaces), `Positions.csv` (experiencia; sin fecha de
+fin, el puesto queda «en curso»), `Education.csv`, `Certifications.csv`, `Projects.csv`, `Skills.csv`,
+`Languages.csv` —con los cinco niveles de LinkedIn traducidos a MCER— y tus correo y teléfono. Lo que no esté en
+el zip, simplemente no aparece.
+
+El borrador sale en `import/<nombre>/` igual que el de un PDF, con el mismo informe y la misma validación, así
+que a partir de aquí el camino es el de abajo. La diferencia se nota en el informe: al venir de datos
+estructurados, **no hay líneas «sin situar»**.
+
 ## Después de importar
 
 1. Lee el `README.md` y corrige lo señalado.
