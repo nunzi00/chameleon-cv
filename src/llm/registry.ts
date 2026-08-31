@@ -68,6 +68,8 @@ export interface RemoteProviderEntry {
   readonly baseUrl: string;
   /** Rutas propias cuando el dialecto compatible no usa el prefijo `/v1` (Gemini: `/chat/completions`, `/models`). */
   readonly paths?: { readonly chat?: string; readonly models?: string };
+  /** `false` si el dialecto rechaza `seed` (Gemini): la petición se envía sin él y deja de ser reproducible. */
+  readonly supportsSeed?: boolean;
   /** Aviso permanente sobre el uso de datos por el proveedor; se muestra en status, Ajustes y el consentimiento. */
   readonly dataNote?: string;
   readonly defaultModel: string;
@@ -193,16 +195,31 @@ export const REMOTE_PROVIDERS: readonly RemoteProviderEntry[] = [
   },
   {
     id: 'gemini',
-    availability: 'pending-verification',
-    availabilityNote: 'pendiente de la verificación al alta (docs/gemini-provider.md §2.4, protocolo de docs/copilot-providers.md §9): no se puede seleccionar hasta entonces',
+    availability: 'available',
+    availabilityNote: undefined,
     api: 'openai-chat',
     host: 'generativelanguage.googleapis.com',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     // La compatibilidad de Gemini NO usa el prefijo /v1 (ai.google.dev/gemini-api/docs/openai, leído el 2026-08-30).
     paths: { chat: '/chat/completions', models: '/models' },
+    // Verificado el 31-ago-2026: con `seed` responde HTTP 400 «Unknown name "seed": Cannot find field».
+    supportsSeed: false,
     dataNote: 'el plan gratuito de Gemini usa las peticiones para mejorar los productos de Google: no envíes lo que no quieras compartir',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gemini-3.6-flash',
     models: [
+      {
+        id: 'gemini-3.6-flash',
+        status: 'production',
+        recommendedFor: [],
+        // Evidencia de la propia API el 31-ago-2026: gemini-2.5-flash responde HTTP 404 «no longer available to
+        // new users. Please update your code to use models/gemini-3.6-flash». El suelo de salida sale de la misma
+        // verificación: con el techo de la tarea devuelve JSON TRUNCADO («{"proposals":[{"text":"Implementé la»),
+        // igual que gpt-oss-120b de Groq: razona y agota el presupuesto antes de emitir.
+        outputTokensFloor: 4000,
+        note: 'rápido y barato; sin evaluar con el arnés en español todavía (sin recommendedFor hasta entonces, decisión D3 de docs/gemini-provider.md)',
+        sourceUrl: 'https://ai.google.dev/gemini-api/docs/models',
+        verifiedAt: '2026-08-31',
+      },
       {
         id: 'gemini-2.5-flash',
         status: 'production',

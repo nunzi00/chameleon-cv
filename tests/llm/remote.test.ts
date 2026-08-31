@@ -185,10 +185,11 @@ describe('selectProvider (canon C3: local por defecto, remoto solo explícito)',
     expect(await selectProvider({ provider: 'grok' }, { env: {}, http })).toEqual({ ok: false, message: '--provider «grok» no es un proveedor conocido (ollama, openai-compatible, openai, anthropic, groq, gemini)' });
   });
 
-  it('un remoto pendiente de verificación humana se rechaza antes de mirar la clave (T-8.2 §9; Groq quedó verificado el 30-ago-2026)', async () => {
-    expect(AVAILABLE_REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq']);
+  it('un remoto pendiente de verificación humana se rechaza antes de mirar la clave (T-8.2 §9; Groq el 30-ago-2026 y Gemini el 31)', async () => {
+    // Los cuatro del registro están verificados hoy, así que la rama «pendiente» se prueba con un registro
+    // inyectado: la guarda debe seguir ahí para el próximo remoto que entre sin verificar.
+    expect(AVAILABLE_REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq', 'gemini']);
     expect(REMOTE_PROVIDER_IDS).toEqual(['openai', 'anthropic', 'groq', 'gemini']);
-    expect(await selectProvider({ provider: 'gemini' }, { env: { CHAMELEON_GEMINI_API_KEY: 'g-1' } })).toMatchObject({ ok: false, message: expect.stringContaining('pendiente de la verificación al alta') as string });
     const pendingRegistry = [{ ...remoteProvider('groq'), availability: 'pending-verification' as const, availabilityNote: 'pendiente de la verificación al alta por una persona (docs/copilot-providers.md §9): no se puede seleccionar hasta entonces' }];
     expect(await selectProvider({ provider: 'groq' }, { env: { CHAMELEON_GROQ_API_KEY: 'gsk-1' }, registry: pendingRegistry })).toEqual({
       ok: false,

@@ -106,7 +106,7 @@ describe('cv llm key', () => {
     expect(createNodeContext({ interactive: false }).readSecret).toBeUndefined();
     expect(typeof createNodeContext({ interactive: true }).readSecret).toBe('function');
     const selection = await createNodeContext({ interactive: false }).llmProvider({ provider: 'gemini' });
-    expect(selection).toMatchObject({ ok: false, message: expect.stringContaining('pendiente de la verificación al alta') as string });
+    expect(selection).toMatchObject({ ok: false, message: expect.stringContaining('No hay clave para «gemini»') as string });
     const status = await createNodeContext({ interactive: false }).llmStatus({ env: { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } });
     expect(status.settings.path).toBe(join(process.cwd(), 'cv.toml'));
   });

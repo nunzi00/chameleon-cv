@@ -107,6 +107,25 @@ describe('proveedor Ollama (nativo)', () => {
     await gem.complete(REQUEST);
     await gem.health();
     expect(flat.map((request) => request.url.replace(base, ''))).toEqual(['/chat/completions', '/models']);
+    // El dialecto de Gemini rechaza `seed` con HTTP 400 (verificado el 31-ago-2026): allí no se envía.
+    const sinSemilla: JsonHttpRequest[] = [];
+    const conSemilla: JsonHttpRequest[] = [];
+    const eco = (into: JsonHttpRequest[]) => (request: JsonHttpRequest) => {
+      into.push(request);
+      return Promise.resolve({ ok: true as const, status: 200, data: { choices: [{ message: { content: '{"ok":true}' } }] } });
+    };
+    await createOpenAiCompatibleProvider({ baseUrl: base, model: 'm', supportsSeed: false, http: eco(sinSemilla) }).complete(REQUEST);
+    await createOpenAiCompatibleProvider({ baseUrl: base, model: 'm', http: eco(conSemilla) }).complete(REQUEST);
+    expect(sinSemilla[0]?.body).not.toHaveProperty('seed');
+    expect(conSemilla[0]?.body).toHaveProperty('seed');
+    // Y Gemini lista los modelos con prefijo («models/gemini-3.6-flash») aunque se pidan sin él: comparar en
+    // crudo daba «el modelo configurado no está disponible» con el modelo primero de la lista.
+    const prefijado = createOpenAiCompatibleProvider({
+      baseUrl: base,
+      model: 'gemini-3.6-flash',
+      http: () => Promise.resolve({ ok: true as const, status: 200, data: { data: [{ id: 'models/gemini-3.6-flash' }] } }),
+    });
+    expect(await prefijado.health()).toMatchObject({ ok: true, models: ['models/gemini-3.6-flash'], modelAvailable: true });
     const tuned = createOllamaProvider({ baseUrl: base, model: 'qwen2.5:7b-instruct', contextLength: 32768 });
     expect((await tuned.complete(REQUEST)).ok).toBe(true);
     expect(recorded[2]?.body).toMatchObject({ options: { num_ctx: 32768 } });

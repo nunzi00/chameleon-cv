@@ -31,6 +31,12 @@ export interface OpenAiCompatibleOptions {
   readonly headers?: Readonly<Record<string, string>> | undefined;
   /** Suelo de tokens de salida del modelo (registro), para modelos que razonan. */
   readonly outputTokensFloor?: number | undefined;
+  /**
+   * Si el dialecto admite `seed`. Se envía por defecto porque es lo que hace la respuesta reproducible, pero la
+   * capa compatible de Gemini rechaza la petición ENTERA con «Unknown name \"seed\"» (HTTP 400): allí se omite,
+   * y la revisión lo dice en su cabecera para que nadie dé por reproducible lo que no lo es.
+   */
+  readonly supportsSeed?: boolean | undefined;
   /** Rutas propias del dialecto (Gemini no usa el prefijo /v1); por defecto, las estándar. */
   readonly chatPath?: string | undefined;
   readonly modelsPath?: string | undefined;
@@ -60,7 +66,7 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
           model,
           messages: request.messages,
           temperature: request.temperature ?? DEFAULT_TEMPERATURE,
-          seed: request.seed ?? DEFAULT_SEED,
+          ...(options.supportsSeed === false ? {} : { seed: request.seed ?? DEFAULT_SEED }),
           max_tokens: request.maxTokens,
           response_format: { type: 'json_schema', json_schema: { name: request.schemaName, schema: request.schema, strict: true } },
         },
@@ -96,8 +102,13 @@ export function createOpenAiCompatibleProvider(options: OpenAiCompatibleOptions 
       if (!parsed.success) {
         return { ok: false, code: 'invalid-response', message: 'Servidor compatible con OpenAI: la lista de modelos tiene una forma inesperada' };
       }
+      // Gemini devuelve los identificadores con prefijo («models/gemini-2.5-flash») aunque las peticiones se
+      // hagan sin él: comparar en crudo daba «el modelo configurado no está disponible» con el modelo PRIMERO
+      // de la lista. Se compara por el nombre desnudo y se conserva el identificador tal cual para mostrarlo.
       const models = parsed.data.data.map((entry) => entry.id);
-      return { ok: true, version: undefined, models, modelAvailable: models.length > 0 && (model === OPENAI_COMPATIBLE_DEFAULT_MODEL || models.includes(model)) };
+      const bare = (id: string): string => id.replace(/^models\//, '');
+      const listed = models.some((id) => bare(id) === bare(model));
+      return { ok: true, version: undefined, models, modelAvailable: models.length > 0 && (model === OPENAI_COMPATIBLE_DEFAULT_MODEL || listed) };
     },
   };
 }

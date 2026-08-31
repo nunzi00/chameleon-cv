@@ -34,7 +34,8 @@ describe('registro de proveedores', () => {
     expect(isRemoteProviderId('gemini')).toBe(true);
     expect(isRemoteProviderId('grok')).toBe(false);
     expect(remoteProvider('groq')).toMatchObject({ api: 'openai-chat', baseUrl: 'https://api.groq.com/openai', plan: 'free' });
-    expect(remoteProvider('gemini')).toMatchObject({ availability: 'pending-verification', paths: { chat: '/chat/completions', models: '/models' } });
+    // Verificado el 31-ago-2026; el dialecto no admite `seed` y su compatibilidad no lleva el prefijo /v1.
+    expect(remoteProvider('gemini')).toMatchObject({ availability: 'available', supportsSeed: false, paths: { chat: '/chat/completions', models: '/models' } });
     expect(() => remoteProvider('grok' as never)).toThrow(/sin registrar/);
   });
 

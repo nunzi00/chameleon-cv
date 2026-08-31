@@ -51,8 +51,10 @@ La API nativa de Gemini (`generateContent`), *grounding*, ficheros; cualquier se
 propias `paths.chat`/`paths.models` sin `/v1`, `dataNote` permanente, modelos sin `recommendedFor` por D3), el
 cliente compatible acepta rutas por proveedor, el aviso de datos viaja en `cv llm status`, en la ficha de Ajustes y
 en el 409 de consentimiento de los trabajos (`dataNote` en los detalles, pintado en el diálogo del Co-piloto), y la
-lista blanca y las variables de clave crecen solas desde el registro. Pendiente: el protocolo de verificación §2.4
-con la clave del Director y el cambio de datos a `available`.
+lista blanca y las variables de clave crecen solas desde el registro. **VERIFICADO Y ACTIVADO el 31-ago-2026**
+con la clave del PO y solo con el banco de pruebas: el registro completo, con los tres defectos que la verificación
+destapó (prefijo `models/`, `seed` rechazado y `gemini-2.5-flash` retirado para cuentas nuevas), está en
+`docs/copilot-providers.md` §11.
 
 ## §4 Decisiones que se piden al PO
 

@@ -125,7 +125,7 @@ describe('cv serve: GET/PUT /config/llm y POST /config/llm/check', () => {
     expect(noKey.status).toBe(200);
     expect(await noKey.json()).toMatchObject({ provider: 'openai', kind: 'remote', ok: false, message: expect.stringContaining('No hay clave para «openai»') as string });
     const unknown = await post(remoteServer, '/config/llm/check', { provider: 'gemini' });
-    expect(await unknown.json()).toMatchObject({ provider: 'gemini', kind: 'remote', ok: false, message: expect.stringContaining('pendiente de la verificación al alta') as string });
+    expect(await unknown.json()).toMatchObject({ provider: 'gemini', kind: 'remote', ok: false, message: expect.stringContaining('No hay clave para «gemini»') as string });
     expect((await post(server, '/config/llm/check', { provider: '' })).status).toBe(400);
     env = { CHAMELEON_OPENAI_API_KEY: 'sk' };
     const remoteMissing = await post(remoteServer, '/config/llm/check', { provider: 'openai' });

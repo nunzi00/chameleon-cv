@@ -114,6 +114,32 @@ Y: «Do not submit sensitive, confidential, or personal information to the Unpai
   4. Prueba funcional con el banco (`~/.cache/chameleon-cv-verify/groq-bench`, cero datos reales): **qwen/qwen3.8-27b** → 2 propuestas, 0 fallos, 641 ms, `json_schema` estricto ✓; **cabeceras de cuota reales** («quedan 999/1000 peticiones (se renueva en 86 s) · 6946/8000 tokens») ✓. **openai/gpt-oss-120b** falló con el techo de la tarea (600): HTTP 400 `json_validate_failed` con `failed_generation` VACÍA — razona y agota el presupuesto antes de emitir; con 4000 tokens de techo devuelve JSON perfecto (437 de salida). → Hallazgo corregido en el producto: `outputTokensFloor: 4000` en el registro para gpt-oss-120b; tareas y estimadores elevan el techo hasta el suelo (el consentimiento muestra el coste real).
   - Activación: `availability: 'available'` en este mismo cambio; la rama «pendiente» sigue cubierta con un registro inyectable en las pruebas (volverá a usarse cuando Gemini entre como pendiente).
 
+**Registro de la verificación de Gemini (31-ago-2026, protocolo de §9)**
+
+Ejecutada con la clave del PO y **exclusivamente con el banco de pruebas** (`tests/acceptance/bench/workspace`
+copiado fuera del repositorio); cero datos reales, como exige el aviso del plan gratuito. Resultado: **VERIFICADO**,
+pero solo después de corregir **tres defectos que el protocolo destapó** —que es justamente para lo que existe—:
+
+1. **Alta**: la hizo el PO. *Pendiente de que confirme el criterio (b) de §0: si el alta exigió método de pago.*
+2. **Clave**: `llm key list` → «gemini: fichero de claves» (0600) ✓.
+3. **Salud y modelos**: alcanzable, 54 modelos. **Defecto 1**: Gemini devuelve los identificadores con prefijo
+   (`models/gemini-3.6-flash`) aunque las peticiones se hagan sin él, y nuestra comparación en crudo decía «el
+   modelo configurado no está disponible» **con el modelo primero de la lista**. Corregido en
+   `openai-compatible.ts`: se compara por el nombre desnudo y se muestra el identificador tal cual.
+4. **Prueba funcional**: falló dos veces antes de pasar.
+   - **Defecto 2**: HTTP 400 en TODAS las llamadas, `Invalid JSON payload received. Unknown name "seed"`. La capa
+     compatible de Gemini no admite `seed`, que enviamos para que la respuesta sea reproducible. Corregido con
+     `supportsSeed: false` en el registro; allí se omite y se pierde la reproducibilidad, cosa que conviene saber.
+   - **Defecto 3**: `gemini-2.5-flash`, nuestro modelo por defecto, responde **HTTP 404**: «no longer available to
+     new users. Please update your code to use `models/gemini-3.6-flash`». El endpoint de modelos lo sigue
+     listando: la lista y lo que de verdad se sirve **no coinciden** en una cuenta nueva. Y con el techo de la
+     tarea, `gemini-3.6-flash` devuelve **JSON truncado** (`{"proposals":[{"text":"Implementé la`), igual que
+     `gpt-oss-120b` de Groq: razona y agota el presupuesto antes de emitir. Corregido: `gemini-3.6-flash` pasa a
+     ser el modelo por defecto, con `outputTokensFloor: 4000`.
+   - Con los tres arreglos: **6 propuestas, 3 aceptadas y 3 rechazadas por el código (C2)**, y el corte por cuota
+     del plan gratuito se ejercitó solo (HTTP 429 → el lote se detiene y no se reintenta, como está documentado).
+5. **Activación**: `availability: 'available'` en este mismo cambio.
+
 ## 11. Gemini registrado como pendiente (T-8.15, 31-ago-2026)
 
 Por orden del Director y con la propuesta `docs/gemini-provider.md` APROBADA (D1–D5), **Gemini entra en el registro
