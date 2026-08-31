@@ -17,6 +17,10 @@
   }
   let { api, onsession }: Props = $props();
 
+  // Dos orígenes con el mismo destino: un CV maquetado (se adivina la maquetación) o la exportación oficial de
+  // datos de LinkedIn (CSV estructurado, sin adivinar nada y sin líneas sin situar). La URL del perfil NO es una
+  // opción: el robots.txt de LinkedIn prohíbe el acceso automatizado y esa URL devuelve el muro de acceso.
+  let source = $state<'cv' | 'linkedin'>('cv');
   let file = $state<File | undefined>(undefined);
   let name = $state('');
   let busy = $state(false);
@@ -121,7 +125,8 @@
     error = undefined;
     conflict = false;
     try {
-      result = await api.importCv(file, { ...(name.trim() === '' ? {} : { name: name.trim() }), ...(replace ? { replace: true } : {}) });
+      const options = { ...(name.trim() === '' ? {} : { name: name.trim() }), ...(replace ? { replace: true } : {}) };
+      result = source === 'linkedin' ? await api.importLinkedIn(file, options) : await api.importCv(file, options);
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === 'conflict') {
         conflict = true;
@@ -215,8 +220,28 @@
 
   <form class="cv-import-form" onsubmit={(event) => { event.preventDefault(); void importCv(false); }}>
     <label class="cv-field">
-      <span>Fichero (.pdf o .docx)</span>
-      <input type="file" accept=".pdf,.docx,application/pdf" onchange={pick} />
+      <span>Origen</span>
+      <select bind:value={source} onchange={() => { file = undefined; result = undefined; error = undefined; }}>
+        <option value="cv">Un CV maquetado (.pdf o .docx)</option>
+        <option value="linkedin">La exportación de datos de LinkedIn (.zip)</option>
+      </select>
+    </label>
+    {#if source === 'linkedin'}
+      <p class="cv-muted">
+        Pídela en LinkedIn: <strong>Configuración y privacidad → Privacidad de datos → Obtener una copia de tus
+        datos</strong>, eligiendo los datos concretos (Positions, Education, Skills, Languages, Certifications,
+        Projects, Profile). Llega por correo en unos minutos. Trae los datos <strong>estructurados</strong>, así
+        que no hay maquetación que adivinar y no queda nada sin situar. La URL del perfil no sirve: LinkedIn
+        prohíbe el acceso automatizado y esa dirección devuelve el muro de acceso, no el CV.
+      </p>
+    {/if}
+    <label class="cv-field">
+      <span>{source === 'linkedin' ? 'Fichero (.zip de la exportación)' : 'Fichero (.pdf o .docx)'}</span>
+      {#if source === 'linkedin'}
+        <input type="file" accept=".zip,application/zip" onchange={pick} />
+      {:else}
+        <input type="file" accept=".pdf,.docx,application/pdf" onchange={pick} />
+      {/if}
     </label>
     <label class="cv-field">
       <span>Nombre del borrador (opcional)</span>

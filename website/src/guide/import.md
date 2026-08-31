@@ -115,6 +115,12 @@ cv import-linkedin ~/Downloads/Basic_LinkedInDataExport.zip
 Los nombres de los ficheros dentro del zip varían con el idioma de la interfaz y con la versión, así que `cv`
 los busca por su nombre base y **no le importa que vengan dentro de una carpeta**.
 
+### Desde la interfaz web
+
+En **Perfil → Importar CV**, el selector **«Origen»** cambia entre un CV maquetado y la exportación de LinkedIn.
+Eligiendo la segunda, el campo pasa a aceptar el `.zip` y la página te recuerda dónde pedirlo. El borrador sale
+en el mismo sitio y con el mismo informe; la diferencia se ve al leerlo: **no hay líneas «sin situar»**.
+
 Se lee `Profile.csv` (nombre, titular, resumen, ubicación, enlaces), `Positions.csv` (experiencia; sin fecha de
 fin, el puesto queda «en curso»), `Education.csv`, `Certifications.csv`, `Projects.csv`, `Skills.csv`,
 `Languages.csv` —con los cinco niveles de LinkedIn traducidos a MCER— y tus correo y teléfono. Lo que no esté en

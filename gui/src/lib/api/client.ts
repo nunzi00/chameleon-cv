@@ -127,6 +127,8 @@ export interface ApiClient {
   extractOffer(pdf: Blob): Promise<ExtractResponse>;
   /** POST /import-cv (T-8.4b): el CV (PDF/DOCX) como borrador en import/<nombre>/; 409 conflict si ya existe sin replace. */
   importCv(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
+  /** POST /import-linkedin (T-9.8): la exportación oficial de datos (zip) como borrador; datos estructurados, sin red. */
+  importLinkedIn(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
   /** PUT /config/llm/keys/{provider}: guarda la clave en el fichero de claves (0600). La clave viaja solo aquí; ninguna respuesta la devuelve. */
   setLlmKey(provider: string, key: string): Promise<LlmKeyResponse>;
   /** DELETE /config/llm/keys/{provider}: la borra del fichero de claves. */
@@ -290,6 +292,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     importCv: async (file, options = {}) => {
       const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
       const response = await raw('POST', '/import-cv', { body: file, contentType: 'application/pdf', headers });
+      return (await response.json()) as ImportCvResponse;
+    },
+    importLinkedIn: async (file, options = {}) => {
+      const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
+      const response = await raw('POST', '/import-linkedin', { body: file, contentType: 'application/pdf', headers });
       return (await response.json()) as ImportCvResponse;
     },
     setLlmKey: (provider, key) => request('PUT', `/config/llm/keys/${encodeId(provider)}`, { body: { key } }),
