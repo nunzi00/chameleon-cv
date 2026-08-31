@@ -450,3 +450,20 @@ describe('la viñeta que abre la fila no es parte del título (B-11)', () => {
     expect(draft.education[0]).toMatchObject({ title: 'Ciclo Superior Desarrollo de Aplicaciones Web.', start: '2011', end: '2013' });
   });
 });
+
+describe('la duración que LinkedIn añade tras el rango', () => {
+  it('no se toma por el título de la entrada', () => {
+    const cv = ['Lucas Nunzi', 'Experiencia', 'Picas Rojas', 'Desarrollador web', 'noviembre de 2016 - abril de 2017 (6 meses)'].join('\n');
+    const draft = structureCv(cv);
+    // Lo que este arreglo garantiza: la duración no es el título y las fechas se leen. Que LinkedIn ponga la
+    // empresa ANTES que el puesto —al revés de «Rol · Empresa»— es otra cosa, y sin marca fiable que distinga
+    // una de otro no se toca el orden: inventarlo sería peor que dejarlo (queda anotado en el ROADMAP).
+    expect(draft.experience[0]?.title).not.toContain('meses');
+    expect(draft.experience[0]).toMatchObject({ start: '2016-11', end: '2017-04' });
+  });
+
+  it('un paréntesis que no es una duración se respeta', () => {
+    const cv = ['Lucas Nunzi', 'Experiencia', '2016 - 2017 Desarrollador (remoto)'].join('\n');
+    expect(structureCv(cv).experience[0]?.location).toBe('remoto');
+  });
+});

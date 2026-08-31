@@ -94,6 +94,8 @@ const BULLET = /^(?:[•▸◦‣▪■●○☑☐✓✔\-–—*]|\d+[.)])\s+/
 const CONTACT_GLYPHS = /[✉☎☏⌂]/g;
 const SEPARATORS = / · | — | – | \| | • /;
 const FOOTER = /(?:·|—|-)\s*(?:\d+\s*\/\s*\d+|p[aá]gina\s+\d+\s+de\s+\d+|page\s+\d+\s+of\s+\d+)\s*$/i;
+/** La duración que LinkedIn añade tras el rango («(2 años 4 meses)», «(6 months)»): no es el título de nada. */
+const DURATION = /\s*\((?:\d+\s*(?:años?|years?|meses|months?)\s*)+\)\s*$/i;
 const TECHNOLOGIES = /^(?:tecnolog[ií]as|technologies|tech|stack)\s*:\s*(.+?)\.?$/i;
 const INLINE_TECHNOLOGIES = /\s*(?:tecnolog[ií]as|technologies|stack)\s*:\s*([^;]+?)\.?\s*$/i;
 const LINK_LABELS = new Set(['github', 'linkedin', 'web', 'website', 'portfolio', 'twitter', 'x', 'gitlab', 'blog', 'enlace', 'link']);
@@ -378,7 +380,7 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
     // Cuerpo en línea tras la fecha solo si parece prosa (frases con punto o punto y coma) y no es una fila de tabla («Periodo | Puesto | Empresa»);
     // «2014 – 2015 Máster en Ciencia de Datos · Universitat de València» es un título largo, no un cuerpo.
     const inlineBody = after.length >= INLINE_BODY_MIN && PROSE.test(after) && !CELL_AFTER.test(line.text.slice(range.index + range.text.length)) ? after : undefined;
-    const joined = inlineBody === undefined ? trimSeparators(`${before} ${after}`) : before;
+    const joined = trimSeparators((inlineBody === undefined ? `${before} ${after}` : before).replace(DURATION, ''));
     // La viñeta que abre la fila («• | 2011 2013. | Ciclo Superior…») no es parte del título de la entrada.
     const titleText = isBullet(joined) ? stripBullet(joined) : joined;
     // «mar 2022 – actualidad · Valencia (remoto)» debajo del título: lo que queda junto a la fecha es el lugar, no un título.
