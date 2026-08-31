@@ -120,7 +120,7 @@ Ejecutada con la clave del PO y **exclusivamente con el banco de pruebas** (`tes
 copiado fuera del repositorio); cero datos reales, como exige el aviso del plan gratuito. Resultado: **VERIFICADO**,
 pero solo después de corregir **tres defectos que el protocolo destapó** —que es justamente para lo que existe—:
 
-1. **Alta**: la hizo el PO. *Pendiente de que confirme el criterio (b) de §0: si el alta exigió método de pago.*
+1. **Alta**: la hizo el PO en el plan gratuito. **Confirmado por él el 31-ago-2026: el alta NO exigió método de pago** (criterio (b) de §0 satisfecho, igual que con Groq).
 2. **Clave**: `llm key list` → «gemini: fichero de claves» (0600) ✓.
 3. **Salud y modelos**: alcanzable, 54 modelos. **Defecto 1**: Gemini devuelve los identificadores con prefijo
    (`models/gemini-3.6-flash`) aunque las peticiones se hagan sin él, y nuestra comparación en crudo decía «el
