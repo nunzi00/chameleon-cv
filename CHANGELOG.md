@@ -2,18 +2,18 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
-## [Unreleased]
+## [1.12.0] - 2026-08-31
+
+### Añadido
+
+- **ESLint como segunda puerta estática** (T-9.3, deuda B-6): `npm run lint` con `typescript-eslint` y un juego corto de reglas que el compilador no cubre —promesas sin esperar, promesas mal usadas como condición, `await` sobre lo que no es una promesa, aserciones de tipo inútiles, `sort` sin comparador, métodos desligados—; corre en CI y en el trabajo de verificación de la release. En su primera pasada retiró once aserciones de tipo que ya no hacían falta.
+- **Guarda de clases de estilo** (T-9.2): una prueba recorre los componentes y falla si una clase `cv-*` que se aplica no existe ni en `app.css` ni en el `<style>` del propio fichero. Nació del defecto de la 1.11.0 —`cv-pre` no existía y nadie lo vio hasta mirar la pantalla— y en su primera ejecución encontró otros tres.
 
 ### Corregido
 
 - **El nombre del CV importado** (T-9.1): la primera línea del PDF ya no se toma como el nombre de la persona. Ahora se puntúan los candidatos de la cabecera —dos a cinco palabras capitalizadas, con partículas en minúscula («de la»), sin cifras ni palabras de documento o institución— y se elige el mejor, partiendo la línea por sus separadores («Jane Doe | Resume»). Si ninguno convence, el borrador dice «Nombre pendiente» con su aviso en vez de inventar, y la carpeta se nombra por el fichero de origen. Medido sobre los once PDF del corpus: antes **uno** reconocía bien el nombre; ahora aciertan **los seis que tienen persona** (los otros cinco son guías sin nombre y quedan pendientes, que es la respuesta correcta).
 - Dos avisos que `--fix` de ESLint habría estropeado y se revirtieron con su motivo: `process.stdin.isTTY` es `undefined` en una tubería aunque su tipo diga `boolean` (la comparación `=== true` no sobra), y con `exactOptionalPropertyTypes` el proyecto escribe `?: T | undefined` a propósito.
 - Tres clases de estilo que no existían en la hoja global y no pintaban nada: la fila de campo y botón en Generar (el selector de ofertas y el guardado desde una URL salían apilados) y los dos avisos de la ficha de proveedor en Ajustes.
-
-### Añadido
-
-- **ESLint como segunda puerta estática** (T-9.3, deuda B-6): `npm run lint` con `typescript-eslint` y un juego corto de reglas que el compilador no cubre —promesas sin esperar, promesas mal usadas como condición, `await` sobre lo que no es una promesa, aserciones de tipo inútiles, `sort` sin comparador, métodos desligados—; corre en CI y en el trabajo de verificación de la release. En su primera pasada retiró once aserciones de tipo que ya no hacían falta.
-- **Guarda de clases de estilo** (T-9.2): una prueba recorre los componentes y falla si una clase `cv-*` que se aplica no existe ni en `app.css` ni en el `<style>` del propio fichero. Nació del defecto de la 1.11.0 —`cv-pre` no existía y nadie lo vio hasta mirar la pantalla— y en su primera ejecución encontró otros tres.
 
 ## [1.11.0] - 2026-08-31
 
