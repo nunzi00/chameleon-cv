@@ -443,3 +443,10 @@ describe('cuando espaciar es el estilo de la plantilla, no una marca de título 
     expect(draft.education[0]).toMatchObject({ title: 'Grado en Filología', subtitle: 'INGABAD' });
   });
 });
+
+describe('la viñeta que abre la fila no es parte del título (B-11)', () => {
+  it('se retira del título de la entrada, venga sola o pegada a la fecha', () => {
+    const draft = structureCv(['Lucas Nunzi', 'Estudios.', '• 2011 2013. | Ciclo Superior Desarrollo de Aplicaciones Web.', 'I.E.S. Muralla Romana.'].join('\n'));
+    expect(draft.education[0]).toMatchObject({ title: 'Ciclo Superior Desarrollo de Aplicaciones Web.', start: '2011', end: '2013' });
+  });
+});

@@ -378,7 +378,9 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
     // Cuerpo en línea tras la fecha solo si parece prosa (frases con punto o punto y coma) y no es una fila de tabla («Periodo | Puesto | Empresa»);
     // «2014 – 2015 Máster en Ciencia de Datos · Universitat de València» es un título largo, no un cuerpo.
     const inlineBody = after.length >= INLINE_BODY_MIN && PROSE.test(after) && !CELL_AFTER.test(line.text.slice(range.index + range.text.length)) ? after : undefined;
-    const titleText = inlineBody === undefined ? trimSeparators(`${before} ${after}`) : before;
+    const joined = inlineBody === undefined ? trimSeparators(`${before} ${after}`) : before;
+    // La viñeta que abre la fila («• | 2011 2013. | Ciclo Superior…») no es parte del título de la entrada.
+    const titleText = isBullet(joined) ? stripBullet(joined) : joined;
     // «mar 2022 – actualidad · Valencia (remoto)» debajo del título: lo que queda junto a la fecha es el lugar, no un título.
     const restIsLocation = pending.length > 0 && titleText !== '' && !SEPARATORS.test(titleText) && looksLikeLocation(titleText);
     if (titleText === '' || restIsLocation) {

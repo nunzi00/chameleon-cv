@@ -115,9 +115,19 @@ export function pageLines(items: readonly TextItem[], options: LayoutOptions = {
     }
     // La viñeta del área de uso privado (Word con Symbol/Wingdings) se normaliza a «•»: el resto del importador
     // ya sabe qué es una viñeta, y sin esto la celda parece contenido y rompe la detección de columnas.
+    // Word maqueta las listas con un carácter del área de uso privado (U+F0B7 y vecinos) que NO se puede
+    // interpretar: es un glifo sin mapear. Al principio de la celda hace de viñeta y se normaliza a «•»; en
+    // cualquier otra posición no dice nada y se retira, porque invisible como es, estorba a todo lo que mire el
+    // principio de la línea —y de hecho impedía reconocer la fecha de siete formaciones (B-11)—.
     const clean = (text: string): string => {
       const trimmed = text.replace(/\s+/g, ' ').trim();
-      return /^[\uE000-\uF8FF]$/u.test(trimmed) ? '•' : collapseSpacedDigits(trimmed);
+      const bulleted = trimmed.replace(/^[\uE000-\uF8FF]\s*/u, '• ');
+      return collapseSpacedDigits(
+        bulleted
+          .replace(/[\uE000-\uF8FF]/gu, '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      );
     };
     return { y: group[0]!.y, segments: segments.map((segment) => ({ ...segment, text: clean(segment.text) })).filter((segment) => segment.text !== '') };
   });

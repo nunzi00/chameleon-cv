@@ -87,8 +87,21 @@ export function parsePoint(text: string): string | undefined {
   return month === undefined ? undefined : `${named[2]}-${pad(month)}`;
 }
 
+/**
+ * Un rango de dos años SIN separador («2011 2013.»): algunas exportaciones a PDF pierden el guion y solo dejan un
+ * espacio, con lo que la formación no abre ninguna entrada (B-11, medido en `CV Lucas.pdf`). Se admite con la
+ * puerta muy estrecha —la celda ha de ser SOLO los dos años, ambos plausibles y en orden— para no confundir con
+ * un rango cualquier par de cifras sueltas: «(Curso 1819)» no entra, y «20/08/2007 31/09/2007» tampoco.
+ */
+const BARE_YEARS = new RegExp(`^[\\s•▸◦‣▪■●○*\\-–—]*((${YEAR})\\s+(${YEAR})\\.?)\\s*(?:\\||$)`);
+
 /** El primer rango de fechas de una línea, si lo hay. */
 export function findDateRange(line: string): DateRange | undefined {
+  const bare = BARE_YEARS.exec(line);
+  if (bare !== null && Number(bare[3]) >= Number(bare[2]) && Number(bare[3]) - Number(bare[2]) <= 60) {
+    // `text` es SOLO el tramo de la fecha: `open()` parte la línea por él para sacar el título de lo que queda.
+    return { start: bare[2]!, end: bare[3]!, current: false, text: bare[1]!, index: line.indexOf(bare[1]!) };
+  }
   const match = RANGE.exec(line);
   if (match === null) {
     return undefined;

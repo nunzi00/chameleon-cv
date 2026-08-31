@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { findDateRange } from '../../src/import/dates';
 import { LAYOUT_DEFAULTS, collapseSpacedDigits, detectColumns, isBulletCell, layoutText, pageLines, startsWithLabel, type TextItem } from '../../src/import/layout';
 
 const item = (text: string, x: number, y: number, extra: Partial<TextItem> = {}): TextItem => ({ page: 1, text, x, y, width: text.length * 5, fontSize: 10, ...extra });
@@ -120,9 +121,13 @@ describe('viñetas y glifos superpuestos (B-8 y B-9)', () => {
     expect(isBulletCell('2011')).toBe(false);
   });
 
-  it('la viñeta del área de uso privado se normaliza a « • » para que el resto la entienda', () => {
+  it('la viñeta del área de uso privado se normaliza a « • », vaya sola o pegada al texto', () => {
     const lines = pageLines([item('\uF0B7', 40, 700, { width: 5 }), item('2011 - 2013.', 80, 700)]);
     expect(texts(lines)).toEqual([['•', '2011 - 2013.']]);
+    // Pegada al contenido (B-11): al principio hace de viñeta; invisible como es, impedía ver la fecha detrás.
+    expect(texts(pageLines([item('\uF0B7 2011 2013.', 40, 700)]))).toEqual([['• 2011 2013.']]);
+    // En cualquier otra posición no dice nada y se retira, en vez de dejar un carácter que nadie puede leer.
+    expect(texts(pageLines([item('Ciclo \uF0B7 Superior', 40, 700)]))).toEqual([['Ciclo Superior']]);
   });
 
   it('un acento pintado dentro del tramo anterior se coloca en su hueco, no al final', () => {
@@ -165,5 +170,20 @@ describe('texto espaciado letra a letra (B-10)', () => {
     expect(collapseSpacedDigits('Migración de macros a LibreOffice en 2016')).toBe('Migración de macros a LibreOffice en 2016');
     expect(collapseSpacedDigits('2011 - 2013')).toBe('2011 - 2013');
     expect(collapseSpacedDigits('a 1 b')).toBe('a 1 b');
+  });
+});
+
+describe('rangos de dos años sin separador (B-11)', () => {
+  it('los reconoce cuando la celda son solo los dos años, con o sin viñeta delante', () => {
+    expect(findDateRange(' 2011 2013. | Ciclo Superior')).toMatchObject({ start: '2011', end: '2013', text: '2011 2013.' });
+    expect(findDateRange('• 1986 1993.')).toMatchObject({ start: '1986', end: '1993' });
+  });
+
+  it('no confunde con un rango cualquier par de cifras', () => {
+    // La puerta es estrecha a propósito: fuera de la celda, en desorden, o con años imposibles, no hay rango.
+    expect(findDateRange('(Curso 1819)')).toBeUndefined();
+    expect(findDateRange('2013 2011')).toBeUndefined();
+    expect(findDateRange('Ada 2011 2013 fin')).toBeUndefined();
+    expect(findDateRange('1900 2005')).toBeUndefined();
   });
 });
