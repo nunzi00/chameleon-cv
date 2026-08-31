@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { draftFiles, draftReport, mapLanguageLevel } from '../../src/import/draft';
+import { draftFiles, draftReport, mapLanguageLevel, unplacedFromReport, withProposals } from '../../src/import/draft';
 import type { DraftProfile } from '../../src/import/structure';
 
 const EMPTY: DraftProfile = {
@@ -151,5 +151,36 @@ describe('draftReport', () => {
       education: [{ title: 'Grado en Filología', subtitle: 'Universitat de València', start: '2014-05', singleDate: true, technologies: [], achievements: [], provenance: { line: 14, text: 'Grado en Filología | may 2014' } }],
     });
     expect(result.issues.map((issue) => issue.reason)).toContain('formación con una sola fecha: «Grado en Filología» la toma como inicio; ajústala si era la de graduación');
+  });
+});
+
+describe('informe del borrador: lectura y actualización (T-8.18)', () => {
+  const base = ['# Informe', '', '## Degradado o avisado', '', '- algo', '', '## Sin situar (revísalo a mano)', '', '- línea 9: algo suelto', '- ruido que no es una línea', '', '## Otra cosa', '', '- fin', ''].join('\n');
+
+  it('lee solo las líneas sin situar de su sección y para en el título siguiente', () => {
+    expect(unplacedFromReport(base)).toEqual([{ line: 9, text: 'algo suelto' }]);
+    expect(unplacedFromReport('# Informe\n\n- Origen: cv.pdf\n')).toEqual([]);
+  });
+
+  it('inserta las propuestas antes de «Sin situar» y las sustituye si se repite el refinado', () => {
+    const once = withProposals(base, [{ n: 9, section: 'experiencia', reason: 'con fechas', text: 'algo suelto' }]);
+    expect(once).toContain('## Propuestas del co-piloto (no aplicadas)');
+    expect(once.indexOf('## Propuestas')).toBeLessThan(once.indexOf('## Sin situar'));
+    expect(once).toContain('- línea 9 → **experiencia**: algo suelto _(con fechas)_');
+    const twice = withProposals(once, [{ n: 9, section: 'descartar', reason: '', text: 'algo suelto' }]);
+    expect(twice.match(/## Propuestas del co-piloto/g)).toHaveLength(1);
+    expect(twice).toContain('- línea 9 → **descartar**: algo suelto\n');
+    expect(twice).toContain('## Otra cosa');
+    // Sin propuestas la sección desaparece del informe.
+    expect(withProposals(once, [])).not.toContain('## Propuestas del co-piloto');
+  });
+
+  it('sin sección «Sin situar» las propuestas van al final, y una sección final se sustituye entera', () => {
+    const plain = '# Informe\n\n- Origen: cv.pdf\n';
+    const added = withProposals(plain, [{ n: 4, section: 'idioma', reason: '', text: 'Inglés C1' }]);
+    expect(added).toBe('# Informe\n\n- Origen: cv.pdf\n\n## Propuestas del co-piloto (no aplicadas)\n\nEl co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.\n\n- línea 4 → **idioma**: Inglés C1\n');
+    expect(withProposals(added, [{ n: 4, section: 'habilidad', reason: '', text: 'Inglés C1' }])).toContain('- línea 4 → **habilidad**: Inglés C1');
+    // Un informe sin salto final también termina con exactamente uno.
+    expect(withProposals('# Informe', [{ n: 1, section: 'resumen', reason: '', text: 'Perfil' }])).toBe('# Informe\n\n## Propuestas del co-piloto (no aplicadas)\n\nEl co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.\n\n- línea 1 → **resumen**: Perfil\n');
   });
 });

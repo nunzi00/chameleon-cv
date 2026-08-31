@@ -120,6 +120,9 @@ const CALLS: readonly Call[] = [
   { method: 'PUT', path: '/config/serve', body: { allow_remote: true } },
   { method: 'PUT', path: '/config/serve', body: { allow_remote: true }, headers: { 'If-Match': '"0000000000000000000000000000000000000000000000000000000000000000"' } },
   { method: 'PUT', path: '/config/serve', body: { allow_remote: 'sí' }, headers: { 'If-Match': '*' } },
+  // Refinar un borrador con el co-piloto (T-8.18): sin nombre es 400 y un borrador inexistente, 404 (sin modelo de por medio).
+  { method: 'POST', path: '/jobs/import-map', body: {} },
+  { method: 'POST', path: '/jobs/import-map', body: { name: 'no-existe' } },
 ];
 
 /** `/assets/index-Bi0q-oYA.js` → `/assets/index-<HASH>.js`. */

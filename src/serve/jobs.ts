@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import type { AppError } from '../app/errors';
 import { describeError } from '../shared/errors';
 
-export type JobKind = 'improve' | 'summarize' | 'suggest-tags' | 'ollama-up';
+export type JobKind = 'improve' | 'summarize' | 'suggest-tags' | 'import-map' | 'ollama-up';
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
 
 export interface JobError {

@@ -241,6 +241,15 @@ export function draftFiles(draft: DraftProfile): DraftFiles {
 }
 
 /** El informe del borrador: qué se reconoció, qué se degradó y qué quedó sin situar (con líneas del texto). */
+const UNPLACED_HEADING = '## Sin situar (revísalo a mano)';
+const PROPOSALS_HEADING = '## Propuestas del co-piloto (no aplicadas)';
+const UNPLACED_LINE = /^- línea (\d+): (.*)$/;
+
+/** Una línea de propuesta del informe: el mismo formato lo escribe la CLI y lo relee el trabajo de la API. */
+function proposalLine(proposal: ReportProposal): string {
+  return `- línea ${proposal.n} → **${proposal.section}**: ${proposal.text.slice(0, 120)}${proposal.reason === '' ? '' : ` _(${proposal.reason})_`}`;
+}
+
 export interface ReportProposal {
   readonly n: number;
   readonly section: string;
@@ -266,16 +275,59 @@ export function draftReport(result: DraftFiles, origin: string, importedAt: stri
     }
   }
   if (proposals.length > 0) {
-    lines.push('', '## Propuestas del co-piloto (no aplicadas)', '', 'El co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.', '');
+    lines.push('', PROPOSALS_HEADING, '', 'El co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.', '');
     for (const proposal of proposals) {
-      lines.push(`- línea ${proposal.n} → **${proposal.section}**: ${proposal.text.slice(0, 120)}${proposal.reason === '' ? '' : ` _(${proposal.reason})_`}`);
+      lines.push(proposalLine(proposal));
     }
   }
   if (result.unparsed.length > 0) {
-    lines.push('', '## Sin situar (revísalo a mano)', '');
+    lines.push('', UNPLACED_HEADING, '');
     for (const item of result.unparsed) {
       lines.push(`- línea ${item.line}: ${item.text}`);
     }
   }
   return `${lines.join('\n')}\n`;
+}
+
+
+
+/** Las líneas sin situar de un informe ya escrito: el formato lo genera `draftReport` (T-8.18, docs/cv-import.md §2.2). */
+export function unplacedFromReport(report: string): ReadonlyArray<{ readonly line: number; readonly text: string }> {
+  const lines = report.split('\n');
+  const start = lines.indexOf(UNPLACED_HEADING);
+  if (start === -1) {
+    return [];
+  }
+  const found: Array<{ line: number; text: string }> = [];
+  for (const text of lines.slice(start + 1)) {
+    if (text.startsWith('## ')) {
+      break;
+    }
+    const match = UNPLACED_LINE.exec(text);
+    if (match !== null) {
+      found.push({ line: Number(match[1]), text: match[2]! });
+    }
+  }
+  return found;
+}
+
+/**
+ * El informe con la sección de propuestas puesta al día: se sustituye si ya estaba (un refinado repetido no
+ * acumula secciones) y, si no, se inserta antes de «Sin situar» para que se lea junto a lo que explica.
+ */
+export function withProposals(report: string, proposals: readonly ReportProposal[]): string {
+  const lines = report.split('\n');
+  const previous = lines.indexOf(PROPOSALS_HEADING);
+  if (previous !== -1) {
+    const end = lines.slice(previous + 1).findIndex((line) => line.startsWith('## '));
+    lines.splice(previous, end === -1 ? lines.length - previous : end + 1);
+  }
+  const block = proposals.length === 0 ? [] : [PROPOSALS_HEADING, '', 'El co-piloto solo PROPONE dónde iría cada línea sin situar; nada se ha escrito en el borrador. Muévelas tú si estás de acuerdo.', '', ...proposals.map(proposalLine), ''];
+  const unplaced = lines.indexOf(UNPLACED_HEADING);
+  if (unplaced === -1) {
+    const tail = lines.at(-1) === '' ? lines.slice(0, -1) : lines;
+    return `${[...tail, '', ...block].join('\n').replace(/\n+$/, '')}\n`;
+  }
+  lines.splice(unplaced, 0, ...block);
+  return lines.join('\n');
 }

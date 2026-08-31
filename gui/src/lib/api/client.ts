@@ -22,6 +22,7 @@ import type {
   GenerateResponse,
   ImportRequest,
   ImportResponse,
+  ImportMapJobRequest,
   ImproveJobRequest,
   JobCreatedResponse,
   JobResponse,
@@ -178,12 +179,13 @@ export interface ApiClient {
   shutdown(): Promise<ShutdownResponse>;
 }
 
-export type JobKind = 'improve' | 'summarize' | 'suggest-tags' | 'ollama-up';
+export type JobKind = 'improve' | 'summarize' | 'suggest-tags' | 'import-map' | 'ollama-up';
 
 export type JobRequest =
   | { readonly kind: 'improve'; readonly body: ImproveJobRequest }
   | { readonly kind: 'summarize'; readonly body: SummarizeJobRequest }
-  | { readonly kind: 'suggest-tags'; readonly body: SuggestTagsJobRequest };
+  | { readonly kind: 'suggest-tags'; readonly body: SuggestTagsJobRequest }
+  | { readonly kind: 'import-map'; readonly body: ImportMapJobRequest };
 
 export interface OutputFile {
   readonly name: string;

@@ -62,12 +62,14 @@ const base: LlmProvider = {
 const slow: LlmProvider = { ...base, complete: (request) => new Promise((resolve) => request.signal?.addEventListener('abort', () => resolve({ ok: false, code: 'cancelled', message: 'cancelada' }))) };
 const remote: LlmProvider = { ...base, id: 'openai', kind: 'remote', baseUrl: 'https://api.openai.com', model: 'gpt-x' };
 const gemini: LlmProvider = { ...base, id: 'gemini', kind: 'remote', baseUrl: 'https://generativelanguage.googleapis.com', model: 'g-x' };
+/** Responde el esquema de «import map»: una propuesta válida para la línea que se envía. */
+const mapper: LlmProvider = { ...base, complete: () => Promise.resolve({ ok: true, json: { proposals: [{ n: 9, section: 'experiencia', reason: 'entidad con fechas' }] }, raw: '{}', model: 'fake', usage: {}, elapsedMs: 2 }) };
 const sick: LlmProvider = { ...base, health: () => Promise.resolve({ ok: false, code: 'unreachable', message: 'Ollama no responde' }) };
 const modelless: LlmProvider = { ...base, health: () => Promise.resolve({ ok: true, version: undefined, models: [], modelAvailable: false }) };
 const otherModel: LlmProvider = { ...base, health: () => Promise.resolve({ ok: true, version: undefined, models: ['llama3'], modelAvailable: false }) };
 
 function llmProvider(selection: ProviderSelection): Promise<{ ok: true; provider: LlmProvider } | { ok: false; message: string }> {
-  const providers: Record<string, LlmProvider> = { lento: slow, remoto: remote, gemini, enfermo: sick, 'sin-modelo': modelless, 'otro-modelo': otherModel };
+  const providers: Record<string, LlmProvider> = { lento: slow, remoto: remote, gemini, mapa: mapper, enfermo: sick, 'sin-modelo': modelless, 'otro-modelo': otherModel };
   if (selection.provider === 'ninguno') {
     return Promise.resolve({ ok: false, message: 'sin proveedor configurado' });
   }
@@ -260,13 +262,46 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
   });
 });
 
+describe('cv serve: refinar un borrador con el co-piloto (T-8.18)', () => {
+  let server: ServerHandle;
+  let fs: MemoryFileSystem;
+  const REPORT = ['# Informe del borrador importado', '', '- Origen: cv.pdf', '', '## Sin situar (revísalo a mano)', '', '- línea 9: Cruz Roja, Valencia | 2019 – 2020', ''].join('\n');
+  const post = (path: string, body: unknown): Promise<Response> => fetch(`${server.url}api/v1${path}`, { method: 'POST', body: JSON.stringify(body), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+
+  beforeAll(async () => {
+    fs = await workspace({ '/work/import/mio/README.md': REPORT });
+    server = await startServer({ context: appContext(fs, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+  });
+  afterAll(async () => {
+    await server.close();
+  });
+
+  it('propone secciones para lo sin situar y lo deja en el README; sin borrador es 404 y el remoto sigue prohibido', async () => {
+    const created = await post('/jobs/import-map', { provider: 'mapa', cache: false });
+    expect(created.status).toBe(400);
+    const started = await post('/jobs/import-map', { name: 'mio', provider: 'mapa', cache: false });
+    expect(started.status).toBe(202);
+    const body = (await started.json()) as { job: { id: string }; sending: { items: number; skipped: number } };
+    expect(body.sending).toMatchObject({ items: 1, skipped: 0 });
+    const response = await fetch(`${server.url}api/v1/jobs/${body.job.id}/events`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const final = parseSse(await response.text()).at(-1);
+    expect(final?.data).toMatchObject({ status: 'done', result: { name: 'mio', rejected: 0, proposals: [{ n: 9, section: 'experiencia' }] } });
+    expect(fs.file('/work/import/mio/README.md')?.content).toContain('- línea 9 → **experiencia**: Cruz Roja, Valencia | 2019 – 2020');
+
+    expect((await post('/jobs/import-map', { name: 'nada' })).status).toBe(404);
+    const forbidden = await post('/jobs/import-map', { name: 'mio', provider: 'remoto' });
+    expect(forbidden.status).toBe(403);
+    expect(((await forbidden.json()) as { error: { code: string } }).error.code).toBe('remote-disabled');
+  });
+});
+
 describe('cv serve --allow-remote: consentimiento de coste en dos pasos', () => {
   let server: ServerHandle;
   const post = (path: string, body: unknown): Promise<Response> => fetch(`${server.url}api/v1${path}`, { method: 'POST', body: JSON.stringify(body), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
 
   beforeAll(async () => {
     // Escribir en output/ falla: el trabajo terminará en «failed» con el error de la capa de casos de uso.
-    const fs = await workspace({ '/work/output/revision-b.md': 'x' });
+    const fs = await workspace({ '/work/output/revision-b.md': 'x', '/work/import/mio/README.md': ['# Informe', '', '## Sin situar (revísalo a mano)', '', '- línea 9: Cruz Roja, Valencia | 2019 – 2020', ''].join('\n') });
     const failing: WritableFileSystem = Object.assign(Object.create(fs) as WritableFileSystem, {
       writeFile: (path: string, content: string, mode: number) => (path.includes('/output/') ? Promise.reject(new Error('EROFS: solo lectura')) : fs.writeFile(path, content, mode)),
       remove: () => Promise.reject(new Error('EROFS: solo lectura')),
@@ -302,6 +337,18 @@ describe('cv serve --allow-remote: consentimiento de coste en dos pasos', () => 
     const geminiBody = (await geminiTags.json()) as { error: { code: string; dataNote: string } };
     expect(geminiBody.error.code).toBe('consent-required');
     expect(geminiBody.error.dataNote).toContain('Google');
+    // Refinar un borrador con un remoto (T-8.18): estima el coste, exige confirmarlo y, si la respuesta no cumple el esquema, el trabajo falla.
+    const refine = await post('/jobs/import-map', { name: 'mio', provider: 'remoto' });
+    expect(refine.status).toBe(409);
+    const refineConsent = (await refine.json()) as { error: { estimateId: string; estimate: { requests: number }; sending: { items: number } } };
+    expect(refineConsent.error.estimate.requests).toBe(1);
+    expect(refineConsent.error.sending.items).toBe(1);
+    const refining = await post('/jobs/import-map', { name: 'mio', provider: 'remoto', consent: { estimateId: refineConsent.error.estimateId } });
+    expect(refining.status).toBe(202);
+    const refineJob = ((await refining.json()) as { job: { id: string } }).job;
+    const refineEvents = await fetch(`${server.url}api/v1/jobs/${refineJob.id}/events`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    expect(parseSse(await refineEvents.text()).at(-1)?.data).toMatchObject({ status: 'failed', error: { code: 'invalid-data' } });
+
     const undeletable = await fetch(`${server.url}api/v1/reviews/revision-b.md`, { method: 'DELETE', headers: { Authorization: `Bearer ${TOKEN}` } });
     expect(undeletable.status).toBe(503);
     expect((await undeletable.json()) as object).toMatchObject({ error: { code: 'environment', message: 'No se pudo eliminar la revisión «revision-b.md»: EROFS: solo lectura' } });

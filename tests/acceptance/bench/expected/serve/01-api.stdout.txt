@@ -6232,5 +6232,27 @@
   }
 }
 
+### POST /jobs/import-map → 400
+{
+  "error": {
+    "code": "bad-request",
+    "issues": [
+      {
+        "message": "Entrada inválida: se esperaba texto, recibido indefinido",
+        "path": "name"
+      }
+    ],
+    "message": "El cuerpo no cumple el esquema"
+  }
+}
+
+### POST /jobs/import-map → 404
+{
+  "error": {
+    "code": "not-found",
+    "message": "No existe el informe del borrador import/no-existe (README.md); impórtalo primero"
+  }
+}
+
 ### POST /shutdown → 202
 {"ok":true}

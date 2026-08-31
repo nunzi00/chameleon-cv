@@ -55,6 +55,13 @@ mueves tú lo que te convenza.
 Si eliges un proveedor remoto (`--provider`), verás antes el aviso de coste y tendrás que confirmarlo (`--yes` en
 scripts).
 
+### Desde la interfaz web
+
+En **Perfil → Importar CV**, cuando el borrador deja líneas sin situar aparece el botón **«Refinar con el co-piloto»**
+con un selector de proveedor. El refinado es un trabajo del co-piloto como los demás: puedes seguir su progreso, un
+proveedor remoto pide antes confirmar el coste y las propuestas verificadas se añaden al `README.md` del borrador —que
+la página recarga— sin aplicarse. Funciona con cualquier borrador de `import/`, no solo con el que acabas de subir.
+
 ## Después de importar
 
 1. Lee el `README.md` y corrige lo señalado.

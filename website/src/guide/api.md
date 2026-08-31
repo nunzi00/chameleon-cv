@@ -86,6 +86,15 @@ El flujo de eventos (`text/event-stream`) repite al conectar el estado completo 
 
 Las opciones son las de la CLI (`specialty`, `offer`, `topN`, `only`, `proposals`, `maxLength`, `maxItems`, `redactCompanies`, `locale`, `output`, `cache`, `provider`, `model`), sin rutas: la oferta va como `{ "text": "…" }` o `{ "workspaceFile": "ofertas/acme.txt" }`, y `output` es solo el nombre del fichero dentro de `output/`.
 
+### Refinar un borrador de importación
+
+`POST /jobs/import-map` encola el refinado de un borrador de `import/` con el co-piloto: relee su `README.md`, envía
+**solo** las líneas sin situar —seudonimizadas y con un vocabulario cerrado de secciones—, verifica por código cada
+propuesta (línea enviada, sección conocida, una por línea) y deja el informe al día. No escribe en `data/sources/` ni
+aplica nada. Cuerpo: `{ "name": "<carpeta del borrador>" }` más los campos habituales de proveedor; responde `404` si
+el borrador no existe y `400` si no le quedan líneas sin situar. Como el resto de trabajos, un proveedor remoto exige
+`--allow-remote` (`403`) y el consentimiento de coste en dos pasos (`409`).
+
 ### Permitir los remotos desde la configuración
 
 `PUT /config/serve` guarda la tabla `[serve]` de `cv.toml` (hoy solo `allow_remote`) con el mismo `If-Match` que

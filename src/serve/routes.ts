@@ -21,6 +21,7 @@ import { isSafeSourcePath } from '../app/paths';
 import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
+import { executeImportMap, importMapEstimate, planImportMap, type ImportMapPlan } from '../app/import-map';
 import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
 import { isRemoteProviderId, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
@@ -34,7 +35,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemeVerifyResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -1042,6 +1043,39 @@ function addCopilotRoutes(router: Router<ServerState>): void {
             stats: outcome.stats,
             cancelled: outcome.cancelled,
           };
+        },
+      });
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/jobs/import-map`,
+    summary:
+      'Encola el refinado de un borrador de import/ con el co-piloto: envía solo sus líneas sin situar (seudonimizadas, vocabulario cerrado) y deja las propuestas verificadas en el README del borrador. No toca data/sources/ ni aplica nada.',
+    writes: true,
+    body: ImportMapJobSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, ImportMapJobSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const body = parsed.value;
+      const planned = await planImportMap(state.context, { name: body.name, locale: body.locale });
+      if (!planned.ok) {
+        return appErrorResponse(planned.error);
+      }
+      return launchJob(state, body, {
+        kind: 'import-map',
+        planned: { ok: true, plan: planned.plan, warnings: [] },
+        sending: (plan: ImportMapPlan) => ({ items: plan.lines.length, words: plan.lines.reduce((total, line) => total + line.text.split(/\s+/).length, 0), skipped: plan.skipped }),
+        estimate: (plan) => importMapEstimate(state.context, plan, outputTokensFloorFor(body.provider, body.model)),
+        run: async (plan, options) => {
+          const result = await executeImportMap(state.context, plan, options);
+          if (!result.ok) {
+            throw new JobFailure(result.error);
+          }
+          return result.outcome satisfies ImportMapJobResult;
         },
       });
     },

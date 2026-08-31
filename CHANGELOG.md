@@ -2,6 +2,16 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **Botón «Refinar con el co-piloto» en la pantalla web de importación** (T-8.18): cuando un borrador deja líneas sin situar, `Perfil → Importar CV` ofrece refinarlo con el co-piloto. Es un trabajo del sistema de trabajos (`POST /api/v1/jobs/import-map`) con progreso, selector de proveedor y el mismo puente levadizo que el resto (403 sin permiso de remotos, 409 con el coste estimado): relee el `README.md` del borrador, envía **solo** sus líneas sin situar seudonimizadas, verifica cada propuesta por código y deja el informe al día **sin aplicar nada**. Sirve para cualquier borrador de `import/`, no solo para el recién subido.
+
+### Corregido
+
+- El informe del borrador en la pantalla «Importar CV» estiraba la tarjeta a lo ancho (usaba una clase de estilo inexistente): ahora ajusta y desplaza dentro de su caja como el resto de bloques de texto de la interfaz.
+
 ## [1.10.0] - 2026-08-31
 
 ### Añadido

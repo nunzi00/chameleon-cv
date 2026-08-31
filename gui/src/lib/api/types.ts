@@ -20,6 +20,8 @@ export type {
   GenerateResponse,
   ImportRequest,
   ImportResponse,
+  ImportMapJobRequest,
+  ImportMapJobResult,
   ImproveJobRequest,
   JobCreatedResponse,
   JobResponse,

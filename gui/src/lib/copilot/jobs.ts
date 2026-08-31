@@ -7,7 +7,7 @@ export type JobSnapshot = JobResponse['job'];
 export type JobStatus = JobSnapshot['status'];
 
 export const STATUS_LABELS: Readonly<Record<JobStatus, string>> = { queued: 'en cola', running: 'en marcha', done: 'terminado', failed: 'fallido', cancelled: 'cancelado' };
-export const KIND_LABELS: Readonly<Record<JobKind, string>> = { improve: 'Mejorar logros', summarize: 'Resumen profesional', 'suggest-tags': 'Sugerir etiquetas', 'ollama-up': 'Arrancar Ollama' };
+export const KIND_LABELS: Readonly<Record<JobKind, string>> = { improve: 'Mejorar logros', summarize: 'Resumen profesional', 'suggest-tags': 'Sugerir etiquetas', 'import-map': 'Refinar la importación', 'ollama-up': 'Arrancar Ollama' };
 
 export function isFinished(status: JobStatus): boolean {
   return status === 'done' || status === 'failed' || status === 'cancelled';

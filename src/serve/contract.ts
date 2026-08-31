@@ -111,6 +111,23 @@ export const SummarizeJobSchema = z.object({
   maxLength: z.number().int().min(100).max(5000).optional(),
   output: z.string().regex(OUTPUT_NAME).optional(),
 });
+/** `POST /jobs/import-map` (T-8.18): refina un borrador de `import/` con el co-piloto; no toca las fuentes. */
+export const ImportMapJobSchema = z.object({
+  ...ProviderSchema,
+  /** Carpeta del borrador dentro de `import/`. */
+  name: z.string().trim().min(1).max(120),
+});
+export type ImportMapJobRequest = z.infer<typeof ImportMapJobSchema>;
+
+/** El resultado del trabajo `import-map`: propuestas verificadas por código y el informe ya actualizado. */
+export interface ImportMapJobResult {
+  readonly name: string;
+  readonly proposals: ReadonlyArray<{ readonly n: number; readonly section: string; readonly reason: string; readonly text: string }>;
+  readonly rejected: number;
+  readonly skipped: number;
+  readonly report: string;
+}
+
 export const SuggestTagsJobSchema = z.object({
   ...ProviderSchema,
   /** Texto suelto; sin él se etiquetan logros del perfil. */
