@@ -107,3 +107,36 @@ describe('verifyProposal (canon C2: integridad semántica completa)', () => {
     expect(stem('quickly', 'en')).toBe('quick');
   });
 });
+
+describe('una cifra vale por su valor, no por cómo se escriba', () => {
+  it('el separador de millares no convierte una cifra de la fuente en una cifra inventada', () => {
+    // Este era el defecto: «21 709» se troceaba en «21» y «709», así que la misma cifra escrita de otro modo
+    // parecía inventada y tumbaba la propuesta entera. Con separador de espacio, de punto o sin él, es la misma.
+    for (const propuesta of ['Recuperé 21 709 mensajes AMQP perdidos.', 'Recuperé 21.709 mensajes AMQP perdidos.', 'Recuperé los 21709 mensajes AMQP perdidos.']) {
+      expect(verifyProposal('Recuperé 21709 mensajes AMQP perdidos.', propuesta, { locale: 'es' }).violations).toEqual([]);
+    }
+    expect(verifyProposal('Migré 393.000 contactos del CRM.', 'Migré 393 000 contactos del CRM.', { locale: 'es' }).violations).toEqual([]);
+  });
+
+  it('pero una cifra que no está sigue siendo una invención, y un decimal o una versión no se tocan', () => {
+    expect(verifyProposal('Recuperé los eventos perdidos.', 'Recuperé 207 eventos.', { locale: 'es' }).violations).toMatchObject([
+      { code: 'VIOLATION_C2_NUMBER_ADDED', details: ['207'] },
+    ]);
+    // «8.3» es una versión y «1,4» un decimal: quitarles el punto los convertiría en otra cifra.
+    expect(verifyProposal('Actualicé a PHP 8.3 con 1,4 s de arranque.', 'Actualicé a PHP 8.3; arranque de 1,4 s.', { locale: 'es' }).violations).toEqual([]);
+    expect(verifyProposal('Procesé 1234 pedidos.', 'Procesé 1 234 pedidos.', { locale: 'en' }).violations).toEqual([]);
+  });
+
+  it('con «allowNewNumbers» la propuesta se acepta, pero la cifra se avisa: nunca se calla', () => {
+    const verdict = verifyProposal('Recuperé los eventos perdidos.', 'Recuperé 207 eventos.', { locale: 'es', allowNewNumbers: true });
+    expect(verdict.accepted).toBe(true);
+    expect(verdict.warnings).toMatchObject([{ code: 'VIOLATION_C2_NUMBER_ADDED', details: ['207'] }]);
+    expect(describeVerdict(verdict)).toContain('⚠ comprueba');
+    // Sin la opción, lo mismo bloquea.
+    expect(verifyProposal('Recuperé los eventos perdidos.', 'Recuperé 207 eventos.', { locale: 'es' }).accepted).toBe(false);
+    // Y en la vía de síntesis (con hechos clave y cobertura) el aviso viaja igual.
+    const sintesis = verifyProposal('Recuperé los eventos perdidos de Kafka.', 'Recuperé 207 eventos de Kafka.', { locale: 'es', allowNewNumbers: true, contextAdded: false, keyFacts: ['kafka'] });
+    expect(sintesis.accepted).toBe(true);
+    expect(sintesis.warnings).toMatchObject([{ code: 'VIOLATION_C2_NUMBER_ADDED', details: ['207'] }]);
+  });
+});

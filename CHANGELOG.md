@@ -2,6 +2,17 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Corregido
+
+- **Una cifra ya no parece inventada por llevar separador de millares** (defecto del verificador C2): el código troceaba «21 709» en dos números —«21» y «709»— y no canonizaba los separadores, así que «21.709», «21 709» y «21709» eran cifras distintas. Cualquier figura con separador se marcaba como **añadida** aunque estuviera en la fuente, y tumbaba la propuesta entera: con un perfil lleno de cifras, prácticamente todo. Ahora una cifra vale por su valor; el separador solo se retira cuando agrupa de tres en tres, para no estropear «8.3» (una versión) ni «1,4» (un decimal). Lo que sí sigue rechazándose es una cifra que de verdad no está.
+- **Una propuesta rechazada dice ahora *qué* falló, también en la web**: el informe ya escribía el detalle (`VIOLATION_C2_NUMBER_ADDED (207)`), pero el lector del informe no lo recuperaba y la pantalla de Revisiones se quedaba en «no supera la verificación contra la fuente». Sin ese detalle no se puede distinguir lo único que importa: si el modelo se lo inventó, o si **te falta ese dato en tus fuentes** y basta con añadirlo.
+
+### Añadido
+
+- **`--allow-new-numbers` en `improve` y `summarize`**: admite cifras que no estén en tus fuentes, bajo tu responsabilidad. Por defecto **no** —una cifra sin respaldo en un CV se paga en una entrevista, y ese es justo el trabajo del verificador—. Con la opción, la propuesta se acepta pero las cifras añadidas se listan como aviso (`⚠ comprueba: …`) para que las revises una a una: lo que no se hace nunca es callarlas.
+
 ## [1.13.0] - 2026-09-01
 
 ### Añadido

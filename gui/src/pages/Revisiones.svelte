@@ -272,7 +272,13 @@
                     {:else}
                       <div class="cv-proposal rejected">
                         <Icon name="close" size={15} weight={2} />
-                        <span><del>Propuesta {proposal.number}: {proposal.text}</del> <span class="cv-badge error">rechazada (C2)</span> <span class="cv-muted">no se puede marcar: no supera la verificación contra la fuente</span></span>
+                        <span>
+                          <del>Propuesta {proposal.number}: {proposal.text}</del> <span class="cv-badge error">rechazada (C2)</span>
+                          <span class="cv-muted">no se puede marcar: no supera la verificación contra la fuente</span>
+                          <!-- Sin el detalle, «no supera la verificación» no es accionable: quien revisa no puede
+                               distinguir una invención del modelo de un dato que le falta a su propia fuente. -->
+                          {#if proposal.verification !== undefined}<span class="cv-verification">{proposal.verification}</span>{/if}
+                        </span>
                       </div>
                     {/if}
                   {/each}

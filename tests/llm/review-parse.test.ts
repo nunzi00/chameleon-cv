@@ -45,8 +45,8 @@ describe('parseReview (T-4.7): lee lo que formatReview escribe, más las marcas 
             impact: '-40 % p95',
             source: { file: 'experience/acme.md', line: 15, hash: fingerprint('Reduje la latencia p95 un 40 %.') },
             proposals: [
-              { number: 1, text: 'Rediseñé la caché y bajé un 40 % la latencia p95.', accepted: true, checked: true },
-              { number: 2, text: 'Bajé un 99 % la latencia.', accepted: false, checked: false },
+              { number: 1, text: 'Rediseñé la caché y bajé un 40 % la latencia p95.', accepted: true, checked: true, verification: '✓ aceptada' },
+              { number: 2, text: 'Bajé un 99 % la latencia.', accepted: false, checked: false, verification: '✗ VIOLATION_C2_NUMBER_ADDED (99)' },
             ],
           },
           { id: 'exp-acme-2', location: 'Senior Backend Engineer · ACME Corp', original: 'Sin fuente.', proposals: [], error: 'timeout: tarde' },
@@ -81,8 +81,8 @@ describe('parseReview (T-4.7): lee lo que formatReview escribe, más las marcas 
           {
             id: 'summary',
             proposals: [
-              { number: 1, text: 'Primer párrafo.\n\nSegundo párrafo.', accepted: true, checked: true },
-              { number: 2, text: 'Uno.\n\nDos inventado.', accepted: false, checked: false },
+              { number: 1, text: 'Primer párrafo.\n\nSegundo párrafo.', accepted: true, checked: true, verification: '✓ aceptada' },
+              { number: 2, text: 'Uno.\n\nDos inventado.', accepted: false, checked: false, verification: '✗ VIOLATION_C2_NUMBER_ADDED (99)' },
             ],
           },
         ],
@@ -92,5 +92,17 @@ describe('parseReview (T-4.7): lee lo que formatReview escribe, más las marcas 
     expect(parseReview('')).toMatchObject({ ok: false });
     const loose = parseReview('# Revisión de logros (cv improve)\n\n## solo-id\n\n      huérfana\n- [ ] Propuesta 1: a\n\n      no continúa tras línea vacía\n');
     expect(loose).toMatchObject({ ok: true, review: { items: [{ id: 'solo-id', location: '', original: '', proposals: [{ number: 1, text: 'a', checked: false }] }] } });
+  });
+});
+
+describe('la línea de verificación se lee de vuelta', () => {
+  it('una rechazada conserva el motivo, que es lo único que la explica', () => {
+    // Sin esto, la interfaz web solo podía decir «no supera la verificación», que no es accionable: quien revisa
+    // no distingue una invención del modelo de un dato que le falta a su propia fuente.
+    const text = formatReview({ ...HEADER, task: 'improve', specialty: undefined, offer: undefined, dataDir: 'data/sources' }, ITEMS);
+    const parsed = parseReview(text);
+    const proposals = parsed.ok ? parsed.review.items[0]?.proposals : undefined;
+    expect(proposals?.[0]).toMatchObject({ accepted: true, verification: '✓ aceptada' });
+    expect(proposals?.[1]).toMatchObject({ accepted: false, verification: '✗ VIOLATION_C2_NUMBER_ADDED (99)' });
   });
 });

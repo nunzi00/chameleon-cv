@@ -29,11 +29,22 @@ export interface Coverage {
 export interface Verdict {
   readonly accepted: boolean;
   readonly violations: readonly Violation[];
+  /**
+   * Lo que NO bloquea pero quien revisa debe mirar: hoy, las cifras añadidas cuando se pidió expresamente
+   * admitirlas (`allowNewNumbers`). Se avisan siempre; lo que no se hace nunca es callarlas.
+   */
+  readonly warnings?: readonly Violation[] | undefined;
   /** Solo con `keyFacts`: qué hechos clave menciona la propuesta y cuáles no. */
   readonly coverage?: Coverage;
 }
 
 export interface VerifyOptions {
+  /**
+   * Admite cifras que no estén en la fuente, bajo la responsabilidad de quien lo pide. Por defecto NO: una cifra
+   * sin respaldo en un CV se paga en una entrevista, y el trabajo del verificador es justo ese. Con esta opción
+   * la propuesta se acepta, pero las cifras añadidas se listan como aviso para que se comprueben una a una.
+   */
+  readonly allowNewNumbers?: boolean | undefined;
   /** Textos cuyo contenido también se admite (impacto, rol, empresa): hechos del propio ítem. */
   readonly allowed?: readonly string[] | undefined;
   /** Términos del perfil (tags, skills, tecnologías, diccionario): entidades vigiladas aunque sean minúsculas. */
@@ -122,12 +133,26 @@ function isVerbLike(lowerRaw: string, locale: string): boolean {
   return suffixes.some((suffix) => lowerRaw.endsWith(suffix) && lowerRaw.length > suffix.length + 2);
 }
 
+/**
+ * Una cifra vale por su VALOR, no por cómo se escriba: «21.709», «21 709» y «21709» son la misma. Sin esto, un
+ * separador de millares distinto entre la fuente y la propuesta hacía que el verificador diera por INVENTADA una
+ * cifra que sí estaba, y rechazaba la propuesta entera. El separador de millares solo se quita cuando agrupa de
+ * tres en tres, para no estropear «8.3» —una versión— ni «1,4» —un decimal—.
+ */
+function canonicalNumber(raw: string, locale: string): string {
+  const value = raw.replace('%', '');
+  const thousands = locale.startsWith('en') ? ',' : '.';
+  const decimal = locale.startsWith('en') ? '.' : ',';
+  const grouped = value.replaceAll(new RegExp(`(?<=\\d)\\${thousands}(?=\\d{3}(?!\\d))`, 'g'), '');
+  return grouped.replace(decimal, '.');
+}
+
 function classify(raw: string, sentenceStart: boolean, locale: string): Token {
   const norm = normalizeText(raw);
   const letters = [...raw].filter((character) => /\p{L}/u.test(character));
   const digits = /\d/u.test(raw);
   if (NUMBER.test(raw)) {
-    return { raw, norm: raw.replace(',', '.').replace('%', ''), stem: '', kind: 'number' };
+    return { raw, norm: canonicalNumber(raw, locale), stem: '', kind: 'number' };
   }
   if (digits || /[+#/]/u.test(raw) || (letters.length >= 2 && letters.every((character) => character === character.toUpperCase()))) {
     return { raw, norm, stem: norm, kind: 'technical' };
@@ -163,7 +188,15 @@ export function tokenize(text: string, locale = 'es'): Token[] {
     const startsSentence = sentenceStart || /[.!?:\n]/u.test(gap);
     // El punto final viaja pegado al token («costes.»): el siguiente empieza frase.
     sentenceStart = /[.!?:]$/u.test(match[0]);
-    tokens.push(classify(raw, startsSentence, locale));
+    const token = classify(raw, startsSentence, locale);
+    const previous = tokens.at(-1);
+    // «393 000» y «1 234 567»: el espacio también es separador de millares. Se unen aquí, donde todavía se sabe
+    // que entre los dos no había más que un espacio; después ya serían dos cifras distintas para siempre.
+    if (previous?.kind === 'number' && token.kind === 'number' && /^[ \u00a0\u202f\u2009]$/u.test(gap) && /^\d{3}$/u.test(raw) && /^\d{1,3}(?:\d{3})*$/u.test(previous.norm)) {
+      tokens[tokens.length - 1] = { raw: `${previous.raw} ${raw}`, norm: `${previous.norm}${raw}`, stem: '', kind: 'number' };
+      continue;
+    }
+    tokens.push(token);
   }
   return tokens;
 }
@@ -220,9 +253,10 @@ export function verifyProposal(original: string, proposal: string, options: Veri
   const candidate = factsOf([proposal], vocabulary, locale);
   const proposalTokens = tokenize(proposal, locale);
 
+  const warnings: Violation[] = [];
   const numbersAdded = [...candidate.numbers].filter((number) => !known.numbers.has(number));
   if (numbersAdded.length > 0) {
-    violations.push({ code: 'VIOLATION_C2_NUMBER_ADDED', details: numbersAdded });
+    (options.allowNewNumbers === true ? warnings : violations).push({ code: 'VIOLATION_C2_NUMBER_ADDED', details: numbersAdded });
   }
 
   const entitiesAdded = [
@@ -252,7 +286,7 @@ export function verifyProposal(original: string, proposal: string, options: Veri
     if (omitted.length > 0) {
       violations.push({ code: 'VIOLATION_C2_FACT_OMITTED', details: [...new Set(omitted)] });
     }
-    return { accepted: violations.length === 0, violations };
+    return { accepted: violations.length === 0, violations, ...(warnings.length === 0 ? {} : { warnings }) };
   }
 
   const normalizedProposal = normalizeLine(cleanProposal);
@@ -262,13 +296,19 @@ export function verifyProposal(original: string, proposal: string, options: Veri
   if (keyFacts.length > 0 && mentioned.length === 0) {
     violations.push({ code: 'VIOLATION_C2_FACT_OMITTED', details: keyFacts });
   }
-  return { accepted: violations.length === 0, violations, coverage: { mentioned, missing } };
+  return { accepted: violations.length === 0, violations, ...(warnings.length === 0 ? {} : { warnings }), coverage: { mentioned, missing } };
 }
 
 /** Etiqueta legible de un veredicto: «✓ aceptada» o «✗ CODE (detalles) · CODE (…)». */
+function describeAll(items: readonly Violation[]): string {
+  return items.map((violation) => (violation.details.length === 0 ? violation.code : `${violation.code} (${violation.details.join(', ')})`)).join(' · ');
+}
+
 export function describeVerdict(verdict: Verdict): string {
+  const warnings = verdict.warnings ?? [];
   if (verdict.accepted) {
-    return '✓ aceptada';
+    // Aceptada con avisos: se admitió lo que se pidió admitir, pero se dice cuál para que se compruebe.
+    return warnings.length === 0 ? '✓ aceptada' : `✓ aceptada · ⚠ comprueba: ${describeAll(warnings)}`;
   }
-  return `✗ ${verdict.violations.map((violation) => (violation.details.length === 0 ? violation.code : `${violation.code} (${violation.details.join(', ')})`)).join(' · ')}`;
+  return `✗ ${describeAll(verdict.violations)}`;
 }

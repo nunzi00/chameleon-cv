@@ -152,6 +152,12 @@ export interface ParsedProposal {
   readonly accepted: boolean;
   /** Marcada `[x]` por el usuario. */
   readonly checked: boolean;
+  /**
+   * Lo que dijo el verificador, tal cual se escribió en el informe. En una rechazada es lo ÚNICO que explica por
+   * qué —qué cifra o qué entidad no encontró respaldo—, y sin ello «no supera la verificación» no dice nada
+   * accionable: quien revisa no puede distinguir una invención del modelo de un dato que le falta a su fuente.
+   */
+  readonly verification?: string | undefined;
 }
 
 export interface ParsedReviewItem {
@@ -179,6 +185,7 @@ interface MutableProposal {
   text: string;
   accepted: boolean;
   checked: boolean;
+  verification?: string | undefined;
 }
 
 interface MutableItem {
@@ -241,6 +248,14 @@ export function parseReview(text: string): ParseReviewResult {
       const [mark = '', number = '', text = ''] = groups(proposal);
       open = { number: Number(number), text, accepted: mark !== '', checked: mark === 'x' || mark === 'X' };
       current.proposals.push(open);
+      continue;
+    }
+    // Metalíneas de la propuesta abierta («motivo», «verificación», «cobertura», «procedencia»): de momento solo
+    // interesa la verificación, pero ninguna debe cerrar la propuesta — el motivo va ANTES que la verificación.
+    if (open !== undefined && line.startsWith('  - ')) {
+      if (line.startsWith('  - verificación: ')) {
+        open.verification = line.slice('  - verificación: '.length);
+      }
       continue;
     }
     const continuation = CONTINUATION_LINE.exec(line);

@@ -20,6 +20,8 @@ export interface SummarizeRunOptions {
   readonly provider: LlmProvider;
   readonly prompt: string;
   readonly location: string;
+  /** Admite cifras que no estén en la fuente (se avisan, no bloquean). Por defecto, no. */
+  readonly allowNewNumbers?: boolean | undefined;
   readonly cache?: LlmCacheStore | undefined;
   readonly timeoutMs?: number | undefined;
   readonly now?: (() => Date) | undefined;
@@ -33,6 +35,7 @@ function verifyAll(options: SummarizeRunOptions, proposals: ReadonlyArray<{ read
     rationale: proposal.rationale,
     verdict: verifyProposal(options.fragment.corpus, proposal.text, {
       vocabulary,
+      allowNewNumbers: options.allowNewNumbers === true,
       maxLength: options.fragment.input.maxLength,
       locale: options.fragment.input.locale,
       ...policyOptions('synthesis', options.fragment.keyFacts),

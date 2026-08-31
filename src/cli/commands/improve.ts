@@ -23,6 +23,8 @@ export interface ImproveOptions extends SelectionOptions {
   readonly maxLength: number;
   readonly maxItems: number;
   readonly redactCompanies: boolean;
+  /** Admite cifras que no estén en la fuente; se avisan una a una. Por defecto, no. */
+  readonly allowNewNumbers?: boolean | undefined;
   readonly locale?: string | undefined;
   readonly output?: string | undefined;
   readonly cache: boolean;
@@ -97,6 +99,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
   const outcome = await executeImprove(context, plan, {
     provider,
     cache: options.cache,
+    allowNewNumbers: options.allowNewNumbers === true,
     progress: (line) => {
       context.stderr(`${line}\n`);
     },

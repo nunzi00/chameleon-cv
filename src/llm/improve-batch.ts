@@ -17,6 +17,8 @@ export interface ImproveBatchOptions {
   readonly provider: LlmProvider;
   readonly prompt: string;
   readonly fragment: FragmentOptions;
+  /** Admite cifras que no estén en la fuente (se avisan, no bloquean). Por defecto, no. */
+  readonly allowNewNumbers?: boolean | undefined;
   readonly cache?: LlmCacheStore | undefined;
   readonly timeoutMs?: number | undefined;
   readonly progress?: ((line: string) => void) | undefined;
@@ -54,11 +56,11 @@ export function locateLabel(profile: MasterProfile, id: string): string {
   return 'Logros transversales';
 }
 
-function verifyAll(fragment: ImproveFragment, proposals: ReadonlyArray<{ readonly text: string; readonly rationale: string }>, vocabulary: Set<string>): ReviewProposal[] {
+function verifyAll(fragment: ImproveFragment, proposals: ReadonlyArray<{ readonly text: string; readonly rationale: string }>, vocabulary: Set<string>, allowNewNumbers: boolean): ReviewProposal[] {
   const original = fragment.redaction.restore(fragment.input.text);
   const allowed = [fragment.input.impact, fragment.input.context.role, fragment.input.context.company].filter((value): value is string => value !== undefined).map((value) => fragment.redaction.restore(value));
   return proposals.map((proposal) => {
-    const verdict: Verdict = verifyProposal(original, proposal.text, { allowed, vocabulary, maxLength: fragment.input.maxLength, locale: fragment.input.locale, ...policyOptions('strict') });
+    const verdict: Verdict = verifyProposal(original, proposal.text, { allowed, vocabulary, allowNewNumbers, maxLength: fragment.input.maxLength, locale: fragment.input.locale, ...policyOptions('strict') });
     return { text: proposal.text, rationale: proposal.rationale, verdict };
   });
 }
@@ -90,7 +92,7 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
       const completion: LlmCompletion = { ok: true, json: cached.json, raw: cached.raw, model: cached.model, usage: cached.usage, elapsedMs: 0 };
       const result = interpretImprove(fragment, completion);
       if (result.ok) {
-        items.push({ id, location, original, impact, proposals: verifyAll(fragment, result.proposals, vocabulary), fromCache: true, elapsedMs: 0, usage: cached.usage });
+        items.push({ id, location, original, impact, proposals: verifyAll(fragment, result.proposals, vocabulary, options.allowNewNumbers === true), fromCache: true, elapsedMs: 0, usage: cached.usage });
         options.progress?.(`${label}: desde caché`);
         continue;
       }
@@ -113,7 +115,7 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
     if (options.cache !== undefined) {
       await options.cache.set(key, { createdAt: (options.now ?? (() => new Date()))().toISOString(), model: result.model, raw: result.raw, json: result.json, usage: result.usage, elapsedMs: result.elapsedMs });
     }
-    const proposals = verifyAll(fragment, result.proposals, vocabulary);
+    const proposals = verifyAll(fragment, result.proposals, vocabulary, options.allowNewNumbers === true);
     items.push({ id, location, original, impact, proposals, fromCache: false, elapsedMs: result.elapsedMs, usage: result.usage });
     options.progress?.(`${label}: ${proposals.filter((proposal) => proposal.verdict.accepted).length}/${proposals.length} aceptadas · ${result.elapsedMs} ms`);
   }

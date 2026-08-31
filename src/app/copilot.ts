@@ -187,6 +187,8 @@ export interface ExecuteOptions {
   readonly provider: LlmProvider;
   /** Leer y guardar la caché local de respuestas. */
   readonly cache: boolean;
+  /** Admite cifras que no estén en la fuente: se avisan una a una, no bloquean. Por defecto, no. */
+  readonly allowNewNumbers?: boolean | undefined;
   readonly progress?: ((line: string) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
 }
@@ -285,6 +287,7 @@ export async function executeImprove(context: AppContext, plan: ImprovePlan, opt
     provider: options.provider,
     prompt,
     fragment: plan.fragmentOptions,
+    allowNewNumbers: options.allowNewNumbers === true,
     cache: options.cache ? context.llmCache : undefined,
     now,
     progress: options.progress,
@@ -369,7 +372,7 @@ export interface SummarizeOutcome extends ReviewOutcome {
 export async function executeSummarize(context: AppContext, plan: SummarizePlan, options: ExecuteOptions): Promise<SummarizeOutcome> {
   const prompt = await loadSummarizePrompt(context.assets);
   const now = context.now ?? (() => new Date());
-  const item = await runSummarizeTask({ profile: plan.selection.fullProfile, fragment: plan.fragment, provider: options.provider, prompt, location: plan.location, cache: options.cache ? context.llmCache : undefined, now, signal: options.signal });
+  const item = await runSummarizeTask({ profile: plan.selection.fullProfile, fragment: plan.fragment, provider: options.provider, prompt, location: plan.location, allowNewNumbers: options.allowNewNumbers === true, cache: options.cache ? context.llmCache : undefined, now, signal: options.signal });
   const notes: string[] = [];
   const warn = (line: string): void => {
     notes.push(line);

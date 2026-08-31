@@ -22,6 +22,8 @@ export interface SummarizeOptions extends SelectionOptions {
   readonly proposals: number;
   readonly maxLength: number;
   readonly redactCompanies: boolean;
+  /** Admite cifras que no estén en la fuente; se avisan una a una. Por defecto, no. */
+  readonly allowNewNumbers?: boolean | undefined;
   readonly locale?: string | undefined;
   readonly output?: string | undefined;
   readonly cache: boolean;
@@ -83,7 +85,7 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
   if (ready !== EXIT_OK) {
     return ready;
   }
-  const outcome = await executeSummarize(context, plan, { provider, cache: options.cache });
+  const outcome = await executeSummarize(context, plan, { provider, cache: options.cache, allowNewNumbers: options.allowNewNumbers === true });
   for (const note of outcome.notes) {
     context.stderr(`${note}\n`);
   }
