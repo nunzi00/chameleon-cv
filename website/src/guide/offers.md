@@ -61,6 +61,11 @@ Lo que hace, y lo que no:
   parte de tu adecuación descansa en un modelo.
 - Con un proveedor remoto, aviso de coste y confirmación antes de enviar (`--yes` en scripts).
 
+En la interfaz web es la casilla **«Refinar la lectura con el co-piloto»**, junto a «Analizar oferta», con su
+selector de proveedor: lo aportado aparece dentro del panel de adecuación, con la misma evidencia y el mismo
+recuento de descartes, y un proveedor remoto abre antes el diálogo de coste. En la API, `POST /analyze-offer`
+acepta `copilot` (403 `remote-disabled` sin `--allow-remote`, 409 `consent-required` con `estimateId`).
+
 Si la etiqueta que el co-piloto tuvo que tender ya te sirvió una vez, el arreglo barato y permanente es **añadir
 ese alias a `skills.csv`**: es determinista, gratis y no necesita modelo.
 

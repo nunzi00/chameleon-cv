@@ -7,7 +7,7 @@ import { basename, dirname, extname, resolve, sep } from 'node:path';
 
 import { z } from 'zod';
 
-import { analysisPayload, analyzeOffer } from '../app/analyze';
+import { analysisPayload, analyzeOffer, type OfferCopilotOptions } from '../app/analyze';
 import { lookupHistory, offerFingerprint, readHistory, recordHistory } from '../app/history';
 import type { AppContext } from '../app/context';
 import { DEFAULT_MAX_ITEMS, checkLocalProvider, describeProvider, executeImprove, executeSuggestTags, executeSummarize, improveEstimate, planImprove, planSuggestTags, planSummarize, selectCopilotProvider, suggestTagsEstimate, summarizeEstimate, writeReview, type ExecuteOptions, type PlanOutcome, type ReviewOutcome } from '../app/copilot';
@@ -32,6 +32,7 @@ import { importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
+import type { LlmProvider } from '../llm/provider';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
@@ -540,7 +541,8 @@ export function createRouter(): Router<ServerState> {
   router.add({
     method: 'POST',
     path: `${API_PREFIX}/analyze-offer`,
-    summary: 'Analiza una oferta (texto o fichero del espacio de trabajo) contra el perfil: la misma estructura que cv analyze-offer --json, más la selección.',
+    summary:
+      'Analiza una oferta (texto o fichero del espacio de trabajo) contra el perfil: la misma estructura que cv analyze-offer --json, más la selección. Con «copilot», un modelo hace una segunda lectura de la oferta y propone etiquetas TUYAS que el emparejado literal no vio (T-9.10): un remoto exige --allow-remote (403) y consentimiento (409 con estimateId).',
     writes: false,
     body: AnalyzeSchema,
     handler: async (request, state) => {
@@ -552,7 +554,55 @@ export function createRouter(): Router<ServerState> {
       if (!('kind' in input)) {
         return appErrorResponse(input);
       }
-      const result = await analyzeOffer(state.context, { profile: state.profile, data: state.data, specialty: parsed.value.specialty, offer: input, build: parsed.value.build ?? false });
+      const requested = parsed.value.copilot;
+      let copilot: OfferCopilotOptions | undefined;
+      // La estimación solo se conoce DESPUÉS de planificar, así que el 409 se arma desde dentro: el
+      // consentimiento anota lo que costaría y aborta antes de llamar al proveedor.
+      let pending: { readonly estimate: CostEstimate; readonly provider: LlmProvider } | undefined;
+      if (requested !== undefined) {
+        const selected = await selectCopilotProvider(state.context, { provider: requested.provider, model: requested.model });
+        if (!selected.ok) {
+          return appErrorResponse(selected.error);
+        }
+        const { provider } = selected;
+        const sending = offerMapSending(provider);
+        if (provider.kind === 'remote' && !state.allowRemote) {
+          return errorResponse('remote-disabled', 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo', { sending });
+        }
+        const health = await checkLocalProvider(provider);
+        if (!health.ok) {
+          const message =
+            health.reason === 'unreachable'
+              ? `${health.message}; comprueba el proveedor con «cv llm status»`
+              : `El modelo «${provider.model}» no está disponible en ${provider.baseUrl} (${health.models.length === 0 ? 'no sirve ningún modelo' : `sirve: ${health.models.join(', ')}`}); comprueba «cv llm status»`;
+          return appErrorResponse(environmentError(message), { sending });
+        }
+        const confirmed = provider.kind !== 'remote' || (requested.consent !== undefined && state.consents.redeem(requested.consent.estimateId, 'offer-map'));
+        copilot = {
+          provider,
+          ...(confirmed
+            ? {}
+            : {
+                consent: (estimate: CostEstimate) => {
+                  pending = { estimate, provider };
+                  return Promise.resolve(false);
+                },
+              }),
+        };
+      }
+      const result = await analyzeOffer(state.context, { profile: state.profile, data: state.data, specialty: parsed.value.specialty, offer: input, build: parsed.value.build ?? false, copilot });
+      if (pending !== undefined) {
+        const { estimate, provider } = pending;
+        const dataNote = REMOTE_PROVIDERS.find((entry) => entry.id === provider.id)?.dataNote;
+        return errorResponse('consent-required', 'Proveedor remoto: revisa el coste estimado y repite la petición con consent.estimateId para confirmar', {
+          estimateId: state.consents.issue('offer-map'),
+          estimate,
+          ...(dataNote === undefined ? {} : { dataNote }),
+          warning: formatCostWarning(`${provider.id} (${provider.baseUrl}; modelo ${provider.model})`, estimate),
+          sending: offerMapSending(provider),
+          warnings: result.warnings,
+        });
+      }
       return result.ok ? json(200, { ...analysisPayload(result.analysis, result.history), selection: result.analysis.scored.selection.report, warnings: result.warnings } satisfies AnalyzeResponse) : appErrorResponse(result.error, { warnings: result.warnings });
     },
   });
@@ -1008,6 +1058,11 @@ function offerOf(state: ServerState, offer: z.infer<typeof OfferSchema> | undefi
   }
   const input = offerInputOf(state.context, offer);
   return 'kind' in input ? { ok: true, offer: input } : { ok: false, error: input };
+}
+
+/** Lo que sale hacia el modelo cuando se le pide leer la oferta (C3, C4): el texto de la oferta y tus etiquetas. */
+function offerMapSending(provider: LlmProvider): Record<string, unknown> {
+  return { destination: describeProvider(provider), scope: 'el texto de la oferta y la lista de etiquetas de tu perfil; nada más del perfil', writes: 'nada: el análisis no toca el disco' };
 }
 
 function reviewName(name: string): AppError | undefined {

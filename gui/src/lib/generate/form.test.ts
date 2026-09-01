@@ -25,6 +25,8 @@ describe('formulario de Generar', () => {
       compact: true,
       output: 'mi-cv.pdf',
       build: true,
+      copilot: false,
+      copilotProvider: '',
     });
     expect(full).toEqual({ ok: true, body: { specialty: 'backend', offer: { text: 'Buscamos Kubernetes' }, format: 'pdf', engine: 'typst', theme: 'classic', locale: 'en', output: 'mi-cv.pdf', build: true, topN: 3, maxSkills: 0, maxProjects: 2, maxCertifications: 1, skills: ['PHP', 'Kubernetes'], projects: ['proj-a'], compact: true } });
     expect(buildGenerateRequest({ ...EMPTY_FORM, offerMode: 'file', offerFile: ' ofertas/acme.txt ' })).toEqual({ ok: true, body: { offer: { workspaceFile: 'ofertas/acme.txt' }, format: 'pdf', engine: 'pdfkit' } });
@@ -45,6 +47,19 @@ describe('formulario de Generar', () => {
     expect(buildAnalyzeRequest({ ...EMPTY_FORM, offerMode: 'text', offerText: '' })).toMatchObject({ ok: false });
     expect(buildAnalyzeRequest({ ...EMPTY_FORM, offerMode: 'text', offerText: 'Kubernetes', specialty: 'backend', build: true })).toEqual({ ok: true, body: { offer: { text: 'Kubernetes' }, specialty: 'backend', build: true } });
     expect(buildAnalyzeRequest({ ...EMPTY_FORM, offerMode: 'file', offerFile: 'o.txt' })).toEqual({ ok: true, body: { offer: { workspaceFile: 'o.txt' } } });
+  });
+
+  it('el co-piloto solo viaja si se pide, con su proveedor y con la confirmación del coste (T-9.10)', () => {
+    const base = { ...EMPTY_FORM, offerMode: 'text' as const, offerText: 'Kubernetes' };
+    // Sin la casilla no hay ni rastro de co-piloto en el cuerpo: cero red.
+    expect(buildAnalyzeRequest(base)).toEqual({ ok: true, body: { offer: { text: 'Kubernetes' } } });
+    expect(buildAnalyzeRequest({ ...base, copilot: true })).toEqual({ ok: true, body: { offer: { text: 'Kubernetes' }, copilot: {} } });
+    expect(buildAnalyzeRequest({ ...base, copilot: true, copilotProvider: 'groq' }, 'e-1')).toEqual({
+      ok: true,
+      body: { offer: { text: 'Kubernetes' }, copilot: { provider: 'groq', consent: { estimateId: 'e-1' } } },
+    });
+    // El estimateId sin co-piloto no se cuela por su cuenta.
+    expect(buildAnalyzeRequest(base, 'e-1')).toEqual({ ok: true, body: { offer: { text: 'Kubernetes' } } });
   });
 });
 

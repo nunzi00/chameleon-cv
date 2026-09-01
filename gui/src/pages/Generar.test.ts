@@ -223,3 +223,70 @@ describe('Generar · generar con la adecuación (T-8.9)', () => {
   });
 });
 
+
+describe('Generar · el co-piloto lee la oferta (T-9.10)', () => {
+  const REFINADO = {
+    ...ANALYSIS,
+    offer: { source: 'texto', terms: [{ term: 'sistemas de mensajería', emphasis: 'desirable', occurrences: 1, weight: 0.75, source: 'copiloto' }], gaps: [], experienceYears: undefined },
+    coverage: {},
+    copilot: { mappings: [{ tag: 'arquitectura', emphasis: 'desirable', evidence: 'sistemas de mensajería' }], rejected: { unknownTag: 1, unverifiedEvidence: 0, alreadyKnown: 0, duplicate: 0 } },
+  } as unknown as AnalyzeResponse;
+
+  it('con la casilla marcada pide la segunda lectura y enseña cada etiqueta CON su evidencia', async () => {
+    const api = fakeApi({ analyze: vi.fn(async () => REFINADO) });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos sistemas de mensajería' } });
+    await fireEvent.click(screen.getByLabelText(/Refinar la lectura con el co-piloto/));
+    await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
+    await waitFor(() => expect(screen.getByText(/añadió 1 etiqueta\(s\)/)).toBeTruthy());
+    expect(api.analyze).toHaveBeenCalledWith({ offer: { text: 'Buscamos sistemas de mensajería' }, copilot: {} });
+    // La evidencia se enseña entera: el código verifica que la frase está, no que sostenga la etiqueta.
+    expect(screen.getByText(/«sistemas de mensajería»/)).toBeTruthy();
+    expect(screen.getByText(/desirable · 0.75 · co-piloto/)).toBeTruthy();
+  });
+
+  it('un remoto no se envía sin confirmar el coste: el diálogo lo dice y «Enviar y analizar» reenvía con el estimateId', async () => {
+    let first = true;
+    const analyze = vi.fn(async () => {
+      if (first) {
+        first = false;
+        throw new ApiError(409, { code: 'consent-required', message: 'confirma', estimateId: 'e-7', estimate: { requests: 1, inputTokens: 900 }, warning: 'Aviso de coste: 1 petición a groq' });
+      }
+      return REFINADO;
+    });
+    const api = fakeApi({
+      analyze: analyze as never,
+      llmConfig: vi.fn(async () => ({
+        llm: { providers: [{ id: 'groq', keyPresence: 'file', availability: 'available', plan: 'free', defaultModel: 'gpt-oss' }] },
+        remote: { allowed: true },
+      }) as never),
+    });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos sistemas de mensajería' } });
+    await fireEvent.click(screen.getByLabelText(/Refinar la lectura con el co-piloto/));
+    await fireEvent.change(screen.getByLabelText('Proveedor'), { target: { value: 'groq' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
+    await waitFor(() => expect(screen.getByText('Aviso de coste: 1 petición a groq')).toBeTruthy());
+    expect(screen.getAllByText(/nada más del perfil/).length).toBeGreaterThan(1);
+    await fireEvent.click(screen.getByRole('button', { name: 'Enviar y analizar' }));
+    await waitFor(() => expect(analyze).toHaveBeenLastCalledWith({ offer: { text: 'Buscamos sistemas de mensajería' }, copilot: { provider: 'groq', consent: { estimateId: 'e-7' } } }));
+    await waitFor(() => expect(screen.getByText(/añadió 1 etiqueta\(s\)/)).toBeTruthy());
+  });
+
+  it('sin --allow-remote no se envía nada y se explica en la propia pantalla', async () => {
+    const api = fakeApi({
+      analyze: vi.fn(async () => { throw new ApiError(403, { code: 'remote-disabled', message: 'arráncalo con «cv serve --allow-remote»' }); }) as never,
+    });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos Kubernetes' } });
+    await fireEvent.click(screen.getByLabelText(/Refinar la lectura con el co-piloto/));
+    await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
+    await waitFor(() => expect(screen.getByText(/--allow-remote/)).toBeTruthy());
+  });
+});

@@ -72,6 +72,18 @@ test('Generar analiza una oferta del espacio de trabajo y genera el CV en Markdo
   await expect(page.getByRole('link', { name: /Descargar .*\.pdf/ })).toBeVisible();
 });
 
+test('Generar refina la lectura de la oferta con el co-piloto y enseña cada etiqueta con su evidencia (T-9.10)', async ({ page }) => {
+  await openWithToken(page, state, '#/generar');
+  await page.getByRole('tab', { name: 'Del espacio' }).click();
+  await page.getByLabel(/Fichero \(relativo/).fill('ofertas/nexo.txt');
+  await page.getByLabel(/Refinar la lectura con el co-piloto/).check();
+  await page.getByRole('button', { name: 'Analizar oferta' }).click();
+  await expect(page.getByRole('heading', { name: 'Adecuación a la oferta' })).toBeVisible();
+  // Lo que aportó el modelo se enseña con la frase de la oferta que lo justifica: sin eso no se puede juzgar.
+  await expect(page.getByText(/El co-piloto añadió 1 etiqueta/)).toBeVisible();
+  await expect(page.getByText('«mentoría»')).toBeVisible();
+});
+
 test('Generar instala un tema de la comunidad desde un archivo del espacio de trabajo, lo verifica y lo ofrece en el selector', async ({ page }) => {
   await openWithToken(page, state, '#/generar');
   await page.getByText(/Temas de Typst/).click();

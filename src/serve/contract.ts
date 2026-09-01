@@ -66,7 +66,14 @@ export const GenerateSchema = z.object({
   keepEvidence: z.boolean().optional(),
   ...LimitsSchema,
 });
-export const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1).optional(), build: z.boolean().optional() });
+/** El co-piloto como segunda lectura de la oferta (T-9.10): opcional; sin él, cero red y el análisis de siempre. */
+export const OfferMapSchema = z.object({
+  provider: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
+  /** Confirmación del coste con un proveedor remoto: el estimateId del 409 anterior. */
+  consent: z.object({ estimateId: z.string().min(1) }).optional(),
+});
+export const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1).optional(), build: z.boolean().optional(), copilot: OfferMapSchema.optional() });
 export const SourceWriteSchema = z.object({ content: z.string() });
 export const ThemeCreateSchema = z.object({ name: z.string().min(1), from: z.string().min(1).optional() });
 /** `cv theme install` por la API (T-8.3): un `source` https exige --allow-remote y el consentimiento en dos pasos. */

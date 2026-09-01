@@ -27,7 +27,8 @@ export function matchLines(report: Match): readonly string[] {
   const gaps = requirements.gaps.length === 0 ? 'sin carencias detectadas' : `carencias: ${requirements.gaps.join(', ')}`;
   const lines = [`Oferta: ${requirements.terms.length} requisitos reconocidos${years} · ${gaps}`];
   if (requirements.terms.length > 0) {
-    lines.push(`  ${requirements.terms.map((term) => `${term.term} (${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''}, ${term.weight.toFixed(2)})`).join(' · ')}`);
+    // El origen se marca a propósito (T-9.10): sin él no se sabría qué parte de la adecuación descansa en un modelo.
+    lines.push(`  ${requirements.terms.map((term) => `${term.term} (${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''}, ${term.weight.toFixed(2)}${term.source === 'copiloto' ? ', co-piloto' : ''})`).join(' · ')}`);
   }
   for (const decision of report.decisions) {
     const terms = decision.matchedTerms.length === 0 ? '' : ` [${decision.matchedTerms.join(', ')}]`;
@@ -113,6 +114,27 @@ export interface AnalysisView {
   readonly ranking: readonly { readonly id: string; readonly label: string; readonly score: string }[];
   /** La especialidad real que más cubre la oferta (T-8.9), si alguna destaca. */
   readonly suggested: { readonly id: string; readonly title: string; readonly covered: number; readonly total: number } | undefined;
+  /** Lo que aportó el co-piloto (T-9.10), con la frase de la oferta que lo justifica; ausente si no se le pidió. */
+  readonly copilot: CopilotView | undefined;
+}
+
+export interface CopilotView {
+  readonly added: readonly { readonly tag: string; readonly emphasis: string; readonly evidence: string }[];
+  readonly rejected: number;
+  readonly headline: string;
+}
+
+/** El resumen de lo aportado: se dice también cuántas propuestas descartó el código, y por eso hay dos números. */
+export function copilotView(contributed: NonNullable<AnalyzeResponse['copilot']>): CopilotView {
+  const { unknownTag, unverifiedEvidence, alreadyKnown, duplicate } = contributed.rejected;
+  const rejected = unknownTag + unverifiedEvidence + alreadyKnown + duplicate;
+  const added = contributed.mappings.length;
+  const descartes = rejected === 0 ? '' : `, y el código descartó ${rejected}`;
+  return {
+    added: contributed.mappings.map((mapping) => ({ tag: mapping.tag, emphasis: mapping.emphasis, evidence: mapping.evidence })),
+    rejected,
+    headline: added === 0 ? `El co-piloto no añadió ninguna etiqueta${rejected === 0 ? '' : ` (${rejected} propuesta(s) descartadas por el código)`}` : `El co-piloto añadió ${added} etiqueta(s) que el emparejado literal no vio${descartes}`,
+  };
 }
 
 /** El resumen de adecuación de `cv analyze-offer`, a partir de la respuesta de POST /analyze-offer. */
@@ -123,7 +145,11 @@ export function analysisView(response: AnalyzeResponse): AnalysisView {
     summary.recognized === 0
       ? 'La oferta no menciona nada del vocabulario del perfil (etiqueta tu contenido o añade alias en skills.csv)'
       : `${summary.demonstrated} de ${summary.recognized} requisitos demostrados (${Math.round(summary.ratio * 100)} %) · imprescindibles: ${summary.requiredDemonstrated} de ${summary.requiredTotal}`;
-  const terms = offer.terms.map((term) => ({ term: term.term, detail: `${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''} · ${term.weight.toFixed(2)}`, evidence: response.coverage[term.term] ?? [] }));
+  const terms = offer.terms.map((term) => ({
+    term: term.term,
+    detail: `${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''} · ${term.weight.toFixed(2)}${term.source === 'copiloto' ? ' · co-piloto' : ''}`,
+    evidence: response.coverage[term.term] ?? [],
+  }));
   return {
     headline: `Oferta ${offer.source} · ${summary.recognized} requisitos reconocidos${years}`,
     adequacy,
@@ -134,5 +160,6 @@ export function analysisView(response: AnalyzeResponse): AnalysisView {
     gaps: offer.gaps,
     ranking: response.ranking.map((evidence) => ({ id: evidence.id, label: evidence.label, score: evidence.score.toFixed(2) })),
     suggested: response.suggestedSpecialty,
+    copilot: response.copilot === undefined ? undefined : copilotView(response.copilot),
   };
 }

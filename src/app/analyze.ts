@@ -149,6 +149,8 @@ export interface AnalysisPayload {
   readonly decisions: OfferAnalysis['scored']['report']['decisions'];
   readonly ranking: OfferAnalysis['summary']['topEvidence'];
   readonly suggestedSpecialty: SuggestedSpecialty | undefined;
+  /** Lo que aportó el co-piloto (T-9.10) con la evidencia de cada etiqueta; ausente si no se le pidió nada. */
+  readonly copilot?: OfferAnalysis['copilot'];
 }
 
 export function analysisPayload(analysis: OfferAnalysis, history: readonly HistoryEntry[] = []): AnalysisPayload {
@@ -167,5 +169,6 @@ export function analysisPayload(analysis: OfferAnalysis, history: readonly Histo
     decisions: scored.report.decisions,
     ranking: summary.topEvidence,
     suggestedSpecialty: analysis.suggestedSpecialty,
+    ...(analysis.copilot === undefined ? {} : { copilot: analysis.copilot }),
   };
 }

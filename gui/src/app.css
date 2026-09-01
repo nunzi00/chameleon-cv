@@ -535,6 +535,10 @@ details.cv-collapse > .cv-form, details.cv-collapse > .cv-stack, details.cv-coll
 .cv-result-doc pre.cv-text { max-height: 70vh; }
 .cv-adequacy { display: grid; gap: 6px; margin: 8px 0 10px; }
 .cv-adequacy-figure { font-size: var(--cv-size-2xl); font-weight: 600; letter-spacing: -.01em; }
+.cv-copilot-contrib { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--cv-border); border-radius: var(--cv-radius-sm); background: var(--cv-surface-2); font-size: var(--cv-size-sm); }
+.cv-copilot-contrib p { margin: 0 0 6px; }
+.cv-copilot-contrib p:last-child { margin-bottom: 0; }
+.cv-copilot-contrib ul { margin: 0 0 6px; padding-left: 16px; }
 .cv-adequacy-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cv-border); }
 .cv-adequacy-columns h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
 .cv-adequacy-columns ul, .cv-adequacy-columns ol { margin: 0; padding-left: 16px; font-size: var(--cv-size-sm); }

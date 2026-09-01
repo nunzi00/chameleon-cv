@@ -24,6 +24,10 @@ export interface GenerateForm {
   /** Nombre del fichero en output/ (vacío = el de la CLI). */
   readonly output: string;
   readonly build: boolean;
+  /** Segunda lectura de la oferta por el co-piloto al analizar (T-9.10); solo afecta a «Analizar oferta». */
+  readonly copilot: boolean;
+  /** Proveedor del co-piloto: vacío = el local configurado. */
+  readonly copilotProvider: string;
 }
 
 export const EMPTY_FORM: GenerateForm = {
@@ -44,6 +48,8 @@ export const EMPTY_FORM: GenerateForm = {
   compact: false,
   output: '',
   build: false,
+  copilot: false,
+  copilotProvider: '',
 };
 
 export type FormResult<T> = { readonly ok: true; readonly body: T } | { readonly ok: false; readonly message: string };
@@ -119,7 +125,8 @@ export function buildGenerateRequest(form: GenerateForm): FormResult<GenerateReq
   return { ok: true, body };
 }
 
-export function buildAnalyzeRequest(form: GenerateForm): FormResult<AnalyzeRequest> {
+/** `estimateId` confirma el coste de un proveedor remoto (409 previo); sin co-piloto no viaja nada de esto. */
+export function buildAnalyzeRequest(form: GenerateForm, estimateId?: string): FormResult<AnalyzeRequest> {
   const offer = offerOf(form);
   if (!offer.ok) {
     return offer;
@@ -127,7 +134,15 @@ export function buildAnalyzeRequest(form: GenerateForm): FormResult<AnalyzeReque
   if (offer.body === undefined) {
     return { ok: false, message: 'Para analizar hace falta una oferta: pega su texto, sube su PDF o indica su fichero' };
   }
-  return { ok: true, body: { offer: offer.body, ...(form.specialty === '' ? {} : { specialty: form.specialty }), ...(form.build ? { build: true } : {}) } };
+  const copilot = form.copilot
+    ? {
+        copilot: {
+          ...(form.copilotProvider === '' ? {} : { provider: form.copilotProvider }),
+          ...(estimateId === undefined ? {} : { consent: { estimateId } }),
+        },
+      }
+    : {};
+  return { ok: true, body: { offer: offer.body, ...(form.specialty === '' ? {} : { specialty: form.specialty }), ...(form.build ? { build: true } : {}), ...copilot } };
 }
 
 export interface SkillGroup {

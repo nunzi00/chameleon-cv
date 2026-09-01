@@ -366,6 +366,14 @@ Tres decisiones sostienen que el modelo **añade y no manda**:
 - **Origen visible**: `--explain` escribe `, co-piloto` en el término que puso el modelo. Sin eso se pierde la
   mitad del valor de la explicación: no sabrías qué parte de tu adecuación descansa en él.
 
+**Una sola vía para los tres clientes (C14)**: el motor vive en `src/app/offer-map.ts` y lo consumen igual la CLI
+(`--copilot`), la API (`POST /analyze-offer` con `copilot`) y la web (la casilla «Refinar la lectura con el
+co-piloto» en Generar). La API es síncrona —es UNA petición al modelo, no un lote—, así que el consentimiento
+sigue el patrón de `offers/fetch` y no el de la cola de trabajos: 403 `remote-disabled` sin `--allow-remote` y 409
+`consent-required` con la estimación y un `estimateId` de un solo uso. La estimación no se conoce hasta después de
+planificar, así que el 409 se arma desde el propio callback de consentimiento, que anota lo que costaría y aborta
+antes de llamar al proveedor.
+
 ### 11.6 El límite que la verificación en vivo dejó a la vista
 
 Ejecutado con Ollama sobre una oferta real: 5 propuestas, 3 verificadas y 2 descartadas por el código. Una de

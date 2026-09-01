@@ -8,7 +8,9 @@
   import TagPicker from '../components/TagPicker.svelte';
   import { ApiError } from '../lib/api/client';
 import type { ApiClient, OutputFile } from '../lib/api/client';
-  import type { GenerateResponse, HistoryEntry, ProfileResponse, ThemesResponse } from '../lib/api/types';
+  import type { GenerateResponse, HistoryEntry, LlmConfigResponse, ProfileResponse, ThemesResponse } from '../lib/api/types';
+  import { launchProblem, type LaunchProblem } from '../lib/copilot/consent';
+  import { remoteProviderOptions } from '../lib/copilot/providers';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, offerOf, projectOptions, skillGroups, specialtyPreview, type GenerateForm } from '../lib/generate/form';
   import { describeHistoryEntries } from '../lib/generate/history';
@@ -74,6 +76,10 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
   let fetchedOrigin = $state<string | undefined>(undefined);
   let saveOfferName = $state('');
   let saveOfferBusy = $state(false);
+  /* ── T-9.10: el co-piloto como segunda lectura de la oferta al analizar ── */
+  let llmConfig = $state<LlmConfigResponse | undefined>(undefined);
+  let copilotProblem = $state<LaunchProblem | undefined>(undefined);
+  const remoteOptions = $derived(remoteProviderOptions(llmConfig));
 
   async function loadOffers(): Promise<void> {
     try {
@@ -161,9 +167,16 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
 
   async function loadContext(): Promise<void> {
     try {
-      const [status, inventory, loadedProfile] = await Promise.all([api.status(), api.themes(), Promise.resolve().then(() => api.profile()).catch(() => undefined)]);
+      const [status, inventory, loadedProfile, config] = await Promise.all([
+        api.status(),
+        api.themes(),
+        Promise.resolve().then(() => api.profile()).catch(() => undefined),
+        // El co-piloto es opcional: si no se puede leer su configuración, la pantalla sigue entera y sin remotos.
+        Promise.resolve().then(() => api.llmConfig()).catch(() => undefined),
+      ]);
       specialties = status.artifact.specialties;
       profile = loadedProfile;
+      llmConfig = config;
       typstUsable = status.typst.usable;
       themes = inventory;
       if (typstUsable) {
@@ -195,14 +208,16 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
     }
   }
 
-  async function analyze(): Promise<void> {
-    const request = buildAnalyzeRequest(form);
+  /** `estimateId` llega del diálogo de coste: es la confirmación explícita de enviar a un remoto (C11). */
+  async function analyze(estimateId?: string): Promise<void> {
+    const request = buildAnalyzeRequest(form, estimateId);
     if (!request.ok) {
       error = { kind: 'data', title: 'Falta algo', detail: request.message, lines: [] };
       return;
     }
-    busy = 'Analizando la oferta…';
+    busy = form.copilot ? 'Analizando la oferta con el co-piloto…' : 'Analizando la oferta…';
     error = undefined;
+    copilotProblem = undefined;
     analysis = undefined;
     try {
       const analyzed = await api.analyze(request.body);
@@ -214,7 +229,12 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
         notice = `Especialidad sugerida por la oferta: «${analysis.suggested.id}» (${analysis.suggested.title}; cubre ${analysis.suggested.covered} de ${analysis.suggested.total} requisitos). Cámbiala en el paso 1 si no te encaja.`;
       }
     } catch (caught) {
-      fail(caught);
+      const known = launchProblem(caught);
+      if (known === undefined) {
+        fail(caught);
+      } else {
+        copilotProblem = known;
+      }
     } finally {
       busy = undefined;
     }
@@ -492,12 +512,49 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
     </div>
     <div class="cv-generar-actions">
       <button class="cv-button primary cta" type="submit" disabled={busy !== undefined}>Generar CV</button>
-      <button class="cv-button" type="button" disabled={busy !== undefined || form.offerMode === 'none'} onclick={analyze}>Analizar oferta</button>
+      <button class="cv-button" type="button" disabled={busy !== undefined || form.offerMode === 'none'} onclick={() => void analyze()}>Analizar oferta</button>
+      <label class="cv-check">
+        <input name="copilot" type="checkbox" disabled={form.offerMode === 'none'} checked={form.copilot} onchange={(event) => (form = { ...form, copilot: event.currentTarget.checked })} />
+        Refinar la lectura con el co-piloto
+      </label>
+      {#if form.copilot}
+        <label class="cv-field inline">
+          <span>Proveedor</span>
+          <select name="copilotProvider" value={form.copilotProvider} onchange={(event) => (form = { ...form, copilotProvider: event.currentTarget.value })}>
+            <option value="">Local (el configurado)</option>
+            {#each remoteOptions as option (option.id)}<option value={option.id} disabled={!option.usable}>{option.label}</option>{/each}
+          </select>
+        </label>
+      {/if}
       {#if busy !== undefined}<span class="cv-muted" aria-live="polite">{busy}</span>{/if}
       <span class="cv-header-spacer"></span>
       <span class="cv-muted">→ <code>output/</code></span>
     </div>
   </form>
+
+  {#if form.copilot}
+    <p class="cv-muted cv-step-note">
+      El co-piloto <strong>lee la oferta; no decide tu CV</strong>: solo puede añadir etiquetas que ya son tuyas, y cada una con la frase de la oferta que la
+      justifica. Salen el texto de la oferta y la lista de tus etiquetas; nada más del perfil. Sin la casilla, cero red.
+    </p>
+  {/if}
+  {#if copilotProblem?.kind === 'remote-disabled'}<p class="cv-muted cv-step-note">{copilotProblem.message}</p>{/if}
+
+  <Dialog open={copilotProblem?.kind === 'consent-required'} title="Proveedor remoto: confirma el coste" onclose={() => (copilotProblem = undefined)}>
+    {#if copilotProblem?.kind === 'consent-required'}
+      <p>{copilotProblem.warning === '' ? copilotProblem.message : copilotProblem.warning}</p>
+      {#if copilotProblem.dataNote !== ''}<p class="cv-muted">⚠ {copilotProblem.dataNote}</p>{/if}
+      <dl class="cv-consent">
+        <dt>Se envía</dt><dd>el texto de la oferta y la lista de etiquetas de tu perfil; nada más del perfil</dd>
+        <dt>Se escribe</dt><dd>nada: analizar no toca el disco</dd>
+        {#each copilotProblem.estimate as line, index (index)}<dt>{index === 0 ? 'Coste estimado' : ''}</dt><dd>{line}</dd>{/each}
+      </dl>
+      <div class="cv-dialog-actions">
+        <button class="cv-button" type="button" onclick={() => (copilotProblem = undefined)}>Cancelar</button>
+        <button class="cv-button primary" type="button" onclick={() => { const id = copilotProblem?.kind === 'consent-required' ? copilotProblem.estimateId : undefined; copilotProblem = undefined; void analyze(id); }}>Enviar y analizar</button>
+      </div>
+    {/if}
+  </Dialog>
 
   <Dialog open={fetchConsent !== undefined} title="Descargar la oferta: confirma la salida a la red" onclose={() => (fetchConsent = undefined)}>
     {#if fetchConsent !== undefined}
@@ -561,6 +618,21 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
               <p>{analysis.adequacy}</p>
               {#if analysis.suggested !== undefined}
                 <p class="cv-muted">Especialidad sugerida: <strong>{analysis.suggested.id}</strong> ({analysis.suggested.title}; cubre {analysis.suggested.covered} de {analysis.suggested.total} requisitos con peso).</p>
+              {/if}
+              {#if analysis.copilot !== undefined}
+                <div class="cv-copilot-contrib">
+                  <p><strong>{analysis.copilot.headline}</strong></p>
+                  {#if analysis.copilot.added.length > 0}
+                    <ul>
+                      {#each analysis.copilot.added as mapping (mapping.tag)}
+                        <li><strong>{mapping.tag}</strong> <span class="cv-muted">({mapping.emphasis})</span> ← <span class="cv-muted">«{mapping.evidence}»</span></li>
+                      {/each}
+                    </ul>
+                    <p class="cv-muted">
+                      La frase está en la oferta: eso lo comprueba el código. Que <em>sostenga</em> la etiqueta lo juzgas tú, y por eso se te enseña entera.
+                    </p>
+                  {/if}
+                </div>
               {/if}
               <div class="cv-actions">
                 <button class="cv-button primary small" type="button" disabled={busy !== undefined} onclick={generate}>Generar con esta adecuación</button>

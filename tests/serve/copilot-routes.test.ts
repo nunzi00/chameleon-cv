@@ -39,7 +39,16 @@ async function workspace(extra: Record<string, string | MemoryEntry> = {}): Prom
 }
 
 function answer(request: LlmRequest): unknown {
-  const input = JSON.parse(request.messages[1]?.content ?? '{}') as { text?: string; corpus?: string; dictionary?: unknown };
+  const input = JSON.parse(request.messages[1]?.content ?? '{}') as { text?: string; corpus?: string; dictionary?: unknown; tags?: unknown };
+  if (Array.isArray(input.tags)) {
+    // «offer map» (T-9.10): una propuesta buena y otra con una etiqueta que el perfil no tiene.
+    return {
+      mappings: [
+        { tag: 'kubernetes', emphasis: 'required', evidence: 'orquestación de contenedores' },
+        { tag: 'inventada', evidence: 'orquestación de contenedores' },
+      ],
+    };
+  }
   if (input.dictionary !== undefined) {
     return { suggestions: [{ tag: 'php', reason: 'usa PHP' }] };
   }
@@ -132,6 +141,42 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     const listed = (await (await api('/jobs')).json()) as { jobs: Array<{ id: string; status: string }> };
     expect(listed.jobs.map((job) => job.id)).toContain(body.job.id);
     expect((await (await api(`/jobs/${body.job.id}`)).json()) as object).toMatchObject({ job: { id: body.job.id, status: 'done', lines: expect.any(Array) } });
+  });
+
+  it('POST /analyze-offer --copilot: el modelo añade etiquetas TUYAS con su evidencia, y lo que no verifica se cuenta (T-9.10)', async () => {
+    const offer = { text: 'Buscamos orquestación de contenedores para la plataforma de pagos.' };
+    // Sin «copilot» no se le pide nada al modelo: el análisis es el determinista de siempre.
+    const plain = (await (await post('/analyze-offer', { offer })).json()) as { copilot?: unknown; offer: { tagWeights: Record<string, number> } };
+    expect(plain.copilot).toBeUndefined();
+    expect(plain.offer.tagWeights['kubernetes']).toBeUndefined();
+
+    const refined = await post('/analyze-offer', { offer, copilot: {} });
+    expect(refined.status).toBe(200);
+    const body = (await refined.json()) as {
+      copilot: { mappings: Array<{ tag: string; emphasis: string; evidence: string }>; rejected: { unknownTag: number } };
+      offer: { tagWeights: Record<string, number>; terms: Array<{ term: string; source?: string }> };
+    };
+    expect(body.copilot.mappings).toEqual([{ tag: 'kubernetes', emphasis: 'required', evidence: 'orquestación de contenedores' }]);
+    // La etiqueta inventada la descarta el código: el modelo no puede añadir una competencia que no está en el perfil.
+    expect(body.copilot.rejected.unknownTag).toBe(1);
+    expect(body.offer.tagWeights['kubernetes']).toBeGreaterThan(0);
+    expect(body.offer.terms.find((term) => term.source === 'copiloto')?.term).toBe('orquestación de contenedores');
+  });
+
+  it('POST /analyze-offer --copilot: sin --allow-remote no se envía nada a un remoto, y un proveedor caído se explica', async () => {
+    const offer = { text: 'Buscamos orquestación de contenedores.' };
+    const blocked = await post('/analyze-offer', { offer, copilot: { provider: 'remoto' } });
+    expect(blocked.status).toBe(403);
+    expect((await blocked.json()) as object).toMatchObject({ error: { code: 'remote-disabled', sending: { destination: expect.stringContaining('openai') as string } } });
+    const sick = await post('/analyze-offer', { offer, copilot: { provider: 'enfermo' } });
+    expect(sick.status).toBe(503);
+    expect((await sick.json()) as object).toMatchObject({ error: { code: 'environment', message: expect.stringContaining('Ollama no responde') as string } });
+    expect((await post('/analyze-offer', { offer, copilot: { provider: 'ninguno' } })).status).toBe(503);
+    // El modelo que el proveedor no sirve se dice con lo que sí sirve, o con que no sirve ninguno.
+    const otro = await post('/analyze-offer', { offer, copilot: { provider: 'otro-modelo' } });
+    expect((await otro.json()) as object).toMatchObject({ error: { message: expect.stringContaining('sirve: llama3') as string } });
+    const ninguno = await post('/analyze-offer', { offer, copilot: { provider: 'sin-modelo' } });
+    expect((await ninguno.json()) as object).toMatchObject({ error: { message: expect.stringContaining('no sirve ningún modelo') as string } });
   });
 
   it('las revisiones se listan, leen (ETag), editan con If-Match, aplican (plan y escritura con la versión anterior en el histórico) y eliminan', async () => {
@@ -348,6 +393,25 @@ describe('cv serve --allow-remote: consentimiento de coste en dos pasos', () => 
     const refineJob = ((await refining.json()) as { job: { id: string } }).job;
     const refineEvents = await fetch(`${server.url}api/v1/jobs/${refineJob.id}/events`, { headers: { Authorization: `Bearer ${TOKEN}` } });
     expect(parseSse(await refineEvents.text()).at(-1)?.data).toMatchObject({ status: 'failed', error: { code: 'invalid-data' } });
+
+    // Leer la oferta con un remoto (T-9.10): mismo trato que un trabajo, aunque la ruta sea síncrona.
+    const offer = { text: 'Buscamos orquestación de contenedores.' };
+    const readOffer = await post('/analyze-offer', { offer, copilot: { provider: 'remoto' } });
+    expect(readOffer.status).toBe(409);
+    const offerConsent = (await readOffer.json()) as { error: { code: string; estimateId: string; estimate: { requests: number }; sending: { scope: string } } };
+    expect(offerConsent.error.code).toBe('consent-required');
+    expect(offerConsent.error.estimate.requests).toBe(1);
+    expect(offerConsent.error.sending.scope).toContain('etiquetas');
+    // El id de otra tarea no vale, y el propio solo vale una vez.
+    expect((await post('/analyze-offer', { offer, copilot: { provider: 'remoto', consent: { estimateId: fresh } } })).status).toBe(409);
+    const confirmed = await post('/analyze-offer', { offer, copilot: { provider: 'remoto', consent: { estimateId: offerConsent.error.estimateId } } });
+    expect(confirmed.status).toBe(200);
+    expect((await confirmed.json()) as object).toMatchObject({ copilot: { mappings: [{ tag: 'kubernetes' }] } });
+    expect((await post('/analyze-offer', { offer, copilot: { provider: 'remoto', consent: { estimateId: offerConsent.error.estimateId } } })).status).toBe(409);
+    // Un remoto que entrena con los datos por defecto lo avisa también aquí, antes de enviar nada.
+    const geminiOffer = await post('/analyze-offer', { offer, copilot: { provider: 'gemini' } });
+    expect(geminiOffer.status).toBe(409);
+    expect(((await geminiOffer.json()) as { error: { dataNote: string } }).error.dataNote).toContain('Google');
 
     const undeletable = await fetch(`${server.url}api/v1/reviews/revision-b.md`, { method: 'DELETE', headers: { Authorization: `Bearer ${TOKEN}` } });
     expect(undeletable.status).toBe(503);

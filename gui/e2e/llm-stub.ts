@@ -16,6 +16,11 @@ interface Body {
 }
 
 function answer(input: Record<string, unknown>): unknown {
+  if (Array.isArray(input['tags'])) {
+    // «offer map» (T-9.10): una etiqueta del vocabulario recibido con una frase literal de la oferta del banco.
+    const tags = input['tags'] as readonly string[];
+    return { mappings: [{ tag: tags.includes('gestion') ? 'gestion' : tags[0], emphasis: 'desirable', evidence: 'mentoría' }] };
+  }
   if (Array.isArray(input['dictionary'])) {
     const dictionary = input['dictionary'] as readonly string[];
     return { suggestions: [{ tag: dictionary[0] ?? 'php', reason: 'aparece en el texto' }] };

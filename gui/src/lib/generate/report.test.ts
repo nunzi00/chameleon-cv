@@ -29,6 +29,8 @@ describe('informe de decisiones', () => {
     const covered = { ...match, requirements: { terms: [kubernetes], gaps: [], experienceYears: undefined } as never };
     expect(matchLines(covered).at(-1)).toBe('Todos los requisitos reconocidos están demostrados');
     expect(matchLines({ ...match, requirements: { terms: [], gaps: [], experienceYears: undefined } as never })).toEqual(['Oferta: 0 requisitos reconocidos · sin carencias detectadas', '+ experience exp-acme: coincide · 2.25 [kubernetes]', '− projects proj-x: sin coincidencia']);
+    const conCopiloto = { ...match, requirements: { ...match.requirements, terms: [{ term: 'mensajería', emphasis: 'desirable', occurrences: 1, weight: 0.75, source: 'copiloto' } as never] } as never };
+    expect(matchLines(conCopiloto)[1]).toBe('  mensajería (desirable, 0.75, co-piloto)');
     expect(describeLimits({})).toBe('sin límites');
     expect(describeLimits({ achievementsPerContainer: 3, achievements: 3, skills: 8, projects: 2, certifications: 1 })).toBe('3 logros por experiencia y proyecto, 3 logros transversales, 8 skills, 2 proyectos, 1 certificaciones');
     expect(trimLines([], { skills: 8 })).toEqual(['Recortes (8 skills): ninguno']);
@@ -78,6 +80,25 @@ describe('analysisView', () => {
     expect(view.suggested).toBeUndefined();
     expect(analysisView({ ...base, suggestedSpecialty: { id: 'backend', title: 'Backend', covered: 2, total: 3 } }).suggested).toEqual({ id: 'backend', title: 'Backend', covered: 2, total: 3 });
     expect(analysisView({ ...base, coverage: {} }).missing).toHaveLength(2);
+    expect(view.copilot).toBeUndefined();
+  });
+
+  it('lo que aportó el co-piloto se enseña con su evidencia, y el término lleva su origen (T-9.10)', () => {
+    const view = analysisView({
+      ...base,
+      offer: { ...base.offer, terms: [...base.offer.terms, { term: 'sistemas de mensajería', emphasis: 'desirable', occurrences: 1, weight: 0.75, source: 'copiloto' } as never] } as never,
+      copilot: { mappings: [{ tag: 'arquitectura', emphasis: 'desirable', evidence: 'sistemas de mensajería' }], rejected: { unknownTag: 1, unverifiedEvidence: 0, alreadyKnown: 0, duplicate: 0 } },
+    });
+    expect(view.copilot?.headline).toBe('El co-piloto añadió 1 etiqueta(s) que el emparejado literal no vio, y el código descartó 1');
+    expect(view.copilot?.added).toEqual([{ tag: 'arquitectura', emphasis: 'desirable', evidence: 'sistemas de mensajería' }]);
+    // El origen viaja hasta la lista de términos: quién reconoció el requisito es parte de la explicación.
+    expect(view.missing.at(-1)?.detail).toBe('desirable · 0.75 · co-piloto');
+  });
+
+  it('sin aportación y sin descartes, el resumen no inventa números', () => {
+    const empty = { mappings: [], rejected: { unknownTag: 0, unverifiedEvidence: 0, alreadyKnown: 0, duplicate: 0 } };
+    expect(analysisView({ ...base, copilot: empty }).copilot).toMatchObject({ headline: 'El co-piloto no añadió ninguna etiqueta', added: [], rejected: 0 });
+    expect(analysisView({ ...base, copilot: { ...empty, rejected: { ...empty.rejected, duplicate: 2 } } }).copilot?.headline).toBe('El co-piloto no añadió ninguna etiqueta (2 propuesta(s) descartadas por el código)');
   });
 });
 
