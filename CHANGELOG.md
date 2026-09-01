@@ -2,17 +2,17 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
-## [Unreleased]
-
-### Corregido
-
-- **Una oferta que escribe «CI/CD» ya cubre una tag `ci-cd` del perfil**: los separadores de un término compuesto (`/`, `_`) se unifican al normalizar, así que la puntuación deja de decidir si un requisito está cubierto. Medido con ofertas reales: una pasa de 28 a 30 términos reconocidos y de 4 carencias a 2; en el banco de pruebas, la adecuación de una oferta sube de 8/9 a 9/10 con los imprescindibles de 7/7 a 8/8. La sustitución es de igual longitud a propósito —el informe cita la evidencia por posición— y no toca el punto (separa versiones) ni el «·» (separa campos).
+## [1.14.0] - 2026-09-01
 
 ### Añadido
 
 - **`cv analyze-offer --copilot`: una segunda lectura de la oferta, hecha por un modelo** (T-9.10). El emparejado es literal: si la oferta pide «arquitectura orientada a eventos» y tus skills dicen «Kafka», no casa sin alias. El co-piloto tiende ese puente semántico y **nada más**: lee la oferta, no decide tu CV. Devuelve el mismo cuadro de requisitos de siempre y, a partir de ahí, la selección, la puntuación y el informe son los de hoy; sin la opción no hay red ni cambio alguno. Solo puede **añadir etiquetas que ya son tuyas** —se le envían la oferta y tu lista de etiquetas, nada más de tu perfil—, y cada propuesta necesita una frase de la oferta que el código comprueba que **está literalmente** en ella: lo que no cumple ambas cosas se descarta y se cuenta. Una etiqueta suya vale como una evidencia única, sin refuerzo por repetición, así que nunca pesa más que un término que la oferta nombra tres veces; y `--explain` marca su origen (`, co-piloto`), porque saber qué parte de tu adecuación descansa en un modelo es la mitad del valor de la explicación. **El informe enseña siempre cada aportación con su frase entera** (`arquitectura (desirable) ← «sistemas de mensajería»`): el código puede verificar que la frase existe, pero que *sostenga* la etiqueta solo puedes juzgarlo tú. Con un proveedor remoto, aviso de coste antes de enviar.
 - **La misma segunda lectura, también desde la web y la API** (T-9.10): en `Generar` hay una casilla «Refinar la lectura con el co-piloto» junto a «Analizar oferta», con su selector de proveedor; lo aportado aparece dentro del panel de adecuación —cada etiqueta con la frase de la oferta que la justifica— y el término lleva su origen en la lista de requisitos. Con un proveedor remoto, el diálogo de coste antes de enviar nada. En la API, `POST /analyze-offer` acepta `copilot` con el mismo trato que un trabajo del co-piloto: 403 `remote-disabled` sin `--allow-remote` y 409 `consent-required` con la estimación y un `estimateId` de un solo uso.
 - **Aviso cuando una oferta no declara sus requisitos**: si trae texto de sobra y apenas se reconoce nada, casi siempre es que su stack está en otra página. Antes eso daba una adecuación del 100 % calculada sobre un único requisito, que engaña más que informa; ahora se avisa, **con el enlace si la oferta lo lleva**, y se dice que el porcentaje se calcula sobre lo poco que declara.
+
+### Corregido
+
+- **Una oferta que escribe «CI/CD» ya cubre una tag `ci-cd` del perfil**: los separadores de un término compuesto (`/`, `_`) se unifican al normalizar, así que la puntuación deja de decidir si un requisito está cubierto. Medido con ofertas reales: una pasa de 28 a 30 términos reconocidos y de 4 carencias a 2; en el banco de pruebas, la adecuación de una oferta sube de 8/9 a 9/10 con los imprescindibles de 7/7 a 8/8. La sustitución es de igual longitud a propósito —el informe cita la evidencia por posición— y no toca el punto (separa versiones) ni el «·» (separa campos).
 
 ## [1.13.1] - 2026-09-01
 
