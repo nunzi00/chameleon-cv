@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Router, type RouteResponse } from '../../src/serve';
+import { Router, createRouter, type RouteResponse } from '../../src/serve';
 
 function router(): Router<void> {
   const ok = async (): Promise<RouteResponse> => ({ status: 200, json: null });
@@ -27,5 +27,25 @@ describe('Router', () => {
     expect(r.match('GET', '/dot.path').kind).toBe('route');
     expect(r.match('GET', '/a/x/y')).toEqual({ kind: 'none' });
     expect(r.specs().map((spec) => spec.path)).toEqual(['/a/{id}', '/files/{path+}', '/dot.path']);
+  });
+});
+
+describe('el registro completo de rutas', () => {
+  it('no registra dos veces la misma ruta', () => {
+    // Regresión del 1-sep: al agrupar las rutas por dominios se coló una llamada de más a `addCopilotRoutes` y
+    // las trece rutas del co-piloto quedaron registradas dos veces. Ni las pruebas ni el arnés lo vieron —el
+    // enrutador atiende igual y la primera coincidencia gana—; lo cazó la referencia generada, al salirle dos
+    // anclas iguales. Esta guarda lo caza antes.
+    const paths = createRouter()
+      .specs()
+      .map((spec) => `${spec.method} ${spec.path}`);
+    expect([...new Set(paths)]).toEqual(paths);
+  });
+
+  it('todas las rutas cuelgan de /api/v1 y ninguna lleva ruta del sistema', () => {
+    for (const spec of createRouter().specs()) {
+      expect(spec.path.startsWith('/api/v1/')).toBe(true);
+      expect(spec.summary.length).toBeGreaterThan(20);
+    }
   });
 });

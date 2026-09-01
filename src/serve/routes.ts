@@ -1025,8 +1025,6 @@ function addThemeRoutes(router: Router<ServerState>): void {
       return json(200, verification);
     },
   });
-
-  addCopilotRoutes(router);
 }
 
 /** El propio servidor: apagarlo. */

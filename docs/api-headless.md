@@ -176,6 +176,12 @@ de la oferta por el co-piloto. Cuatro copias de una regla de seguridad es justo 
 Ahora son `remoteBlocked`, `confirmed`, `downloadConsent` y `costConsent`; dos formas, porque hay dos preguntas
 distintas —cuánto va a costar y qué se va a descargar—, pero una sola decisión sobre quién consiente y cuándo.
 
+**Una guarda que faltaba, y que el propio refactor destapó**: al agrupar se coló una llamada de más a
+`addCopilotRoutes` y las trece rutas del co-piloto quedaron registradas **dos veces**. Ni las 1308 pruebas ni los
+202 pasos del arnés lo vieron —el enrutador atiende igual, porque gana la primera coincidencia—; lo cazó la
+referencia generada, al salirle dos anclas iguales. Ahora hay una prueba que exige que `createRouter().specs()`
+no repita ningún `método + ruta`, comprobada reintroduciendo la regresión a mano.
+
 **Lo que no se hizo, y por qué**: llevar cada grupo a su propio fichero. Exigiría un módulo compartido con los
 tipos y los ayudantes, y el beneficio sobre lo que ya hay —funciones con nombre y su docstring— es solo el
 tamaño del fichero. Queda anotado como el paso natural si el registro sigue creciendo.
