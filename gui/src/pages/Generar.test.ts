@@ -41,7 +41,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), outputs: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(),
     themes: vi.fn(async () => ({ defaultName: 'default', configWarning: undefined, roots: [], entries: [{ name: 'default' }, { name: 'classic' }] as never })),
     generate: vi.fn(async () => MD),
-    analyze: vi.fn(async () => ANALYSIS),
+    analyze: vi.fn(async () => ANALYSIS), saveAliases: vi.fn(),
     offerHistory: vi.fn(async () => ({ entries: [] })),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
     setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(),
@@ -260,6 +260,60 @@ describe('Generar · el co-piloto lee la oferta (T-9.10)', () => {
     // La evidencia se enseña entera: el código verifica que la frase está, no que sostenga la etiqueta.
     expect(screen.getByText(/«sistemas de mensajería»/)).toBeTruthy();
     expect(screen.getByText(/desirable · 0.75 · co-piloto/)).toBeTruthy();
+  });
+
+  it('«Guardar como alias» escribe lo que el modelo tendió y enseña qué se guardó y qué no', async () => {
+    const saveAliases = vi.fn(async () => ({
+      plan: [
+        { ok: true, tag: 'arquitectura', alias: 'sistemas de mensajeria', skill: 'Apache Kafka' },
+        { ok: false, tag: 'otra', alias: 'x', reason: 'ninguna skill lleva la etiqueta «otra»' },
+      ],
+      written: [{ ok: true, tag: 'arquitectura', alias: 'sistemas de mensajeria', skill: 'Apache Kafka' }],
+      path: 'data/sources/skills.csv',
+    }));
+    const api = fakeApi({ analyze: vi.fn(async () => REFINADO), saveAliases: saveAliases as never });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos sistemas de mensajería' } });
+    await fireEvent.click(screen.getByLabelText(/Refinar la lectura con el co-piloto/));
+    await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
+    // Ninguna viene marcada: el botón no hace nada hasta que se elige.
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Guardar como alias' }) as HTMLButtonElement).disabled).toBe(true));
+    await fireEvent.click(screen.getByRole('checkbox', { name: /arquitectura/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar 1 como alias' }));
+    await waitFor(() => expect(screen.getByText(/«sistemas de mensajeria» → Apache Kafka/)).toBeTruthy());
+    // Lo que NO se guardó también se enseña, con su motivo: el usuario decide qué hacer con ello.
+    expect(screen.getByText(/no se guardó: ninguna skill/)).toBeTruthy();
+    expect(screen.getByText(/Recompila el artefacto/)).toBeTruthy();
+    expect(saveAliases).toHaveBeenCalledWith({ proposals: [{ tag: 'arquitectura', evidence: 'sistemas de mensajería' }] });
+  });
+
+  it('solo viaja lo marcado: desmarcar una etiqueta la deja fuera', async () => {
+    const dos = {
+      ...REFINADO,
+      copilot: {
+        mappings: [
+          { tag: 'arquitectura', emphasis: 'desirable', evidence: 'sistemas de mensajería' },
+          { tag: 'ci-cd', emphasis: 'required', evidence: 'despliegue continuo' },
+        ],
+        rejected: { unknownTag: 0, unverifiedEvidence: 0, alreadyKnown: 0, duplicate: 0 },
+      },
+    } as unknown as AnalyzeResponse;
+    const saveAliases = vi.fn(async () => ({ plan: [], written: [], path: 'data/sources/skills.csv' }));
+    const api = fakeApi({ analyze: vi.fn(async () => dos), saveAliases: saveAliases as never });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Texto' }));
+    await fireEvent.input(screen.getByLabelText('Texto de la oferta'), { target: { value: 'Buscamos de todo' } });
+    await fireEvent.click(screen.getByLabelText(/Refinar la lectura con el co-piloto/));
+    await fireEvent.click(screen.getByRole('button', { name: 'Analizar oferta' }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /ci-cd/ })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('checkbox', { name: /arquitectura/ }));
+    await fireEvent.click(screen.getByRole('checkbox', { name: /ci-cd/ }));
+    await fireEvent.click(screen.getByRole('checkbox', { name: /arquitectura/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Guardar 1 como alias' }));
+    await waitFor(() => expect(saveAliases).toHaveBeenCalledWith({ proposals: [{ tag: 'ci-cd', evidence: 'despliegue continuo' }] }));
   });
 
   it('un remoto no se envía sin confirmar el coste: el diálogo lo dice y «Enviar y analizar» reenvía con el estimateId', async () => {

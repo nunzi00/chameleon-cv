@@ -271,6 +271,23 @@ describe('cv analyze-offer --copilot (T-9.10)', () => {
     expect(h.stderr()).toContain('skills.csv');
   });
 
+  it('con terminal pregunta uno a uno, y lo que no confirmas no se guarda', async () => {
+    const skills = ['name,category,level,years,aliases,tags', '"C++",language,intermediate,3,cpp,c++', ''].join('\n');
+    const preguntas: string[] = [];
+    const h = compiled({ '/work/data/sources/skills.csv': skills }, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'c++', evidence: 'alto rendimiento' }] }) }),
+      confirm: (question: string) => {
+        preguntas.push(question);
+        return Promise.resolve(false);
+      },
+    });
+    // Sin --yes: el modelo propone y decide la persona, una a una.
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--save-aliases'], h.context)).toBe(EXIT_OK);
+    expect(preguntas[0]).toContain('¿Guardar «alto rendimiento» como alias de tu etiqueta «c++»?');
+    expect(h.stderr()).toContain('No se guardó ningún alias.');
+    expect(h.fs.file('/work/data/sources/skills.csv')?.content).toBe(skills);
+  });
+
   it('sin --save-aliases no se toca skills.csv', async () => {
     const skills = ['name,category,level,years,aliases,tags', '"C++",language,intermediate,3,cpp,c++', ''].join('\n');
     const h = compiled({ '/work/data/sources/skills.csv': skills }, {

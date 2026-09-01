@@ -116,10 +116,18 @@ cv build
 ```
 
 From then on, **that offer and any that phrase it the same way are resolved with no network and no model**:
-literal matching recognises them. Two guards: only what the code verified is saved, and only when the tag belongs
-to **exactly one** skill —if it belongs to several, the alias isn't any one skill's and you're told so you can
-choose—. What was already recognised isn't duplicated either. The write is surgical: it is appended to that
-row's `aliases` column and **the rest of the file stays byte for byte identical**.
+literal matching recognises them.
+
+**You choose which ones.** In the terminal you're asked **one by one**; with `--yes`, or with no terminal, every
+one the code approved goes in, which is what a script expects. On the web, each of the co-pilot's contributions
+carries its own checkbox and **none comes ticked**: tick the ones you want and press «Guardar N como alias».
+
+Two more guards: only what the code verified is saved, and only when the tag belongs to **exactly one** skill —if
+it belongs to several, the alias isn't any one skill's and you're told so you can choose—. What was already
+recognised isn't duplicated either. The phrase is stored **normalised** (lowercase, no diacritics), which is how
+matching looks it up and the only shape `skills.csv` accepts; anything that doesn't fit as an alias is reported
+and not written. The write is surgical: it is appended to that row's `aliases` column and **the rest of the file
+stays byte for byte identical**.
 
 ## Generating from the fit
 

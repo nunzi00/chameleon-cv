@@ -13,6 +13,8 @@ import type {
   OfferFetchResponse,
   OfferSaveRequest,
   OfferSaveResponse,
+  AliasesRequest,
+  AliasesResponse,
   AnalyzeRequest,
   AnalyzeResponse,
   ApplyRequest,
@@ -121,6 +123,8 @@ export interface ApiClient {
   writeSource(path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
   generate(body: GenerateRequest): Promise<GenerateResponse>;
   analyze(body: AnalyzeRequest): Promise<AnalyzeResponse>;
+  /** Guarda como alias lo que el co-piloto tendió (T-9.12): escribe en skills.csv, por eso lo pide un botón. */
+  saveAliases(body: AliasesRequest): Promise<AliasesResponse>;
   /** Historial de una oferta (solo lectura): procesamientos previos por la huella de su texto. */
   offerHistory(body: HistoryLookupRequest): Promise<HistoryLookupResponse>;
   /** Un PDF (bytes) → su texto, extraído en el worker aislado del servidor. */
@@ -281,6 +285,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     writeSource: (path, content, ifMatch) => requestWithHeaders('PUT', `/sources/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
     generate: (body) => request('POST', '/generate', { body }),
     analyze: (body) => request('POST', '/analyze-offer', { body }),
+    saveAliases: (body) => request('POST', '/aliases', { body }),
     offerHistory: (body) => request('POST', '/offers/history', { body }),
     extractOffer: async (pdf) => {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });

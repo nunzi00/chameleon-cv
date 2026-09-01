@@ -99,16 +99,29 @@ export async function runAnalyzeOffer(context: CliContext, source: string | unde
     // Cerrar el bucle (T-9.12): lo que el modelo tuvo que tender puede dejar de necesitarlo. Solo con
     // --save-aliases, solo lo verificado, y solo cuando la etiqueta es de UNA skill; lo demás se explica.
     if (options.saveAliases === true && contributed.mappings.length > 0) {
-      const plan = planAliases(result.analysis.profile, contributed.mappings);
-      const saved = await saveAliases(context, options.data, plan);
-      if (!saved.ok) {
-        return reportError(context, saved.error);
+      // Con terminal, se pregunta UNA A UNA: el modelo propone y eliges tú cuáles entran en tus fuentes. Sin
+      // terminal (o con --yes) entran todas las que el código dio por buenas, que es lo que espera un script.
+      const chosen: Array<(typeof contributed.mappings)[number]> = [];
+      for (const mapping of contributed.mappings) {
+        const ask = options.yes || context.confirm === undefined ? undefined : context.confirm;
+        if (ask === undefined || (await ask(`¿Guardar «${mapping.evidence}» como alias de tu etiqueta «${mapping.tag}»?`))) {
+          chosen.push(mapping);
+        }
       }
-      for (const entry of plan) {
-        context.stderr(entry.ok ? `  alias guardado en ${entry.skill}: «${entry.alias}» (${entry.tag})\n` : `  alias no guardado «${entry.alias}»: ${entry.reason}\n`);
-      }
-      if (saved.result.written.length > 0) {
-        context.stderr(`${saved.result.written.length} alias en data/sources/skills.csv: la próxima oferta que lo diga así se reconocerá sin modelo. Recompila con «cv build».\n`);
+      if (chosen.length === 0) {
+        context.stderr('No se guardó ningún alias.\n');
+      } else {
+        const plan = planAliases(result.analysis.profile, chosen);
+        const saved = await saveAliases(context, options.data, plan);
+        if (!saved.ok) {
+          return reportError(context, saved.error);
+        }
+        for (const entry of plan) {
+          context.stderr(entry.ok ? `  alias guardado en ${entry.skill}: «${entry.alias}» (${entry.tag})\n` : `  alias no guardado «${entry.alias}»: ${entry.reason}\n`);
+        }
+        if (saved.result.written.length > 0) {
+          context.stderr(`${saved.result.written.length} alias en data/sources/skills.csv: la próxima oferta que lo diga así se reconocerá sin modelo. Recompila con «cv build».\n`);
+        }
       }
     }
   }

@@ -7,6 +7,7 @@ import { basename, dirname, extname, resolve, sep } from 'node:path';
 
 import { z } from 'zod';
 
+import { planAliases, saveAliases } from '../app/aliases';
 import { analysisPayload, analyzeOffer, type OfferCopilotOptions } from '../app/analyze';
 import { lookupHistory, offerFingerprint, readHistory, recordHistory } from '../app/history';
 import type { AppContext } from '../app/context';
@@ -38,7 +39,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { AliasesSchema, type AliasesResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -166,6 +167,7 @@ function costConsent(state: ServerState, kind: ConsentKind, provider: LlmProvide
 export function createRouter(): Router<ServerState> {
   const router = new Router<ServerState>();
   addWorkspaceRoutes(router);
+  addAliasRoutes(router);
   addConfigRoutes(router);
   addHistoryRoutes(router);
   addGenerateRoutes(router);
@@ -293,6 +295,38 @@ function addWorkspaceRoutes(router: Router<ServerState>): void {
       }
       const { outcome } = result;
       return json(200, { root: outcome.root, dryRun: outcome.dryRun, plan: describePlan(outcome.plan), written: outcome.written, backup: outcome.backup } satisfies ImportResponse);
+    },
+  });
+}
+
+/**
+ * Guardar como alias lo que el co-piloto tendió (T-9.12). Escribe en `data/sources/skills.csv`, y por eso vive
+ * detrás de un botón: es el usuario quien escribe sus fuentes (C9). Devuelve el plan entero —lo guardado y lo
+ * que no, con su motivo—, que es lo que la pantalla enseña.
+ */
+function addAliasRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/aliases`,
+    summary:
+      'Guarda en data/sources/skills.csv, como alias de la skill que lleva esa etiqueta, las frases que el co-piloto verificó (T-9.12): solo cuando la etiqueta es de UNA skill, normalizadas a la forma que el esquema admite, y añadiéndolas a su fila sin reescribir el fichero. Devuelve el plan completo con lo que no se guardó y por qué.',
+    writes: true,
+    body: AliasesSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, AliasesSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const loaded = await loadProfile(state.context, { profile: state.profile });
+      if (!loaded.ok) {
+        return appErrorResponse(loaded.error);
+      }
+      const plan = planAliases(loaded.profile, parsed.value.proposals);
+      const saved = await saveAliases(state.context, state.data, plan);
+      if (!saved.ok) {
+        return appErrorResponse(saved.error);
+      }
+      return json(200, { plan, written: saved.result.written, path: `${state.data}/skills.csv` } satisfies AliasesResponse);
     },
   });
 }

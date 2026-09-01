@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 
+import type { AliasPlanEntry } from '../app/aliases';
 import type { AnalysisPayload, OfferAnalysis } from '../app/analyze';
 import type { DatasetLoadResult } from '../app/dataset';
 import { CV_ENGINES, CV_FORMATS } from '../app/format';
@@ -184,6 +185,27 @@ export const ImportApplySchema = z.object({
 export type ImportApplyRequestBody = z.infer<typeof ImportApplySchema>;
 
 /** El resultado de aplicar: qué se movió, a qué ficheros y el informe ya actualizado. */
+/**
+ * Guardar como alias lo que el co-piloto tendió (T-9.12): la etiqueta y la frase literal de la oferta, tal como
+ * salieron verificadas del análisis. Escribe en `data/sources/skills.csv`, así que es el usuario quien pulsa (C9).
+ */
+export const AliasesSchema = z.object({
+  proposals: z
+    .array(z.strictObject({ tag: z.string().min(1).max(80), evidence: z.string().min(1).max(300) }))
+    .min(1)
+    .max(50),
+});
+export type AliasesRequest = z.infer<typeof AliasesSchema>;
+
+export interface AliasesResponse {
+  /** Qué se decidió con cada propuesta, guardada o no, con su motivo. */
+  readonly plan: readonly AliasPlanEntry[];
+  /** Las que llegaron al fichero. */
+  readonly written: readonly AliasPlanEntry[];
+  /** El fichero tocado, relativo al espacio de trabajo. */
+  readonly path: string;
+}
+
 export interface ImportApplyResponse {
   readonly name: string;
   readonly section: string;

@@ -77,6 +77,7 @@ describe('cliente de la API', () => {
     await api.offerFetch({ url: 'https://e.com/o' });
     await api.offerSave({ path: 'x.txt', text: 't' });
     await api.applyImportProposal({ name: 'mio', line: 9, section: 'habilidad' });
+    await api.saveAliases({ proposals: [{ tag: 'kafka', evidence: 'sistemas de mensajería' }] });
     await api.setLlmKey('gemini', 'sk-secreta');
     await api.removeLlmKey('gemini');
     await api.themes();
@@ -86,13 +87,13 @@ describe('cliente de la API', () => {
     expect(pdf).toMatchObject({ name: 'cv.pdf', contentType: 'application/pdf' });
     expect(await pdf.blob.text()).toBe('%PDF');
     expect((await api.output('sin-tipo')).contentType).toBe('application/octet-stream');
-    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'POST /api/v1/import-cv', 'POST /api/v1/import-cv', 'POST /api/v1/import-linkedin', 'POST /api/v1/import-linkedin', 'GET /api/v1/offers', 'POST /api/v1/offers/fetch', 'POST /api/v1/offers', 'POST /api/v1/import/apply', 'PUT /api/v1/config/llm/keys/gemini', 'DELETE /api/v1/config/llm/keys/gemini', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'POST /api/v1/import-cv', 'POST /api/v1/import-cv', 'POST /api/v1/import-linkedin', 'POST /api/v1/import-linkedin', 'GET /api/v1/offers', 'POST /api/v1/offers/fetch', 'POST /api/v1/offers', 'POST /api/v1/import/apply', 'POST /api/v1/aliases', 'PUT /api/v1/config/llm/keys/gemini', 'DELETE /api/v1/config/llm/keys/gemini', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
     expect(calls[0]?.body).toBe('{"format":"md","specialty":"backend"}');
     expect(calls[2]).toMatchObject({ headers: { 'Content-Type': 'application/pdf' }, body: '%PDF-1.7' });
     expect(calls[3]).toMatchObject({ headers: { 'x-cv-import-name': 'mío borrador', 'x-cv-import-replace': '1' }, body: '%PDF-1.4' });
     expect(calls[4]?.headers['x-cv-import-name']).toBeUndefined();
     expect(calls[4]?.headers['x-cv-import-replace']).toBeUndefined();
-    expect(calls[16]?.headers['Accept']).toBe('*/*');
+    expect(calls[17]?.headers['Accept']).toBe('*/*');
   });
 
   it('trabajos: encolar, listar, consultar, cancelar y seguir los eventos por SSE con Accept y señal', async () => {

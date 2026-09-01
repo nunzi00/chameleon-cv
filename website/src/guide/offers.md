@@ -101,10 +101,19 @@ cv build
 ```
 
 A partir de ahí, **esa oferta y las que hablen igual se resuelven sin red y sin modelo**: lo reconoce el
-emparejado literal. Dos guardas: solo se guarda lo que el código verificó, y solo cuando la etiqueta pertenece a
-**una sola** skill —si son varias, el alias no es de ninguna en particular y se te dice para que elijas tú—. Lo
-que ya se reconocía tampoco se duplica. La escritura es quirúrgica: se añade al final de la columna `aliases` de
-esa fila y **el resto del fichero queda byte a byte igual**.
+emparejado literal.
+
+**Eliges tú cuáles.** En la terminal se pregunta **una a una** («¿Guardar «sistemas de mensajería» como alias de
+tu etiqueta «kafka»?»); con `--yes`, o sin terminal, entran todas las que el código dio por buenas, que es lo que
+espera un script. En la web, cada aportación del co-piloto lleva su casilla y **ninguna viene marcada**: marcas
+las que quieras y pulsas «Guardar N como alias».
+
+Dos guardas más: solo se guarda lo que el código verificó, y solo cuando la etiqueta pertenece a **una sola**
+skill —si son varias, el alias no es de ninguna en particular y se te dice para que elijas tú—. Lo que ya se
+reconocía tampoco se duplica. La frase se guarda **normalizada** (minúsculas y sin diacríticos), que es como el
+emparejado la busca y la única forma que admite `skills.csv`; lo que no quepa como alias se dice y no se escribe.
+La escritura es quirúrgica: se añade al final de la columna `aliases` de esa fila y **el resto del fichero queda
+byte a byte igual**.
 
 ## Generar con la adecuación
 

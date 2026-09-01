@@ -41,6 +41,14 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
   let typstUsable = $state(false);
   let themes = $state<ThemesResponse | undefined>(undefined);
   let profile = $state<ProfileResponse | undefined>(undefined);
+  /** Lo que se guardó como alias y lo que no, con su motivo (T-9.12); se enseña bajo la aportación del modelo. */
+  let aliasNotice = $state<readonly string[] | undefined>(undefined);
+  /** Las etiquetas que el usuario ha marcado para guardar. Ninguna viene marcada: propone el modelo, elige él. */
+  let chosenAliases = $state<readonly string[]>([]);
+
+  function toggleAlias(tag: string): void {
+    chosenAliases = chosenAliases.includes(tag) ? chosenAliases.filter((chosen) => chosen !== tag) : [...chosenAliases, tag];
+  }
   /** Procesamientos previos de la oferta actual (se consulta al cambiarla y llega también con cada análisis o generación). */
   let history = $state<readonly HistoryEntry[]>([]);
   let historyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -218,6 +226,8 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
     busy = form.copilot ? 'Analizando la oferta con el co-piloto…' : 'Analizando la oferta…';
     error = undefined;
     copilotProblem = undefined;
+    aliasNotice = undefined;
+    chosenAliases = [];
     analysis = undefined;
     try {
       const analyzed = await api.analyze(request.body);
@@ -235,6 +245,31 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
       } else {
         copilotProblem = known;
       }
+    } finally {
+      busy = undefined;
+    }
+  }
+
+  /**
+   * Guarda como alias lo que el co-piloto tendió. Escribe en las fuentes, así que solo ocurre al pulsar (C9), y
+   * se enseña el plan entero: lo guardado y lo que no, con su motivo.
+   */
+  async function saveAliases(): Promise<void> {
+    // Solo lo que el usuario marcó: el modelo propone y él elige, uno a uno.
+    const proposals = (analysis?.copilot?.added ?? []).filter((mapping) => chosenAliases.includes(mapping.tag)).map((mapping) => ({ tag: mapping.tag, evidence: mapping.evidence }));
+    if (proposals.length === 0) {
+      return;
+    }
+    busy = 'Guardando los alias…';
+    error = undefined;
+    try {
+      const saved = await api.saveAliases({ proposals });
+      aliasNotice = [
+        ...saved.plan.map((entry) => (entry.ok ? `«${entry.alias}» → ${entry.skill} (${entry.tag})` : `«${entry.alias}» no se guardó: ${entry.reason}`)),
+        ...(saved.written.length === 0 ? [] : [`${saved.written.length} en ${saved.path}. Recompila el artefacto en Estado para que cuente.`]),
+      ];
+    } catch (caught) {
+      fail(caught);
     } finally {
       busy = undefined;
     }
@@ -634,14 +669,31 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
                 <div class="cv-copilot-contrib">
                   <p><strong>{analysis.copilot.headline}</strong></p>
                   {#if analysis.copilot.added.length > 0}
-                    <ul>
+                    <ul class="cv-copilot-picks">
                       {#each analysis.copilot.added as mapping (mapping.tag)}
-                        <li><strong>{mapping.tag}</strong> <span class="cv-muted">({mapping.emphasis})</span> ← <span class="cv-muted">«{mapping.evidence}»</span></li>
+                        <li>
+                          <label class="cv-check">
+                            <input type="checkbox" checked={chosenAliases.includes(mapping.tag)} onchange={() => toggleAlias(mapping.tag)} />
+                            <span><strong>{mapping.tag}</strong> <span class="cv-muted">({mapping.emphasis})</span> ← <span class="cv-muted">«{mapping.evidence}»</span></span>
+                          </label>
+                        </li>
                       {/each}
                     </ul>
                     <p class="cv-muted">
-                      La frase está en la oferta: eso lo comprueba el código. Que <em>sostenga</em> la etiqueta lo juzgas tú, y por eso se te enseña entera.
+                      La frase está en la oferta: eso lo comprueba el código. Que <em>sostenga</em> la etiqueta lo juzgas tú, y por eso se te enseña entera y
+                      <strong>eliges cuáles se guardan</strong>: ninguna viene marcada.
                     </p>
+                    <div class="cv-actions">
+                      <button class="cv-button small" type="button" disabled={busy !== undefined || chosenAliases.length === 0} onclick={saveAliases}>
+                        Guardar {chosenAliases.length === 0 ? 'como alias' : `${chosenAliases.length} como alias`}
+                      </button>
+                      <span class="cv-actions-note">Se escriben en <code>skills.csv</code>: la próxima oferta que lo diga así se reconoce sin modelo.</span>
+                    </div>
+                    {#if aliasNotice !== undefined}
+                      <ul class="cv-alias-plan">
+                        {#each aliasNotice as line, index (index)}<li>{line}</li>{/each}
+                      </ul>
+                    {/if}
                   {/if}
                 </div>
               {/if}

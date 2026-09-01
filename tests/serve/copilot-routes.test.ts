@@ -163,6 +163,52 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     expect(body.offer.terms.find((term) => term.source === 'copiloto')?.term).toBe('orquestación de contenedores');
   });
 
+  it('POST /aliases guarda lo que el co-piloto tendió y devuelve el plan entero, con lo que no se guardó', async () => {
+    const saved = await post('/aliases', {
+      proposals: [
+        { tag: 'kubernetes', evidence: 'Orquestación de Contenedores' },
+        { tag: 'backend', evidence: 'servicios de backend' },
+        { tag: 'inexistente', evidence: 'lo que sea' },
+      ],
+    });
+    expect(saved.status).toBe(200);
+    const body = (await saved.json()) as { plan: Array<{ ok: boolean; alias: string; skill?: string; reason?: string }>; written: unknown[]; path: string };
+    // Se normaliza a la forma que el esquema de skills.csv admite, que es además como la busca el emparejado.
+    expect(body.plan[0]).toMatchObject({ ok: true, alias: 'orquestacion de contenedores', skill: 'Kubernetes' });
+    // «backend» es de varias skills y «inexistente» no es de ninguna: se explican, no se adivinan.
+    expect(body.plan[1]?.ok).toBe(false);
+    expect(body.plan[2]?.ok).toBe(false);
+    expect(body.written).toHaveLength(1);
+    expect(body.path).toBe('data/sources/skills.csv');
+    const csv = fs.file('/work/data/sources/skills.csv')?.content ?? '';
+    expect(csv).toContain('orquestacion de contenedores');
+    // Y el cuerpo vacío no vale: hay que decir qué se guarda.
+    expect((await post('/aliases', { proposals: [] })).status).toBe(400);
+  });
+
+  it('POST /aliases: sin perfil compilado o sin skills.csv se explica, no se escribe a ciegas', async () => {
+    const vacio = await workspace();
+    await vacio.remove('/work/data/dist/profile.json');
+    const sinPerfil = await startServer({ context: appContext(vacio, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const response = await fetch(`${sinPerfil.url}api/v1/aliases`, { method: 'POST', body: JSON.stringify({ proposals: [{ tag: 'kubernetes', evidence: 'orquestacion' }] }), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+      expect(response.status).not.toBe(200);
+    } finally {
+      await sinPerfil.close();
+    }
+
+    const sinCsv = await workspace();
+    await sinCsv.remove('/work/data/sources/skills.csv');
+    const server2 = await startServer({ context: appContext(sinCsv, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const response = await fetch(`${server2.url}api/v1/aliases`, { method: 'POST', body: JSON.stringify({ proposals: [{ tag: 'kubernetes', evidence: 'orquestacion' }] }), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+      expect(response.status).toBe(404);
+      expect((await response.json()) as object).toMatchObject({ error: { message: expect.stringContaining('skills.csv') as string } });
+    } finally {
+      await server2.close();
+    }
+  });
+
   it('POST /analyze-offer --copilot: sin --allow-remote no se envía nada a un remoto, y un proveedor caído se explica', async () => {
     const offer = { text: 'Buscamos orquestación de contenedores.' };
     const blocked = await post('/analyze-offer', { offer, copilot: { provider: 'remoto' } });
