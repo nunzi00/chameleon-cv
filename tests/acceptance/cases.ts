@@ -167,7 +167,7 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'apply-improve-dry-run', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md', '--dry-run'], exitCode: 0 },
       { id: 'apply-improve', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 0, outputs: [{ path: 'data/sources/experience/nexo-pagos.md', kind: 'text' }, { path: 'output/historial-fuentes/index.json', kind: 'json' }] },
       { id: 'apply-summarize', args: ['improve', 'apply', 'reviews/revision-summarize-backend-marcada.md'], exitCode: 0, outputs: [{ path: 'data/sources/specialties/backend.md', kind: 'text' }] },
-      { id: 'apply-improve-again', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 1 },
+      { id: 'apply-improve-again', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 0 },
       { id: 'build-after', args: ['build', '-v'], exitCode: 0 },
       { id: 'generate-backend-after', args: ['generate-cv', '-s', 'backend', '-o', 'output/cv-backend-aplicado.md'], exitCode: 0, outputs: [{ path: 'output/cv-backend-aplicado.md', kind: 'text' }] },
       { id: 'history', args: ['history'], exitCode: 0 },

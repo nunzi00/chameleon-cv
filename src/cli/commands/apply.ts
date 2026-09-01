@@ -42,6 +42,15 @@ export async function runApplyCommand(context: CliContext, options: ApplyOptions
   if (outcome.deleted) {
     context.stdout(`Revisión eliminada: ${outcome.reviewPath}\n`);
   }
+  // Lo que ya estaba puesto se dice como lo que es —aplicado— y con la vía para deshacerlo, que existe desde
+  // T-8.10 y nadie tiene por qué adivinar.
+  if (outcome.already.length > 0) {
+    context.stderr(`${pluralize(outcome.already.length, 'propuesta ya aplicada', 'propuestas ya aplicadas')} (${outcome.already.join(', ')}): la fuente ya tiene ese texto, no se ha vuelto a escribir\n`);
+    context.stderr('Para deshacerlo: «cv history» lista las versiones anteriores y «cv history restore latest <fuente>» devuelve la de antes (la actual queda a su vez en el histórico)\n');
+  }
+  if (outcome.changes === 0 && outcome.written.length === 0) {
+    return EXIT_OK;
+  }
   context.stderr(`${pluralize(outcome.changes, 'cambio aplicado', 'cambios aplicados')} en ${pluralize(outcome.written.length, 'fichero', 'ficheros')} · recompila el artefacto con «cv build»\n`);
   return EXIT_OK;
 }

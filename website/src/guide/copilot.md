@@ -43,6 +43,12 @@ Cierra el ciclo con el motor determinista: el selector y la puntuación dependen
 
 Marca con `[x]` en el fichero de revisión (de `improve` o de `summarize`) las propuestas que quieras adoptar —puedes retocar su texto— y aplícalas. Es la única orden que escribe en `data/sources/`, con cuatro garantías: **solo lo marcado** (una propuesta por ítem); **cambio mínimo** (solo el texto del logro o el resumen; `#hashtags`, metadatos y el resto del fichero quedan byte a byte iguales); **copia de seguridad previa** (`<fichero>.bak`, y `.bak.1`, `.bak.2`… si ya existía); y **comprobación por huella**: la revisión registra fichero, línea y `sha256` de cada original, y si el original ya no está tal cual no se escribe nada. `--dry-run` muestra el plan, `--delete-review` elimina la revisión aplicada, y después recompila con `cv build`.
 
+**Aplicar dos veces la misma revisión no es un error.** Si la fuente ya tiene el texto de la propuesta, se dice
+—«2 propuestas ya aplicadas (…)»—, no se reescribe nada y se sale con código 0. Para deshacerlo está el histórico
+de fuentes, que la propia orden te recuerda: `cv history` lista las versiones anteriores y
+`cv history restore latest <fuente>` devuelve la de antes (la actual queda a su vez en el histórico). En la web,
+lo mismo desde **Fuentes → Historial de esta fuente**, con «Ver diferencias» y «Restaurar esta versión».
+
 ## Proveedores remotos (opcional)
 
 Para usar la API de OpenAI (`--provider openai`, modelo por defecto `gpt-4o-mini`) o de Anthropic (`--provider anthropic`, `claude-sonnet-4-5`) se aplican, por diseño, cuatro reglas:

@@ -51,26 +51,39 @@ interface PlannedFile {
   readonly edits: PlannedEdit[];
 }
 
-type EditPlan = { readonly ok: true; readonly edit: PlannedEdit } | { readonly ok: false; readonly message: string };
+/**
+ * Tres desenlaces, no dos: además de «se puede escribir» y «algo no cuadra», está **«ya está aplicada»**. Es el
+ * caso más probable cuando el original no aparece —lo normal es haber aplicado la revisión antes, no haber
+ * editado la fuente a mano—, y tratarlo como un error decía justo lo contrario de lo que pasaba (encontrado por
+ * el PO el 1-sep, aplicando una revisión por segunda vez).
+ */
+type EditPlan =
+  | { readonly kind: 'edit'; readonly edit: PlannedEdit }
+  | { readonly kind: 'already' }
+  | { readonly kind: 'error'; readonly message: string };
 
 function planEdit(task: ReviewTask, item: ParsedReviewItem, source: ReviewSource, text: string, content: string): EditPlan {
   if (task === 'improve') {
     const range = locateAchievementText(content, item.original, source.line);
     if (range === undefined) {
-      return { ok: false, message: `el logro original no está tal cual en ${source.file} (¿editado a mano?)` };
+      // Si lo que hay en la fuente es exactamente la propuesta, esta revisión ya se aplicó: no hay nada roto.
+      return locateAchievementText(content, text, source.line) === undefined
+        ? { kind: 'error', message: `el logro original no está tal cual en ${source.file} (¿editado a mano?)` }
+        : { kind: 'already' };
     }
     const current = fingerprint(range.text);
     if (current !== source.hash) {
-      return { ok: false, message: `el original cambió desde la revisión (huella ${current} ≠ ${source.hash})` };
+      return { kind: 'error', message: `el original cambió desde la revisión (huella ${current} ≠ ${source.hash})` };
     }
-    return { ok: true, edit: { id: item.id, start: range.start, text, apply: (updated) => replaceRange(updated, range.start, range.end, text) } };
+    return { kind: 'edit', edit: { id: item.id, start: range.start, text, apply: (updated) => replaceRange(updated, range.start, range.end, text) } };
   }
   const location = locateSummary(content);
-  const current = fingerprint(location.kind === 'present' ? location.range.text : '');
+  const present = location.kind === 'present' ? location.range.text : '';
+  const current = fingerprint(present);
   if (current !== source.hash) {
-    return { ok: false, message: `el resumen de ${source.file} cambió desde la revisión (huella ${current} ≠ ${source.hash})` };
+    return present.trim() === text.trim() ? { kind: 'already' } : { kind: 'error', message: `el resumen de ${source.file} cambió desde la revisión (huella ${current} ≠ ${source.hash})` };
   }
-  return { ok: true, edit: { id: item.id, start: location.kind === 'present' ? location.range.start : location.insertAt, text, apply: (updated) => replaceSummary(updated, location, text) } };
+  return { kind: 'edit', edit: { id: item.id, start: location.kind === 'present' ? location.range.start : location.insertAt, text, apply: (updated) => replaceSummary(updated, location, text) } };
 }
 
 /** Las ediciones de un fichero, aplicadas de atrás hacia delante para que los tramos anteriores no se muevan. */
@@ -117,6 +130,8 @@ export interface ApplyOutcome {
   readonly written: readonly WrittenFile[];
   readonly deleted: boolean;
   readonly changes: number;
+  /** Ítems cuya propuesta YA estaba en la fuente: esta revisión se aplicó antes (no es un fallo). */
+  readonly already: readonly string[];
   /** La entrada del histórico de fuentes creada al escribir (T-8.10); ausente en seco. */
   readonly history: SourceHistoryEntry | undefined;
 }
@@ -161,6 +176,8 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
 
   // 2. Localizar cada original en su fuente y comprobar la huella; nada se escribe si algo falla.
   const files = new Map<string, PlannedFile>();
+  /** Ítems cuya propuesta ya está en la fuente: la revisión se aplicó antes. */
+  const already: string[] = [];
   for (const { item, text } of selected) {
     if (item.source === undefined) {
       errors.push(`«${item.id}»: la revisión no registra su fuente (se generó con fuentes inválidas u obsoletas, o el resumen no tiene destino); cópiala a mano`);
@@ -182,8 +199,10 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
       files.set(path, planned);
     }
     const plan = planEdit(review.task, item, item.source, text, planned.content);
-    if (plan.ok) {
+    if (plan.kind === 'edit') {
       planned.edits.push(plan.edit);
+    } else if (plan.kind === 'already') {
+      already.push(item.id);
     } else {
       errors.push(`«${item.id}»: ${plan.message}`);
     }
@@ -191,18 +210,25 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
   if (errors.length > 0) {
     return { ok: false, error: dataError('No se ha modificado ningún fichero', [...errors, 'No se ha modificado ningún fichero']), written: [] };
   }
-  const plan: PlannedFileSummary[] = [...files.values()].map((planned) => ({
+  const plan: PlannedFileSummary[] = [...files.values()].filter((planned) => planned.edits.length > 0).map((planned) => ({
     path: planned.path,
     edits: planned.edits.map((edit) => ({ id: edit.id, text: edit.text })),
     before: planned.content,
     after: applyEdits(planned),
   }));
   if (request.dryRun) {
-    return { ok: true, outcome: { reviewPath, plan, written: [], deleted: false, changes: 0, history: undefined } };
+    return { ok: true, outcome: { reviewPath, plan, written: [], deleted: false, changes: 0, already, history: undefined } };
   }
 
   // 3. Histórico de las versiones anteriores (fichero completo) y escritura (los tramos se sustituyen de atrás hacia delante).
-  const versions = [...files.values()].map((planned) => ({ path: planned.path, before: planned.content, after: applyEdits(planned), ids: planned.edits.map((edit) => edit.id) }));
+  // Solo los ficheros con alguna edición: si una propuesta ya estaba aplicada, su fichero no se toca —ni se
+  // reescribe idéntico ni entra en el histórico—, porque no ha cambiado nada.
+  const versions = [...files.values()]
+    .filter((planned) => planned.edits.length > 0)
+    .map((planned) => ({ path: planned.path, before: planned.content, after: applyEdits(planned), ids: planned.edits.map((edit) => edit.id) }));
+  if (versions.length === 0) {
+    return { ok: true, outcome: { reviewPath, plan, written: [], deleted: false, changes: 0, already, history: undefined } };
+  }
   const recorded = await recordSourceVersions(context, { action: 'apply', origin: basename(reviewPath), root, versions, at: context.now?.() });
   if (!recorded.ok) {
     return { ok: false, error: recorded.error, written: [] };
@@ -224,7 +250,7 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
     await context.artifactFileSystem.remove(reviewPath);
     deleted = true;
   }
-  return { ok: true, outcome: { reviewPath, plan, written, deleted, changes, history: recorded.entry } };
+  return { ok: true, outcome: { reviewPath, plan, written, deleted, changes, already, history: recorded.entry } };
 }
 
 /* ---------- Listado y lectura de revisiones (clientes) ---------- */

@@ -172,11 +172,16 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
     expect(await runCli(['build'], h.context)).toBe(EXIT_OK);
     expect(h.fs.file('/work/data/dist/profile.json')?.content).toContain('Logré: Reduje la latencia p95');
 
-    // Aplicar dos veces la misma revisión no puede sobrescribir: el original ya no está.
+    // Aplicar dos veces la misma revisión no sobrescribe nada, y —esto es lo que se corrigió el 1-sep, tras
+    // encontrárselo el PO— lo dice como lo que es: YA APLICADA. Antes se trataba como un error de datos y el
+    // mensaje culpaba al usuario («¿editado a mano?») del caso más probable, que es haberla aplicado ya.
     h.reset();
-    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_DATA_ERROR);
-    expect(h.stderr()).toBe('«exp-acme-1»: el logro original no está tal cual en experience/acme.md (¿editado a mano?)\n«exp-acme-k8s»: el logro original no está tal cual en experience/acme.md (¿editado a mano?)\nNo se ha modificado ningún fichero\n');
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('2 propuestas ya aplicadas (exp-acme-1, exp-acme-k8s)');
+    expect(h.stderr()).toContain('cv history restore latest');
+    // Y no se toca el fichero: ni copia, ni reescritura idéntica, ni entrada nueva en el histórico.
     expect(h.fs.file(`${SOURCES}/experience/acme.md.bak`)).toBeUndefined();
+    expect(h.stderr()).not.toContain('cambios aplicados');
   });
 
   it('en la raíz del dataset una copia .bak antigua se respeta y la versión anterior va al histórico; --delete-review borra la revisión', async () => {
@@ -339,6 +344,14 @@ describe('cv improve apply con revisiones de cv summarize', () => {
     h.reset();
     expect(await runCli(['improve', 'apply', 'output/bad.md'], h.context)).toBe(EXIT_DATA_ERROR);
     expect(h.stderr()).toBe(`«summary»: el resumen de specialties/backend.md cambió desde la revisión (huella ${fingerprint(FAITHFUL_SUMMARY)} ≠ ${fingerprint('APIs y sistemas distribuidos para esta especialidad.')})\nNo se ha modificado ningún fichero\n`);
+
+    // Y volver a aplicar el resumen que YA está puesto no es un fallo: se dice que ya está (1-sep).
+    await handmade(h, '/work/output/otra-vez.md', { ...HEADER, specialty: 'engineering-manager', dataDir: undefined }, [
+      item('summary', '(sin resumen actual)', 'Resumen nuevo para EM.', { file: 'specialties/engineering-manager.md', line: 1, hash: fingerprint('') }),
+    ]);
+    h.reset();
+    expect(await runCli(['improve', 'apply', 'output/otra-vez.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('1 propuesta ya aplicada (summary)');
   });
 
   it('al generar la revisión avisa cuando no puede registrar la fuente (oferta sin -s, fuentes inválidas, artefacto obsoleto)', async () => {

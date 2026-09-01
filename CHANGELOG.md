@@ -2,6 +2,12 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Corregido
+
+- **Aplicar dos veces una revisión ya no es un error, y se dice lo que pasa** (encontrado por el PO el 1-sep aplicando `revision-improve-…-arquitecto.md`). Antes salía «Los datos no son válidos» y, por cada ítem, «el logro original no está tal cual en … (¿editado a mano?)»: el mensaje culpaba al usuario del caso **más probable**, que es haber aplicado ya esa revisión. Ahora se distingue: si lo que hay en la fuente es exactamente la propuesta, el ítem sale como **«ya aplicada»**, no se reescribe el fichero —ni copia, ni entrada nueva en el histórico— y la orden termina con código 0. Además se recuerda cómo deshacerlo, que ya existía y no se decía: `cv history` y `cv history restore latest <fuente>` (en la web, «Fuentes → Historial de esta fuente»). En la API, `POST /reviews/{name}/apply` responde 200 con `already: [ids]` en vez de 422.
+
 ## [1.17.0] - 2026-09-01
 
 ### Añadido

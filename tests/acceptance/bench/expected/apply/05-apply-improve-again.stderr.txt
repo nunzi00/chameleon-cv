@@ -1,2 +1,2 @@
-«exp-nexo-pagos-2»: el logro original no está tal cual en experience/nexo-pagos.md (¿editado a mano?)
-No se ha modificado ningún fichero
+1 propuesta ya aplicada (exp-nexo-pagos-2): la fuente ya tiene ese texto, no se ha vuelto a escribir
+Para deshacerlo: «cv history» lista las versiones anteriores y «cv history restore latest <fuente>» devuelve la de antes (la actual queda a su vez en el histórico)

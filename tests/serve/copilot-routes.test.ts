@@ -257,10 +257,10 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     expect(outcome.written[0]?.backup).toMatch(/^\/work\/output\/historial-fuentes\/[^/]+\/experience\/acme\.md$/);
     expect(fs.file(outcome.written[0]?.backup ?? '')?.content).toBe(before);
     expect(fs.file(outcome.written[0]?.path ?? '')?.content).toContain('Logré: ');
-    // Repetir sin cambios en la fuente: la huella ya no coincide → 422 con las líneas.
+    // Repetir no es un fallo: la propuesta ya está en la fuente y se dice así (1-sep). No se reescribe nada.
     const again = await post(`/reviews/${reviewName}/apply`, { dryRun: false });
-    expect(again.status).toBe(422);
-    expect((await again.json()) as object).toMatchObject({ error: { code: 'invalid-data', lines: expect.any(Array), written: [] } });
+    expect(again.status).toBe(200);
+    expect((await again.json()) as object).toMatchObject({ changes: 0, written: [], already: ['exp-acme-1'] });
 
     expect((await api(`/reviews/${reviewName}`, { method: 'DELETE' })).status).toBe(200);
     expect((await api(`/reviews/${reviewName}`)).status).toBe(404);
