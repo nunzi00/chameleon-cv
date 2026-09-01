@@ -456,8 +456,8 @@ describe('la duración que LinkedIn añade tras el rango', () => {
     const cv = ['Lucas Nunzi', 'Experiencia', 'Picas Rojas', 'Desarrollador web', 'noviembre de 2016 - abril de 2017 (6 meses)'].join('\n');
     const draft = structureCv(cv);
     // Lo que este arreglo garantiza: la duración no es el título y las fechas se leen. Que LinkedIn ponga la
-    // empresa ANTES que el puesto —al revés de «Rol · Empresa»— es otra cosa, y sin marca fiable que distinga
-    // una de otro no se toca el orden: inventarlo sería peor que dejarlo (queda anotado en el ROADMAP).
+    // empresa ANTES que el puesto —al revés de «Rol · Empresa»— se resuelve aparte (B-13) y solo cuando el
+    // DOCUMENTO se identifica como su «Guardar como PDF»; en un CV suelto como este no hay marca que lo diga.
     expect(draft.experience[0]?.title).not.toContain('meses');
     expect(draft.experience[0]).toMatchObject({ start: '2016-11', end: '2017-04' });
   });
@@ -465,5 +465,151 @@ describe('la duración que LinkedIn añade tras el rango', () => {
   it('un paréntesis que no es una duración se respeta', () => {
     const cv = ['Lucas Nunzi', 'Experiencia', '2016 - 2017 Desarrollador (remoto)'].join('\n');
     expect(structureCv(cv).experience[0]?.location).toBe('remoto');
+  });
+});
+
+describe('el «Guardar como PDF» de un perfil de LinkedIn (B-13)', () => {
+  /** El aplanado real de las dos columnas: la barra lateral primero y el nombre detrás, con su pie paginado. */
+  const LINKEDIN = [
+    'Contactar',
+    '665979119 (Home)',
+    'ada@example.com',
+    'www.linkedin.com/in/ada-lovelace',
+    '(LinkedIn)',
+    'Aptitudes principales',
+    'DevOps',
+    'GCP',
+    'Lucas Nunzi Lopez',
+    'Senior Developer, devops',
+    'Lugo, Galicia, España',
+    'Extracto',
+    'Specialties: php, mysql, linux.',
+    'Experiencia',
+    'Life5',
+    'Software Developer',
+    'abril de 2022 - Present (4 años 5 meses)',
+    'Raiola Networks',
+    'Soporte',
+    'septiembre de 2017 - junio de 2021 (3 años 10 meses)',
+    'concello de lugo',
+    'tecnico de informática',
+    'noviembre de 2016 - abril de 2017 (6 meses)',
+    'Educación',
+    'ies muralla romana',
+    'Page 1 of 2',
+    'desarrollo de aplicaciones web',
+    'ies piringalla',
+    'informatica de gestion',
+  ].join('\n');
+  /** El mismo documento con la URL de quien lo exporta, que es el caso real. */
+  const MIO = LINKEDIN.replace('www.linkedin.com/in/ada-lovelace', 'www.linkedin.com/in/lucas-nunzi');
+
+  it('el nombre se identifica por el slug de su propia URL, que es comprobar y no adivinar', () => {
+    // La barra lateral empuja el nombre fuera de la ventana de cabecera: sin esto el borrador salía con «Nombre
+    // pendiente» y con «Contactar» de titular.
+    const draft = structureCv(MIO);
+    expect(draft.fullName).toBe('Lucas Nunzi Lopez');
+    expect(draft.headline).toBe('Senior Developer, devops');
+    expect(draft.location).toBe('Lugo, Galicia, España');
+  });
+
+  it('si el slug no casa con ninguna línea, se lee como un CV cualquiera en vez de forzar el formato', () => {
+    // Una URL personalizada («/in/devlucas») no dice el nombre: sin poder comprobarlo, no se aplican las reglas
+    // de este formato —volver al lector general es lo que se hacía hasta ahora— y no se inventa ningún nombre.
+    const draft = structureCv(LINKEDIN);
+    expect(draft.fullName).toBeUndefined();
+    expect(draft.experience[0]).toMatchObject({ title: 'Life5', subtitle: 'Software Developer' });
+  });
+
+  it('la empresa va arriba y el puesto debajo, y dos empleos seguidos no se funden en uno', () => {
+    const draft = structureCv(MIO);
+    expect(draft.experience.map((entry) => [entry.subtitle, entry.title])).toEqual([
+      ['Life5', 'Software Developer'],
+      ['Raiola Networks', 'Soporte'],
+      ['concello de lugo', 'tecnico de informática'],
+    ]);
+    expect(draft.experience[1]).toMatchObject({ start: '2017-09', end: '2021-06' });
+  });
+
+  it('la formación se empareja por posición y NO se le inventa una fecha', () => {
+    const draft = structureCv(MIO);
+    expect(draft.education.map((entry) => [entry.subtitle, entry.title])).toEqual([
+      ['ies muralla romana', 'desarrollo de aplicaciones web'],
+      ['ies piringalla', 'informatica de gestion'],
+    ]);
+    expect(draft.education.every((entry) => entry.start === undefined && entry.end === undefined)).toBe(true);
+    expect(draft.unparsed).toHaveLength(0);
+  });
+
+  it('si la titulación trae el rango, se aprovecha; y una tercera línea que es solo la fecha también', () => {
+    const conFechas = MIO.replace('desarrollo de aplicaciones web', 'desarrollo de aplicaciones web · (2011 - 2013)').replace(
+      'informatica de gestion',
+      'informatica de gestion\n2008 - 2010',
+    );
+    const draft = structureCv(conFechas);
+    expect(draft.education[0]).toMatchObject({ title: 'desarrollo de aplicaciones web', start: '2011', end: '2013' });
+    expect(draft.education[1]).toMatchObject({ title: 'informatica de gestion', start: '2008', end: '2010' });
+  });
+
+  it('un centro sin titulación no se pierde: se avisa como línea sin situar', () => {
+    const draft = structureCv(`${MIO}\nies suelto`);
+    expect(draft.unparsed.map((line) => line.text)).toEqual(['ies suelto']);
+  });
+
+  it('lo que va tras la fecha es el cuerpo de ESE empleo, no la empresa del siguiente', () => {
+    const conCuerpo = MIO.replace(
+      'abril de 2022 - Present (4 años 5 meses)',
+      'abril de 2022 - Present (4 años 5 meses)\n• Migré la plataforma de pagos.',
+    );
+    const draft = structureCv(conCuerpo);
+    expect(draft.experience[0]?.achievements.map((achievement) => achievement.text)).toEqual(['Migré la plataforma de pagos.']);
+    expect(draft.experience[1]?.subtitle).toBe('Raiola Networks');
+  });
+
+  it('una línea antes del primer empleo no se pierde, y un empleo sin par empresa/puesto se abre igual', () => {
+    const raro = MIO.replace('Experiencia\nLife5', 'Experiencia\nNota suelta antes de nada\nLife5').replace(
+      'Educación',
+      'mayo de 2010 - junio de 2011 Becario\nEducación',
+    );
+    const draft = structureCv(raro);
+    expect(draft.unparsed.map((line) => line.text)).toEqual(['Nota suelta antes de nada']);
+    expect(draft.experience.at(-1)).toMatchObject({ title: 'Becario', subtitle: undefined, start: '2010-05', end: '2011-06' });
+    // Y con UNA sola línea antes de la fecha, esa línea es el puesto y la empresa queda pendiente: no se reparte
+    // a medias lo que el documento no dice.
+    const unaLinea = structureCv(MIO.replace('Educación', 'Freelance\nenero de 2020 - marzo de 2021\nEducación'));
+    expect(unaLinea.experience.at(-1)).toMatchObject({ title: 'Freelance', subtitle: undefined, start: '2020-01' });
+  });
+
+  it('el cuerpo del último empleo, con viñeta o sin ella, no se queda fuera', () => {
+    const conCola = MIO.replace('Educación', 'Reduje la latencia del checkout.\nEducación');
+    const draft = structureCv(conCola);
+    expect(draft.experience.at(-1)?.achievements.map((achievement) => achievement.text)).toEqual(['Reduje la latencia del checkout.']);
+  });
+
+  it('sin titular ni ubicación tras el nombre, el resto se lee igual', () => {
+    const escueto = MIO.replace('Senior Developer, devops\nLugo, Galicia, España\n', '');
+    const draft = structureCv(escueto);
+    expect(draft.fullName).toBe('Lucas Nunzi Lopez');
+    expect(draft.headline).toBeUndefined();
+    expect(draft.location).toBeUndefined();
+    expect(draft.experience).toHaveLength(3);
+  });
+
+  it('una formación de la que solo consta el centro y sus fechas se guarda así, sin rellenar el hueco', () => {
+    const soloCentro = MIO.replace('informatica de gestion', '2008 - 2010');
+    expect(structureCv(soloCentro).education.at(-1)).toMatchObject({ title: 'ies piringalla', subtitle: undefined, start: '2008', end: '2010' });
+  });
+
+  it('hacen falta las DOS señales: un CV que solo cite su LinkedIn no entra por aquí', () => {
+    // Sin el pie paginado no es una exportación de LinkedIn, y las reglas de este formato no se aplican.
+    const suelto = ['Ada Lovelace', 'www.linkedin.com/in/ada-lovelace', 'Experiencia', 'Life5', 'Software Developer', 'abril de 2022 - Present'].join('\n');
+    expect(structureCv(suelto).experience[0]).toMatchObject({ title: 'Life5', subtitle: 'Software Developer' });
+  });
+
+  it('«Contactar», «Aptitudes principales» y «Extracto» son títulos de sección, que es lo que LinkedIn escribe', () => {
+    const draft = structureCv(MIO);
+    expect(draft.email).toBe('ada@example.com');
+    expect(draft.skills.flatMap((group) => group.names)).toEqual(['DevOps', 'GCP']);
+    expect(draft.summary).toContain('Specialties');
   });
 });

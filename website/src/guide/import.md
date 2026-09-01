@@ -130,6 +130,14 @@ El borrador sale en `import/<nombre>/` igual que el de un PDF, con el mismo info
 que a partir de aquí el camino es el de abajo. La diferencia se nota en el informe: al venir de datos
 estructurados, **no hay líneas «sin situar»**.
 
+### El PDF que exporta LinkedIn
+
+Si en vez de la exportación de datos usas el **«Guardar como PDF»** del propio perfil, `cv` lo reconoce por su
+URL y su pie de página, y aplica las reglas de ese formato: la empresa va arriba y el puesto debajo, la formación
+viene sin fechas —y no se le inventa ninguna—, y el nombre se comprueba contra el *slug* de tu URL. Sale un
+borrador limpio, pero **la exportación de datos sigue siendo mejor**: son datos estructurados en vez de una
+maquetación que hay que adivinar.
+
 ## Después de importar
 
 1. Lee el `README.md` y corrige lo señalado.

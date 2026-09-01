@@ -74,6 +74,13 @@ describe('interpretOfferMap: las dos guardas', () => {
     expect(schema.properties.mappings.items.properties.tag.enum).toEqual(TAGS);
   });
 
+  it('«required» lista TODAS las propiedades: la salida estricta de Groq y OpenAI rechaza el esquema si falta una', () => {
+    // Fallo real (1-sep) con Groq: HTTP 400 «/properties/mappings/items/required: … must be listed: emphasis»,
+    // y con él la orden entera se caía. El esquema se envía tal cual, así que la guarda va sobre el esquema.
+    const schema = offerMapJsonSchema(TAGS) as { properties: { mappings: { items: { required: string[]; properties: Record<string, unknown> } } } };
+    expect(schema.properties.mappings.items.required).toEqual(Object.keys(schema.properties.mappings.items.properties));
+  });
+
   it('sin oferta o sin etiquetas no hay nada que enviar', () => {
     expect(offerMapFragment('   ', TAGS)).toBeUndefined();
     expect(offerMapFragment(OFERTA, [])).toBeUndefined();

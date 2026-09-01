@@ -528,6 +528,8 @@ details.cv-collapse > summary .cv-muted { margin-left: 6px; }
 details.cv-collapse > .cv-form, details.cv-collapse > .cv-stack, details.cv-collapse > h3, details.cv-collapse > pre { margin-top: 12px; }
 .cv-generar-actions { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--cv-border);
   background: linear-gradient(to bottom, color-mix(in srgb, var(--cv-surface) 60%, transparent), var(--cv-surface) 40%); }
+.cv-generar-note { padding: 0 18px 12px; border-top: 1px solid var(--cv-border); }
+.cv-generar-note p { margin: 10px 0 0; font-size: var(--cv-size-sm); }
 .cv-generar-result { min-width: 0; overflow: auto; padding: 18px 22px 40px; background: var(--cv-bg); display: grid; gap: 12px; align-content: start; }
 .cv-generar-result > .cv-empty { min-height: 60vh; }
 .cv-result-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 14px; align-items: start; }

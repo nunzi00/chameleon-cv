@@ -8,15 +8,15 @@ import { normalize } from './text';
 export type SectionKind = 'summary' | 'experience' | 'projects' | 'education' | 'skills' | 'achievements' | 'certifications' | 'languages' | 'contact';
 
 const HEADINGS: ReadonlyArray<readonly [SectionKind, readonly string[]]> = [
-  ['summary', ['resumen', 'resumen profesional', 'perfil', 'perfil profesional', 'sobre mi', 'acerca de mi', 'summary', 'professional summary', 'profile', 'about', 'about me', 'objective', 'skills summary', 'summary of qualifications', 'resumen de habilidades']],
+  ['summary', ['resumen', 'resumen profesional', 'perfil', 'perfil profesional', 'sobre mi', 'acerca de mi', 'summary', 'professional summary', 'profile', 'about', 'about me', 'objective', 'skills summary', 'summary of qualifications', 'resumen de habilidades', 'extracto']],
   ['experience', ['experiencia', 'experiencia profesional', 'experiencia laboral', 'trayectoria', 'trayectoria profesional', 'historial laboral', 'experience', 'work experience', 'professional experience', 'employment', 'employment history', 'career']],
   ['projects', ['proyectos', 'proyectos destacados', 'projects', 'selected projects', 'personal projects', 'open source']],
   ['education', ['formacion', 'formacion academica', 'educacion', 'estudios', 'education', 'academic background', 'studies']],
-  ['skills', ['habilidades', 'competencias', 'competencias tecnicas', 'conocimientos', 'tecnologias', 'skills', 'technical skills', 'core skills', 'technologies', 'tech stack', 'stack']],
+  ['skills', ['habilidades', 'competencias', 'competencias tecnicas', 'conocimientos', 'tecnologias', 'skills', 'technical skills', 'core skills', 'technologies', 'tech stack', 'stack', 'aptitudes principales', 'top skills']],
   ['achievements', ['logros', 'logros destacados', 'hitos', 'highlights', 'key achievements', 'achievements', 'accomplishments']],
   ['certifications', ['certificaciones', 'certificados', 'certifications', 'certificates', 'licenses & certifications', 'licenses and certifications']],
   ['languages', ['idiomas', 'languages']],
-  ['contact', ['contacto', 'contact', 'datos de contacto']],
+  ['contact', ['contacto', 'contact', 'datos de contacto', 'contactar']],
 ];
 
 const LOOKUP: ReadonlyMap<string, SectionKind> = new Map(HEADINGS.flatMap(([kind, names]) => names.map((name): [string, SectionKind] => [name, kind])));

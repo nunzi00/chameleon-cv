@@ -530,15 +530,18 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
       <span class="cv-header-spacer"></span>
       <span class="cv-muted">→ <code>output/</code></span>
     </div>
+    {#if form.copilot || copilotProblem?.kind === 'remote-disabled'}
+      <div class="cv-generar-note">
+        {#if form.copilot}
+          <p class="cv-muted">
+            El co-piloto <strong>lee la oferta; no decide tu CV</strong>: solo puede añadir etiquetas que ya son tuyas, y cada una con la frase de la oferta
+            que la justifica. Salen el texto de la oferta y la lista de tus etiquetas; nada más del perfil. Sin la casilla, cero red.
+          </p>
+        {/if}
+        {#if copilotProblem?.kind === 'remote-disabled'}<p class="cv-muted">{copilotProblem.message}</p>{/if}
+      </div>
+    {/if}
   </form>
-
-  {#if form.copilot}
-    <p class="cv-muted cv-step-note">
-      El co-piloto <strong>lee la oferta; no decide tu CV</strong>: solo puede añadir etiquetas que ya son tuyas, y cada una con la frase de la oferta que la
-      justifica. Salen el texto de la oferta y la lista de tus etiquetas; nada más del perfil. Sin la casilla, cero red.
-    </p>
-  {/if}
-  {#if copilotProblem?.kind === 'remote-disabled'}<p class="cv-muted cv-step-note">{copilotProblem.message}</p>{/if}
 
   <Dialog open={copilotProblem?.kind === 'consent-required'} title="Proveedor remoto: confirma el coste" onclose={() => (copilotProblem = undefined)}>
     {#if copilotProblem?.kind === 'consent-required'}

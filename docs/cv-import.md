@@ -163,3 +163,41 @@ y lo único propio de LinkedIn es el mapeo de columnas.
 
 Descargar desde la URL (§8, decidido); la exportación «completa» de LinkedIn, que trae decenas de CSV de
 mensajes, anuncios y conexiones que no son un CV; y la pantalla web, que iría después con el mismo núcleo.
+
+## §9 El «Guardar como PDF» de un perfil de LinkedIn (B-13)
+
+Un PDF exportado desde el propio LinkedIn no es un CV maquetado cualquiera: aplana **dos columnas** en un solo
+flujo, así que la barra lateral (contacto y aptitudes) sale ANTES del nombre; escribe la **empresa arriba y el
+puesto debajo**, al revés de «Rol · Empresa»; y su sección de educación lista pares centro/titulación **sin
+ninguna fecha**. Medido sobre `Profile.pdf`: 0 formaciones, 0 habilidades, «Nombre pendiente», dos empleos
+fundidos en uno, dos entradas sin empresa y 6 líneas sin situar.
+
+**Se reconoce el DOCUMENTO, no la línea.** Es el punto que faltaba: a nivel de línea no hay marca que diga si
+«picas rojas» es la empresa o el puesto —y por eso el orden no se tocaba—, pero a nivel de documento sí la hay.
+Se exigen **dos señales independientes**: la URL del perfil (`linkedin.com/in/<slug>`) y el pie paginado que
+LinkedIn escribe siempre. Con una sola no basta: un CV corriente que se limite a citar su LinkedIn no entra por
+aquí, y se sigue leyendo con el lector general.
+
+Verificado eso, cambian tres reglas y **solo** tres:
+
+1. **El nombre** se identifica por el *slug* de su propia URL: la línea cuyas palabras contienen las del slug.
+   Es comprobar, no adivinar. Si ninguna casa —una URL personalizada como `/in/devlucas` no dice el nombre—, **se
+   vuelve al lector general** en vez de forzar un formato del que ya no estamos seguros. El titular y la
+   ubicación son las líneas que siguen al nombre; la ubicación va al contacto, que es su sitio.
+2. **La experiencia** se agrupa en «empresa / puesto / rango», que es lo que el formato garantiza. Lo que va
+   entre la fecha de un empleo y la empresa del siguiente es el **cuerpo del empleo anterior**, que es donde
+   LinkedIn lo escribe.
+3. **La formación** se empareja por posición y **no se le inventa una fecha**: el esquema admite formación sin
+   fechas, y eso es preferible a rellenar el hueco. Si la titulación trae el rango, o va en una tercera línea
+   suelta, se aprovecha.
+
+Además, «Contactar», «Aptitudes principales» y «Extracto» pasan al diccionario de títulos de sección: son las
+palabras que LinkedIn escribe, y sin ellas su barra lateral acababa dentro del resumen.
+
+Resultado sobre el mismo fichero: **6 experiencias con su empresa y su puesto, 3 formaciones, 3 habilidades,
+nombre, titular, correo y ubicación, 0 avisos y 0 líneas sin situar**, y el borrador compila con `cv build
+--data`. Los otros cinco CV del corpus dan exactamente lo mismo que antes.
+
+**Y aun así, la recomendación no cambia**: para un perfil de LinkedIn, la vía buena es `cv import-linkedin` con
+la exportación oficial de datos (§8). Son datos estructurados; esto es adivinar una maquetación, por bien que
+salga.

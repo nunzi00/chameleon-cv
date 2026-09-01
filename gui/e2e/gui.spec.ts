@@ -82,6 +82,11 @@ test('Generar refina la lectura de la oferta con el co-piloto y enseña cada eti
   // Lo que aportó el modelo se enseña con la frase de la oferta que lo justifica: sin eso no se puede juzgar.
   await expect(page.getByText(/El co-piloto añadió 1 etiqueta/)).toBeVisible();
   await expect(page.getByText('«mentoría»')).toBeVisible();
+  // Y sigue AL LADO del formulario, no debajo: la pantalla es una rejilla de dos columnas y basta con colgar un
+  // párrafo de ella para que el resultado caiga a una tercera fila (pasó al añadir la casilla, 1-sep).
+  const form = await page.locator('.cv-generar-form').boundingBox();
+  const result = await page.locator('.cv-generar-result').boundingBox();
+  expect(result!.x).toBeGreaterThanOrEqual(form!.x + form!.width - 1);
 });
 
 test('Generar instala un tema de la comunidad desde un archivo del espacio de trabajo, lo verifica y lo ofrece en el selector', async ({ page }) => {

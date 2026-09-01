@@ -75,7 +75,13 @@ export type OfferMapResult =
     }
   | { readonly ok: false; readonly code: OfferMapErrorCode; readonly message: string };
 
-/** JSON Schema para el proveedor: `tag` restringida al vocabulario enviado (`enum`). */
+/**
+ * JSON Schema para el proveedor: `tag` restringida al vocabulario enviado (`enum`). Todas las propiedades van en
+ * `required`, incluida `emphasis`: la salida estructurada estricta de OpenAI y de Groq **exige** que `required`
+ * liste cada clave de `properties` y, si falta una, rechaza la petición entera con un HTTP 400 (visto en vivo con
+ * Groq). Que el modelo tenga que escribir siempre `emphasis` no cambia nada aquí: el código sigue admitiendo
+ * cualquier valor y traduciendo lo que no reconozca a «unknown».
+ */
 export function offerMapJsonSchema(tags: readonly string[]): Record<string, unknown> {
   return {
     type: 'object',
@@ -87,7 +93,7 @@ export function offerMapJsonSchema(tags: readonly string[]): Record<string, unkn
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['tag', 'evidence'],
+          required: ['tag', 'emphasis', 'evidence'],
           properties: {
             tag: { type: 'string', enum: [...tags] },
             emphasis: { type: 'string', enum: ['required', 'desirable', 'unknown'] },

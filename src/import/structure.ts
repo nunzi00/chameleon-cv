@@ -113,6 +113,49 @@ function toLines(text: string): Line[] {
     .filter((line) => line.text !== '' && !FOOTER.test(line.text) && !/^\d{1,3}$/.test(line.text) && !/^(?:p[aá]gina|page)\s+\d+/i.test(line.text));
 }
 
+/**
+ * El «Guardar como PDF» de un perfil de LinkedIn (B-13). Se pide EL DOCUMENTO, no una línea: dos señales
+ * independientes —la URL del perfil y el pie paginado que LinkedIn escribe siempre— para que un CV corriente que
+ * se limite a listar su LinkedIn no entre por aquí. Solo con las dos se aplican las reglas de este formato, que
+ * son las contrarias a las del resto (la empresa va ANTES que el puesto, y la formación no trae fechas).
+ */
+const LINKEDIN_PROFILE_URL = /(?:^|[\s(])(?:www\.)?linkedin\.com\/in\/([\w%.-]+)/i;
+const LINKEDIN_PAGE_FOOTER = /^\s*(?:p[aá]gina|page)\s+\d+\s+(?:de|of)\s+\d+\s*$/im;
+
+export function linkedInPdfSlug(text: string): string | undefined {
+  const url = LINKEDIN_PROFILE_URL.exec(text);
+  return url === null || !LINKEDIN_PAGE_FOOTER.test(text) ? undefined : normalize(decodeURIComponent(url[1]!).replace(/-/g, ' '));
+}
+
+/**
+ * La barra lateral de LinkedIn (contacto y aptitudes) va ANTES del nombre al aplanar las dos columnas, así que el
+ * nombre queda fuera de la ventana de cabecera y el borrador salía «Nombre pendiente». Aquí se identifica por el
+ * slug de su propia URL —comprobación, no adivinanza— y se lleva al principio con su titular; la ubicación se
+ * devuelve aparte para el contacto, que es su sitio.
+ */
+function hoistLinkedInIdentity(lines: readonly Line[], slug: string): { readonly lines: Line[]; readonly location: string | undefined } | undefined {
+  const words = slug.split(' ').filter((word) => word !== '');
+  const index = lines.findIndex((line) => {
+    const parts = normalize(line.text).split(' ');
+    return words.length > 0 && words.every((word) => parts.includes(word)) && nameScore(line.text) > 0;
+  });
+  // Sin una línea que case con el slug no se sabe de quién es el documento —una URL personalizada («/in/devlucas»)
+  // no dice el nombre—, y entonces se lee como un CV cualquiera: es lo que se hacía hasta ahora, y es preferible
+  // a aplicar las reglas de un formato del que ya no estamos seguros.
+  if (index === -1) {
+    return undefined;
+  }
+  const identity = [lines[index]!];
+  const next = lines[index + 1];
+  if (next !== undefined && detectHeading(next.text) === undefined && !isContactLine(next.text)) {
+    identity.push(next);
+  }
+  const after = lines[index + identity.length];
+  const location = after !== undefined && detectHeading(after.text) === undefined && looksLikeLocation(after.text) ? after : undefined;
+  const consumed = new Set([...identity, ...(location === undefined ? [] : [location])]);
+  return { lines: [...identity, ...lines.filter((line) => !consumed.has(line))], location: location?.text };
+}
+
 function provenance(line: Line): Provenance {
   return { line: line.number, text: line.text };
 }
@@ -508,6 +551,102 @@ function parseEntries(lines: readonly Line[], kind: EntryKind, unparsed: Provena
   return entries;
 }
 
+/**
+ * Experiencia en el PDF de LinkedIn (B-13): grupos rígidos de «empresa / puesto / rango con su duración», con la
+ * empresa ARRIBA —al revés de «Rol · Empresa»— y el cuerpo, si lo hay, detrás de la fecha. El lector general
+ * trataba esas líneas como continuación de la entrada abierta y fundía dos empleos en uno; aquí se agrupan por la
+ * posición, que es justo lo que este formato garantiza. Lo que precede al par empresa/puesto es el cuerpo del
+ * empleo ANTERIOR, que es donde LinkedIn lo escribe.
+ */
+function parseLinkedInExperience(lines: readonly Line[], unparsed: Provenance[]): DraftEntry[] {
+  const entries: DraftEntry[] = [];
+  let pending: Line[] = [];
+  const body = (line: Line): void => {
+    const previous = entries.at(-1);
+    if (previous === undefined) {
+      unparsed.push(provenance(line));
+      return;
+    }
+    const text = isBullet(line.text) ? stripBullet(line.text) : line.text;
+    const split = splitImpact(text);
+    entries[entries.length - 1] = { ...previous, achievements: [...previous.achievements, { text: split.text, impact: split.impact, provenance: provenance(line) }] };
+  };
+  for (const line of lines) {
+    const range = findDateRange(line.text);
+    if (range === undefined) {
+      pending.push(line);
+      continue;
+    }
+    // Las dos últimas líneas antes de la fecha son la empresa y el puesto; lo anterior, cuerpo del empleo previo.
+    const head = pending.splice(Math.max(0, pending.length - 2));
+    for (const before of pending) {
+      body(before);
+    }
+    pending = [];
+    const [company, role] = head.length === 2 ? head : [undefined, head[0]];
+    const title = role === undefined ? trimSeparators(line.text.replace(range.text, '').replace(DURATION, '')) : trimSeparators(role.text);
+    entries.push({
+      title,
+      subtitle: company === undefined ? undefined : trimSeparators(company.text),
+      start: range.start,
+      end: range.end,
+      current: range.current,
+      technologies: [],
+      achievements: [],
+      provenance: provenance(company ?? role ?? line),
+    });
+  }
+  for (const line of pending) {
+    body(line);
+  }
+  return entries;
+}
+
+/**
+ * Formación en el PDF de LinkedIn (B-13): pares «centro / titulación», y muchas veces **sin ninguna fecha**. El
+ * lector general abre las entradas por la fecha, así que allí estas seis líneas acababan sin situar y el perfil
+ * salía con cero formaciones. Aquí se emparejan por posición —que es lo que el formato garantiza— y **no se
+ * inventa una fecha**: la formación sin fechas es válida en el esquema, y es preferible a adivinarla. Si la
+ * titulación trae el rango entre paréntesis, o va en una tercera línea suelta, se aprovecha.
+ */
+function parseLinkedInEducation(lines: readonly Line[], unparsed: Provenance[]): DraftEntry[] {
+  const entries: DraftEntry[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const institution = lines[index]!;
+    const degreeLine = lines[index + 1];
+    if (degreeLine === undefined) {
+      unparsed.push(provenance(institution));
+      break;
+    }
+    index += 1;
+    let range = findDateRange(degreeLine.text);
+    let title = range === undefined ? degreeLine.text : trimSeparators(degreeLine.text.replace(range.text, '').replace(/\(\s*\)/, ''));
+    const tail = lines[index + 1];
+    // Una tercera línea que sea SOLO el rango pertenece a esta entrada, no a la siguiente.
+    if (range === undefined && tail !== undefined) {
+      const only = findDateRange(tail.text);
+      if (only !== undefined && trimSeparators(tail.text.replace(only.text, '')) === '') {
+        range = only;
+        index += 1;
+      }
+    }
+    title = trimSeparators(title.replace(DURATION, ''));
+    const degree = parseDegree(title === '' ? institution.text : title);
+    entries.push({
+      title: degree.degree,
+      subtitle: title === '' ? undefined : institution.text,
+      field: degree.field,
+      start: range?.start,
+      end: range?.end,
+      current: range?.current,
+      technologies: [],
+      achievements: [],
+      provenance: provenance(institution),
+    });
+  }
+  return entries;
+}
+
 /** Certificaciones: «Nombre · Emisor · fecha · enlace», «Nombre (Emisor), fecha», o el nombre en una línea y «(Emisor), fecha» en la siguiente. */
 function parseCertifications(lines: readonly Line[]): DraftEntry[] {
   const entries: DraftEntry[] = [];
@@ -744,7 +883,12 @@ function chooseName(header: readonly Line[]): { readonly line: number; readonly 
 
 /** Del texto plano de un CV a un borrador de perfil con procedencia. */
 export function structureCv(text: string): DraftProfile {
-  const lines = toLines(text);
+  // El PDF de LinkedIn se reconoce por el documento entero y cambia tres reglas: dónde está el nombre, en qué
+  // orden vienen empresa y puesto, y que la formación no trae fechas (B-13).
+  const slug = linkedInPdfSlug(text);
+  const hoisted = slug === undefined ? undefined : hoistLinkedInIdentity(toLines(text), slug);
+  const linkedInPdf = hoisted !== undefined;
+  const lines = hoisted?.lines ?? toLines(text);
   const sections: Array<{ kind: SectionKind; line: number; title: string; lines: Line[] }> = [];
   const header: Line[] = [];
   let currentSection: { kind: SectionKind; line: number; title: string; lines: Line[] } | undefined;
@@ -830,6 +974,7 @@ export function structureCv(text: string): DraftProfile {
   const collect = (kind: SectionKind): Line[] => sections.filter((section) => section.kind === kind).flatMap((section) => section.lines);
   // Las líneas de contacto se unen antes de trocearlas: un teléfono puede venir partido en dos líneas.
   parseContact([...contactLines, ...collect('contact').map((line) => line.text)].join(' '), contact);
+  contact.location ??= hoisted?.location;
   unparsed.push(...contact.leftovers.map((leftover) => ({ line: 0, text: leftover })));
   const summary = [...summaryLines, ...collect('summary').map((line) => line.text)].map((line) => line.replace(/^(?:summary|resumen|perfil|profile)\.\s*/i, ''));
 
@@ -841,9 +986,9 @@ export function structureCv(text: string): DraftProfile {
     location: contact.location,
     links: contact.links,
     summary: summary.length === 0 ? undefined : summary.join(' '),
-    experience: parseEntries(collect('experience'), 'experience', unparsed),
+    experience: linkedInPdf ? parseLinkedInExperience(collect('experience'), unparsed) : parseEntries(collect('experience'), 'experience', unparsed),
     projects: parseEntries(collect('projects'), 'projects', unparsed),
-    education: parseEntries(collect('education'), 'education', unparsed),
+    education: linkedInPdf ? parseLinkedInEducation(collect('education'), unparsed) : parseEntries(collect('education'), 'education', unparsed),
     certifications: parseCertifications(collect('certifications')),
     skills: parseSkills(collect('skills')),
     achievements: parseAchievements(collect('achievements'), unparsed),
