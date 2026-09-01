@@ -235,6 +235,51 @@ describe('cv analyze-offer --copilot (T-9.10)', () => {
     expect(vacio.stderr()).not.toContain('descartadas');
   });
 
+  it('--save-aliases cierra el bucle: la frase que el modelo tendió queda como alias y la próxima vez no hace falta', async () => {
+    // «c++» es de UNA skill del banco y la oferta no la nombra, así que el puente que tiende el modelo tiene
+    // dueño claro. La fila de esa skill viene entrecomillada en el CSV: se comprueba que se respeta.
+    const skills = ['name,category,level,years,aliases,tags', 'PHP,language,expert,10,,php|backend', '"C++",language,intermediate,3,cpp,c++', ''].join('\n');
+    const h = compiled({ '/work/data/sources/skills.csv': skills }, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'c++', evidence: 'alto rendimiento' }] }) }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--save-aliases', '--yes'], h.context)).toBe(EXIT_OK);
+    const lines = (h.fs.file('/work/data/sources/skills.csv')?.content ?? '').split('\n');
+    expect(lines[2]).toBe('"C++",language,intermediate,3,cpp|alto rendimiento,c++');
+    expect(lines[0]).toBe('name,category,level,years,aliases,tags');
+    expect(lines[1]).toBe('PHP,language,expert,10,,php|backend');
+    expect(h.stderr()).toContain('alias guardado en C++: «alto rendimiento» (c++)');
+    expect(h.stderr()).toContain('se reconocerá sin modelo');
+  });
+
+  it('una etiqueta que no es de ninguna skill se explica en vez de guardarse a medias', async () => {
+    // «arquitectura» está en el vocabulario del perfil por una especialidad, no por una skill: el alias no tiene
+    // dueño y no se inventa uno.
+    const skills = ['name,category,level,years,aliases,tags', '"C++",language,intermediate,3,cpp,c++', ''].join('\n');
+    const h = compiled({ '/work/data/sources/skills.csv': skills }, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'arquitectura', evidence: 'alto rendimiento' }] }) }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--save-aliases', '--yes'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('alias no guardado «alto rendimiento»: ninguna skill lleva la etiqueta «arquitectura»');
+    expect(h.fs.file('/work/data/sources/skills.csv')?.content).toBe(skills);
+  });
+
+  it('si skills.csv no está donde debe, --save-aliases lo dice en vez de callarse', async () => {
+    const h = compiled({}, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'c++', evidence: 'alto rendimiento' }] }) }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--save-aliases', '--yes'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr()).toContain('skills.csv');
+  });
+
+  it('sin --save-aliases no se toca skills.csv', async () => {
+    const skills = ['name,category,level,years,aliases,tags', '"C++",language,intermediate,3,cpp,c++', ''].join('\n');
+    const h = compiled({ '/work/data/sources/skills.csv': skills }, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'c++', evidence: 'alto rendimiento' }] }) }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--yes'], h.context)).toBe(EXIT_OK);
+    expect(h.fs.file('/work/data/sources/skills.csv')?.content).toBe(skills);
+  });
+
   it('con un proveedor remoto avisa del coste antes de enviar y aborta sin confirmación (C11)', async () => {
     const h = compiled({}, {
       llmProvider: () =>

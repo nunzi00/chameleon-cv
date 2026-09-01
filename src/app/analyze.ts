@@ -5,6 +5,7 @@
 import { resolve } from 'node:path';
 
 import { type MatchSummary, type ScoredSelection, type SuggestedSpecialty, suggestSpecialty, summarizeMatch } from '../core/scoring';
+import type { MasterProfile } from '../core/schema';
 import type { AppContext } from './context';
 import { buildProfile, loadProfile } from './dataset';
 import { dataError, type AppError } from './errors';
@@ -51,6 +52,8 @@ export interface OfferAnalysis {
   readonly summary: MatchSummary;
   /** La especialidad real que más cubre la oferta (T-8.9), si alguna destaca. */
   readonly suggestedSpecialty: SuggestedSpecialty | undefined;
+  /** El perfil compilado sobre el que se analizó: lo necesita quien quiera actuar sobre él (T-9.12, alias). */
+  readonly profile: MasterProfile;
   /** Lo que aportó el co-piloto (T-9.10): ausente sin `--copilot`. Se enseña para poder juzgarlo. */
   readonly copilot?: { readonly mappings: readonly OfferMapping[]; readonly rejected: OfferMapRejections } | undefined;
 }
@@ -133,7 +136,7 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
   }
   return {
     ok: true,
-    analysis: { offerName: read.offer.name, requirements, scored, summary, suggestedSpecialty: suggestSpecialty(loaded.profile, requirements), copilot: contributed },
+    analysis: { offerName: read.offer.name, requirements, scored, summary, suggestedSpecialty: suggestSpecialty(loaded.profile, requirements), profile: loaded.profile, copilot: contributed },
     history,
     warnings,
   };

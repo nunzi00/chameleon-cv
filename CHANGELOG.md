@@ -4,6 +4,15 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- **`--save-aliases`: que el puente del co-piloto deje de hacer falta** (T-9.12). Cuando el co-piloto tiende un puente entre lo que la oferta dice y una etiqueta tuya —«sistemas de mensajería» → `kafka`—, esa frase puede quedar como **alias** de tu skill: `cv analyze-offer … --copilot --save-aliases` la escribe en `skills.csv` y, a partir de ahí, esa oferta y las que hablen igual **se resuelven sin red y sin modelo**. Dos guardas: solo lo que el código verificó, y solo cuando la etiqueta pertenece a **una sola** skill —si son varias se te dice, para que elijas tú—. La escritura es quirúrgica: se añade al final de la columna `aliases` de esa fila y el resto del fichero queda byte a byte igual.
+
+### Cambiado
+
+- **El arnés de aceptación tarda 25 s en vez de 64 s**: los catorce escenarios corren en paralelo (`CHAMELEON_ACCEPTANCE_JOBS=1` vuelve a la ejecución en serie). Hizo falta dejar de lanzar cada paso con `spawnSync`, que bloquea el bucle de eventos entero: con él, lanzarlos a la vez daba el mismo tiempo y un 124 % de CPU. Contra el ejecutable empaquetado, de 64 s a 18 s.
+- **El registro de rutas de `cv serve`, por dominios**: cincuenta y una rutas vivían en una función de casi novecientas líneas. Y el puente levadizo —403 sin `--allow-remote`, 409 con `estimateId`— deja de estar escrito cuatro veces; cuatro copias de una regla de seguridad es donde se cuela una divergencia. Sin cambio de comportamiento.
+
 ### Corregido
 
 - **Un nombre maquetado letra a letra ya no bautiza el borrador con una sílaba** (B-14): un CV cuya cabecera va espaciada («L U C A S» / «N U N Z I» / «L Ó P E Z», una palabra por línea) salía como `fullName: L U C A S` y con la carpeta `import/l-u-c-a-s/`. Ahora ese bloque se colapsa **línea a línea** —el salto de línea es lo único que conserva la frontera entre palabras— y se elige el tramo que mejor puntúa como nombre, así que sale `LUCAS NUNZI LÓPEZ`. Lo que viene detrás no se cuela: al añadirlo el nombre puntúa peor. El titular se deja espaciado a propósito: dentro de una línea la separación entre palabras se perdió sin remedio, y «DESARROLLADORWEB» parecería correcto sin serlo.

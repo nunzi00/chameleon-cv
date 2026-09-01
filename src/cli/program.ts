@@ -162,6 +162,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--copilot', 'pide además al co-piloto que lea la oferta y proponga etiquetas de TU perfil que el emparejado literal no vio; verificadas contra tu vocabulario, nunca deciden el CV', false)
     .option('--provider <id>', 'proveedor del co-piloto para --copilot (por defecto, el configurado)')
     .option('--model <modelo>', 'modelo del co-piloto para --copilot')
+    .option('--save-aliases', 'guarda en skills.csv, como alias de tu skill, la frase que el co-piloto tuvo que tender: la próxima vez se reconoce sin modelo (solo con --copilot)')
     .option('--allow-remote', 'permite descargar la oferta cuando el origen es una URL https (una petición, con confirmación)', false)
     .option('--yes', 'no pregunta antes de descargar la URL (para scripts y sin terminal)', false)
     .option('--save-offer [ruta]', 'guarda el texto descargado en offers/ (nombre automático, o la ruta indicada) con cabecera de origen')

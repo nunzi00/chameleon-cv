@@ -4,6 +4,7 @@
  * escribe ficheros.
  */
 import type { OfferInput } from '../../app/offer';
+import { planAliases, saveAliases } from '../../app/aliases';
 import { analysisPayload, analyzeOffer, type OfferCopilotOptions } from '../../app/analyze';
 import { selectCopilotProvider } from '../../app/copilot';
 import { ensureProviderReady } from './remote';
@@ -30,6 +31,8 @@ export interface AnalyzeOfferOptions {
   readonly copilot?: boolean | undefined;
   readonly provider?: string | undefined;
   readonly model?: string | undefined;
+  /** T-9.12: guardar como alias en skills.csv lo que el co-piloto tuvo que tender, para no volver a necesitarlo. */
+  readonly saveAliases?: boolean | undefined;
 }
 
 /** Sin origen: la lista de `offers/**` para elegir (con `--list`, código 0; sin él, 2 porque falta el argumento). */
@@ -93,6 +96,21 @@ export async function runAnalyzeOffer(context: CliContext, source: string | unde
         ? `El co-piloto no añadió ninguna etiqueta${descartadas === 0 ? '' : ` (${descartadas} propuesta(s) descartadas por el código)`}\n`
         : `El co-piloto añadió ${contributed.mappings.length} etiqueta(s) que el emparejado literal no vio${descartadas === 0 ? '' : `, y el código descartó ${descartadas}`}:\n${contributed.mappings.map((mapping) => `  ${mapping.tag} (${mapping.emphasis}) ← «${mapping.evidence}»\n`).join('')}`,
     );
+    // Cerrar el bucle (T-9.12): lo que el modelo tuvo que tender puede dejar de necesitarlo. Solo con
+    // --save-aliases, solo lo verificado, y solo cuando la etiqueta es de UNA skill; lo demás se explica.
+    if (options.saveAliases === true && contributed.mappings.length > 0) {
+      const plan = planAliases(result.analysis.profile, contributed.mappings);
+      const saved = await saveAliases(context, options.data, plan);
+      if (!saved.ok) {
+        return reportError(context, saved.error);
+      }
+      for (const entry of plan) {
+        context.stderr(entry.ok ? `  alias guardado en ${entry.skill}: «${entry.alias}» (${entry.tag})\n` : `  alias no guardado «${entry.alias}»: ${entry.reason}\n`);
+      }
+      if (saved.result.written.length > 0) {
+        context.stderr(`${saved.result.written.length} alias en data/sources/skills.csv: la próxima oferta que lo diga así se reconocerá sin modelo. Recompila con «cv build».\n`);
+      }
+    }
   }
   const { analysis, history } = result;
   if (options.json) {

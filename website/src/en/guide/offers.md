@@ -103,8 +103,23 @@ its provider selector: the contribution appears inside the fit panel, with the s
 of rejections, and a remote provider opens the cost dialog first. In the API, `POST /analyze-offer` accepts
 `copilot` (403 `remote-disabled` without `--allow-remote`, 409 `consent-required` with an `estimateId`).
 
-If the bridge the co-pilot had to build has already served you once, the cheap and permanent fix is **adding
-that alias to `skills.csv`**: deterministic, free, and it needs no model.
+### Making the bridge unnecessary
+
+If the phrase the co-pilot had to bridge has already served you once, the cheap and permanent fix is for it to
+become an **alias** of your skill. `--save-aliases` does it for you:
+
+```sh
+cv analyze-offer offers/acme-backend.txt --copilot --save-aliases
+#   alias guardado en Apache Kafka: «sistemas de mensajería» (kafka)
+#   1 alias en data/sources/skills.csv: la próxima oferta que lo diga así se reconocerá sin modelo.
+cv build
+```
+
+From then on, **that offer and any that phrase it the same way are resolved with no network and no model**:
+literal matching recognises them. Two guards: only what the code verified is saved, and only when the tag belongs
+to **exactly one** skill —if it belongs to several, the alias isn't any one skill's and you're told so you can
+choose—. What was already recognised isn't duplicated either. The write is surgical: it is appended to that
+row's `aliases` column and **the rest of the file stays byte for byte identical**.
 
 ## Generating from the fit
 

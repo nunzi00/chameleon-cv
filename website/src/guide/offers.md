@@ -88,8 +88,23 @@ selector de proveedor: lo aportado aparece dentro del panel de adecuación, con 
 recuento de descartes, y un proveedor remoto abre antes el diálogo de coste. En la API, `POST /analyze-offer`
 acepta `copilot` (403 `remote-disabled` sin `--allow-remote`, 409 `consent-required` con `estimateId`).
 
-Si la etiqueta que el co-piloto tuvo que tender ya te sirvió una vez, el arreglo barato y permanente es **añadir
-ese alias a `skills.csv`**: es determinista, gratis y no necesita modelo.
+### Que el puente deje de hacer falta
+
+Si la frase que el co-piloto tuvo que tender ya te sirvió una vez, lo barato y permanente es que quede como
+**alias** de tu skill. `--save-aliases` lo hace por ti:
+
+```sh
+cv analyze-offer ofertas/acme-backend.txt --copilot --save-aliases
+#   alias guardado en Apache Kafka: «sistemas de mensajería» (kafka)
+#   1 alias en data/sources/skills.csv: la próxima oferta que lo diga así se reconocerá sin modelo.
+cv build
+```
+
+A partir de ahí, **esa oferta y las que hablen igual se resuelven sin red y sin modelo**: lo reconoce el
+emparejado literal. Dos guardas: solo se guarda lo que el código verificó, y solo cuando la etiqueta pertenece a
+**una sola** skill —si son varias, el alias no es de ninguna en particular y se te dice para que elijas tú—. Lo
+que ya se reconocía tampoco se duplica. La escritura es quirúrgica: se añade al final de la columna `aliases` de
+esa fila y **el resto del fichero queda byte a byte igual**.
 
 ## Generar con la adecuación
 

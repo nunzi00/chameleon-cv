@@ -3,6 +3,7 @@
  * orquestación que reciben un `AppContext` y devuelven datos —nunca texto ni códigos de salida—; la CLI
  * (en proceso) y el servidor HTTP son dos clientes de esta capa.
  */
+export * from './aliases';
 export * from './analyze';
 export * from './assets';
 export * from './context';
