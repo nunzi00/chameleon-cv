@@ -29,6 +29,28 @@ Cada requisito pesa según dónde aparece —`Requisitos` 1.0 · resto 0.75 · `
 - Los ítems sin etiquetas puntúan 0: van detrás y son los primeros en caer. Sin oferta, todos puntúan 0 y `--top-n` conserva los N primeros tal como los escribiste.
 - `#pin` nunca se recorta. Especificación: [Recorte «N mejores» y CLI de adaptación](/design/trimming-cli).
 
+## Elegir a mano qué entra y qué no
+
+Además de los límites por cantidad, puedes decidir tú las skills y los proyectos, **por las dos vías**:
+
+```bash
+cv generate-cv --skills "PHP,Kubernetes"          # solo estas
+cv generate-cv --exclude-skills "COBOL"           # todas menos estas
+cv generate-cv --projects proj-a,proj-b           # solo estos
+cv generate-cv --exclude-projects proj-viejo      # todos menos estos
+```
+
+Se nombran por **id o por nombre**, y lo que nombres y no exista se avisa en vez de fallar en silencio. Primero
+se aplica «solo estas» y después «todas menos estas», así que las dos listas se pueden combinar
+(`--skills php,kubernetes --exclude-skills php` deja Kubernetes). Todo esto ocurre **antes** de los límites por
+cantidad (`--max-skills` y compañía).
+
+Quitar una skill la saca de tu sección de habilidades; lo que un empleo declare en sus «Tecnologías» es un hecho
+de ese empleo y no se reescribe.
+
+En la interfaz web, en «Afinar el contenido», cada selector tiene su conmutador **«Solo estas» / «Todas menos
+estas»**: la misma lista, leída al derecho o al revés.
+
 ## `cv analyze-offer`
 
 Analiza sin generar: adecuación global, evidencias (qué ítems del perfil demuestran cada requisito) y carencias. `--explain` da la auditoría por ítem; `--json` lo mismo en JSON para scripts; `-s` acota el análisis a una especialidad; `<offer>` puede ser `-` (stdin). Referencia: [`cv analyze-offer`](/reference/analyze-offer).

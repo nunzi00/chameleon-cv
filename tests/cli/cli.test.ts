@@ -175,6 +175,23 @@ describe('cv generate-cv', () => {
     expect(h.stderr()).toContain('skills: skill-kubernetes Kubernetes');
   });
 
+  it('con --exclude-skills y --exclude-projects sale todo MENOS lo listado, y se combina con --skills', async () => {
+    const h = compiled();
+    expect(await runCli(['generate-cv', '--exclude-skills', 'php,Nadie', '--exclude-projects', 'proj-platform', '--explain'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Aviso: skills no encontrados en el perfil (se ignoran): Nadie\n');
+    expect(h.stderr()).toContain('Recortes (--exclude-skills php,Nadie, --exclude-projects proj-platform)');
+    // La skill sale de la sección de habilidades; lo que un empleo diga en sus «Tecnologías» es un hecho de ese
+    // empleo y no se reescribe, igual que con --skills.
+    expect(h.stderr()).toContain('skill-php PHP');
+    expect(h.fs.file('/work/output/cv-ada-ejemplo.md')?.content ?? '').toContain('Kubernetes');
+
+    // Y las dos listas juntas: primero lo que se pide, después lo que se quita de ahí.
+    const combinado = compiled();
+    expect(await runCli(['generate-cv', '--skills', 'php,kubernetes', '--exclude-skills', 'php', '--explain'], combinado.context)).toBe(EXIT_OK);
+    expect(combinado.stderr()).toContain('skill-php PHP');
+    expect(combinado.fs.file('/work/output/cv-ada-ejemplo.md')?.content ?? '').toContain('Kubernetes');
+  });
+
   it('la segunda vez con la misma oferta avisa de cuándo se procesó y con qué CV (historial en output/)', async () => {
     const h = compiled();
     await h.fs.writeFile('/work/oferta.txt', 'Buscamos PHP y Kubernetes', 0o600);

@@ -2,6 +2,8 @@
 import type { AnalyzeRequest, GenerateRequest, ProfileResponse } from '../api/types';
 
 export type OfferMode = 'none' | 'text' | 'file';
+/** «Solo estas» o «todas menos estas»: la misma lista, leída al derecho o al revés. */
+export type SelectionMode = 'include' | 'exclude';
 
 export interface GenerateForm {
   readonly specialty: string;
@@ -20,6 +22,9 @@ export interface GenerateForm {
   /** Selección explícita de skills (nombres) y proyectos (ids); vacío = todas/todos. */
   skills: string[];
   projects: string[];
+  /** Qué se hace con esa lista: quedarse solo con ella o quitarla del CV. */
+  readonly skillsMode: SelectionMode;
+  readonly projectsMode: SelectionMode;
   readonly compact: boolean;
   /** Nombre del fichero en output/ (vacío = el de la CLI). */
   readonly output: string;
@@ -45,6 +50,8 @@ export const EMPTY_FORM: GenerateForm = {
   maxCertifications: '',
   skills: [],
   projects: [],
+  skillsMode: 'include',
+  projectsMode: 'include',
   compact: false,
   output: '',
   build: false,
@@ -118,8 +125,9 @@ export function buildGenerateRequest(form: GenerateForm): FormResult<GenerateReq
     ...(maxSkills >= 0 ? { maxSkills } : {}),
     ...(maxProjects >= 0 ? { maxProjects } : {}),
     ...(maxCertifications >= 0 ? { maxCertifications } : {}),
-    ...(form.skills.length > 0 ? { skills: [...form.skills] } : {}),
-    ...(form.projects.length > 0 ? { projects: [...form.projects] } : {}),
+    // La misma lista viaja como «solo estas» o como «todas menos estas», según el modo elegido.
+    ...(form.skills.length > 0 ? (form.skillsMode === 'exclude' ? { excludeSkills: [...form.skills] } : { skills: [...form.skills] }) : {}),
+    ...(form.projects.length > 0 ? (form.projectsMode === 'exclude' ? { excludeProjects: [...form.projects] } : { projects: [...form.projects] }) : {}),
     ...(form.compact ? { compact: true } : {}),
   };
   return { ok: true, body };
@@ -143,6 +151,14 @@ export function buildAnalyzeRequest(form: GenerateForm, estimateId?: string): Fo
       }
     : {};
   return { ok: true, body: { offer: offer.body, ...(form.specialty === '' ? {} : { specialty: form.specialty }), ...(form.build ? { build: true } : {}), ...copilot } };
+}
+
+/** «todas», «3 de ellas» o «todas menos 3»: lo que la pantalla enseña sin obligar a abrir el selector. */
+export function selectionSummary(selected: readonly string[], mode: SelectionMode, all: string): string {
+  if (selected.length === 0) {
+    return all;
+  }
+  return mode === 'exclude' ? `${all} menos ${selected.length}` : String(selected.length);
 }
 
 export interface SkillGroup {

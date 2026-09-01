@@ -120,6 +120,8 @@ export async function runGenerateCv(context: CliContext, options: GenerateCvOpti
     compact: options.compact,
     skills: options.skills,
     projects: options.projects,
+    excludeSkills: options.excludeSkills,
+    excludeProjects: options.excludeProjects,
     keepEvidence: options.keepEvidence,
   });
   reportWarnings(context, result.warnings);

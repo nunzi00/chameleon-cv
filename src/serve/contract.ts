@@ -49,6 +49,9 @@ export const LimitsSchema = {
 export const IncludeSchema = {
   skills: z.array(z.string().min(1).max(160)).max(300).optional(),
   projects: z.array(z.string().min(1).max(160)).max(100).optional(),
+  /** Y su contrario: todo MENOS estos, tras la selección explícita y antes de los límites por cantidad. */
+  excludeSkills: z.array(z.string().min(1).max(160)).max(300).optional(),
+  excludeProjects: z.array(z.string().min(1).max(160)).max(100).optional(),
 };
 export const GenerateSchema = z.object({
   ...IncludeSchema,

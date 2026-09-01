@@ -481,6 +481,8 @@ export function createRouter(): Router<ServerState> {
         skills: body.skills,
         keepEvidence: body.keepEvidence,
         projects: body.projects,
+        excludeSkills: body.excludeSkills,
+        excludeProjects: body.excludeProjects,
       });
       const report = result.report === undefined ? undefined : { selection: result.report.selection, match: result.report.match, limits: result.report.limits, removed: result.report.removed, kept: result.report.kept, theme: result.report.theme };
       if (!result.ok) {

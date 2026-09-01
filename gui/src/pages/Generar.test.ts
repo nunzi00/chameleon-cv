@@ -167,7 +167,7 @@ describe('Generar · selección explícita de skills y proyectos', () => {
     const profile = { specialties: [], experience: [], skills: [{ name: 'PHP', category: 'language' }, { name: 'Kubernetes', category: 'platform' }], projects: [{ id: 'proj-a', name: 'Proyecto A', achievements: [] }, { id: 'proj-b', name: 'Proyecto B', achievements: [] }] } as never;
     const api = fakeApi({ profile: vi.fn(async () => profile) });
     render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
-    await waitFor(() => expect(screen.getByRole('group', { name: 'Solo estas skills' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('group', { name: 'Skills' })).toBeTruthy());
     expect(screen.getByText('language')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Kubernetes' }));
     await fireEvent.click(screen.getByRole('button', { name: 'PHP' }));
@@ -177,7 +177,22 @@ describe('Generar · selección explícita de skills y proyectos', () => {
     await fireEvent.change(screen.getByLabelText('Formato'), { target: { value: 'md' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Generar CV' }));
     await waitFor(() => expect(api.generate).toHaveBeenCalledWith({ format: 'md', skills: ['Kubernetes'], projects: ['proj-b'] }));
-    expect(screen.getByText(/Solo estas skills \(1\)/)).toBeTruthy();
+    expect(screen.getByText(/Skills \(1\)/)).toBeTruthy();
+  });
+
+  it('la misma lista, en modo «todas menos estas», se envía como exclusión', async () => {
+    const profile = { specialties: [], experience: [], skills: [{ name: 'PHP', category: 'language' }, { name: 'Kubernetes', category: 'platform' }], projects: [{ id: 'proj-a', name: 'Proyecto A', achievements: [] }] } as never;
+    const api = fakeApi({ profile: vi.fn(async () => profile) });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('group', { name: 'Skills' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('radio', { name: 'Todas menos estas' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'PHP' }));
+    await fireEvent.click(screen.getByRole('radio', { name: 'Todos menos estos' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Proyecto A' }));
+    await fireEvent.change(screen.getByLabelText('Formato'), { target: { value: 'md' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Generar CV' }));
+    await waitFor(() => expect(api.generate).toHaveBeenCalledWith({ format: 'md', excludeSkills: ['PHP'], excludeProjects: ['proj-a'] }));
+    expect(screen.getByText(/Skills \(todas menos 1\)/)).toBeTruthy();
   });
 });
 

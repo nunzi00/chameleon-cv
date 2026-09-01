@@ -14,6 +14,10 @@ export interface LimitOptions {
   readonly skills?: readonly string[] | undefined;
   /** Solo estos proyectos (ids o nombres), antes de `maxProjects`. */
   readonly projects?: readonly string[] | undefined;
+  /** Todas las skills MENOS estas (ids o nombres); se aplica tras `skills` y antes de `maxSkills`. */
+  readonly excludeSkills?: readonly string[] | undefined;
+  /** Todos los proyectos MENOS estos (ids o nombres); se aplica tras `projects` y antes de `maxProjects`. */
+  readonly excludeProjects?: readonly string[] | undefined;
 }
 
 const listOrUndefined = (values: readonly string[] | undefined): readonly string[] | undefined => (values === undefined || values.length === 0 ? undefined : values);
@@ -28,6 +32,8 @@ export function resolveLimits(options: LimitOptions): SectionLimits {
     certifications: options.maxCertifications ?? preset.certifications,
     skillsInclude: listOrUndefined(options.skills),
     projectsInclude: listOrUndefined(options.projects),
+    skillsExclude: listOrUndefined(options.excludeSkills),
+    projectsExclude: listOrUndefined(options.excludeProjects),
   };
 }
 
@@ -44,6 +50,8 @@ export function describeLimits(limits: SectionLimits): string {
     limits.certifications === undefined ? undefined : `--max-certifications ${limits.certifications}`,
     limits.skillsInclude === undefined ? undefined : `--skills ${limits.skillsInclude.join(',')}`,
     limits.projectsInclude === undefined ? undefined : `--projects ${limits.projectsInclude.join(',')}`,
+    limits.skillsExclude === undefined ? undefined : `--exclude-skills ${limits.skillsExclude.join(',')}`,
+    limits.projectsExclude === undefined ? undefined : `--exclude-projects ${limits.projectsExclude.join(',')}`,
   ];
   return parts.filter((part): part is string => part !== undefined).join(', ');
 }

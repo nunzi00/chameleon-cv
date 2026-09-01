@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- **Elegir qué NO entra, no solo qué entra** (encargo del PO del 1-sep): `--exclude-skills` y `--exclude-projects` son la otra mitad de `--skills` y `--projects`. Se nombran por id o por nombre, lo que nombres y no exista se avisa igual, y las dos listas se combinan —primero «solo estas», después «todas menos estas»—, todo ello antes de los límites por cantidad. En la web, cada selector de «Afinar el contenido» gana un conmutador **«Solo estas» / «Todas menos estas»**: la misma lista, leída al derecho o al revés. En la API, `excludeSkills` y `excludeProjects` en `POST /generate`. Quitar una skill la saca de tu sección de habilidades; lo que un empleo declare en sus «Tecnologías» es un hecho de ese empleo y no se reescribe.
+
 ### Corregido
 
 - **El co-piloto de ofertas ya funciona con Groq** (defecto del mismo día, encontrado por el PO en cuanto lo usó): la salida estructurada estricta de Groq —y la de OpenAI— **exige que `required` liste todas las propiedades del esquema**, y la nuestra dejaba fuera `emphasis`. La respuesta era un HTTP 400 que tumbaba la orden entera, no una propuesta. Ahora va en `required`; el código sigue admitiendo cualquier valor y traduciendo lo que no reconozca a «unknown». Se añade una guarda que revisa **las cinco tareas** —cada objeto de cada esquema declara todas sus propiedades y ninguna admite extras—, porque quien valida esto es el servidor del proveedor y ningún doble local lo reproduce.

@@ -12,7 +12,7 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
   import { launchProblem, type LaunchProblem } from '../lib/copilot/consent';
   import { remoteProviderOptions } from '../lib/copilot/providers';
   import { explainError, type ExplainedError } from '../lib/errors';
-  import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, offerOf, projectOptions, skillGroups, specialtyPreview, type GenerateForm } from '../lib/generate/form';
+  import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, offerOf, projectOptions, selectionSummary, skillGroups, specialtyPreview, type GenerateForm } from '../lib/generate/form';
   import { describeHistoryEntries } from '../lib/generate/history';
   import { analysisView, reportSections, type AnalysisView, type ReportSection } from '../lib/generate/report';
   import type { Route } from '../lib/router';
@@ -457,18 +457,26 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
         </div>
         {#if skillGroups(profile).length > 0 || projectOptions(profile).length > 0}
           <details class="cv-collapse">
-            <summary><strong>Afinar el contenido</strong><span class="cv-muted">skills {form.skills.length === 0 ? 'todas' : form.skills.length} · proyectos {form.projects.length === 0 ? 'todos' : form.projects.length}</span></summary>
+            <summary><strong>Afinar el contenido</strong><span class="cv-muted">skills {selectionSummary(form.skills, form.skillsMode, 'todas')} · proyectos {selectionSummary(form.projects, form.projectsMode, 'todos')}</span></summary>
             <div class="cv-stack">
               {#if skillGroups(profile).length > 0}
                 <div class="cv-field">
-                  <span>Solo estas skills ({form.skills.length === 0 ? 'todas' : form.skills.length})</span>
-                  <TagPicker name="Solo estas skills" groups={skillGroups(profile).map((group) => ({ label: group.category, options: group.names.map((skill) => ({ value: skill, label: skill })) }))} bind:selected={form.skills} />
+                  <span id="cv-skills-mode-label">Skills ({selectionSummary(form.skills, form.skillsMode, 'todas')})</span>
+                  <div class="cv-segmented" role="radiogroup" aria-labelledby="cv-skills-mode-label">
+                    <label><input type="radio" name="skillsMode" value="include" checked={form.skillsMode === 'include'} onchange={() => (form = { ...form, skillsMode: 'include' })} /> Solo estas</label>
+                    <label><input type="radio" name="skillsMode" value="exclude" checked={form.skillsMode === 'exclude'} onchange={() => (form = { ...form, skillsMode: 'exclude' })} /> Todas menos estas</label>
+                  </div>
+                  <TagPicker name="Skills" groups={skillGroups(profile).map((group) => ({ label: group.category, options: group.names.map((skill) => ({ value: skill, label: skill })) }))} bind:selected={form.skills} />
                 </div>
               {/if}
               {#if projectOptions(profile).length > 0}
                 <div class="cv-field">
-                  <span>Solo estos proyectos ({form.projects.length === 0 ? 'todos' : form.projects.length})</span>
-                  <TagPicker name="Solo estos proyectos" groups={[{ label: '', options: projectOptions(profile).map((project) => ({ value: project.id, label: project.name })) }]} bind:selected={form.projects} />
+                  <span id="cv-projects-mode-label">Proyectos ({selectionSummary(form.projects, form.projectsMode, 'todos')})</span>
+                  <div class="cv-segmented" role="radiogroup" aria-labelledby="cv-projects-mode-label">
+                    <label><input type="radio" name="projectsMode" value="include" checked={form.projectsMode === 'include'} onchange={() => (form = { ...form, projectsMode: 'include' })} /> Solo estos</label>
+                    <label><input type="radio" name="projectsMode" value="exclude" checked={form.projectsMode === 'exclude'} onchange={() => (form = { ...form, projectsMode: 'exclude' })} /> Todos menos estos</label>
+                  </div>
+                  <TagPicker name="Proyectos" groups={[{ label: '', options: projectOptions(profile).map((project) => ({ value: project.id, label: project.name })) }]} bind:selected={form.projects} />
                 </div>
               {/if}
             </div>

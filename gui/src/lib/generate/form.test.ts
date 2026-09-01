@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, projectOptions, skillGroups, specialtyPreview } from './form';
+import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, selectionSummary, projectOptions, skillGroups, specialtyPreview } from './form';
 
 describe('formulario de Generar', () => {
   it('construye el cuerpo mínimo y el completo, sin campos vacíos ni opciones que no aplican', () => {
@@ -22,6 +22,8 @@ describe('formulario de Generar', () => {
       maxCertifications: '1',
       skills: ['PHP', 'Kubernetes'],
       projects: ['proj-a'],
+      skillsMode: 'include',
+      projectsMode: 'include',
       compact: true,
       output: 'mi-cv.pdf',
       build: true,
@@ -40,6 +42,24 @@ describe('formulario de Generar', () => {
     expect(buildGenerateRequest({ ...EMPTY_FORM, maxProjects: 'x' })).toMatchObject({ ok: false });
     expect(buildGenerateRequest({ ...EMPTY_FORM, maxCertifications: '99999999999999999999' })).toMatchObject({ ok: false });
     expect(buildGenerateRequest({ ...EMPTY_FORM, output: '../fuera.md' })).toMatchObject({ ok: false, message: expect.stringContaining('sin directorios') });
+  });
+
+  it('la misma lista se envía como «solo estas» o como «todas menos estas» según el modo', () => {
+    const con = { ...EMPTY_FORM, skills: ['PHP'], projects: ['proj-a'] };
+    expect(buildGenerateRequest(con)).toMatchObject({ ok: true, body: { skills: ['PHP'], projects: ['proj-a'] } });
+    const sin = buildGenerateRequest({ ...con, skillsMode: 'exclude', projectsMode: 'exclude' });
+    expect(sin).toMatchObject({ ok: true, body: { excludeSkills: ['PHP'], excludeProjects: ['proj-a'] } });
+    // Y no se envían las dos formas de la misma lista.
+    expect(sin.ok && 'skills' in sin.body).toBe(false);
+    // Sin nada elegido, el modo no manda nada: «todas menos ninguna» es «todas».
+    expect(buildGenerateRequest({ ...EMPTY_FORM, skillsMode: 'exclude' })).toEqual({ ok: true, body: { format: 'pdf', engine: 'pdfkit' } });
+  });
+
+  it('el resumen de la selección dice si se queda o se quita, sin obligar a abrir el selector', () => {
+    expect(selectionSummary([], 'include', 'todas')).toBe('todas');
+    expect(selectionSummary([], 'exclude', 'todas')).toBe('todas');
+    expect(selectionSummary(['PHP'], 'include', 'todas')).toBe('1');
+    expect(selectionSummary(['PHP', 'Go'], 'exclude', 'todos')).toBe('todos menos 2');
   });
 
   it('el análisis exige una oferta y lleva la especialidad y build si se piden', () => {

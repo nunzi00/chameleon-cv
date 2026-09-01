@@ -20,6 +20,10 @@ export interface SectionLimits {
   readonly skillsInclude?: readonly string[] | undefined;
   /** Selección explícita de proyectos (ids o nombres): solo estos, antes del límite por cantidad (`--projects`). */
   readonly projectsInclude?: readonly string[] | undefined;
+  /** Skills que se quitan (ids o nombres), después de la selección explícita y antes del límite (`--exclude-skills`). */
+  readonly skillsExclude?: readonly string[] | undefined;
+  /** Proyectos que se quitan (ids o nombres), después de la selección explícita y antes del límite (`--exclude-projects`). */
+  readonly projectsExclude?: readonly string[] | undefined;
   /** Ids que los límites por cantidad no recortan (T-8.9: las evidencias que demuestran la oferta); cuentan para el límite. */
   readonly keep?: readonly string[] | undefined;
 }
@@ -56,26 +60,44 @@ export function selectionKey(value: string): string {
  * Selección explícita: conserva los ítems cuyo id o nombre está en la lista (en el orden del documento) y devuelve los
  * demás como recortados; los nombres que no casan con nada se devuelven aparte. La lista manda sobre los anclados.
  */
-export function keepListed<T extends Trimmable & { readonly name: string }>(items: readonly T[], include: readonly string[], scoreOf: ScoreLookup): KeepResult<T> & { readonly unknown: readonly string[] } {
-  const wanted = new Set(include.map(selectionKey));
+/** Los ítems que la lista nombra (por id o por nombre) y los que no, más lo que la lista nombra y no existe. */
+function partitionByList<T extends Trimmable & { readonly name: string }>(
+  items: readonly T[],
+  list: readonly string[],
+): { readonly listed: T[]; readonly rest: T[]; readonly unknown: readonly string[] } {
+  const named = new Set(list.map(selectionKey));
   const matched = new Set<string>();
-  const kept: T[] = [];
-  const removed: Array<{ readonly item: T; readonly score: number }> = [];
+  const listed: T[] = [];
+  const rest: T[] = [];
   for (const item of items) {
     const keys = [selectionKey(item.id), selectionKey(item.name)];
-    const hit = keys.find((key) => wanted.has(key));
-    if (hit === undefined) {
-      removed.push({ item, score: scoreOf(item.id) });
-    } else {
+    if (keys.some((key) => named.has(key))) {
       keys.forEach((key) => matched.add(key));
-      kept.push(item);
+      listed.push(item);
+    } else {
+      rest.push(item);
     }
   }
-  return { kept, removed, unknown: include.filter((value) => !matched.has(selectionKey(value))) };
+  return { listed, rest, unknown: list.filter((value) => !matched.has(selectionKey(value))) };
+}
+
+export function keepListed<T extends Trimmable & { readonly name: string }>(items: readonly T[], include: readonly string[], scoreOf: ScoreLookup): KeepResult<T> & { readonly unknown: readonly string[] } {
+  const { listed, rest, unknown } = partitionByList(items, include);
+  return { kept: listed, removed: rest.map((item) => ({ item, score: scoreOf(item.id) })), unknown };
+}
+
+/**
+ * Lo contrario de `keepListed`: todo MENOS lo que la lista nombra. Es la otra mitad de la misma pregunta —a
+ * veces se sabe qué se quiere enseñar y a veces qué se quiere callar—, y se resuelve con el mismo emparejado por
+ * id o por nombre, avisando igual de lo que se nombró y no existe.
+ */
+export function dropListed<T extends Trimmable & { readonly name: string }>(items: readonly T[], exclude: readonly string[], scoreOf: ScoreLookup): KeepResult<T> & { readonly unknown: readonly string[] } {
+  const { listed, rest, unknown } = partitionByList(items, exclude);
+  return { kept: rest, removed: listed.map((item) => ({ item, score: scoreOf(item.id) })), unknown };
 }
 
 /** Preset `--compact`: la vía rápida a un CV de una página. */
-export const COMPACT_LIMITS: Required<Omit<SectionLimits, 'skillsInclude' | 'projectsInclude' | 'keep'>> = {
+export const COMPACT_LIMITS: Required<Omit<SectionLimits, 'skillsInclude' | 'projectsInclude' | 'skillsExclude' | 'projectsExclude' | 'keep'>> = {
   achievementsPerContainer: 4,
   achievements: 4,
   skills: 12,
@@ -146,19 +168,31 @@ export function applyLimits(profile: MasterProfile, limits: SectionLimits, score
     return result.kept;
   };
 
-  const listed = <T extends Trimmable & { readonly name: string }>(section: 'skills' | 'projects', items: readonly T[], include: readonly string[] | undefined): { readonly kept: readonly T[]; readonly unknown: readonly string[] } => {
-    if (include === undefined) {
-      return { kept: items, unknown: [] };
-    }
-    const result = keepListed(items, include, scoreOf);
-    removed.push(...result.removed.map(({ item, score }) => ({ section, id: item.id, score })));
-    return { kept: result.kept, unknown: result.unknown };
+  // Primero lo que se pide («solo estos») y después lo que se descarta («todos menos estos»): las dos listas se
+  // pueden combinar, y quien excluye algo que ya no estaba se entera por el mismo aviso de lo desconocido.
+  const select = <T extends Trimmable & { readonly name: string }>(
+    section: 'skills' | 'projects',
+    items: readonly T[],
+    include: readonly string[] | undefined,
+    exclude: readonly string[] | undefined,
+  ): { readonly kept: readonly T[]; readonly unknown: readonly string[] } => {
+    const apply = (current: readonly T[], list: readonly string[] | undefined, pick: typeof keepListed<T>): { readonly kept: readonly T[]; readonly unknown: readonly string[] } => {
+      if (list === undefined) {
+        return { kept: current, unknown: [] };
+      }
+      const result = pick(current, list, scoreOf);
+      removed.push(...result.removed.map(({ item, score }) => ({ section, id: item.id, score })));
+      return { kept: result.kept, unknown: result.unknown };
+    };
+    const included = apply(items, include, keepListed);
+    const excluded = apply(included.kept, exclude, dropListed);
+    return { kept: excluded.kept, unknown: [...included.unknown, ...excluded.unknown] };
   };
 
   const experience = profile.experience.map((container) => trimContainer('experience', container));
-  const listedProjects = listed('projects', profile.projects, limits.projectsInclude);
+  const listedProjects = select('projects', profile.projects, limits.projectsInclude, limits.projectsExclude);
   const projects = trimFlat('projects', listedProjects.kept, limits.projects).map((container) => trimContainer('projects', container));
-  const listedSkills = listed('skills', profile.skills, limits.skillsInclude);
+  const listedSkills = select('skills', profile.skills, limits.skillsInclude, limits.skillsExclude);
   const skills = trimFlat('skills', listedSkills.kept, limits.skills);
   const certifications = trimFlat('certifications', profile.certifications, limits.certifications);
   const achievements = trimFlat('achievements', profile.achievements, limits.achievements);

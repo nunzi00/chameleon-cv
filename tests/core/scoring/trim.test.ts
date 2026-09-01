@@ -8,6 +8,7 @@ import {
   COMPACT_LIMITS,
   NO_SCORES,
   applyLimits,
+  dropListed,
   keepListed,
   keepTop,
   labelFor,
@@ -250,6 +251,34 @@ describe('selección explícita de skills y proyectos (docs/trimming-cli.md §3.
     expect(result.removed.filter((item) => item.section === 'projects')).toHaveLength(profile.projects.length - 1);
     expect(result.profile.experience).toEqual(profile.experience);
     expect(applyLimits(profile, {}, NO_SCORES).unknown).toEqual({ skills: [], projects: [] });
+  });
+
+  it('dropListed es la otra mitad: todo MENOS lo nombrado, avisando de lo que no existe', () => {
+    const items = deepFreeze(selectionProfile()).skills;
+    const [first, second] = items;
+    const result = dropListed(items, [second!.name, 'Nadie'], NO_SCORES);
+    expect(result.kept.map((item) => item.id)).toEqual(items.filter((item) => item.id !== second!.id).map((item) => item.id));
+    expect(result.removed.map(({ item }) => item.id)).toEqual([second!.id]);
+    expect(result.unknown).toEqual(['Nadie']);
+    expect(dropListed(items, [first!.id], NO_SCORES).kept.some((item) => item.id === first!.id)).toBe(false);
+  });
+
+  it('applyLimits combina las dos listas: primero lo que se pide y después lo que se quita', () => {
+    const profile = deepFreeze(selectionProfile());
+    const [firstSkill, secondSkill] = profile.skills;
+    const [firstProject] = profile.projects;
+    const limits: SectionLimits = {
+      skillsInclude: [firstSkill!.name, secondSkill!.name],
+      skillsExclude: [secondSkill!.id, 'Tampoco'],
+      projectsExclude: [firstProject!.name],
+    };
+    const result = applyLimits(profile, limits, NO_SCORES);
+    expect(result.profile.skills.map((skill) => skill.id)).toEqual([firstSkill!.id]);
+    expect(result.profile.projects.some((project) => project.id === firstProject!.id)).toBe(false);
+    // Lo que se nombró y no existe se avisa venga de la lista que venga.
+    expect(result.unknown.skills).toEqual(['Tampoco']);
+    // Y lo excluido se cuenta como recortado, con su sección, igual que lo demás.
+    expect(result.removed.some((item) => item.section === 'skills' && item.id === secondSkill!.id)).toBe(true);
   });
 });
 
