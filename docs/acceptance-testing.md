@@ -42,7 +42,19 @@ npm run test:acceptance:deterministic -- core typst     # solo esos escenarios
 npm run test:acceptance:deterministic -- --require-typst  # sin binario de Typst, fallo en lugar de omisión (para el release)
 npm run test:acceptance:deterministic -- --keep           # conserva la copia temporal de cada escenario (imprime su ruta)
 npm run test:acceptance:deterministic -- --binary build/sea/cv   # los mismos escenarios y artefactos esperados contra el ejecutable autónomo (T-6.2)
+CHAMELEON_ACCEPTANCE_JOBS=1 npm run test:acceptance:deterministic # en serie, uno detrás de otro (para depurar un escenario)
 ```
+
+**Los escenarios corren en paralelo** (1-sep-2026), hasta cuatro a la vez: son independientes —cada uno trabaja
+sobre su propia copia temporal y escribe en su propio directorio de esperados— y el grueso de su tiempo no es
+trabajo sino **arrancar procesos**: unos 190 ms de Node por paso, 202 pasos. El informe **no** se paraleliza: se
+imprime en el orden de siempre cuando todos han terminado, porque un arnés determinista que entremezclara sus
+líneas sería más difícil de leer y de comparar entre ejecuciones.
+
+Para que eso funcionara hubo que dejar de lanzar cada paso con `spawnSync`: una llamada síncrona bloquea el bucle
+de eventos entero, así que los escenarios no se solapaban por mucho que se lanzaran a la vez (medido: 124 % de
+CPU y el mismo tiempo que en serie). Con `spawn` asíncrono, **de 64 s a 25 s** contra `dist/`, y de 64 s a 18 s
+contra el ejecutable; el uso de CPU pasa del 124 % al 337 %.
 
 Typst es opcional: si hay binario (la caché de `cv typst install` o `CHAMELEON_TYPST`), el escenario `typst` se ejecuta; si no, se **omite de forma visible** en el resumen (`· typst: OMITIDO — …`) y sus artefactos no se tocan.
 

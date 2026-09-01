@@ -10,12 +10,16 @@
  *   npm run test:acceptance:deterministic -- --update  # regenerar los artefactos esperados (revisa el diff)
  *   … -- core typst          # solo esos escenarios · --require-typst: la omisión de Typst es un fallo
  *   … -- --keep              # conserva la copia temporal de cada escenario para inspeccionarla
+ *
+ * Los escenarios corren **en paralelo** (hasta cuatro a la vez; `CHAMELEON_ACCEPTANCE_JOBS=1` vuelve a la
+ * ejecución en serie): son independientes —copia temporal propia, directorio de esperados propio— y el grueso de
+ * su tiempo es arrancar procesos. El informe se imprime en el orden de siempre, cuando todos han terminado.
  */
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 import { runApiClient } from './api-client';
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile, utimes } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 
 import { locateTypst } from '../../src/renderers/typst';
@@ -167,6 +171,33 @@ export interface ScenarioResult {
   readonly elapsedMs: number;
 }
 
+/**
+ * Lanza la CLI y espera su final **sin bloquear el hilo**. Era `spawnSync`, y con él los escenarios no podían
+ * solaparse por mucho que se lanzaran a la vez: una llamada síncrona para el bucle de eventos entero. Devuelve
+ * la misma forma que `spawnSync` para no tocar quien lo usa.
+ */
+function runProcess(
+  file: string,
+  args: readonly string[],
+  options: { readonly cwd: string; readonly env: Readonly<Record<string, string>>; readonly input: string },
+): Promise<{ readonly status: number | null; readonly stdout: string; readonly stderr: string }> {
+  return new Promise((resolve_, reject) => {
+    const child = spawn(file, [...args], { cwd: options.cwd, env: { ...options.env } });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => (stdout += chunk));
+    child.stderr.on('data', (chunk: string) => (stderr += chunk));
+    child.on('error', reject);
+    child.on('close', (code) => resolve_({ status: code, stdout, stderr }));
+    // Una orden que no lee la entrada estándar cierra su extremo antes de que terminemos de escribir: EPIPE
+    // aquí no es un fallo del paso, es que no le hacía falta lo que le mandábamos.
+    child.stdin.on('error', () => undefined);
+    child.stdin.end(options.input);
+  });
+}
+
 interface Context {
   readonly workspace: string;
   readonly env: Readonly<Record<string, string>>;
@@ -182,12 +213,10 @@ async function runStep(context: Context, index: number, step: Step, options: Run
   const result =
     step.client === 'api'
       ? await runApiClient(context.command, context.workspace, { ...context.env, ...step.env })
-      : spawnSync(file, [...leading, ...step.args], {
+      : await runProcess(file, [...leading, ...step.args], {
           cwd: context.workspace,
           env: { ...context.env, ...step.env },
           input: step.stdin ?? '',
-          encoding: 'utf8',
-          maxBuffer: 64 * 1024 * 1024,
         });
   const status = result.status ?? -1;
   const stdout = normalize(result.stdout, context.replacements);
@@ -417,6 +446,33 @@ function report(result: ScenarioResult, update: boolean): void {
   }
 }
 
+/**
+ * Cuántos escenarios a la vez. Cada uno lanza procesos de uno en uno y el grueso de su tiempo es arrancar Node
+ * —unos 190 ms por paso—, así que el paralelismo va sobrado con los núcleos disponibles; el tope de 4 evita que
+ * una máquina grande arranque catorce copias de Typst a la vez y acabe más lenta. `CHAMELEON_ACCEPTANCE_JOBS=1`
+ * vuelve a la ejecución en serie de siempre, que es lo que conviene al depurar un escenario.
+ */
+function concurrency(): number {
+  const configured = Number(process.env['CHAMELEON_ACCEPTANCE_JOBS'] ?? '');
+  if (Number.isInteger(configured) && configured >= 1) {
+    return configured;
+  }
+  return Math.max(1, Math.min(4, availableParallelism()));
+}
+
+/** Ejecuta con un tope de tareas simultáneas y devuelve los resultados EN EL ORDEN DE ENTRADA. */
+async function inParallel<T, R>(items: readonly T[], limit: number, run: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array<R>(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    for (let index = next++; index < items.length; index = next++) {
+      results[index] = await run(items[index]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 export async function runAll(options: RunnerOptions): Promise<ScenarioResult[]> {
   if (options.binary === undefined) {
     const distProblem = await checkDist();
@@ -439,11 +495,13 @@ export async function runAll(options: RunnerOptions): Promise<ScenarioResult[]> 
     report(versioned, false);
     results.push(versioned);
   }
-  for (const scenario of SCENARIOS) {
-    if (options.only !== undefined && !options.only.includes(scenario.id)) {
-      continue;
-    }
-    const result = await runScenario(scenario, options, typst);
+  // Los escenarios son independientes —cada uno trabaja sobre su propia copia temporal y escribe en su propio
+  // directorio de esperados—, así que se ejecutan en paralelo. Lo que NO se paraleliza es el informe: se imprime
+  // en el orden de siempre, cuando todos han terminado, porque un arnés determinista que escupiera sus líneas
+  // entremezcladas sería más difícil de leer y de comparar entre ejecuciones.
+  const pending = SCENARIOS.filter((scenario) => options.only === undefined || options.only.includes(scenario.id));
+  const scenarios = await inParallel(pending, concurrency(), (scenario) => runScenario(scenario, options, typst));
+  for (const result of scenarios) {
     report(result, options.update);
     results.push(result);
   }
