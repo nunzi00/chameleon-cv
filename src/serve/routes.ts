@@ -39,7 +39,7 @@ import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarnin
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
 import { AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
-import type { ConsentStore } from './consent';
+import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
 import { Router, type RouteRequest, type RouteResponse } from './router';
@@ -116,9 +116,69 @@ function checkPayload(status: LlmStatus, requested: string): LlmCheckResponse {
   return { provider: config.provider, kind: 'local', ok: health.modelAvailable, models: health.models, modelAvailable: health.modelAvailable, message: health.modelAvailable ? undefined : `el modelo configurado «${config.model}» no está disponible`, quota: undefined };
 }
 
+/**
+ * El puente levadizo, en un solo sitio. Toda salida a la red del servidor pasa por la misma regla en dos
+ * tiempos —403 si el servidor no admite remotos, 409 con un `estimateId` de un solo uso si aún no se ha
+ * confirmado— y estaba escrita cuatro veces: los trabajos del co-piloto, la descarga de una oferta, la
+ * instalación de un tema y la lectura de la oferta por el co-piloto. Cuatro copias de una regla de seguridad es
+ * justo donde se cuela una divergencia.
+ *
+ * Hay dos formas porque hay dos preguntas distintas: **cuánto va a costar** (proveedor remoto) y **qué se va a
+ * descargar** (una URL). Lo común —quién decide, cuándo se emite el id y cuándo se canjea— vive aquí.
+ */
+function remoteBlocked(state: ServerState, message: string, details: Record<string, unknown> = {}): RouteResponse | undefined {
+  return state.allowRemote ? undefined : errorResponse('remote-disabled', message, details);
+}
+
+/** ¿Trae este cuerpo una confirmación válida para esta tarea? Cada id vale una vez y para la tarea que lo emitió. */
+function confirmed(state: ServerState, kind: ConsentKind, consent: { readonly estimateId: string } | undefined): boolean {
+  return consent !== undefined && state.consents.redeem(consent.estimateId, kind);
+}
+
+/** 409 con lo que se va a descargar: la URL, su host y el límite (T-8.3, T-8.5). */
+function downloadConsent(state: ServerState, kind: ConsentKind, url: URL, limitBytes: number, what: string): RouteResponse {
+  return errorResponse('consent-required', `${what} (host ${url.host}, máximo ${limitBytes} bytes); repite la petición con consent.estimateId para confirmar`, {
+    estimateId: state.consents.issue(kind),
+    source: url.href,
+    host: url.host,
+    limitBytes,
+  });
+}
+
+/** 409 con lo que va a costar y lo que sale: la estimación, su aviso y el destino (C11). */
+function costConsent(state: ServerState, kind: ConsentKind, provider: LlmProvider, estimate: CostEstimate, sending: Record<string, unknown>, extra: Record<string, unknown> = {}): RouteResponse {
+  const dataNote = REMOTE_PROVIDERS.find((entry) => entry.id === provider.id)?.dataNote;
+  return errorResponse('consent-required', 'Proveedor remoto: revisa el coste estimado y repite la petición con consent.estimateId para confirmar', {
+    estimateId: state.consents.issue(kind),
+    estimate,
+    ...(dataNote === undefined ? {} : { dataNote }),
+    warning: formatCostWarning(`${provider.id} (${provider.baseUrl}; modelo ${provider.model})`, estimate),
+    sending,
+    ...extra,
+  });
+}
+
+/**
+ * El registro de rutas, por dominios. Cada grupo es una función que añade sus rutas al mismo enrutador: el
+ * fichero tenía cincuenta y una rutas en una sola función de casi novecientas líneas, y encontrar una era
+ * cuestión de suerte. El orden de registro se conserva exactamente —lo aprovecha la referencia generada.
+ */
 export function createRouter(): Router<ServerState> {
   const router = new Router<ServerState>();
+  addWorkspaceRoutes(router);
+  addConfigRoutes(router);
+  addHistoryRoutes(router);
+  addGenerateRoutes(router);
+  addOfferRoutes(router);
+  addImportRoutes(router);
+  addThemeRoutes(router);
+  addServerRoutes(router);
+  addCopilotRoutes(router);
+  return router;
+}
 
+/** El espacio de trabajo: estado, fuentes, validación, compilación, perfil y portabilidad (exportar e importar). */
+function addWorkspaceRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'GET',
     path: `${API_PREFIX}/status`,
@@ -235,7 +295,10 @@ export function createRouter(): Router<ServerState> {
       return json(200, { root: outcome.root, dryRun: outcome.dryRun, plan: describePlan(outcome.plan), written: outcome.written, backup: outcome.backup } satisfies ImportResponse);
     },
   });
+}
 
+/** Configuración del co-piloto: la tabla [llm] de cv.toml, el permiso de remotos, las claves, el runtime de Ollama y el catálogo de modelos locales. */
+function addConfigRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'GET',
     path: `${API_PREFIX}/config/llm`,
@@ -392,6 +455,53 @@ export function createRouter(): Router<ServerState> {
   });
 
   router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/config/llm/keys/{provider}`,
+    summary:
+      'Guarda la clave de un proveedor remoto en el fichero de claves (0600), igual que «cv llm key set». La clave viaja SOLO en este cuerpo: la respuesta devuelve su procedencia, nunca su valor, y ninguna otra ruta la expone.',
+    writes: true,
+    body: LlmKeySchema,
+    handler: async (request) => {
+      const provider = String(request.params['provider']);
+      if (!isRemoteProviderId(provider)) {
+        return appErrorResponse(dataError(`«${provider}» no es un proveedor remoto conocido`));
+      }
+      const parsed = parseJsonBody(request.body, LlmKeySchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const written = await writeApiKey(provider, parsed.value.key);
+      if (!written.ok) {
+        return appErrorResponse(dataError(written.message));
+      }
+      const sources = await describeKeys();
+      return json(200, { provider, source: sources[provider], keysFile: written.file } satisfies LlmKeyResponse);
+    },
+  });
+
+  router.add({
+    method: 'DELETE',
+    path: `${API_PREFIX}/config/llm/keys/{provider}`,
+    summary: 'Elimina la clave de un proveedor remoto del fichero de claves; dice si había algo que borrar y de dónde sale la clave a partir de ahora.',
+    writes: true,
+    handler: async (request) => {
+      const provider = String(request.params['provider']);
+      if (!isRemoteProviderId(provider)) {
+        return appErrorResponse(dataError(`«${provider}» no es un proveedor remoto conocido`));
+      }
+      const result = await removeApiKey(provider);
+      if (!result.ok) {
+        return appErrorResponse(dataError(result.message));
+      }
+      const sources = await describeKeys();
+      return json(200, { provider, source: sources[provider], keysFile: result.file, removed: result.removed } satisfies LlmKeyResponse);
+    },
+  });
+}
+
+/** Histórico de versiones de las fuentes (T-8.10): qué hay, una versión concreta y restaurarla. */
+function addHistoryRoutes(router: Router<ServerState>): void {
+  router.add({
     method: 'GET',
     path: `${API_PREFIX}/history`,
     summary: 'El histórico de versiones de las fuentes (T-8.10): una entrada por aplicación de revisión o restauración, de la más reciente a la más antigua, con los ficheros guardados enteros y sus huellas.',
@@ -430,7 +540,10 @@ export function createRouter(): Router<ServerState> {
       return restored.ok ? json(200, { path: restored.path, entry: restored.entry } satisfies SourceRestoreResponse) : appErrorResponse(restored.error);
     },
   });
+}
 
+/** Generar el CV y servir lo que queda en output/. */
+function addGenerateRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'POST',
     path: `${API_PREFIX}/generate`,
@@ -539,7 +652,10 @@ export function createRouter(): Router<ServerState> {
       }
     },
   });
+}
 
+/** Ofertas: análisis (con el co-piloto opcional), historial, extracción del PDF, listado de offers/, descarga por URL y guardado. */
+function addOfferRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'POST',
     path: `${API_PREFIX}/analyze-offer`,
@@ -568,8 +684,9 @@ export function createRouter(): Router<ServerState> {
         }
         const { provider } = selected;
         const sending = offerMapSending(provider);
-        if (provider.kind === 'remote' && !state.allowRemote) {
-          return errorResponse('remote-disabled', 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo', { sending });
+        const denied = provider.kind === 'remote' ? remoteBlocked(state, 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo', { sending }) : undefined;
+        if (denied !== undefined) {
+          return denied;
         }
         const health = await checkLocalProvider(provider);
         if (!health.ok) {
@@ -579,10 +696,10 @@ export function createRouter(): Router<ServerState> {
               : `El modelo «${provider.model}» no está disponible en ${provider.baseUrl} (${health.models.length === 0 ? 'no sirve ningún modelo' : `sirve: ${health.models.join(', ')}`}); comprueba «cv llm status»`;
           return appErrorResponse(environmentError(message), { sending });
         }
-        const confirmed = provider.kind !== 'remote' || (requested.consent !== undefined && state.consents.redeem(requested.consent.estimateId, 'offer-map'));
+        const consented = provider.kind !== 'remote' || confirmed(state, 'offer-map', requested.consent);
         copilot = {
           provider,
-          ...(confirmed
+          ...(consented
             ? {}
             : {
                 consent: (estimate: CostEstimate) => {
@@ -595,15 +712,7 @@ export function createRouter(): Router<ServerState> {
       const result = await analyzeOffer(state.context, { profile: state.profile, data: state.data, specialty: parsed.value.specialty, offer: input, build: parsed.value.build ?? false, copilot });
       if (pending !== undefined) {
         const { estimate, provider } = pending;
-        const dataNote = REMOTE_PROVIDERS.find((entry) => entry.id === provider.id)?.dataNote;
-        return errorResponse('consent-required', 'Proveedor remoto: revisa el coste estimado y repite la petición con consent.estimateId para confirmar', {
-          estimateId: state.consents.issue('offer-map'),
-          estimate,
-          ...(dataNote === undefined ? {} : { dataNote }),
-          warning: formatCostWarning(`${provider.id} (${provider.baseUrl}; modelo ${provider.model})`, estimate),
-          sending: offerMapSending(provider),
-          warnings: result.warnings,
-        });
+        return costConsent(state, 'offer-map', provider, estimate, offerMapSending(provider), { warnings: result.warnings });
       }
       return result.ok ? json(200, { ...analysisPayload(result.analysis, result.history), selection: result.analysis.scored.selection.report, warnings: result.warnings } satisfies AnalyzeResponse) : appErrorResponse(result.error, { warnings: result.warnings });
     },
@@ -667,21 +776,18 @@ export function createRouter(): Router<ServerState> {
       if (!parsed.ok) {
         return parsed.response;
       }
-      if (!state.allowRemote) {
-        return errorResponse('remote-disabled', 'Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para traer ofertas desde una URL');
+      const blocked = remoteBlocked(state, 'Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para traer ofertas desde una URL');
+      if (blocked !== undefined) {
+        return blocked;
       }
-      let host: string;
+      let url: URL;
       try {
-        host = new URL(parsed.value.url).host;
+        url = new URL(parsed.value.url);
       } catch {
         return appErrorResponse(dataError(`«${parsed.value.url}» no es una URL válida`));
       }
-      if (parsed.value.consent === undefined || !state.consents.redeem(parsed.value.consent.estimateId, 'offer-fetch')) {
-        return errorResponse('consent-required', `Se descargará «${parsed.value.url}» (host ${host}, máximo ${Math.round(OFFER_URL_LIMITS.maxBytes / 1024 / 1024)} MB, sin cookies ni datos tuyos); repite la petición con consent.estimateId para confirmar`, {
-          estimateId: state.consents.issue('offer-fetch'),
-          host,
-          limitBytes: OFFER_URL_LIMITS.maxBytes,
-        });
+      if (!confirmed(state, 'offer-fetch', parsed.value.consent)) {
+        return downloadConsent(state, 'offer-fetch', url, OFFER_URL_LIMITS.maxBytes, `Se descargará «${parsed.value.url}», sin cookies ni datos tuyos`);
       }
       const result = await fetchOffer(parsed.value.url, {
         fetcher: state.context.fetcher ?? offerFetcher('es, en;q=0.8'),
@@ -742,51 +848,10 @@ export function createRouter(): Router<ServerState> {
       return json(201, { path: `offers/${raw}` } satisfies OfferSaveResponse);
     },
   });
+}
 
-  router.add({
-    method: 'PUT',
-    path: `${API_PREFIX}/config/llm/keys/{provider}`,
-    summary:
-      'Guarda la clave de un proveedor remoto en el fichero de claves (0600), igual que «cv llm key set». La clave viaja SOLO en este cuerpo: la respuesta devuelve su procedencia, nunca su valor, y ninguna otra ruta la expone.',
-    writes: true,
-    body: LlmKeySchema,
-    handler: async (request) => {
-      const provider = String(request.params['provider']);
-      if (!isRemoteProviderId(provider)) {
-        return appErrorResponse(dataError(`«${provider}» no es un proveedor remoto conocido`));
-      }
-      const parsed = parseJsonBody(request.body, LlmKeySchema);
-      if (!parsed.ok) {
-        return parsed.response;
-      }
-      const written = await writeApiKey(provider, parsed.value.key);
-      if (!written.ok) {
-        return appErrorResponse(dataError(written.message));
-      }
-      const sources = await describeKeys();
-      return json(200, { provider, source: sources[provider], keysFile: written.file } satisfies LlmKeyResponse);
-    },
-  });
-
-  router.add({
-    method: 'DELETE',
-    path: `${API_PREFIX}/config/llm/keys/{provider}`,
-    summary: 'Elimina la clave de un proveedor remoto del fichero de claves; dice si había algo que borrar y de dónde sale la clave a partir de ahora.',
-    writes: true,
-    handler: async (request) => {
-      const provider = String(request.params['provider']);
-      if (!isRemoteProviderId(provider)) {
-        return appErrorResponse(dataError(`«${provider}» no es un proveedor remoto conocido`));
-      }
-      const result = await removeApiKey(provider);
-      if (!result.ok) {
-        return appErrorResponse(dataError(result.message));
-      }
-      const sources = await describeKeys();
-      return json(200, { provider, source: sources[provider], keysFile: result.file, removed: result.removed } satisfies LlmKeyResponse);
-    },
-  });
-
+/** Importar un CV: PDF o DOCX, la exportación de datos de LinkedIn y aplicar al borrador una propuesta del co-piloto. */
+function addImportRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'POST',
     path: `${API_PREFIX}/import/apply`,
@@ -882,7 +947,10 @@ export function createRouter(): Router<ServerState> {
       } satisfies ImportCvResponse);
     },
   });
+}
 
+/** Temas de Typst: inventario, creación a partir de otro, instalación de temas de la comunidad y verificación. */
+function addThemeRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'GET',
     path: `${API_PREFIX}/themes`,
@@ -928,17 +996,13 @@ export function createRouter(): Router<ServerState> {
         return appErrorResponse(classified.error);
       }
       if (classified.source.kind === 'url') {
-        if (!state.allowRemote) {
-          return errorResponse('remote-disabled', 'Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para instalar temas desde una URL');
+        const denied = remoteBlocked(state, 'Este servidor no descarga nada: arráncalo con «cv serve --allow-remote» para instalar temas desde una URL');
+        if (denied !== undefined) {
+          return denied;
         }
-        if (body.consent === undefined || !state.consents.redeem(body.consent.estimateId, 'theme-install')) {
+        if (!confirmed(state, 'theme-install', body.consent)) {
           const { url } = classified.source;
-          return errorResponse('consent-required', `Se descargará «${url.href}» (host ${url.host}, máximo ${THEME_DOWNLOAD_LIMITS.maxBytes} bytes); repite la petición con consent.estimateId para confirmar`, {
-            estimateId: state.consents.issue('theme-install'),
-            source: url.href,
-            host: url.host,
-            limitBytes: THEME_DOWNLOAD_LIMITS.maxBytes,
-          });
+          return downloadConsent(state, 'theme-install', url, THEME_DOWNLOAD_LIMITS.maxBytes, `Se descargará «${url.href}»`);
         }
       }
       const result = await installTheme(state.context, { source: body.source, as: body.name, sha256: body.sha256, dryRun: body.dryRun, replace: body.replace }, { toolVersion: state.version });
@@ -963,7 +1027,10 @@ export function createRouter(): Router<ServerState> {
   });
 
   addCopilotRoutes(router);
+}
 
+/** El propio servidor: apagarlo. */
+function addServerRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'POST',
     path: `${API_PREFIX}/shutdown`,
@@ -975,9 +1042,8 @@ export function createRouter(): Router<ServerState> {
       return json(202, { ok: true } satisfies ShutdownResponse);
     },
   });
-
-  return router;
 }
+
 
 /** Límite del cuerpo según la ruta: PDF hasta el máximo del worker; JSON, 1 MiB. */
 export function bodyLimitFor(accepts: string | undefined): number {
@@ -1012,21 +1078,12 @@ async function launchJob<P>(state: ServerState, body: CopilotBody, launch: Launc
   const { provider } = selected;
   const sending = { destination: describeProvider(provider), redactCompanies: body.redactCompanies ?? false, ...launch.sending(planned.plan) };
   if (provider.kind === 'remote') {
-    if (!state.allowRemote) {
-      return errorResponse('remote-disabled', 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo', { sending });
+    const denied = remoteBlocked(state, 'Este servidor no envía nada a proveedores remotos: arráncalo con «cv serve --allow-remote» para permitirlo', { sending });
+    if (denied !== undefined) {
+      return denied;
     }
-    if (body.consent === undefined || !state.consents.redeem(body.consent.estimateId, launch.kind)) {
-      const estimate = await launch.estimate(planned.plan);
-      const estimateId = state.consents.issue(launch.kind);
-      const dataNote = REMOTE_PROVIDERS.find((entry) => entry.id === body.provider)?.dataNote;
-      return errorResponse('consent-required', 'Proveedor remoto: revisa el coste estimado y repite la petición con consent.estimateId para confirmar', {
-        estimateId,
-        estimate,
-        ...(dataNote === undefined ? {} : { dataNote }),
-        warning: formatCostWarning(`${provider.id} (${provider.baseUrl}; modelo ${provider.model})`, estimate),
-        sending,
-        warnings: planned.warnings,
-      });
+    if (!confirmed(state, launch.kind, body.consent)) {
+      return costConsent(state, launch.kind, provider, await launch.estimate(planned.plan), sending, { warnings: planned.warnings });
     }
   }
   const health = await checkLocalProvider(provider);
