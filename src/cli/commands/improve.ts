@@ -28,6 +28,8 @@ export interface ImproveOptions extends SelectionOptions {
   readonly locale?: string | undefined;
   readonly output?: string | undefined;
   readonly cache: boolean;
+  /** T-9.16: si el proveedor dice cuánto esperar tras un 429, esperar y reintentar. Por defecto, sí. */
+  readonly waitQuota?: boolean | undefined;
   readonly showPrompt: boolean;
   readonly showPayload: boolean;
   readonly dryRun: boolean;
@@ -100,6 +102,7 @@ export async function runImproveCommand(context: CliContext, options: ImproveOpt
     provider,
     cache: options.cache,
     allowNewNumbers: options.allowNewNumbers === true,
+    ...(options.waitQuota === false ? { quotaRetry: { attempts: 0 } } : {}),
     progress: (line) => {
       context.stderr(`${line}\n`);
     },

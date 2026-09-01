@@ -30,6 +30,8 @@ export interface SuggestTagsOptions {
   readonly locale?: string | undefined;
   readonly explain: boolean;
   readonly cache: boolean;
+  /** T-9.16: si el proveedor dice cuánto esperar tras un 429, esperar y reintentar. Por defecto, sí. */
+  readonly waitQuota?: boolean | undefined;
   readonly showPrompt: boolean;
   readonly showPayload: boolean;
   readonly dryRun: boolean;
@@ -91,6 +93,7 @@ export async function runSuggestTagsCommand(context: CliContext, options: Sugges
     return ready;
   }
   const outcome = await executeSuggestTags(context, plan, {
+    ...(options.waitQuota === false ? { quotaRetry: { attempts: 0 } } : {}),
     provider,
     cache: options.cache,
     progress: (line) => {

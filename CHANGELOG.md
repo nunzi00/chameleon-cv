@@ -4,6 +4,10 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 ## [Unreleased]
 
+### Añadido
+
+- **Cuota agotada: se espera lo que el proveedor pide y se reintenta** (encargo del PO del 1-sep, tras perder media tanda por quince segundos). Un 429 con `retry-after` detenía el lote a la primera; ahora se espera lo que el proveedor indica y se reintenta hasta dos veces, contándolo por pantalla. Tres límites, porque esperar sin freno es peor que no esperar: solo si **dice cuánto**, nunca más de **120 s** —una cuota diaria no se aguarda, se para y se explica— y como mucho **dos veces**. La espera es **cancelable**: escucha la misma señal que corta el resto del lote, así que el botón «Cancelar» de la web y `Ctrl-C` la interrumpen en el acto. `--no-wait-quota` vuelve al comportamiento anterior. De paso se corrigió que el `retry-after` **se perdía al interpretar la respuesta** en las cinco tareas: sin esos segundos no se puede esperar lo justo.
+
 ### Corregido
 
 - **Aplicar dos veces una revisión ya no es un error, y se dice lo que pasa** (encontrado por el PO el 1-sep aplicando `revision-improve-…-arquitecto.md`). Antes salía «Los datos no son válidos» y, por cada ítem, «el logro original no está tal cual en … (¿editado a mano?)»: el mensaje culpaba al usuario del caso **más probable**, que es haber aplicado ya esa revisión. Ahora se distingue: si lo que hay en la fuente es exactamente la propuesta, el ítem sale como **«ya aplicada»**, no se reescribe el fichero —ni copia, ni entrada nueva en el histórico— y la orden termina con código 0. Además se recuerda cómo deshacerlo, que ya existía y no se decía: `cv history` y `cv history restore latest <fuente>` (en la web, «Fuentes → Historial de esta fuente»). En la API, `POST /reviews/{name}/apply` responde 200 con `already: [ids]` en vez de 422.

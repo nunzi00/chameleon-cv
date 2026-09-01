@@ -73,7 +73,7 @@ export type OfferMapResult =
       readonly elapsedMs: number;
       readonly promptVersion: string;
     }
-  | { readonly ok: false; readonly code: OfferMapErrorCode; readonly message: string };
+  | { readonly ok: false; readonly code: OfferMapErrorCode; readonly message: string; /** Con «cuota agotada», lo que el proveedor pide esperar (T-9.16). */ readonly retryAfterSeconds?: number | undefined };
 
 /**
  * JSON Schema para el proveedor: `tag` restringida al vocabulario enviado (`enum`). Todas las propiedades van en
@@ -127,7 +127,8 @@ function asEmphasis(value: string | undefined): Emphasis {
  */
 export function interpretOfferMap(fragment: OfferMapFragment, known: ReadonlySet<string>, completion: LlmCompletion): OfferMapResult {
   if (!completion.ok) {
-    return { ok: false, code: completion.code, message: completion.message };
+    // El «retry-after» del proveedor viaja con el error: sin él no se puede esperar lo que pide (T-9.16).
+    return { ok: false, code: completion.code, message: completion.message, ...(completion.retryAfterSeconds === undefined ? {} : { retryAfterSeconds: completion.retryAfterSeconds }) };
   }
   const output = OfferMapOutputSchema.safeParse(completion.json);
   if (!output.success) {

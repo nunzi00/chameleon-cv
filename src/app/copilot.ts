@@ -57,6 +57,7 @@ import { checkArtifactFreshness, freshnessWarning, type AppWarning } from './fre
 import { OUTPUT_MODE } from './generate';
 import { hasLimits, resolveLimits, type LimitOptions } from './limits';
 import { readOffer, type OfferInput, type OfferText } from './offer';
+import type { QuotaRetryOptions } from '../llm/quota-retry';
 import { indexSources, summarySource, withAchievementSources } from './provenance';
 import { tailorProfile } from './tailor';
 import { pluralize } from './text';
@@ -191,6 +192,11 @@ export interface ExecuteOptions {
   readonly allowNewNumbers?: boolean | undefined;
   readonly progress?: ((line: string) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
+  /**
+   * Espera y reintento cuando el proveedor dice cuánto (T-9.16). Por defecto, el del módulo: dos esperas y
+   * ninguna de más de dos minutos. `{ attempts: 0 }` vuelve al comportamiento de siempre —parar a la primera—.
+   */
+  readonly quotaRetry?: QuotaRetryOptions | undefined;
 }
 
 export interface ReviewOutcome {
@@ -292,6 +298,7 @@ export async function executeImprove(context: AppContext, plan: ImprovePlan, opt
     now,
     progress: options.progress,
     signal: options.signal,
+    quotaRetry: options.quotaRetry,
   });
   const notes: string[] = [];
   const warn = (line: string): void => {
@@ -372,7 +379,7 @@ export interface SummarizeOutcome extends ReviewOutcome {
 export async function executeSummarize(context: AppContext, plan: SummarizePlan, options: ExecuteOptions): Promise<SummarizeOutcome> {
   const prompt = await loadSummarizePrompt(context.assets);
   const now = context.now ?? (() => new Date());
-  const item = await runSummarizeTask({ profile: plan.selection.fullProfile, fragment: plan.fragment, provider: options.provider, prompt, location: plan.location, allowNewNumbers: options.allowNewNumbers === true, cache: options.cache ? context.llmCache : undefined, now, signal: options.signal });
+  const item = await runSummarizeTask({ profile: plan.selection.fullProfile, fragment: plan.fragment, provider: options.provider, prompt, location: plan.location, allowNewNumbers: options.allowNewNumbers === true, cache: options.cache ? context.llmCache : undefined, now, signal: options.signal, quotaRetry: options.quotaRetry });
   const notes: string[] = [];
   const warn = (line: string): void => {
     notes.push(line);
@@ -516,6 +523,6 @@ export interface SuggestTagsOutcome {
 
 export async function executeSuggestTags(context: AppContext, plan: SuggestTagsPlan, options: ExecuteOptions): Promise<SuggestTagsOutcome> {
   const prompt = await loadSuggestTagsPrompt(context.assets);
-  const items = await runSuggestTagsBatch({ profile: plan.profile, fragments: plan.fragments, provider: options.provider, prompt, cache: options.cache ? context.llmCache : undefined, now: context.now, progress: options.progress, signal: options.signal });
+  const items = await runSuggestTagsBatch({ profile: plan.profile, fragments: plan.fragments, provider: options.provider, prompt, cache: options.cache ? context.llmCache : undefined, now: context.now, progress: options.progress, signal: options.signal, quotaRetry: options.quotaRetry });
   return { items, stats: tagStats(items), cancelled: options.signal?.aborted === true };
 }

@@ -98,6 +98,8 @@ describe('cv summarize (T-4.4)', () => {
   it('escribe la revisión del resumen (0600) con las propuestas verificadas y su cobertura, avisa de lo que sale y cachea', async () => {
     const h = await harness(undefined);
     expect(await runCli(['summarize', '-s', 'backend', '--redact-companies'], h.context)).toBe(EXIT_OK);
+    // Y el mismo interruptor que en improve: sin espera ante una cuota agotada (T-9.16).
+    expect(await runCli(['summarize', '-s', 'backend', '--no-wait-quota'], (await harness()).context)).toBe(EXIT_OK);
     const path = '/work/output/revision-summarize-2026-08-28-backend.md';
     expect(defaultSummaryReviewPath(NOW, 'backend', undefined)).toBe('output/revision-summarize-2026-08-28-backend.md');
     expect(defaultSummaryReviewPath(NOW, undefined, 'acme')).toBe('output/revision-summarize-2026-08-28-acme.md');

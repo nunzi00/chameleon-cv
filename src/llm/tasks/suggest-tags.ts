@@ -123,12 +123,13 @@ export type SuggestTagsResult =
       readonly elapsedMs: number;
       readonly promptVersion: string;
     }
-  | { readonly ok: false; readonly code: SuggestTagsErrorCode; readonly message: string };
+  | { readonly ok: false; readonly code: SuggestTagsErrorCode; readonly message: string; /** Con «cuota agotada», lo que el proveedor pide esperar (T-9.16). */ readonly retryAfterSeconds?: number | undefined };
 
 /** Valida una respuesta (del proveedor o de la caché) y deshace los seudónimos en las justificaciones. */
 export function interpretSuggestTags(fragment: SuggestTagsFragment, completion: LlmCompletion): SuggestTagsResult {
   if (!completion.ok) {
-    return { ok: false, code: completion.code, message: completion.message };
+    // El «retry-after» del proveedor viaja con el error: sin él no se puede esperar lo que pide (T-9.16).
+    return { ok: false, code: completion.code, message: completion.message, ...(completion.retryAfterSeconds === undefined ? {} : { retryAfterSeconds: completion.retryAfterSeconds }) };
   }
   const output = SuggestTagsOutputSchema.safeParse(completion.json);
   if (!output.success) {

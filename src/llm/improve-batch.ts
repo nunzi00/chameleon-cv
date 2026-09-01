@@ -7,6 +7,7 @@ import { policyOptions, verifyProposal, type Verdict } from '../core/llm/verify'
 import { DEFAULT_DICTIONARY, buildVocabulary } from '../core/keywords';
 import type { MasterProfile } from '../core/schema';
 import { cacheKey, type LlmCacheStore } from './cache';
+import { retryOnQuota, type QuotaRetryOptions } from './quota-retry';
 import { DEFAULT_SEED, DEFAULT_TEMPERATURE, type LlmCompletion, type LlmProvider } from './provider';
 import type { ReviewItem, ReviewProposal } from './review';
 import { IMPROVE_PROMPT_VERSION, buildImproveFragment, interpretImprove, runImprove, type FragmentOptions, type ImproveFragment } from './tasks/improve';
@@ -25,6 +26,8 @@ export interface ImproveBatchOptions {
   readonly now?: (() => Date) | undefined;
   /** Cancelación: el lote se detiene antes del siguiente logro y la petición en curso se aborta. */
   readonly signal?: AbortSignal | undefined;
+  /** Espera y reintento cuando el proveedor dice cuánto (T-9.16); `attempts: 0` lo desactiva. */
+  readonly quotaRetry?: QuotaRetryOptions | undefined;
 }
 
 /** Términos vigilados por el verificador: el perfil es el diccionario (tags, skills, alias, tecnologías) más el diccionario base. */
@@ -98,7 +101,11 @@ export async function runImproveBatch(options: ImproveBatchOptions): Promise<Rev
       }
     }
 
-    const result = await runImprove(options.provider, fragment, options.prompt, options.timeoutMs, options.signal);
+    const result = await retryOnQuota(() => runImprove(options.provider, fragment, options.prompt, options.timeoutMs, options.signal), {
+      ...options.quotaRetry,
+      progress: (line: string) => options.progress?.(`${label}: ${line}`),
+      signal: options.signal,
+    });
     if (!result.ok && aborted()) {
       options.progress?.(`${label}: cancelado`);
       break;

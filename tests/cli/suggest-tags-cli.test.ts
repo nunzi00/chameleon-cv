@@ -117,6 +117,8 @@ describe('cv suggest tags (T-4.6): diccionario cerrado, salida limpia, nunca esc
   it('etiqueta un texto suelto: stdout solo con las etiquetas del diccionario; rechazos y explicación por stderr', async () => {
     const h = await harness();
     expect(await runCli(['suggest', 'tags', 'Migré la plataforma de Ada Ejemplo a Kubernetes. #devops', '--explain'], h.context)).toBe(EXIT_OK);
+    // Y el mismo interruptor que en las otras dos órdenes (T-9.16).
+    expect(await runCli(['suggest', 'tags', 'Migré la plataforma a Kubernetes', '--no-wait-quota'], (await harness()).context)).toBe(EXIT_OK);
     expect(h.stdout()).toBe('#php #kubernetes #symfony\n');
     expect(h.stderr()).toContain('Saldrá 1 fragmento seudonimizado (7 palabras; sin nombre ni datos de contacto; diccionario cerrado de 7 etiquetas de 2 especialidades) hacia ollama (http://127.0.0.1:11434, local; modelo fake)\n');
     expect(h.stderr()).toContain('[1/1] texto: #php #kubernetes #symfony (1 literal · 0 por contexto · 2 inferida) · 7 ms\n');

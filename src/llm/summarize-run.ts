@@ -3,6 +3,7 @@
  * cadena que `improve`: caché o proveedor → validación zod → verificador C2 (sin invención;
  * cobertura de hechos clave) → ítem del fichero de revisión.
  */
+import { retryOnQuota, type QuotaRetryOptions } from './quota-retry';
 import { policyOptions, verifyProposal } from '../core/llm/verify';
 import type { MasterProfile } from '../core/schema';
 import { cacheKey, type LlmCacheStore } from './cache';
@@ -26,6 +27,8 @@ export interface SummarizeRunOptions {
   readonly timeoutMs?: number | undefined;
   readonly now?: (() => Date) | undefined;
   readonly signal?: AbortSignal | undefined;
+  /** Espera y reintento cuando el proveedor dice cuánto (T-9.16); `attempts: 0` lo desactiva. */
+  readonly quotaRetry?: QuotaRetryOptions | undefined;
 }
 
 function verifyAll(options: SummarizeRunOptions, proposals: ReadonlyArray<{ readonly text: string; readonly rationale: string }>): ReviewProposal[] {
@@ -57,7 +60,10 @@ export async function runSummarizeTask(options: SummarizeRunOptions): Promise<Re
     }
   }
 
-  const result = await runSummarize(provider, fragment, options.prompt, options.timeoutMs, options.signal);
+  const result = await retryOnQuota(() => runSummarize(provider, fragment, options.prompt, options.timeoutMs, options.signal), {
+    ...options.quotaRetry,
+    signal: options.signal,
+  });
   if (!result.ok) {
     return { id: SUMMARY_ITEM_ID, location: options.location, original, proposals: [], error: `${result.code}: ${result.message}`, fromCache: false, elapsedMs: 0, usage: {} };
   }

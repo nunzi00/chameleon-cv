@@ -3,6 +3,7 @@
  * zod → verificación del diccionario cerrado y evidencia (C10) → ítem con las etiquetas
  * aceptadas y las rechazadas. Un fallo en un ítem no aborta el lote, salvo la cuota agotada (quota-exceeded): sin reintentos (C11), el resto de la tanda se detiene y el mensaje conserva el «reintenta en Xs» del proveedor. Sin I/O de ficheros.
  */
+import { retryOnQuota, type QuotaRetryOptions } from './quota-retry';
 import { formatHashtags, verifyTagSuggestions, type AcceptedTag, type RejectedTag } from '../core/llm/tags';
 import { buildVocabulary } from '../core/keywords';
 import type { MasterProfile } from '../core/schema';
@@ -36,6 +37,8 @@ export interface SuggestTagsBatchOptions {
   readonly now?: (() => Date) | undefined;
   /** Cancelación: el lote se detiene antes del siguiente fragmento y la petición en curso se aborta. */
   readonly signal?: AbortSignal | undefined;
+  /** Espera y reintento cuando el proveedor dice cuánto (T-9.16); `attempts: 0` lo desactiva. */
+  readonly quotaRetry?: QuotaRetryOptions | undefined;
 }
 
 function describeEvidence(accepted: readonly AcceptedTag[]): string {
@@ -73,7 +76,11 @@ export async function runSuggestTagsBatch(options: SuggestTagsBatchOptions): Pro
       }
     }
 
-    const result = await runSuggestTags(options.provider, fragment, options.prompt, options.timeoutMs, options.signal);
+    const result = await retryOnQuota(() => runSuggestTags(options.provider, fragment, options.prompt, options.timeoutMs, options.signal), {
+      ...options.quotaRetry,
+      progress: (line: string) => options.progress?.(`${label}: ${line}`),
+      signal: options.signal,
+    });
     if (!result.ok && aborted()) {
       options.progress?.(`${label}: cancelado`);
       break;

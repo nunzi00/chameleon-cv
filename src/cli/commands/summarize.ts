@@ -27,6 +27,8 @@ export interface SummarizeOptions extends SelectionOptions {
   readonly locale?: string | undefined;
   readonly output?: string | undefined;
   readonly cache: boolean;
+  /** T-9.16: si el proveedor dice cuánto esperar tras un 429, esperar y reintentar. Por defecto, sí. */
+  readonly waitQuota?: boolean | undefined;
   readonly showPrompt: boolean;
   readonly showPayload: boolean;
   readonly dryRun: boolean;
@@ -85,7 +87,7 @@ export async function runSummarizeCommand(context: CliContext, options: Summariz
   if (ready !== EXIT_OK) {
     return ready;
   }
-  const outcome = await executeSummarize(context, plan, { provider, cache: options.cache, allowNewNumbers: options.allowNewNumbers === true });
+  const outcome = await executeSummarize(context, plan, { provider, cache: options.cache, allowNewNumbers: options.allowNewNumbers === true, ...(options.waitQuota === false ? { quotaRetry: { attempts: 0 } } : {}) });
   for (const note of outcome.notes) {
     context.stderr(`${note}\n`);
   }

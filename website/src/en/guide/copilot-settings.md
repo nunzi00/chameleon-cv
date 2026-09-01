@@ -127,6 +127,14 @@ every send, in the CLI and in the web's cost dialog. If that isn't acceptable to
 model. The free plans of other known providers were ruled out because they allow training on the data you send
 without saying so this plainly.
 
+**Exhausted quota: it waits what the provider asks, and you can cancel.** A 429 with `retry-after` no longer
+stops the batch at the first hit: it waits what the provider says and retries up to twice, saying so on screen
+(«cuota agotada: espero 15 s y reintento (1/2) · cancela para no esperar»). Three limits, because waiting without
+a bound is worse than not waiting: it only waits **if the provider says how long**, never **more than 120 s** —a
+daily quota isn't waited out— and at most **twice**. The wait is cancellable: the job's «Cancelar» button in the
+web and `Ctrl-C` in the terminal cut it immediately. `--no-wait-quota` restores the previous behaviour, which is
+usually what a script wants.
+
 **Visible quota, no telemetry.** Beyond the published limits, the product reads the quota headers the provider
 returns on the calls you already asked for (`x-ratelimit-*`, `retry-after`) and shows them —when a remote job
 finishes, in `cv llm status` and in Ajustes— without making any extra call or storing them on disk. If the

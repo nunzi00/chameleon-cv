@@ -167,11 +167,12 @@ export type SummarizeErrorCode = LlmErrorCode | 'invalid-output';
 
 export type SummarizeResult =
   | { readonly ok: true; readonly proposals: readonly SummarizeProposal[]; readonly raw: string; readonly json: unknown; readonly model: string; readonly usage: LlmUsage; readonly elapsedMs: number; readonly promptVersion: string }
-  | { readonly ok: false; readonly code: SummarizeErrorCode; readonly message: string };
+  | { readonly ok: false; readonly code: SummarizeErrorCode; readonly message: string; /** Con «cuota agotada», lo que el proveedor pide esperar (T-9.16). */ readonly retryAfterSeconds?: number | undefined };
 
 export function interpretSummarize(fragment: SummarizeFragment, completion: LlmCompletion): SummarizeResult {
   if (!completion.ok) {
-    return { ok: false, code: completion.code, message: completion.message };
+    // El «retry-after» del proveedor viaja con el error: sin él no se puede esperar lo que pide (T-9.16).
+    return { ok: false, code: completion.code, message: completion.message, ...(completion.retryAfterSeconds === undefined ? {} : { retryAfterSeconds: completion.retryAfterSeconds }) };
   }
   const output = SummarizeOutputSchema.safeParse(completion.json);
   if (!output.success) {

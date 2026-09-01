@@ -67,7 +67,7 @@ export type ImportMapResult =
       readonly elapsedMs: number;
       readonly promptVersion: string;
     }
-  | { readonly ok: false; readonly code: ImportMapErrorCode; readonly message: string };
+  | { readonly ok: false; readonly code: ImportMapErrorCode; readonly message: string; /** Con «cuota agotada», lo que el proveedor pide esperar (T-9.16). */ readonly retryAfterSeconds?: number | undefined };
 
 /** JSON Schema para el proveedor: `section` restringida al vocabulario (`enum`). */
 export function importMapJsonSchema(): Record<string, unknown> {
@@ -114,7 +114,8 @@ function asSection(value: string): ImportSection | undefined {
 /** Valida la respuesta y verifica cada propuesta contra las líneas enviadas (C2): nada se acepta a ciegas. */
 export function interpretImportMap(fragment: ImportMapFragment, original: readonly ImportMapLine[], completion: LlmCompletion): ImportMapResult {
   if (!completion.ok) {
-    return { ok: false, code: completion.code, message: completion.message };
+    // El «retry-after» del proveedor viaja con el error: sin él no se puede esperar lo que pide (T-9.16).
+    return { ok: false, code: completion.code, message: completion.message, ...(completion.retryAfterSeconds === undefined ? {} : { retryAfterSeconds: completion.retryAfterSeconds }) };
   }
   const output = ImportMapOutputSchema.safeParse(completion.json);
   if (!output.success) {

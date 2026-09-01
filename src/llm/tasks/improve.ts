@@ -146,12 +146,13 @@ export type ImproveResult =
       readonly elapsedMs: number;
       readonly promptVersion: string;
     }
-  | { readonly ok: false; readonly code: ImproveErrorCode; readonly message: string };
+  | { readonly ok: false; readonly code: ImproveErrorCode; readonly message: string; /** Con «cuota agotada», lo que el proveedor pide esperar (T-9.16). */ readonly retryAfterSeconds?: number | undefined };
 
 /** Valida una respuesta (del proveedor o de la caché) y deshace los seudónimos en las propuestas. */
 export function interpretImprove(fragment: ImproveFragment, completion: LlmCompletion): ImproveResult {
   if (!completion.ok) {
-    return { ok: false, code: completion.code, message: completion.message };
+    // El «retry-after» del proveedor viaja con el error: sin él no se puede esperar lo que pide (T-9.16).
+    return { ok: false, code: completion.code, message: completion.message, ...(completion.retryAfterSeconds === undefined ? {} : { retryAfterSeconds: completion.retryAfterSeconds }) };
   }
   const output = ImproveOutputSchema.safeParse(completion.json);
   if (!output.success) {

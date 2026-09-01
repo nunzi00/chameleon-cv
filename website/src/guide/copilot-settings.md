@@ -99,6 +99,14 @@ Groq está registrado tras un estudio con evidencia (`docs/copilot-providers.md`
 
 **Gemini** pasó el mismo protocolo el 31-ago-2026 y también es seleccionable, pero con una diferencia que no se esconde: **su plan gratuito usa tus peticiones para mejorar los productos de Google**. Por eso el aviso aparece antes de cada envío, en la CLI y en el diálogo de coste de la web. Si eso no te vale, usa Groq o el modelo local. Los planes gratuitos de otros proveedores conocidos se descartaron porque permiten entrenar con los datos enviados sin decirlo con esta claridad.
 
+**Cuota agotada: se espera lo que el proveedor pida, y se puede cancelar.** Un 429 con `retry-after` ya no
+detiene la tanda a la primera: se espera lo que él diga y se reintenta hasta dos veces, contándolo por pantalla
+(«cuota agotada: espero 15 s y reintento (1/2) · cancela para no esperar»). Tres límites, porque esperar sin
+freno es peor que no esperar: solo se espera **si el proveedor dice cuánto**, nunca **más de 120 s** —una cuota
+diaria no se aguarda— y como mucho **dos veces**. La espera es cancelable: el botón «Cancelar» del trabajo en la
+web y `Ctrl-C` en la terminal la cortan en el acto. `--no-wait-quota` vuelve al comportamiento anterior, que es
+lo que suele querer un script.
+
 **Cuota visible, sin telemetría.** Además de los límites publicados, el producto lee las cabeceras de cuota que el proveedor devuelve en las llamadas que tú ya pediste (`x-ratelimit-*`, `retry-after`) y las enseña —al terminar un trabajo remoto, en `cv llm status` y en Ajustes— sin hacer ninguna llamada extra ni guardarlas en disco. Si el proveedor responde 429 (cuota agotada), la orden se detiene con `quota-exceeded` y el tiempo de espera que él indique; nunca se reintenta por su cuenta.
 
 ```bash
