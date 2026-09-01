@@ -613,3 +613,46 @@ describe('el «Guardar como PDF» de un perfil de LinkedIn (B-13)', () => {
     expect(draft.summary).toContain('Specialties');
   });
 });
+
+describe('un nombre maquetado letra a letra (B-14)', () => {
+  /** Cabecera real de un CV del corpus: el nombre va espaciado y partido en una línea por palabra. */
+  const CABECERA = ['L U C A S', 'N U N Z I', 'L Ó P E Z', 'D E S A R R O L L A D O R W E B', 'Soy un apasionado del desarrollo web.'];
+  /** Con seis o más líneas espaciadas, espaciar es el estilo de la plantilla y no una marca de título (B-10). */
+  const RESTO = ['E X P E R I E N C I A', 'ACME', 'Desarrollador', '2020 - 2021', 'F O R M A C I Ó N', 'I.E.S. Muralla Romana', 'Grado', '2010 - 2012'];
+
+  it('se une por líneas —que es lo único que conserva la frontera entre palabras— y bautiza bien el borrador', () => {
+    const draft = structureCv([...CABECERA, ...RESTO].join('\n'));
+    expect(draft.fullName).toBe('LUCAS NUNZI LÓPEZ');
+    // El titular se deja como viene: dentro de una línea espaciada la separación entre palabras se perdió sin
+    // remedio, y «DESARROLLADORWEB» parecería correcto sin serlo. Espaciado se ve que hay que repasarlo.
+    expect(draft.headline).toBe('D E S A R R O L L A D O R W E B');
+    expect(draft.summary).toBe('Soy un apasionado del desarrollo web.');
+  });
+
+  it('no se traga la línea siguiente: al añadirla el nombre puntúa peor y se descarta', () => {
+    const draft = structureCv([...CABECERA, ...RESTO].join('\n'));
+    expect(draft.fullName).not.toContain('DESARROLLADOR');
+  });
+
+  it('un bloque espaciado que no está en la cabecera no es un nombre', () => {
+    // «I N F O R M A C I Ó N» / «D E C O N T A C T O» puntuaría igual de bien que un nombre de dos palabras:
+    // por eso la regla solo mira la cabecera, y se queda con el primer bloque que puntúe.
+    const draft = structureCv(['Ada Lovelace', 'Ingeniera', 'I N F O R M A C I Ó N', 'D E C O N T A C T O', 'ada@example.com', 'E X P E R I E N C I A', 'ACME', 'Dev', '2020 - 2021', 'M Á S', 'C O S A S'].join('\n'));
+    expect(draft.fullName).toBe('Ada Lovelace');
+  });
+
+  it('si el primer bloque espaciado no puede ser un nombre, se sigue buscando en el siguiente', () => {
+    // «C U R R I C U L U M» / «V I T A E» es un rótulo, no una persona: el diccionario de T-9.1 lo descarta y
+    // el nombre aparece en el bloque de debajo.
+    const pegado = structureCv(['C U R R I C U L U M', 'V I T A E', 'L U C A S', 'N U N Z I', 'Desarrollador web', ...RESTO].join('\n'));
+    expect(pegado.fullName).toBe('LUCAS NUNZI');
+    // Y con el rótulo en un bloque aparte, separado por una línea normal, se descarta el bloque entero.
+    const separado = structureCv(['C U R R I C U L U M', 'V I T A E', 'Actualizado en 2026', 'L U C A S', 'N U N Z I', ...RESTO].join('\n'));
+    expect(separado.fullName).toBe('LUCAS NUNZI');
+  });
+
+  it('una sola línea espaciada no basta: hacen falta dos para que haya frontera entre palabras', () => {
+    const draft = structureCv(['L U C A S', 'Desarrollador web', 'Experiencia', 'ACME', 'Dev', '2020 - 2021'].join('\n'));
+    expect(draft.fullName).not.toBe('LUCAS');
+  });
+});

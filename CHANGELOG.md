@@ -2,6 +2,12 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Corregido
+
+- **Un nombre maquetado letra a letra ya no bautiza el borrador con una sílaba** (B-14): un CV cuya cabecera va espaciada («L U C A S» / «N U N Z I» / «L Ó P E Z», una palabra por línea) salía como `fullName: L U C A S` y con la carpeta `import/l-u-c-a-s/`. Ahora ese bloque se colapsa **línea a línea** —el salto de línea es lo único que conserva la frontera entre palabras— y se elige el tramo que mejor puntúa como nombre, así que sale `LUCAS NUNZI LÓPEZ`. Lo que viene detrás no se cuela: al añadirlo el nombre puntúa peor. El titular se deja espaciado a propósito: dentro de una línea la separación entre palabras se perdió sin remedio, y «DESARROLLADORWEB» parecería correcto sin serlo.
+
 ## [1.15.0] - 2026-09-01
 
 ### Añadido

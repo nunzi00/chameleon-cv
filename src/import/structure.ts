@@ -862,8 +862,55 @@ function splitNameLine(text: string): { readonly name: string; readonly headline
  * («Jane Doe | Resume») y, si no los tiene, se prueba también la partición de nombre y titular pegados. Gana la
  * puntuación más alta y, a igualdad, la línea más arriba.
  */
-function chooseName(header: readonly Line[]): { readonly line: number; readonly name: string; readonly headline: string | undefined } | undefined {
-  let best: { line: number; name: string; headline: string | undefined; score: number } | undefined;
+/**
+ * Un nombre maquetado letra a letra llega partido por palabras, una por línea: «L U C A S» / «N U N Z I» /
+ * «L Ó P E Z» (B-14). Cada línea se colapsa por separado —el salto de línea es lo único que conserva la
+ * frontera entre palabras, que dentro de una línea espaciada se pierde sin remedio— y se prueban las uniones de
+ * dos líneas en adelante, quedándose con la más larga que siga puntuando como nombre. Así «DESARROLLADORWEB»,
+ * que viene detrás y también espaciado, no se cuela: al añadirlo el nombre pasa de tres palabras a cuatro y
+ * puntúa menos.
+ */
+function spacedNameCandidate(header: readonly Line[]): { readonly lines: readonly number[]; readonly name: string; readonly score: number } | undefined {
+  // Solo la cabecera, la misma ventana que mira `chooseName`: más abajo, un bloque espaciado es un título de
+  // sección («I N F O R M A C I Ó N» / «D E C O N T A C T O»), no un nombre, y puntúa igual de bien.
+  for (let start = 0; start < Math.min(header.length, 6); start += 1) {
+    const run: Line[] = [];
+    for (let index = start; index < header.length && isSpacedHeading(header[index]!.text); index += 1) {
+      run.push(header[index]!);
+    }
+    if (run.length < 2) {
+      continue;
+    }
+    const words = run.map((line) => line.text.replace(/\s+/g, ''));
+    // Cualquier tramo seguido de dos líneas o más, no solo el que empieza arriba: el nombre puede venir detrás
+    // de un rótulo igual de espaciado («C U R R I C U L U M» / «V I T A E»), y entonces el rótulo y el nombre
+    // son un solo bloque. Gana la puntuación más alta; a igualdad, el tramo más largo y, si aún empatan, el
+    // primero: el nombre está arriba.
+    let best: { lines: readonly number[]; name: string; score: number; length: number } | undefined;
+    for (let from = 0; from + 1 < run.length; from += 1) {
+      for (let to = from + 2; to <= run.length; to += 1) {
+        const name = words.slice(from, to).join(' ');
+        const score = nameScore(name);
+        const length = to - from;
+        if (score > 0 && (best === undefined || score > best.score || (score === best.score && length > best.length))) {
+          best = { lines: run.slice(from, to).map((line) => line.number), name, score, length };
+        }
+      }
+    }
+    if (best !== undefined) {
+      return best;
+    }
+    start += run.length - 1;
+  }
+  return undefined;
+}
+
+function chooseName(header: readonly Line[]): { readonly lines: readonly number[]; readonly name: string; readonly headline: string | undefined } | undefined {
+  let best: { lines: readonly number[]; name: string; headline: string | undefined; score: number } | undefined;
+  const spaced = spacedNameCandidate(header);
+  if (spaced !== undefined) {
+    best = { ...spaced, headline: undefined };
+  }
   for (const line of header.filter((candidate) => !isContactLine(candidate.text)).slice(0, 6)) {
     const parts = line.text.split(/\s*[|·]\s*/).map((part) => part.trim()).filter((part) => part !== '');
     const candidates: Array<{ name: string; headline: string | undefined }> = [
@@ -874,11 +921,11 @@ function chooseName(header: readonly Line[]): { readonly line: number; readonly 
       const score = nameScore(candidate.name);
       if (score > 0 && (best === undefined || score > best.score)) {
         const rest = candidate.headline === undefined || candidate.headline.split(/\s+/).every((word) => NAME_STOPWORDS.has(normalize(word).replace(/[^a-z]/g, ''))) ? undefined : candidate.headline;
-        best = { line: line.number, name: trimSeparators(candidate.name).trim(), headline: rest, score };
+        best = { lines: [line.number], name: trimSeparators(candidate.name).trim(), headline: rest, score };
       }
     }
   }
-  return best === undefined ? undefined : { line: best.line, name: best.name, headline: best.headline };
+  return best === undefined ? undefined : { lines: best.lines, name: best.name, headline: best.headline };
 }
 
 /** Del texto plano de un CV a un borrador de perfil con procedencia. */
@@ -947,8 +994,9 @@ export function structureCv(text: string): DraftProfile {
   // separador— se reconoce. Si ninguno convence, no se inventa: el borrador queda con «Nombre pendiente».
   const chosen = chooseName(header);
   for (const line of header) {
-    if (chosen !== undefined && line.number === chosen.line) {
+    if (chosen !== undefined && chosen.lines.includes(line.number)) {
       fullName = chosen.name;
+      // Asignación, no «??»: el titular que venga con el nombre manda sobre cualquier línea anterior (T-9.1).
       headline = chosen.headline;
       continue;
     }
