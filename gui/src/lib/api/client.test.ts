@@ -233,3 +233,24 @@ describe('histórico de versiones de las fuentes (T-8.10)', () => {
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/history', 'POST /api/v1/history/version', 'POST /api/v1/history/restore']);
   });
 });
+
+describe('peticiones GET a la vez', () => {
+  it('las idénticas que coinciden en vuelo comparten una sola llamada, y después se vuelve a preguntar', async () => {
+    let sirve = (): void => {};
+    const espera = new Promise<void>((resolve) => { sirve = resolve; });
+    const { fetch: f, calls } = fakeFetch(() => json(200, { version: '9.9.9' }));
+    const lento = (async (url: string, init: unknown): Promise<Response> => { await espera; return f(url, init as never); }) as typeof f;
+    const api = createApiClient({ fetch: lento, token: () => 't' });
+    const dos = Promise.all([api.status(), api.status()]);
+    sirve();
+    const [uno, otro] = await dos;
+    expect(uno).toEqual(otro);
+    expect(calls).toHaveLength(1);
+    // No es una caché: la siguiente pregunta vuelve a salir a la red.
+    await api.status();
+    expect(calls).toHaveLength(2);
+    // Y lo que no es un GET nunca se comparte: dos escrituras son dos escrituras.
+    await Promise.all([api.build(), api.build()]);
+    expect(calls).toHaveLength(4);
+  });
+});

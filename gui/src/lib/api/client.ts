@@ -281,10 +281,32 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     }
     return response;
   }
+  /**
+   * Peticiones GET idénticas que están **en vuelo a la vez** comparten una sola llamada. Pasa de verdad: al
+   * entrar en una pantalla, la cabecera pide `/status` y la propia pantalla también, con milisegundos de
+   * diferencia. No es una caché —en cuanto la respuesta llega, la entrada desaparece—, así que nadie ve un
+   * dato viejo: lo único que se ahorra es la petición duplicada.
+   */
+  const inFlight = new Map<string, Promise<unknown>>();
   async function request<T>(method: Method, path: string, init: RequestInit = {}): Promise<T> {
-    const response = await raw(method, path, { body: init.body === undefined ? undefined : new Blob([JSON.stringify(init.body)], { type: 'application/json' }), contentType: init.body === undefined ? undefined : 'application/json', headers: init.headers });
-    const text = await response.text();
-    return (text === '' ? undefined : parseJson(text)) as T;
+    const shared = method === 'GET' && init.headers === undefined ? inFlight.get(path) : undefined;
+    if (shared !== undefined) {
+      return (await shared) as T;
+    }
+    const run = (async (): Promise<T> => {
+      const response = await raw(method, path, { body: init.body === undefined ? undefined : new Blob([JSON.stringify(init.body)], { type: 'application/json' }), contentType: init.body === undefined ? undefined : 'application/json', headers: init.headers });
+      const text = await response.text();
+      return (text === '' ? undefined : parseJson(text)) as T;
+    })();
+    if (method !== 'GET' || init.headers !== undefined) {
+      return run;
+    }
+    inFlight.set(path, run);
+    try {
+      return await run;
+    } finally {
+      inFlight.delete(path);
+    }
   }
   const requestWithHeaders = <T>(method: Method, path: string, body: unknown, headers: Readonly<Record<string, string>>): Promise<T> => request<T>(method, path, { body, headers });
   return {

@@ -93,8 +93,14 @@
       void refreshContext();
     }
     const onHashChange = (): void => {
-      route = parseRoute(location.hash);
-      void refreshContext();
+      const next = parseRoute(location.hash);
+      // Los chips y el contador dependen de la PANTALLA, no del fichero elegido dentro de ella: elegir uno a uno
+      // en Fuentes o en Revisiones no tiene por qué volver a pedir estado, configuración y revisiones.
+      const changedPage = next.page !== route.page;
+      route = next;
+      if (changedPage) {
+        void refreshContext();
+      }
     };
     addEventListener('hashchange', onHashChange);
     return () => removeEventListener('hashchange', onHashChange);
