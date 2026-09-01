@@ -2,7 +2,7 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
-## [Unreleased]
+## [1.15.0] - 2026-09-01
 
 ### Añadido
 
@@ -13,7 +13,6 @@ Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue
 
 - **El co-piloto de ofertas ya funciona con Groq** (defecto del mismo día, encontrado por el PO en cuanto lo usó): la salida estructurada estricta de Groq —y la de OpenAI— **exige que `required` liste todas las propiedades del esquema**, y la nuestra dejaba fuera `emphasis`. La respuesta era un HTTP 400 que tumbaba la orden entera, no una propuesta. Ahora va en `required`; el código sigue admitiendo cualquier valor y traduciendo lo que no reconozca a «unknown». Se añade una guarda que revisa **las cinco tareas** —cada objeto de cada esquema declara todas sus propiedades y ninguna admite extras—, porque quien valida esto es el servidor del proveedor y ningún doble local lo reproduce.
 - **La adecuación vuelve a salir al lado del formulario, no debajo** (defecto del mismo día): la pantalla Generar es una rejilla de dos columnas y el aviso del co-piloto se coló como una tercera celda, empujando el resultado a una fila nueva. El aviso pasa al pie del formulario, que es su sitio, y la prueba E2E comprueba ahora la posición y no solo que se vea.
-
 - **El PDF que exporta LinkedIn se lee entero** (B-13): su «Guardar como PDF» aplana dos columnas en un solo flujo, escribe la empresa **antes** que el puesto —al revés que el resto de CV— y lista la formación **sin ninguna fecha**. El resultado era un borrador con «Nombre pendiente», cero formaciones, dos empleos fundidos en uno y seis líneas sin situar. Ahora se reconoce **el documento** —hacen falta dos señales, la URL del perfil y el pie paginado, así que un CV que solo cite su LinkedIn no entra por aquí— y solo entonces cambian tres reglas: el nombre se comprueba contra el *slug* de tu propia URL (si no casa, se lee como un CV cualquiera y no se inventa nada), la experiencia se agrupa en «empresa / puesto / fechas», y la formación se empareja por posición **sin rellenar la fecha que falta**. «Contactar», «Aptitudes principales» y «Extracto» pasan a reconocerse como títulos de sección. Medido sobre el fichero que lo destapó: de 0 formaciones, 0 habilidades, 3 avisos y 6 líneas sin situar, a **6 experiencias con su empresa, 3 formaciones, 3 habilidades, 0 avisos y 0 líneas sin situar**; los otros cinco CV del corpus dan exactamente lo mismo que antes. Aun así, para un perfil de LinkedIn la vía buena sigue siendo `cv import-linkedin` con la exportación oficial de datos.
 
 ## [1.14.0] - 2026-09-01
