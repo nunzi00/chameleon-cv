@@ -7,11 +7,15 @@ import { resolve } from 'node:path';
 import { type MatchSummary, type ScoredSelection, type SuggestedSpecialty, suggestSpecialty, summarizeMatch } from '../core/scoring';
 import type { AppContext } from './context';
 import { buildProfile, loadProfile } from './dataset';
-import type { AppError } from './errors';
+import { dataError, type AppError } from './errors';
 import { checkArtifactFreshness, freshnessWarning, type AppWarning } from './freshness';
 import { lookupHistory, offerFingerprint, readHistory, recordHistory, type HistoryEntry } from './history';
 import { readOffer, type OfferInput } from './offer';
-import { tailorWithOffer, type JobRequirements } from './tailor';
+import { offerRequirements, tailorWithOffer, type JobRequirements } from './tailor';
+import { executeOfferMap, offerMapEstimate, planOfferMap } from './offer-map';
+import type { OfferMapRejections, OfferMapping } from '../llm/tasks/offer-map';
+import type { LlmProvider } from '../llm/provider';
+import { outputTokensFloorFor, type CostEstimate } from '../llm';
 
 export interface AnalyzeRequest {
   readonly profile: string;
@@ -19,6 +23,25 @@ export interface AnalyzeRequest {
   readonly specialty?: string | undefined;
   readonly offer: OfferInput;
   readonly build: boolean;
+  /**
+   * El co-piloto como segunda fuente de requisitos (T-9.10): lee la oferta y propone etiquetas del perfil que el
+   * matcher literal no vio. Sin esto, cero red y la extracción determinista de siempre.
+   */
+  readonly copilot?: OfferCopilotOptions | undefined;
+}
+
+/** Lo que hace falta para pedirle al co-piloto que lea la oferta; ausente = no se le pide nada. */
+export interface OfferCopilotOptions {
+  readonly provider: LlmProvider;
+  /**
+   * Consentimiento con la estimación ya calculada (C11): se pregunta DESPUÉS de planificar, porque antes no se
+   * sabe cuánto se envía. Devolver `false` aborta sin llamar al proveedor. Sin esta función no se pregunta —la
+   * usan la API y las pruebas, que consienten por otra vía—.
+   */
+  readonly consent?: ((estimate: CostEstimate) => Promise<boolean>) | undefined;
+  readonly locale?: string | undefined;
+  readonly progress?: ((line: string) => void) | undefined;
+  readonly signal?: AbortSignal | undefined;
 }
 
 export interface OfferAnalysis {
@@ -28,6 +51,8 @@ export interface OfferAnalysis {
   readonly summary: MatchSummary;
   /** La especialidad real que más cubre la oferta (T-8.9), si alguna destaca. */
   readonly suggestedSpecialty: SuggestedSpecialty | undefined;
+  /** Lo que aportó el co-piloto (T-9.10): ausente sin `--copilot`. Se enseña para poder juzgarlo. */
+  readonly copilot?: { readonly mappings: readonly OfferMapping[]; readonly rejected: OfferMapRejections } | undefined;
 }
 
 /** Umbrales del aviso «oferta sin requisitos»: texto de sobra y casi nada reconocido. */
@@ -61,7 +86,33 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
   if (!read.ok) {
     return { ok: false, error: read.error, warnings };
   }
-  const tailored = tailorWithOffer(loaded.profile, read.offer, request.specialty);
+  const extracted = offerRequirements(loaded.profile, read.offer);
+  let enriched = extracted.requirements;
+  let contributed: OfferAnalysis['copilot'];
+  if (request.copilot !== undefined) {
+    const planned = planOfferMap(read.offer.text, extracted.requirements, extracted.vocabulary, request.copilot.locale);
+    if (!planned.ok) {
+      return { ok: false, error: planned.error, warnings };
+    }
+    if (request.copilot.consent !== undefined) {
+      const estimate = await offerMapEstimate(context, planned.plan, outputTokensFloorFor(request.copilot.provider.id, request.copilot.provider.model));
+      if (!(await request.copilot.consent(estimate))) {
+        return { ok: false, error: dataError('Cancelado: no se envió nada al proveedor'), warnings };
+      }
+    }
+    const mapped = await executeOfferMap(context, planned.plan, extracted.requirements, {
+      provider: request.copilot.provider,
+      cache: false,
+      progress: request.copilot.progress,
+      signal: request.copilot.signal,
+    });
+    if (!mapped.ok) {
+      return { ok: false, error: mapped.error, warnings };
+    }
+    enriched = mapped.outcome.requirements;
+    contributed = { mappings: mapped.outcome.mappings, rejected: mapped.outcome.rejected };
+  }
+  const tailored = tailorWithOffer(loaded.profile, read.offer, request.specialty, enriched);
   if (!tailored.ok) {
     return { ok: false, error: tailored.error, warnings };
   }
@@ -82,7 +133,7 @@ export async function analyzeOffer(context: AppContext, request: AnalyzeRequest)
   }
   return {
     ok: true,
-    analysis: { offerName: read.offer.name, requirements, scored, summary, suggestedSpecialty: suggestSpecialty(loaded.profile, requirements) },
+    analysis: { offerName: read.offer.name, requirements, scored, summary, suggestedSpecialty: suggestSpecialty(loaded.profile, requirements), copilot: contributed },
     history,
     warnings,
   };

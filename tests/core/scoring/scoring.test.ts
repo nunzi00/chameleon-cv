@@ -166,6 +166,15 @@ describe('scoreSelection y utilidades', () => {
     expect(lines[0]).toBe('Oferta: 1 requisitos reconocidos · carencias: aws');
     expect(lines.at(-2)).toBe('Todos los requisitos reconocidos están demostrados');
   });
+
+  it('marca el origen del requisito que puso el co-piloto (T-9.10): quién lo reconoció es parte del informe', () => {
+    const conCopiloto: JobRequirements = {
+      terms: [{ ...requirements.terms[0]!, source: 'copiloto' }],
+      tagWeights: { php: 1.25 },
+      gaps: [],
+    };
+    expect(formatMatchReport(tailor(profile, conCopiloto).report).split('\n')[1]).toContain(', co-piloto)');
+  });
 });
 
 describe('especialidad sugerida y evidencias (T-8.9)', () => {

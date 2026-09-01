@@ -4,7 +4,9 @@
  * escribe ficheros.
  */
 import type { OfferInput } from '../../app/offer';
-import { analysisPayload, analyzeOffer } from '../../app/analyze';
+import { analysisPayload, analyzeOffer, type OfferCopilotOptions } from '../../app/analyze';
+import { selectCopilotProvider } from '../../app/copilot';
+import { ensureProviderReady } from './remote';
 import { describeHistory } from '../../app/history';
 import type { CliContext } from '../context';
 import { formatMatchReport, formatMatchSummary, formatSelectionReport } from '../explain';
@@ -24,6 +26,10 @@ export interface AnalyzeOfferOptions {
   readonly saveOffer?: string | boolean | undefined;
   readonly replace: boolean;
   readonly list: boolean;
+  /** T-9.10: el co-piloto lee también la oferta y propone etiquetas del perfil que el matcher literal no vio. */
+  readonly copilot?: boolean | undefined;
+  readonly provider?: string | undefined;
+  readonly model?: string | undefined;
 }
 
 /** Sin origen: la lista de `offers/**` para elegir (con `--list`, código 0; sin él, 2 porque falta el argumento). */
@@ -56,10 +62,37 @@ export async function runAnalyzeOffer(context: CliContext, source: string | unde
   } else {
     offer = offerInput(context, source);
   }
-  const result = await analyzeOffer(context, { profile: options.profile, data: options.data, specialty: options.specialty, offer, build: options.build });
+  let copilot: OfferCopilotOptions | undefined;
+  if (options.copilot === true) {
+    const selected = await selectCopilotProvider(context, { provider: options.provider, model: options.model });
+    if (!selected.ok) {
+      context.stderr(`${selected.error.message}\n`);
+      return selected.error.exitCode;
+    }
+    const { provider } = selected;
+    copilot = {
+      provider,
+      // El consentimiento se pide con la estimación ya hecha, que es cuando se sabe qué sale y cuánto cuesta.
+      consent: async (estimate) => (await ensureProviderReady(context, provider, () => Promise.resolve(estimate), options.yes, false)) === EXIT_OK,
+      progress: (line) => context.stderr(`${line}\n`),
+    };
+  }
+  const result = await analyzeOffer(context, { profile: options.profile, data: options.data, specialty: options.specialty, offer, build: options.build, copilot });
   reportWarnings(context, result.warnings);
   if (!result.ok) {
     return reportError(context, result.error);
+  }
+  const contributed = result.analysis.copilot;
+  if (contributed !== undefined) {
+    // Se enseña SIEMPRE lo que aportó el modelo, con la frase de la oferta que lo justifica: quien lee el informe
+    // tiene que poder juzgarlo sin creerse nada, y saber qué parte de la adecuación descansa en él.
+    const { unknownTag, unverifiedEvidence, alreadyKnown, duplicate } = contributed.rejected;
+    const descartadas = unknownTag + unverifiedEvidence + alreadyKnown + duplicate;
+    context.stderr(
+      contributed.mappings.length === 0
+        ? `El co-piloto no añadió ninguna etiqueta${descartadas === 0 ? '' : ` (${descartadas} propuesta(s) descartadas por el código)`}\n`
+        : `El co-piloto añadió ${contributed.mappings.length} etiqueta(s) que el emparejado literal no vio${descartadas === 0 ? '' : `, y el código descartó ${descartadas}`}:\n${contributed.mappings.map((mapping) => `  ${mapping.tag} (${mapping.emphasis}) ← «${mapping.evidence}»\n`).join('')}`,
+    );
   }
   const { analysis, history } = result;
   if (options.json) {

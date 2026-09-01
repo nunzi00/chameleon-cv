@@ -30,7 +30,9 @@ export function formatMatchReport(report: MatchReport): string {
   if (requirements.terms.length > 0) {
     lines.push(
       `  ${requirements.terms
-        .map((term) => `${term.term} (${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''}, ${term.weight.toFixed(2)})`)
+        // El origen se marca a propósito (T-9.10): sin él no se sabría qué parte de la adecuación descansa en un
+        // modelo y cuál en lo que la oferta dice con todas sus letras.
+        .map((term) => `${term.term} (${term.emphasis}${term.occurrences > 1 ? ` ×${term.occurrences}` : ''}, ${term.weight.toFixed(2)}${term.source === 'copiloto' ? ', co-piloto' : ''})`)
         .join(' · ')}`,
     );
   }

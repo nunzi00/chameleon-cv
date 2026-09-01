@@ -176,6 +176,85 @@ describe('cv generate-cv --from-job-offer', () => {
   });
 });
 
+describe('cv analyze-offer --copilot (T-9.10)', () => {
+  const respuesta = (json: unknown) => ({
+    id: 'ollama' as const,
+    kind: 'local' as const,
+    baseUrl: 'http://127.0.0.1:11434',
+    model: 'qwen3:8b',
+    complete: () => Promise.resolve({ ok: true as const, json, raw: JSON.stringify(json), model: 'qwen3:8b', usage: {}, elapsedMs: 4 }),
+    health: () => Promise.resolve({ ok: true as const, version: undefined, models: ['qwen3:8b'], modelAvailable: true }),
+  });
+
+  it('enseña lo que el modelo añadió CON su evidencia, y cuántas descartó el código', async () => {
+    // Enseñar la evidencia no es un adorno: el código puede verificar que la frase está en la oferta, pero no
+    // que sostenga la etiqueta. Verla es la única forma de juzgarlo.
+    const h = compiled({}, {
+      llmProvider: () =>
+        Promise.resolve({
+          ok: true as const,
+          provider: respuesta({
+            mappings: [
+              // El caso que justifica el motor: la oferta habla de «sistemas de mensajería» y el perfil etiqueta
+              // «arquitectura». El emparejado literal no los une; el modelo sí, y el código verifica la frase.
+              { tag: 'arquitectura', emphasis: 'desirable', evidence: 'sistemas de mensajería' },
+              // Y una etiqueta que el perfil NO tiene: el código la descarta.
+              { tag: 'inventada', evidence: 'sistemas de mensajería' },
+            ],
+          }),
+        }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--yes'], h.context)).toBe(EXIT_OK);
+    const aviso = h.stderr();
+    expect(aviso).toContain('El co-piloto');
+    expect(aviso).toContain('arquitectura (desirable) ← «sistemas de mensajería»');
+    expect(aviso).toContain('descartó 1');
+  });
+
+  it('sin descartes, el aviso es limpio', async () => {
+    const h = compiled({}, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'arquitectura', evidence: 'sistemas de mensajería' }] }) }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--yes'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('añadió 1 etiqueta(s)');
+    expect(h.stderr()).not.toContain('descartó');
+  });
+
+  it('cuando el código descarta todo, lo dice: ninguna etiqueta añadida', async () => {
+    const h = compiled({}, {
+      llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [{ tag: 'inventada', evidence: 'sistemas de mensajería' }] }) }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--yes'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('no añadió ninguna etiqueta');
+    expect(h.stderr()).toContain('1 propuesta(s) descartadas');
+
+    // Y cuando el modelo no propone nada, no hay descartes de los que hablar.
+    const vacio = compiled({}, { llmProvider: () => Promise.resolve({ ok: true as const, provider: respuesta({ mappings: [] }) }) });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--yes'], vacio.context)).toBe(EXIT_OK);
+    expect(vacio.stderr()).toContain('no añadió ninguna etiqueta\n');
+    expect(vacio.stderr()).not.toContain('descartadas');
+  });
+
+  it('con un proveedor remoto avisa del coste antes de enviar y aborta sin confirmación (C11)', async () => {
+    const h = compiled({}, {
+      llmProvider: () =>
+        Promise.resolve({
+          ok: true as const,
+          provider: { ...respuesta({ mappings: [] }), id: 'groq' as const, kind: 'remote' as const, baseUrl: 'https://api.groq.com/openai', complete: () => Promise.reject(new Error('no debe enviarse')) },
+        }),
+    });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Aviso de coste: 1 petición a groq');
+    expect(h.stderr()).toContain('no se envió nada');
+  });
+
+  it('sin proveedor no se envía nada y se explica', async () => {
+    const h = compiled({}, { llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }) });
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--copilot', '--yes'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr()).toContain('sin proveedor');
+  });
+});
+
 describe('cv analyze-offer: una oferta que no declara sus requisitos', () => {
   it('avisa con el enlace en vez de dar una adecuación del 100 % sobre un solo requisito', async () => {
     // Caso real (1-sep-2026): una oferta de 545 palabras cuyo stack vive en un enlace («check our careers

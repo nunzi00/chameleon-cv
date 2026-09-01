@@ -332,3 +332,46 @@ semántico** entre el lenguaje de la oferta y el tuyo.
 
 **Medir el hueco**: cuántos requisitos de ofertas reales quedan hoy sin casar por falta de alias. Si son pocos,
 un puñado de alias en `skills.csv` sale mucho más barato que un hito, y conviene saberlo antes de empezar.
+
+### 11.5 Lo medido (1-sep-2026) y lo entregado
+
+**La medida, primero.** Sobre tres ofertas reales del PO, de **12 términos distintos marcados como carencia solo
+3 eran falsos**: `ci/cd` (la oferta usa barra, el perfil guion), `testing` (el perfil lo dice con `calidad`,
+Vitest, pytest) y `jwt` (en la prosa, sin skill). Los otros nueve son carencias reales, que ningún modelo puede
+inventar. Y una de las tres ofertas **no declara requisitos técnicos** —su stack vive tras un enlace—: allí un
+LLM lee la misma nada. Los tres huecos falsos se cerraron el mismo día **sin modelo**: unificando los
+separadores en el normalizador y añadiendo dos skills al perfil.
+
+La recomendación técnica fue, por tanto, **no construirlo todavía**. El PO decidió construirlo igualmente, y
+queda escrito para poder volver a medirlo cuando haya más ofertas.
+
+**Lo entregado.** Tarea `offer map` (`prompts/offer-map.v1.md`, `src/llm/tasks/offer-map.ts`) con la misma
+mecánica que `suggest tags` e `import map`: vocabulario cerrado —`tag` restringida por `enum` en el esquema que
+viaja al proveedor— y **dos guardas verificadas por código, no por confianza**:
+
+1. la etiqueta ha de estar en el vocabulario que se envió;
+2. la `evidence` ha de aparecer **literalmente** en la oferta, comparada con el mismo normalizador que usa el
+   emparejado.
+
+Lo que no cumple ambas se descarta y **se cuenta por motivo** (`unknownTag`, `unverifiedEvidence`,
+`alreadyKnown`, `duplicate`), para que el informe pueda decir cuántas propuestas se cayeron y por qué.
+
+Tres decisiones sostienen que el modelo **añade y no manda**:
+
+- **Egreso mínimo (C4)**: lo único del candidato que sale es la lista de etiquetas —sin nombres de skill, sin
+  logros, sin nada más del perfil—. El texto de la oferta ya es público.
+- **Peso de una evidencia única**: una etiqueta del co-piloto entra con el peso de su `emphasis` y **sin
+  refuerzo por frecuencia**; el modelo aporta que el requisito existe, no cuántas veces lo repite la oferta. Y
+  `Math.max` impide que rebaje lo que el emparejado literal ya puntuó más alto.
+- **Origen visible**: `--explain` escribe `, co-piloto` en el término que puso el modelo. Sin eso se pierde la
+  mitad del valor de la explicación: no sabrías qué parte de tu adecuación descansa en él.
+
+### 11.6 El límite que la verificación en vivo dejó a la vista
+
+Ejecutado con Ollama sobre una oferta real: 5 propuestas, 3 verificadas y 2 descartadas por el código. Una de
+las **verificadas** era un disparate —la frase estaba en la oferta, pero no sostenía la etiqueta `kafka`—.
+
+Esto no es un defecto que se arregle: **el código puede comprobar que la evidencia existe; que la *sostenga* solo
+puede juzgarlo una persona.** De ahí que el informe imprima siempre cada aportación con su frase entera
+(`arquitectura (desirable) ← «sistemas de mensajería»`) en vez de resumir «3 etiquetas añadidas». Ver la
+evidencia es lo que convierte al modelo en co-piloto y no en oráculo, que es C2 escrito en una línea de salida.

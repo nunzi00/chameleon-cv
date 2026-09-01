@@ -21,6 +21,12 @@ export const RequirementTermSchema = z.strictObject({
   weight: z.number().min(0),
   /** Líneas originales donde aparece (para `--explain`). */
   contexts: z.array(z.string().max(200)).max(5),
+  /**
+   * De dónde salió el término (T-9.10). Ausente o `matcher` = lo casó el análisis determinista; `copiloto` = lo
+   * propuso el modelo con `--copilot` y el código verificó su evidencia contra la oferta. `--explain` los
+   * distingue: sin eso, no se sabría qué parte de la adecuación descansa en un modelo.
+   */
+  source: z.enum(['matcher', 'copiloto']).optional(),
 });
 
 export const JobRequirementsSchema = z.strictObject({

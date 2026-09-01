@@ -33,6 +33,37 @@ Cada requisito pesa según dónde aparece —`Requisitos` 1.0 · resto 0.75 · `
 
 Analiza sin generar: adecuación global, evidencias (qué ítems del perfil demuestran cada requisito) y carencias. `--explain` da la auditoría por ítem; `--json` lo mismo en JSON para scripts; `-s` acota el análisis a una especialidad; `<offer>` puede ser `-` (stdin). Referencia: [`cv analyze-offer`](/reference/analyze-offer).
 
+## Refinar la lectura de la oferta con el co-piloto
+
+El emparejado es **literal**: si la oferta pide «arquitectura orientada a eventos» y tus skills dicen «Kafka», no
+hay coincidencia salvo que exista un alias. `--copilot` añade una segunda lectura de la oferta con un modelo:
+
+```sh
+cv analyze-offer ofertas/acme-backend.txt --copilot            # co-piloto local (Ollama y demás)
+cv analyze-offer ofertas/acme-backend.txt --copilot --provider groq --yes
+```
+
+Lo que hace, y lo que no:
+
+- **El modelo lee la oferta; no decide tu CV.** Devuelve el mismo cuadro de requisitos de siempre y, a partir de
+  ahí, la selección, la puntuación y el informe son exactamente los de hoy. Sin `--copilot` no hay red ni cambio
+  alguno en el resultado.
+- **Solo puede AÑADIR etiquetas que ya son tuyas.** Se le envían el texto de la oferta —que es público— y la
+  lista de tus etiquetas; nada más de tu perfil. No puede inventarte una habilidad: si propone una etiqueta que
+  no está en esa lista, el código la descarta.
+- **Cada propuesta necesita una frase de la oferta**, y el código comprueba que esa frase **está literalmente**
+  en ella. Lo que no se pueda verificar se descarta y se cuenta.
+- **Ves siempre lo que aportó, con su evidencia**: `arquitectura (desirable) ← «sistemas de mensajería»`. El
+  código puede verificar que la frase existe; que *sostenga* la etiqueta lo juzgas tú, y para eso se te enseña.
+- **Nunca pesa más que lo literal.** Una etiqueta añadida por el co-piloto vale como una evidencia única, sin
+  refuerzo por repetición: un término que la oferta nombra tres veces siempre pesa más.
+- `--explain` marca su origen: `sistemas de mensajería (desirable, 0.75, co-piloto)`. Sin eso no sabrías qué
+  parte de tu adecuación descansa en un modelo.
+- Con un proveedor remoto, aviso de coste y confirmación antes de enviar (`--yes` en scripts).
+
+Si la etiqueta que el co-piloto tuvo que tender ya te sirvió una vez, el arreglo barato y permanente es **añadir
+ese alias a `skills.csv`**: es determinista, gratis y no necesita modelo.
+
 ## Generar con la adecuación
 
 Analizar y generar están conectados (T-8.9):

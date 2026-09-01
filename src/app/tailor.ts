@@ -3,7 +3,7 @@
  * clientes. `specialty` elige la versión del CV y `offer` la afina puntuando y reordenando; sin ninguna,
  * el perfil completo. Puro: sin contexto ni efectos.
  */
-import { buildVocabulary, extractJobRequirements } from '../core/keywords';
+import { buildVocabulary, extractJobRequirements, type Vocabulary } from '../core/keywords';
 import type { MasterProfile } from '../core/schema';
 import { NO_SCORES, scoresFromReport, tailorToOffer, type MatchReport, type ScoreLookup, type ScoredSelection } from '../core/scoring';
 import { selectForSpecialty, type SelectionReport } from '../core/selection';
@@ -17,8 +17,19 @@ export type OfferTailorOutcome =
   | { readonly ok: false; readonly error: AppError };
 
 /** Requisitos de la oferta leídos con el vocabulario del perfil, y el perfil puntuado y reordenado. */
-export function tailorWithOffer(base: MasterProfile, offer: OfferText, specialty: string | undefined): OfferTailorOutcome {
-  const requirements = extractJobRequirements(offer.text, buildVocabulary(base));
+/** Los requisitos que el matcher encuentra en una oferta, con el vocabulario que usó (lo necesita el co-piloto). */
+export function offerRequirements(base: MasterProfile, offer: OfferText): { readonly requirements: JobRequirements; readonly vocabulary: Vocabulary } {
+  const vocabulary = buildVocabulary(base);
+  return { requirements: extractJobRequirements(offer.text, vocabulary), vocabulary };
+}
+
+/**
+ * `enriched` es la costura del co-piloto (T-9.10): unos requisitos ya calculados —los del matcher, quizá con
+ * etiquetas añadidas por el modelo y verificadas por código— que sustituyen a la extracción. Sin ellos, el caso
+ * normal: se extraen aquí y todo sigue siendo determinista.
+ */
+export function tailorWithOffer(base: MasterProfile, offer: OfferText, specialty: string | undefined, enriched?: JobRequirements): OfferTailorOutcome {
+  const requirements = enriched ?? offerRequirements(base, offer).requirements;
   const tailored = tailorToOffer(base, requirements, { specialtyId: specialty });
   return tailored.ok ? { ok: true, scored: tailored.scored, requirements } : { ok: false, error: dataError(tailored.error.message) };
 }
