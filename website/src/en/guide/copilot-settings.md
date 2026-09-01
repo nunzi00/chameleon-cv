@@ -4,9 +4,9 @@ title: Configuring the co-pilot
 # Configuring the co-pilot
 
 Since version 1.5.0 the co-pilot is configured in `cv.toml`, managed from the terminal (keys) and from the
-**Ajustes** screen of the web interface, and is ready to use an external provider with a free plan —Groq, pending
-human verification and for now not selectable— without giving up the usual guarantees: local by default, no call
-you didn't ask for, and no provider that trains on your data.
+**Ajustes** screen of the web interface, and supports two external providers with a free plan —Groq and Gemini,
+both already verified and selectable— without giving up the usual guarantees: local by default, no call you
+didn't ask for, and no provider that trains on your data without saying so.
 
 ## The local provider in `cv.toml`
 
@@ -105,7 +105,8 @@ no evidence there is no provider.
 |---|---|---|---|
 | `openai` | paid | `gpt-4o-mini` | according to the account tier |
 | `anthropic` | paid | `claude-sonnet-4-5` | according to the account tier |
-| `groq` | **free** (no card) — **pending human verification, not selectable yet** | `openai/gpt-oss-120b` (also `qwen/qwen3.8-27b`, *preview*) | 30 requests/min, 1,000/day, 8,000 tokens/min, 200,000 tokens/day (gpt-oss) or 2,000,000 (qwen3.8) (per their documentation as of 2026-08-30) |
+| `groq` | **free** (no card) | `openai/gpt-oss-120b` (also `qwen/qwen3.8-27b`, *preview*) | 30 requests/min, 1,000/day, 8,000 tokens/min, 200,000 tokens/day (gpt-oss) or 2,000,000 (qwen3.8) (per their documentation as of 2026-08-30) |
+| `gemini` | **free** | `gemini-3.6-flash` | depends on the model and tier; ⚠ **the free plan uses your requests to improve Google's products** |
 
 **Which Groq model for which action** (`cv llm status` shows it; pick it with `--model` or `[llm.models]`):
 **improving achievements and summarising → `openai/gpt-oss-120b`** (proven quality in Spanish, strict schema,
@@ -114,12 +115,17 @@ prompt cache; its free quota is enough for one session a day); **suggesting tags
 free sessions a day, with the caveat that it is in *preview* (Groq may withdraw it) and that its Spanish is not
 measured: if it fails, go back to `openai/gpt-oss-120b`.
 
-Groq is registered after a study with evidence (`docs/copilot-providers.md` in the repository) and **will become
-available when a person completes the sign-up verification protocol** (§9 of that note); until then `cv llm
-status` and Ajustes show it as pending and `--provider groq` is rejected: its service agreement forbids training
-on inputs and outputs and retention is 30 days at most, switchable off with *Zero Data Retention* in their
-console (recommended). The free plans of other known providers were ruled out because they allow training on the
-data you send.
+Groq is registered after a study with evidence (`docs/copilot-providers.md` in the repository) and **was
+verified and activated on 30/31 Aug 2026** with the §9 protocol —sign-up with no payment method, key through
+`cv llm key set`, health check and a functional test **using the test bench only**—: its service agreement
+forbids training on inputs and outputs and retention is 30 days at most, switchable off with *Zero Data
+Retention* in their console (recommended).
+
+**Gemini** passed the same protocol on 31 Aug 2026 and is selectable too, but with a difference that isn't
+hidden: **its free plan uses your requests to improve Google's products**. That's why the warning appears before
+every send, in the CLI and in the web's cost dialog. If that isn't acceptable to you, use Groq or the local
+model. The free plans of other known providers were ruled out because they allow training on the data you send
+without saying so this plainly.
 
 **Visible quota, no telemetry.** Beyond the published limits, the product reads the quota headers the provider
 returns on the calls you already asked for (`x-ratelimit-*`, `retry-after`) and shows them —when a remote job

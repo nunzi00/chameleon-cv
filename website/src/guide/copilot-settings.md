@@ -1,6 +1,6 @@
 # Configurar el co-piloto
 
-Desde la versión 1.5.0 el co-piloto se configura en `cv.toml`, se gestiona desde la terminal (claves) y desde la pantalla **Ajustes** de la interfaz web, y está preparado para usar un proveedor externo con plan gratuito —Groq, pendiente de verificación humana y por ahora no seleccionable— sin renunciar a las garantías de siempre: local por defecto, ninguna llamada sin que la pidas, y ningún proveedor que entrene con tus datos.
+Desde la versión 1.5.0 el co-piloto se configura en `cv.toml`, se gestiona desde la terminal (claves) y desde la pantalla **Ajustes** de la interfaz web, y admite dos proveedores externos con plan gratuito —Groq y Gemini, los dos ya verificados y seleccionables— sin renunciar a las garantías de siempre: local por defecto, ninguna llamada sin que la pidas, y ningún proveedor que entrene con tus datos sin decírtelo.
 
 ## El proveedor local en `cv.toml`
 
@@ -90,11 +90,14 @@ Cada proveedor remoto está en un **registro** con su evidencia: la URL, la fech
 |---|---|---|---|
 | `openai` | de pago | `gpt-4o-mini` | según el nivel de la cuenta |
 | `anthropic` | de pago | `claude-sonnet-4-5` | según el nivel de la cuenta |
-| `groq` | **gratuito** (sin tarjeta) — **pendiente de verificación humana, no seleccionable todavía** | `openai/gpt-oss-120b` (también `qwen/qwen3.8-27b`, *preview*) | 30 peticiones/min, 1 000/día, 8 000 tokens/min, 200 000 tokens/día (gpt-oss) o 2 000 000 (qwen3.8) (según su documentación a 2026-08-30) |
+| `groq` | **gratuito** (sin tarjeta) | `openai/gpt-oss-120b` (también `qwen/qwen3.8-27b`, *preview*) | 30 peticiones/min, 1 000/día, 8 000 tokens/min, 200 000 tokens/día (gpt-oss) o 2 000 000 (qwen3.8) (según su documentación a 2026-08-30) |
+| `gemini` | **gratuito** | `gemini-3.6-flash` | según el modelo y el nivel; ⚠ **el plan gratuito usa tus peticiones para mejorar los productos de Google** |
 
 **Qué modelo de Groq para cada acción** (`cv llm status` lo muestra; se elige con `--model` o con `[llm.models]`): **mejorar logros y resumir → `openai/gpt-oss-120b`** (calidad en español probada, esquema estricto, caché de prompt; su cuota gratuita da para una sesión al día); **sugerir etiquetas → `qwen/qwen3.8-27b`** (razonamiento desactivable y diez veces más cuota diaria), que también sirve para las otras dos tareas si haces varias sesiones gratuitas al día, con la advertencia de que está en *preview* (Groq puede retirarlo) y de que su español no está medido: si falla, vuelve a `openai/gpt-oss-120b`.
 
-Groq está registrado tras un estudio con evidencia (`docs/copilot-providers.md` en el repositorio) y **quedará disponible cuando una persona complete el protocolo de verificación al alta** (§9 de esa nota); hasta entonces `cv llm status` y Ajustes lo muestran como pendiente y `--provider groq` se rechaza: su acuerdo de servicio prohíbe entrenar con entradas y salidas y la retención es de 30 días como máximo, desactivable con *Zero Data Retention* en su consola (recomendado). Los planes gratuitos de otros proveedores conocidos se descartaron porque permiten entrenar con los datos enviados.
+Groq está registrado tras un estudio con evidencia (`docs/copilot-providers.md` en el repositorio) y **quedó verificado y activado el 30/31-ago-2026** con el protocolo de §9 —alta sin método de pago, clave por `cv llm key set`, salud y una prueba funcional **solo con el banco de pruebas**—: su acuerdo de servicio prohíbe entrenar con entradas y salidas y la retención es de 30 días como máximo, desactivable con *Zero Data Retention* en su consola (recomendado).
+
+**Gemini** pasó el mismo protocolo el 31-ago-2026 y también es seleccionable, pero con una diferencia que no se esconde: **su plan gratuito usa tus peticiones para mejorar los productos de Google**. Por eso el aviso aparece antes de cada envío, en la CLI y en el diálogo de coste de la web. Si eso no te vale, usa Groq o el modelo local. Los planes gratuitos de otros proveedores conocidos se descartaron porque permiten entrenar con los datos enviados sin decirlo con esta claridad.
 
 **Cuota visible, sin telemetría.** Además de los límites publicados, el producto lee las cabeceras de cuota que el proveedor devuelve en las llamadas que tú ya pediste (`x-ratelimit-*`, `retry-after`) y las enseña —al terminar un trabajo remoto, en `cv llm status` y en Ajustes— sin hacer ninguna llamada extra ni guardarlas en disco. Si el proveedor responde 429 (cuota agotada), la orden se detiene con `quota-exceeded` y el tiempo de espera que él indique; nunca se reintenta por su cuenta.
 
