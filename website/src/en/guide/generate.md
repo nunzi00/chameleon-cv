@@ -41,7 +41,7 @@ from the locale (the profile's `locale` or `--locale`): there are tables in Span
 licence) and a correct result, laid out in code from that same view model (it accepts neither `--template` nor
 `--stdout`). For a **publication-quality** CV — typographic hierarchy, professional kerning and hyphenation,
 tagged and deterministic PDF — use `--engine typst` with its themes:
-[Typst and themes (es)](/guide/typst-themes).
+[Typst and themes](/en/guide/typst-themes).
 
 Both engines start from the **same structured view** of the profile: the layout changes, never the content (the
 test suite checks this by extracting the text from both PDFs).
@@ -62,7 +62,7 @@ tag that is missing, or one too many.
 
 With `--from-job-offer`, whatever proves a requirement of the offer is not trimmed by `--top-n`, `--compact` or
 `--max-*` (it counts towards the limit; the rest get cut). `--explain` lists it and `--no-keep-evidence` turns it
-off. More in [Offers → Generar con la adecuación (es)](/guide/offers#generar-con-la-adecuacion).
+off. More in [Tailoring the CV → Generating from the fit](/en/guide/offers#generating-from-the-fit).
 
 ## Picking skills and projects by hand
 

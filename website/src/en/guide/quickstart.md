@@ -1,5 +1,9 @@
 ---
 title: Quickstart
+verify:
+  - data/dist/profile.json
+  - output/cv-*-backend.md
+  - output/cv-*-backend.pdf
 ---
 # Quickstart
 
@@ -28,7 +32,7 @@ your `PATH`); the details are in [Contributing (es)](/developers/contributing).
 
 In an empty directory:
 
-```bash
+```bash tutorial
 cv init
 ```
 
@@ -39,7 +43,7 @@ lists the conflicts and writes nothing.
 
 ## 3. Build the profile
 
-```bash
+```bash tutorial
 cv build
 ```
 
@@ -49,7 +53,7 @@ problems at once with file and line. `cv validate` does the same without writing
 
 ## 4. Generate the CV
 
-```bash
+```bash tutorial
 cv generate-cv -s backend                 # output/cv-ada-ejemplo-backend.md
 cv generate-cv -s backend --format pdf    # output/cv-ada-ejemplo-backend.pdf
 cv generate-cv -s backend --explain       # what was included and why, on stderr
@@ -61,14 +65,14 @@ achievements and skills make it in. Without `-s` you get the full CV.
 ## Next steps
 
 - Replace the sample with your own data: [Source format (es)](/guide/sources) or the tutorial
-  [Your profile from scratch (es)](/tutorials/profile-from-scratch).
-- Tailor the CV to a specific job offer: [Tailoring to a job offer (es)](/guide/offers).
-- Editorial-quality PDFs with themes: [Typst and themes (es)](/guide/typst-themes) (`cv typst install`, the only
+  [Your profile from scratch](/en/tutorials/profile-from-scratch).
+- Tailor the CV to a specific job offer: [Tailoring to a job offer](/en/guide/offers).
+- Editorial-quality PDFs with themes: [Typst and themes](/en/guide/typst-themes) (`cv typst install`, the only
   network operation the product performs).
-- Let a local model propose verified improvements: [AI co-pilot (es)](/guide/copilot).
+- Let a local model propose verified improvements: [AI co-pilot](/en/guide/copilot).
 
-::: tip The Spanish version of this page runs in continuous integration
-The commands above are the same ones the Spanish [Inicio rápido](/guide/quickstart) runs against the real binary
-on every change to the project, checking that they produce `data/dist/profile.json` and the CVs in Markdown and
-PDF. This English page is not executed yet, so if the two ever disagree, the Spanish one is right.
+::: tip This page runs in continuous integration
+The commands above are executed against the real binary on every change to the project, checking that they
+produce `data/dist/profile.json` and the CVs in Markdown and PDF — the English page as well as the Spanish one.
+If a translation ever drifts from the commands it documents, CI catches it.
 :::

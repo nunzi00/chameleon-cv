@@ -127,7 +127,7 @@ The PDF is processed in an isolated *worker* with limits (10 MiB, 50 pages, 20 s
 rendering nothing; only the text is extracted. A scanned PDF with no text layer contributes nothing: paste the
 text by hand.
 
-Step-by-step tutorial: [Un CV para tres ofertas (es)](/tutorials/three-offers).
+Step-by-step tutorial: [One CV for three offers](/en/tutorials/three-offers).
 
 ## History of processed offers
 

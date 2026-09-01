@@ -20,7 +20,7 @@ data/sources/ (you edit)  ──cv build──►  data/dist/profile.json  ─�
 - **CV** (`output/`): what `cv generate-cv` produces from the artefact — Markdown (through a template) or PDF
   (pdfkit or Typst). Not committed either.
 
-There is a second, optional layer on top of the first: the [AI co-pilot (es)](/guide/copilot), which only
+There is a second, optional layer on top of the first: the [AI co-pilot](/en/guide/copilot), which only
 **proposes** changes to your sources and never applies them without your mark.
 
 ## Specialties
@@ -72,7 +72,7 @@ there are more anchored items than slots, all of them survive.
 An offer (text, standard input or PDF) tailors a CV: **`--specialty` picks the version, `--from-job-offer` tunes
 it and the limits condense it.** The offer is read by looking for *your own* vocabulary — tags, names and aliases
 of your skills — and each requirement weighs according to where it appears. The details are in
-[Tailoring to a job offer (es)](/guide/offers).
+[Tailoring to a job offer](/en/guide/offers).
 
 ## Language
 

@@ -14,7 +14,7 @@
 import { spawnSync } from 'node:child_process';
 import { chmodSync, copyFileSync, existsSync, globSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 
 import { parse as parseYaml } from 'yaml';
 
@@ -81,8 +81,17 @@ function typstPath(): string | undefined {
   return existsSync(cached) ? cached : undefined;
 }
 
+/** Las páginas ejecutables de un idioma: el inicio rápido y sus tutoriales, en el orden en que se enseñan. */
+function pagesOf(locale: string): string[] {
+  const guide = join(locale, 'guide', 'quickstart.md');
+  const tutorials = join(locale, 'tutorials');
+  return [guide, ...readdirSync(join(SRC, tutorials)).filter((name) => name.endsWith('.md')).sort().map((name) => join(tutorials, name))];
+}
+
 function tutorials(): Tutorial[] {
-  const files = [join('guide', 'quickstart.md'), ...readdirSync(join(SRC, 'tutorials')).filter((name) => name.endsWith('.md')).sort().map((name) => join('tutorials', name))];
+  // Las páginas inglesas se ejecutan igual que las castellanas (T-9.7): sus bloques son idénticos a propósito,
+  // así que ejecutarlas es lo que garantiza que una traducción no se aleje de las órdenes que documenta.
+  const files = [...pagesOf('.'), ...(existsSync(join(SRC, 'en', 'tutorials')) ? pagesOf('en') : [])].map((file) => (file.startsWith(`.${sep}`) ? file.slice(2) : file));
   const found: Tutorial[] = [];
   for (const file of files) {
     const parsed = parseTutorial(file, readFileSync(join(SRC, file), 'utf8'));
@@ -90,7 +99,9 @@ function tutorials(): Tutorial[] {
       found.push(parsed);
     }
   }
-  return found.sort((a, b) => (a.file.startsWith('guide') ? -1 : b.file.startsWith('guide') ? 1 : a.title.localeCompare(b.title, 'es', { numeric: true })));
+  // Primero el castellano y dentro de cada idioma el inicio rápido antes que los tutoriales.
+  const rank = (file: string): number => (file.startsWith('en') ? 2 : 0) + (file.includes('guide') ? 0 : 1);
+  return found.sort((a, b) => rank(a.file) - rank(b.file) || a.title.localeCompare(b.title, 'es', { numeric: true }));
 }
 
 function run(tutorial: Tutorial, binary: string | undefined, keep: boolean): Outcome {

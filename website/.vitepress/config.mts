@@ -143,7 +143,7 @@ export default defineConfig({
         nav: [
           { text: 'Guide', link: '/en/guide/quickstart', activeMatch: '/en/guide/' },
           { text: 'Command reference', link: '/reference/' },
-          { text: 'Tutorials', link: '/tutorials/' },
+          { text: 'Tutorials', link: '/en/tutorials/', activeMatch: '/en/tutorials/' },
           { text: 'Changelog', link: '/changelog' },
           { text: `v${manifest.version} · MIT`, link: `${REPO}/releases/tag/v${manifest.version}` },
         ],
@@ -155,25 +155,42 @@ export default defineConfig({
                 { text: 'Quickstart', link: '/en/guide/quickstart' },
                 { text: 'Concepts', link: '/en/guide/concepts' },
                 { text: 'Source format', link: '/en/guide/sources' },
+                { text: 'Importing an existing CV', link: '/en/guide/import' },
                 { text: 'Generating the CV', link: '/en/guide/generate' },
+                { text: 'Tailoring to a job offer', link: '/en/guide/offers' },
+                { text: 'Typst and themes', link: '/en/guide/typst-themes' },
+                { text: 'AI co-pilot', link: '/en/guide/copilot' },
+                { text: 'Configuring the co-pilot', link: '/en/guide/copilot-settings' },
+                { text: 'The web interface', link: '/en/guide/web' },
+                { text: 'The local API', link: '/en/guide/api' },
+                { text: 'Docker', link: '/en/guide/docker' },
+                { text: 'Export and import', link: '/en/guide/portability' },
                 { text: 'Security and privacy', link: '/en/guide/security' },
+                { text: 'Troubleshooting', link: '/en/guide/troubleshooting' },
+              ],
+            },
+            {
+              text: 'Tutorials',
+              items: [
+                { text: 'All six tutorials', link: '/en/tutorials/' },
+                { text: '1 · Your profile from scratch', link: '/en/tutorials/profile-from-scratch' },
+                { text: '2 · One CV for three offers', link: '/en/tutorials/three-offers' },
+                { text: '3 · Your own theme', link: '/en/tutorials/own-theme' },
+                { text: '4 · The co-pilot with Ollama', link: '/en/tutorials/copilot-ollama' },
+                { text: '5 · Everything in a container', link: '/en/tutorials/docker' },
+                { text: '6 · The API from the terminal', link: '/en/tutorials/api' },
               ],
             },
             {
               // Se enlaza marcado «(es)» a propósito: prometer una página en inglés que no existe es peor que
               // decir en qué idioma está. Cada página traducida sale de aquí y entra arriba (T-9.7).
-              // La referencia se GENERA de la ayuda de la CLI, que habla castellano por decisión del PO
-              // (31-ago-2026): se queda marcada «(es)» mientras eso no cambie.
-              text: 'Not translated yet (Spanish)',
+              // Lo que queda aquí no es deuda de traducción sino contenido GENERADO: la referencia sale de la
+              // ayuda de la CLI, que habla castellano por decisión del PO (31-ago-2026), y la galería de temas
+              // se genera de los theme.toml. Las notas de diseño son documentación interna del proyecto.
+              text: 'Generated or internal (Spanish)',
               items: [
                 { text: 'Command reference (es)', link: '/reference/' },
-                { text: 'Tutorials (es)', link: '/tutorials/' },
-                { text: 'Importing an existing CV (es)', link: '/guide/import' },
-                { text: 'Tailoring to a job offer (es)', link: '/guide/offers' },
-                { text: 'Typst and themes (es)', link: '/guide/typst-themes' },
-                { text: 'AI co-pilot (es)', link: '/guide/copilot' },
-                { text: 'The web interface (es)', link: '/guide/web' },
-                { text: 'Docker (es)', link: '/guide/docker' },
+                { text: 'Theme gallery (es)', link: '/guide/theme-gallery' },
                 { text: 'Architecture (es)', link: '/developers/architecture' },
               ],
             },

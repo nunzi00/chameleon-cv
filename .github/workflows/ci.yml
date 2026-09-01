@@ -127,7 +127,7 @@ jobs:
           docker compose -f compose.yml -f compose.ai.yml -f compose.gpu.yml config -q
           docker compose -f compose.yml -f compose.serve.yml config -q
           docker compose -f compose.yml -f compose.ai.yml -f compose.serve-ai.yml config -q
-      - name: Tutorial 5 («Todo en un contenedor») ejecutado contra la imagen recién construida (canon C15)
+      - name: Tutorial 5 («Todo en un contenedor», castellano e inglés) ejecutado contra la imagen recién construida (canon C15)
         run: CHAMELEON_DOCS_DOCKER=1 npm run docs:tutorials -- --only docker
 
   gui:
