@@ -80,7 +80,7 @@ Cada release publica la imagen en **GitHub Container Registry** desde el mismo f
 
 | Etiqueta | Qué es |
 |---|---|
-| `ghcr.io/nunzi00/chameleon-cv:1.17.0` | La versión exacta (la misma que `cv --version` y que el tar.gz); es la que fija `compose.yml`. |
+| `ghcr.io/nunzi00/chameleon-cv:1.18.0` | La versión exacta (la misma que `cv --version` y que el tar.gz); es la que fija `compose.yml`. |
 | `:1.5` · `:1` · `:latest` | Alias móviles a la última 1.5.x / 1.x / estable. Las prereleases (`1.2.0-rc.1`) no mueven ningún alias. |
 | `:1.1.1-distroless` (y `:1-distroless`, `:latest-distroless`) | La variante sobre `distroless/cc`: sin shell ni gestor de paquetes, usuario `nonroot` (65532), para quien priorice la superficie mínima. |
 
@@ -88,14 +88,14 @@ Cada release publica la imagen en **GitHub Container Registry** desde el mismo f
 - **Verificar lo que descargas**: la imagen lleva SBOM y procedencia de BuildKit dentro del registro, y una atestación de procedencia firmada (Sigstore) por el flujo de release, igual que el ejecutable:
 
 ```bash
-gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.17.0 --owner nunzi00
-docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.17.0 --format '{{ json .SBOM }}'
-docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.17.0 --format '{{ json .Provenance }}'
+gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.18.0 --owner nunzi00
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.18.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.18.0 --format '{{ json .Provenance }}'
 ```
 
 - **Usuario**: la imagen publicada corre como `cv` con UID/GID `1000`. Si en Linux tu usuario es otro, construye en local (arriba) o ejecuta la variante distroless con `--user "$(id -u):$(id -g)"`, que no depende de un directorio personal.
 - **Otra imagen o versión**: `CHAMELEON_CV_IMAGE=ghcr.io/nunzi00/chameleon-cv:1 docker compose run --rm chameleon-cv --version` (o la tuya, `chameleon-cv:local`).
-- **`docker run` sin Compose**: `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.17.0 --help`.
+- **`docker run` sin Compose**: `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.18.0 --help`.
 
 ## Qué hay en la imagen
 
