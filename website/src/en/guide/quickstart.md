@@ -28,6 +28,13 @@ cv --version
 Prefer the repository? Run `npm ci && npm run build` and use `node dist/index.js` (or `npm link` to get `cv` on
 your `PATH`); the details are in [Contributing (es)](/developers/contributing).
 
+::: tip On macOS or Windows?
+The standalone executable is published **for Linux only**: signing and notarising it for the other two platforms
+requires paid certificates and developer accounts, and the decision was not to (1 Sep 2026). There, the way in is
+the **Docker image**, which is multi-architecture and carries signed provenance —see
+[Chameleon CV in Docker](/en/guide/docker)—, or building from the repository, which needs nothing special.
+:::
+
 ## 2. Create the workspace
 
 In an empty directory:

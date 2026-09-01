@@ -152,6 +152,15 @@ Prácticas fijas: acciones ancladas por **SHA** (no por tag), `npm ci` con `pack
 
 Sin certificados, el binario funciona en las tres plataformas pero macOS y Windows **avisan**: Gatekeeper bloquea la primera ejecución de un binario descargado sin notarizar (el usuario debe quitar la cuarentena: `xattr -d com.apple.quarantine cv`, documentado en el README) y SmartScreen muestra «editor desconocido». Resolverlo cuesta dinero y burocracia: Apple Developer ID (99 $/año, notarización en CI con `notarytool`) y un certificado Authenticode (o Azure Trusted Signing). Propuesta: **1.0 sin firma comercial**, con firma *ad hoc* en macOS, `SHA256SUMS.txt`, atestación SLSA y las instrucciones claras; abrir T-6.5 si el Director decide invertir en certificados.
 
+**DECISIÓN DEL PO (1-sep-2026): T-6.5 y T-6.4 se descartan.** Ninguna de las dos es trabajo que el proyecto
+pueda cerrar por su cuenta —certificados de Apple y Authenticode una, cuentas de npm y un *tap* de Homebrew la
+otra—, y ninguna cambia lo que el producto hace. La consecuencia se asume y se escribe: **el ejecutable autónomo
+se publica solo para Linux** (`x64` y `arm64`); en macOS y Windows el camino soportado es la **imagen de Docker**
+—que sí es multi-arquitectura y viaja firmada— o compilar desde el código. Lo que protege al que descarga sigue
+siendo lo de siempre, y no depende de ningún certificado comercial: `SHA256SUMS.txt`, la **atestación SLSA**
+verificable con `gh attestation verify` y la procedencia de las imágenes en el registro. El plan de §6.3 se
+conserva por si algún día hay cuentas que lo permitan.
+
 ## 8. Plan del Hito 6
 
 | Tarea | Contenido | Entregable |

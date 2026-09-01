@@ -34,7 +34,7 @@ No es una lista de deseos: cada tarea nace de algo medido hoy o de una deuda ya 
   sección propuesta del borrador, con confirmación explícita y registro en el informe. Sigue decidiendo la persona
   (C2): el modelo no aplica nada, el botón sí, y solo lo que se le pide.
 - **T-9.6 [RELEASE] `linux-arm64` en la release.** El tar.gz para arm64 no necesita firma; macOS y Windows quedan
-  supeditados a T-6.5 (firma y notarización), que exige cuentas de desarrollador del Director.
+  supeditados a T-6.5 (firma y notarización), que exige cuentas de desarrollador del Director. **T-6.5 se descartó el 1-sep-2026**: el ejecutable se queda en Linux y en macOS y Windows el camino es Docker o compilar.
 - **T-9.7 [DOCS] Portal en inglés (T-7.1b).** Segundo `locale` de VitePress con la guía y la referencia.
 
 ## §3 Orden y versiones que propongo
@@ -43,7 +43,7 @@ No es una lista de deseos: cada tarea nace de algo medido hoy o de una deuda ya 
    repetir el fallo de hoy.
 2. **v1.13.0**: T-9.3 (ESLint) + T-9.4 (`strip`). Deuda registrada, coste acotado.
 3. **v1.14.0**: T-9.5 (aplicar propuestas) y T-9.6 (arm64).
-4. Sin fecha: T-9.7 (portal en inglés) y T-6.5 (firma), que depende del Director.
+4. Sin fecha: T-9.7 (portal en inglés) y T-6.5 (firma), que depende del Director. *Al cierre del hito: T-9.7 se completó el 1-sep y T-6.5 se descartó el mismo día.*
 
 ## §4 Decisiones que se piden al PO
 

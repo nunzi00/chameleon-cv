@@ -22,6 +22,13 @@ cv --version
 
 ¿Prefieres el repositorio? `npm ci && npm run build` y usa `node dist/index.js` (o `npm link` para tener `cv` en el `PATH`); detalles en [Contribuir](/developers/contributing).
 
+::: tip ¿macOS o Windows?
+El ejecutable autónomo se publica **solo para Linux**: firmarlo y notarizarlo para las otras dos plataformas
+exige certificados de pago y cuentas de desarrollador, y se decidió no hacerlo (1-sep-2026). Ahí el camino es la
+**imagen de Docker**, que sí es multi-arquitectura y viaja con su procedencia firmada —ver
+[Chameleon CV en Docker](/guide/docker)—, o compilar desde el repositorio, que no necesita nada especial.
+:::
+
 ## 2. Crea el espacio de trabajo
 
 En un directorio vacío:
