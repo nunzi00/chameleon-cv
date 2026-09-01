@@ -35,11 +35,17 @@ export interface RankFailure {
   readonly message: string;
 }
 
+/** Un aviso del análisis, con la oferta que lo provocó: comparando varias, «la oferta» no dice cuál. */
+export interface RankWarning {
+  readonly offer: number;
+  readonly warning: AppWarning;
+}
+
 export interface RankResult {
   readonly ranked: readonly RankedOffer[];
   /** Las que no se pudieron analizar, con su motivo: una oferta rota no tumba la comparación. */
   readonly failed: readonly RankFailure[];
-  readonly warnings: readonly AppWarning[];
+  readonly warnings: readonly RankWarning[];
 }
 
 export type RankOutcome = { readonly ok: true; readonly result: RankResult } | { readonly ok: false; readonly error: AppError };
@@ -69,11 +75,11 @@ export async function rankOffers(context: AppContext, request: Omit<AnalyzeReque
   }
   const ranked: RankedOffer[] = [];
   const failed: RankFailure[] = [];
-  const warnings: AppWarning[] = [];
+  const warnings: RankWarning[] = [];
   for (const [index, offer] of offers.entries()) {
     const result = await analyzeOffer(context, { ...request, offer, build: false });
     for (const warning of result.warnings) {
-      warnings.push(warning);
+      warnings.push({ offer: index, warning });
     }
     if (!result.ok) {
       failed.push({ offer: index, message: result.error.message });

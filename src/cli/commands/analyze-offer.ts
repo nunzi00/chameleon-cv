@@ -88,11 +88,16 @@ async function runRanking(context: CliContext, sources: readonly string[], optio
   if (!ranked.ok) {
     return reportError(context, ranked.error);
   }
-  reportWarnings(context, ranked.result.warnings);
+  // Con varias ofertas, un aviso sin decir de cuál es no sirve de nada: se antepone el origen.
+  for (const { offer, warning } of ranked.result.warnings) {
+    context.stderr(`${sources[offer]!}: `);
+    reportWarnings(context, [warning]);
+  }
   if (options.json) {
     // En JSON el fallo se nombra como lo escribió quien llama, no por su posición.
     const failed = ranked.result.failed.map((failure) => ({ source: sources[failure.offer]!, message: failure.message }));
-    context.stdout(`${JSON.stringify({ ...ranked.result, failed }, null, 2)}\n`);
+    const warnings = ranked.result.warnings.map((entry) => ({ source: sources[entry.offer]!, ...entry.warning }));
+    context.stdout(`${JSON.stringify({ ...ranked.result, failed, warnings }, null, 2)}\n`);
     return ranked.result.ranked.length === 0 ? EXIT_FAILURE : EXIT_OK;
   }
   if (ranked.result.ranked.length === 0) {

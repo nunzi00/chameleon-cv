@@ -107,7 +107,7 @@ describe('rankOffers', () => {
     const fs = workspace();
     fs.touch('/work/data/sources/profile.md', 5_000_000_000_000);
     const ranked = await rankOffers(appContext(fs), REQUEST, [{ kind: 'file', path: 'offers/encaja.txt' }]);
-    expect(ranked.ok && ranked.result.warnings[0]).toMatchObject({ kind: 'stale-artifact' });
+    expect(ranked.ok && ranked.result.warnings[0]).toMatchObject({ offer: 0, warning: { kind: 'stale-artifact' } });
   });
 
   it('a igualdad de todo, manda el nombre: el orden no depende de en qué orden se pidieran', async () => {

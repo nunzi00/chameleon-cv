@@ -192,9 +192,16 @@ describe('cv analyze-offer --rank (T-9.13)', () => {
   it('--json da la misma tabla para un script, y una oferta que falta se anota sin tumbar el resto', async () => {
     const h = compiled();
     expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', 'offers/no-existe.txt', '--rank', '--json'], h.context)).toBe(EXIT_OK);
-    const payload = JSON.parse(h.stdout()) as { ranked: Array<{ name: string; requiredTotal: number }>; failed: Array<{ source: string }> };
+    const payload = JSON.parse(h.stdout()) as { ranked: Array<{ name: string; requiredTotal: number }>; failed: Array<{ source: string }>; warnings: Array<{ source: string; kind: string }> };
     expect(payload.ranked).toHaveLength(1);
     expect(payload.failed[0]?.source).toBe('offers/no-existe.txt');
+    // Los avisos también llevan su origen en JSON, para que un script sepa de cuál habla.
+    h.fs.touch('/work/data/sources/profile.md', 5_000_000_000_000);
+    const conAviso = compiled();
+    conAviso.fs.touch('/work/data/sources/profile.md', 5_000_000_000_000);
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--rank', '--json'], conAviso.context)).toBe(EXIT_OK);
+    const segundo = JSON.parse(conAviso.stdout()) as { warnings: Array<{ source: string; kind: string }> };
+    expect(segundo.warnings[0]).toMatchObject({ source: 'offers/acme-backend.txt', kind: 'stale-artifact' });
   });
 
   it('la que falla se nombra tal como la escribiste, y la tabla sale igual con las demás', async () => {
@@ -202,6 +209,13 @@ describe('cv analyze-offer --rank (T-9.13)', () => {
     expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', 'offers/no-existe.txt', '--rank'], h.context)).toBe(EXIT_OK);
     expect(h.stdout()).toContain('acme-backend');
     expect(h.stderr()).toContain('No se pudo analizar offers/no-existe.txt');
+  });
+
+  it('cada aviso dice de qué oferta es: con varias, «la oferta» no basta', async () => {
+    const h = compiled({ '/work/offers/floja.txt': `Buscamos a alguien con muchas ganas. ${'palabra '.repeat(250)}` });
+    h.fs.touch('/work/data/sources/profile.md', 5_000_000_000_000);
+    expect(await runCli(['analyze-offer', 'offers/floja.txt', 'offers/acme-backend.txt', '--rank'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('offers/floja.txt: ');
   });
 
   it('sin artefacto no hay comparación: el fallo se dice una vez, no una por oferta', async () => {
