@@ -55,6 +55,30 @@ estas»**: la misma lista, leída al derecho o al revés.
 
 Analiza sin generar: adecuación global, evidencias (qué ítems del perfil demuestran cada requisito) y carencias. `--explain` da la auditoría por ítem; `--json` lo mismo en JSON para scripts; `-s` acota el análisis a una especialidad; `<offer>` puede ser `-` (stdin). Referencia: [`cv analyze-offer`](/reference/analyze-offer).
 
+## Comparar varias ofertas de una vez
+
+Cuando tienes tres o cuatro sobre la mesa, la pregunta no es «¿encajo en esta?» sino «¿a cuál me presento
+primero?». `--rank` las analiza todas y las pone en una tabla:
+
+```bash
+cv analyze-offer ofertas/*.txt --rank
+```
+
+```text
+Oferta        Adecuación   Imprescindibles  Especialidad  Carencias
+acme-backend  7/8 (88 %)   4/4              backend       terraform, aws
+nube-platform 4/7 (57 %)   2/4              nube          go, rust, observabilidad
+```
+
+Se ordenan por **imprescindibles cubiertos** y después por adecuación, no al revés: una oferta con el 100 % de
+cuatro requisitos flojos importa menos que otra con el 80 % de diez, y lo que de verdad cierra puertas es un
+imprescindible sin cubrir. No hay ninguna métrica nueva: cada columna es exactamente lo que verías analizando esa
+oferta sola. Una que no se pueda leer se anota y **no tumba la comparación**; una que no declare requisitos sale
+con «—» en vez de con un 100 % engañoso. `--json` da lo mismo para un script.
+
+`--rank` no se combina todavía con `--copilot`: el co-piloto se pide oferta a oferta, con su coste y su
+confirmación. Compara primero y refina la que te interese.
+
 ## Refinar la lectura de la oferta con el co-piloto
 
 El emparejado es **literal**: si la oferta pide «arquitectura orientada a eventos» y tus skills dicen «Kafka», no

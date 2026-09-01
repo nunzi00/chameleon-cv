@@ -24,6 +24,29 @@ En la interfaz web (`cv serve`) la misma importación está en **Perfil → Impo
   origen) y «Sin situar (revísalo a mano)».
 - **Sin red y sin modelo** salvo que pidas el co-piloto con `--copilot`.
 
+## Una carpeta entera
+
+Si tienes varias versiones de tu CV —y casi todo el mundo las tiene—, `--all` las importa todas y las compara:
+
+```bash
+cv import-cv ~/mis-cv --all
+```
+
+```text
+Fichero                   Borrador                Exp.  Form.  Hab.  Avisos  Sin situar
+CV Lucas.pdf              import/cv-lucas           11      7     0      15           4
+CV-Lucas-2020.pdf         import/cv-lucas-2020      12      6     0      14          41
+Profile.pdf               import/profile             6      3     3       0           0
+```
+
+Cada CV va a **su propio borrador, nombrado por el fichero** y no por el perfil: si todos son tuyos, el nombre
+del perfil sería el mismo para todos y solo entraría el primero; así, además, se ve de dónde salió cada uno. Un
+fichero que falle se anota y **no detiene a los demás**. La tabla es el mapa para decidir cuál merece la pena
+revisar: la fila con menos avisos y menos líneas sin situar suele ser la mejor base.
+
+`--all` no se combina con `--copilot` —el co-piloto se pide borrador a borrador, con su coste— ni con `--name`,
+que no tendría sentido con varios.
+
 ## El informe del borrador
 
 El `README.md` del borrador es el mapa de la revisión. Empieza por sus avisos de calidad, que te dicen si merece la

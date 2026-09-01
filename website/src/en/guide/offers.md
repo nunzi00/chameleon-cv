@@ -69,6 +69,30 @@ Analyses without generating: overall fit, evidence (which profile items prove ea
 `--explain` gives the per-item audit; `--json` the same in JSON for scripts; `-s` narrows the analysis to one
 specialty; `<offer>` can be `-` (stdin). Reference: [`cv analyze-offer` (es)](/reference/analyze-offer).
 
+## Comparing several offers at once
+
+When you have three or four on the table, the question isn't «do I fit this one?» but «which do I apply to
+first?». `--rank` analyses them all and lays them out in a table:
+
+```bash
+cv analyze-offer offers/*.txt --rank
+```
+
+```text
+Oferta        Adecuación   Imprescindibles  Especialidad  Carencias
+acme-backend  7/8 (88 %)   4/4              backend       terraform, aws
+nube-platform 4/7 (57 %)   2/4              nube          go, rust, observabilidad
+```
+
+They are sorted by **required requirements covered** and then by fit, not the other way round: an offer with
+100 % of four weak requirements matters less than one with 80 % of ten, and what really closes doors is an
+uncovered must-have. There is no new metric: every column is exactly what you'd see analysing that offer alone.
+One that can't be read is reported and **doesn't bring the comparison down**; one that declares no requirements
+comes out as «—» instead of a misleading 100 %. `--json` gives the same for a script.
+
+`--rank` doesn't combine with `--copilot` yet: the co-pilot is asked offer by offer, with its cost and its
+confirmation. Compare first, then refine the one you care about.
+
 ## Refining how the offer is read, with the co-pilot
 
 Matching is **literal**: if the offer asks for «event-driven architecture» and your skills say «Kafka», there is

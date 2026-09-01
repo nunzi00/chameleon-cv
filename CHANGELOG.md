@@ -2,6 +2,13 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **Comparar varias ofertas de una vez** (T-9.13): `cv analyze-offer ofertas/*.txt --rank` las analiza todas y las pone en una tabla —adecuación, imprescindibles, especialidad sugerida y carencias—, ordenadas por **imprescindibles cubiertos** y después por adecuación: una oferta con el 100 % de cuatro requisitos flojos importa menos que otra con el 80 % de diez, y lo que cierra puertas es un imprescindible sin cubrir. No hay ninguna métrica nueva: cada columna es lo que verías analizando esa oferta sola. Una que no se pueda leer se anota y no tumba la comparación; una que no declare requisitos sale con «—» en vez de con un 100 % engañoso. `--json` da lo mismo para un script.
+- **Importar una carpeta entera de CV** (T-9.14): `cv import-cv <carpeta> --all` importa todos los CV que haya (primer nivel) y los compara en una tabla con experiencias, formaciones, habilidades, avisos y líneas sin situar. Cada uno va a **su propio borrador, nombrado por el fichero**: si todos son tuyos —que es el caso normal al comparar versiones— el nombre del perfil sería el mismo para todos y solo entraría el primero. Un fichero que falle se anota y no detiene a los demás.
+
 ## [1.16.0] - 2026-09-01
 
 ### Añadido

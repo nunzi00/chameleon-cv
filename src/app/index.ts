@@ -5,6 +5,7 @@
  */
 export * from './aliases';
 export * from './analyze';
+export * from './rank';
 export * from './assets';
 export * from './context';
 export * from './copilot';

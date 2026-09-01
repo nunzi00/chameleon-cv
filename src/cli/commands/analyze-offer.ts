@@ -5,6 +5,7 @@
  */
 import type { OfferInput } from '../../app/offer';
 import { planAliases, saveAliases } from '../../app/aliases';
+import { rankOffers, type RankResult, type RankedOffer } from '../../app/rank';
 import { analysisPayload, analyzeOffer, type OfferCopilotOptions } from '../../app/analyze';
 import { selectCopilotProvider } from '../../app/copilot';
 import { ensureProviderReady } from './remote';
@@ -33,6 +34,8 @@ export interface AnalyzeOfferOptions {
   readonly model?: string | undefined;
   /** T-9.12: guardar como alias en skills.csv lo que el co-piloto tuvo que tender, para no volver a necesitarlo. */
   readonly saveAliases?: boolean | undefined;
+  /** T-9.13: compara varias ofertas en una tabla en vez de analizar una. */
+  readonly rank?: boolean | undefined;
 }
 
 /** Sin origen: la lista de `offers/**` para elegir (con `--list`, código 0; sin él, 2 porque falta el argumento). */
@@ -50,9 +53,66 @@ async function printOfferList(context: CliContext, explicit: boolean): Promise<n
   return explicit ? EXIT_OK : EXIT_FAILURE;
 }
 
-export async function runAnalyzeOffer(context: CliContext, source: string | undefined, options: AnalyzeOfferOptions): Promise<number> {
+/** «9/10 (90 %)» o «—» cuando la oferta no declara ni un requisito reconocible. */
+function ratioCell(offer: RankedOffer): string {
+  return offer.ratio === undefined ? '—' : `${offer.demonstrated}/${offer.recognized} (${Math.round(offer.ratio * 100)} %)`;
+}
+
+/**
+ * La tabla de comparación (T-9.13): una fila por oferta, ordenadas por imprescindibles cubiertos y después por
+ * adecuación. No hay ninguna métrica nueva: son las mismas que ves al analizar una sola.
+ */
+function printRanking(context: CliContext, result: RankResult, sources: readonly string[]): void {
+  const rows = result.ranked.map((offer) => [offer.name, ratioCell(offer), `${offer.requiredDemonstrated}/${offer.requiredTotal}`, offer.suggestedSpecialty ?? '—', offer.gaps.join(', ') || '—']);
+  const header = ['Oferta', 'Adecuación', 'Imprescindibles', 'Especialidad', 'Carencias'];
+  const widths = header.map((title, column) => rows.reduce((max, row) => Math.max(max, row[column]!.length), title.length));
+  const line = (cells: readonly string[]): string => cells.map((cell, column) => (column === cells.length - 1 ? cell : cell.padEnd(widths[column]!))).join('  ');
+  context.stdout(`${line(header)}\n`);
+  for (const row of rows) {
+    context.stdout(`${line(row)}\n`);
+  }
+  for (const failure of result.failed) {
+    // El índice viene de la misma lista que se pasó: siempre hay origen que nombrar.
+    context.stderr(`No se pudo analizar ${sources[failure.offer]!}: ${failure.message}\n`);
+  }
+}
+
+async function runRanking(context: CliContext, sources: readonly string[], options: AnalyzeOfferOptions): Promise<number> {
+  if (options.copilot === true) {
+    context.stderr('--rank y --copilot no se combinan todavía: el co-piloto se pide oferta a oferta, con su coste y su confirmación. Analiza primero, y refina la que te interese.\n');
+    return EXIT_FAILURE;
+  }
+  // Se guarda la ruta tal como se escribió para poder nombrarla igual en los fallos: `offerInput` la resuelve.
+  const offers = sources.map((source) => offerInput(context, source));
+  const ranked = await rankOffers(context, { profile: options.profile, data: options.data, specialty: options.specialty, build: options.build }, offers);
+  if (!ranked.ok) {
+    return reportError(context, ranked.error);
+  }
+  reportWarnings(context, ranked.result.warnings);
+  if (options.json) {
+    // En JSON el fallo se nombra como lo escribió quien llama, no por su posición.
+    const failed = ranked.result.failed.map((failure) => ({ source: sources[failure.offer]!, message: failure.message }));
+    context.stdout(`${JSON.stringify({ ...ranked.result, failed }, null, 2)}\n`);
+    return ranked.result.ranked.length === 0 ? EXIT_FAILURE : EXIT_OK;
+  }
+  if (ranked.result.ranked.length === 0) {
+    context.stderr('Ninguna oferta se pudo analizar.\n');
+    return EXIT_FAILURE;
+  }
+  printRanking(context, ranked.result, sources);
+  return EXIT_OK;
+}
+
+export async function runAnalyzeOffer(context: CliContext, source: string | undefined, extra: readonly string[], options: AnalyzeOfferOptions): Promise<number> {
   if (source === undefined || options.list) {
     return printOfferList(context, options.list);
+  }
+  if (options.rank === true) {
+    return runRanking(context, [source, ...extra], options);
+  }
+  if (extra.length > 0) {
+    context.stderr('Varias ofertas solo se admiten con --rank, que las compara; sin él, pasa una sola.\n');
+    return EXIT_FAILURE;
   }
   let offer: OfferInput;
   if (isUrlSource(source)) {

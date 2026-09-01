@@ -25,6 +25,30 @@ In the web interface (`cv serve`) the same import lives under **Perfil → Impor
   the source line) and «Sin situar (revísalo a mano)».
 - **No network and no model** unless you ask for the co-pilot with `--copilot`.
 
+## A whole folder
+
+If you have several versions of your CV —and almost everyone does—, `--all` imports them all and compares them:
+
+```bash
+cv import-cv ~/my-cvs --all
+```
+
+```text
+Fichero                   Borrador                Exp.  Form.  Hab.  Avisos  Sin situar
+CV Lucas.pdf              import/cv-lucas           11      7     0      15           4
+CV-Lucas-2020.pdf         import/cv-lucas-2020      12      6     0      14          41
+Profile.pdf               import/profile             6      3     3       0           0
+```
+
+Each CV goes to **its own draft, named after the file** and not after the profile: if they're all yours the
+profile name would be the same for every one and only the first would land; this way you also see at a glance
+where each draft came from. A file that fails is reported and **doesn't stop the others**. The table is the map
+for deciding which one is worth reviewing: the row with fewest warnings and fewest unplaced lines is usually the
+best starting point.
+
+`--all` doesn't combine with `--copilot` —the co-pilot is asked draft by draft, with its cost— or with `--name`,
+which would make no sense with several.
+
 ## The draft report
 
 The draft's `README.md` is the map for your review. It opens with quality warnings that tell you whether it's

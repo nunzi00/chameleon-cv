@@ -128,9 +128,10 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
   program
     .command('import-cv')
     .description('importa un CV ya maquetado (PDF o DOCX) como borrador de fuentes en import/<nombre>/, con informe de lo reconocido; nunca escribe en data/sources/')
-    .argument('<fichero>', 'el CV a importar (.pdf o .docx)')
+    .argument('<fichero>', 'el CV a importar (.pdf o .docx); con --all, la carpeta que los contiene')
     .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
     .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .option('--all', 'el argumento es una carpeta: importa todos los CV que haya en ella (primer nivel) y compara el resultado en una tabla', false)
     .option('--copilot', 'pide al co-piloto que PROPONGA sección para las líneas sin situar (van al README, no se aplican)', false)
     .option('--provider <id>', 'proveedor del co-piloto para --copilot (por defecto, el configurado)')
     .option('--model <modelo>', 'modelo del co-piloto para --copilot')
@@ -153,6 +154,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .command('analyze-offer')
     .description('analiza una oferta contra el perfil sin generar nada: adecuación, evidencias y carencias; sin argumento, lista offers/')
     .argument('[offer]', 'fichero de texto o PDF, «-» para la entrada estándar, o una URL https (exige --allow-remote)')
+    .argument('[más...]', 'más ofertas, solo con --rank: se comparan entre sí')
     .option('-s, --specialty <id>', 'especialidad real con la que analizar; sin ella, la virtual de la oferta')
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
@@ -168,8 +170,9 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--save-offer [ruta]', 'guarda el texto descargado en offers/ (nombre automático, o la ruta indicada) con cabecera de origen')
     .option('--replace', 'con --save-offer, sustituye el fichero si ya existe', false)
     .option('--list', 'lista offers/ y sale con código 0', false)
-    .action(async (offer: string | undefined, options: AnalyzeOfferOptions) => {
-      onExit(await runAnalyzeOffer(context, offer, options));
+    .option('--rank', 'compara varias ofertas en una tabla (adecuación, imprescindibles, especialidad y carencias), de la que mejor encaja a la que menos', false)
+    .action(async (offer: string | undefined, extra: string[], options: AnalyzeOfferOptions) => {
+      onExit(await runAnalyzeOffer(context, offer, extra, options));
     });
 
   const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');

@@ -176,6 +176,71 @@ describe('cv generate-cv --from-job-offer', () => {
   });
 });
 
+describe('cv analyze-offer --rank (T-9.13)', () => {
+  const SEGUNDA = ['Platform Engineer', '', 'Requisitos:', '- Terraform y AWS.', '- Go.'].join('\n');
+
+  it('compara varias ofertas en una tabla, de la que mejor encaja a la que menos', async () => {
+    const h = compiled({ '/work/offers/nube.txt': SEGUNDA });
+    expect(await runCli(['analyze-offer', 'offers/nube.txt', 'offers/acme-backend.txt', '--rank'], h.context)).toBe(EXIT_OK);
+    const filas = h.stdout().trim().split('\n');
+    expect(filas[0]).toMatch(/^Oferta\s+Adecuación\s+Imprescindibles\s+Especialidad\s+Carencias$/);
+    // La del banco cubre sus imprescindibles; la otra no reconoce casi nada: va detrás aunque se pidiera primero.
+    expect(filas[1]).toContain('acme-backend');
+    expect(filas[2]).toContain('nube');
+  });
+
+  it('--json da la misma tabla para un script, y una oferta que falta se anota sin tumbar el resto', async () => {
+    const h = compiled();
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', 'offers/no-existe.txt', '--rank', '--json'], h.context)).toBe(EXIT_OK);
+    const payload = JSON.parse(h.stdout()) as { ranked: Array<{ name: string; requiredTotal: number }>; failed: Array<{ source: string }> };
+    expect(payload.ranked).toHaveLength(1);
+    expect(payload.failed[0]?.source).toBe('offers/no-existe.txt');
+  });
+
+  it('la que falla se nombra tal como la escribiste, y la tabla sale igual con las demás', async () => {
+    const h = compiled();
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', 'offers/no-existe.txt', '--rank'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('acme-backend');
+    expect(h.stderr()).toContain('No se pudo analizar offers/no-existe.txt');
+  });
+
+  it('sin artefacto no hay comparación: el fallo se dice una vez, no una por oferta', async () => {
+    const h = compiled();
+    await h.fs.remove('/work/data/dist/profile.json');
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', 'offers/acme-backend.txt', '--rank'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr().match(/artefacto/g)?.length).toBe(1);
+  });
+
+  it('una oferta que no declara nada sale con «—», no con un 100 % engañoso', async () => {
+    const h = compiled({ '/work/offers/vacia.txt': 'Buscamos a alguien con ganas de aprender.' });
+    expect(await runCli(['analyze-offer', 'offers/vacia.txt', '--rank'], h.context)).toBe(EXIT_OK);
+    const fila = h.stdout().trim().split('\n')[1] ?? '';
+    // Adecuación, especialidad y carencias: las tres con guion, que es lo que hay.
+    expect(fila.match(/—/g)?.length).toBe(3);
+  });
+
+  it('con --json y nada analizable, el código de salida también lo dice', async () => {
+    const h = compiled();
+    expect(await runCli(['analyze-offer', 'offers/no-existe.txt', '--rank', '--json'], h.context)).not.toBe(EXIT_OK);
+    expect(JSON.parse(h.stdout())).toMatchObject({ ranked: [] });
+  });
+
+  it('sin ninguna oferta legible el código de salida lo dice', async () => {
+    const h = compiled();
+    expect(await runCli(['analyze-offer', 'offers/no-existe.txt', 'offers/tampoco.txt', '--rank'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Ninguna oferta se pudo analizar');
+  });
+
+  it('--rank no se combina con --copilot, y varias ofertas sin --rank tampoco', async () => {
+    const h = compiled();
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', '--rank', '--copilot'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr()).toContain('no se combinan todavía');
+    const suelto = compiled();
+    expect(await runCli(['analyze-offer', 'offers/acme-backend.txt', 'offers/otra.txt'], suelto.context)).not.toBe(EXIT_OK);
+    expect(suelto.stderr()).toContain('solo se admiten con --rank');
+  });
+});
+
 describe('cv analyze-offer --copilot (T-9.10)', () => {
   const respuesta = (json: unknown) => ({
     id: 'ollama' as const,

@@ -277,3 +277,48 @@ describe('cv import-cv --copilot (T-8.4b F2)', () => {
     expect(missing.stderr()).toContain('sin proveedor configurado');
   });
 });
+
+describe('cv import-cv --all (T-9.14)', () => {
+  it('importa todos los CV de una carpeta, uno por fichero, y los compara en una tabla', async () => {
+    // Dos CV de la MISMA persona: con el nombre del perfil querrían la misma carpeta y solo entraría el primero.
+    const h = harness({ '/work/corpus/uno.pdf': '%PDF-1.4 uno', '/work/corpus/dos.pdf': '%PDF-1.4 dos' });
+    expect(await runCli(['import-cv', 'corpus', '--all'], h.context)).toBe(EXIT_OK);
+    const filas = h.stdout().trim().split('\n');
+    expect(filas[0]).toMatch(/^Fichero\s+Borrador\s+Exp\.\s+Form\.\s+Hab\.\s+Avisos\s+Sin situar$/);
+    // Orden estable por nombre de fichero: «dos» antes que «uno».
+    expect(filas[1]).toContain('import/dos');
+    expect(filas[2]).toContain('import/uno');
+    expect(h.stderr()).toContain('2 de 2 CV importados');
+  });
+
+  it('un CV que falla no detiene a los demás: se anota y la tabla sale igual', async () => {
+    const h = harness({ '/work/corpus/bueno.pdf': '%PDF-1.4 uno', '/work/corpus/malo.pdf': 'esto no es un PDF' });
+    expect(await runCli(['import-cv', 'corpus', '--all'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('import/bueno');
+    expect(h.stderr()).toContain('No se pudo importar malo.pdf');
+    expect(h.stderr()).toContain('1 de 2 CV importados');
+
+    // Y si fallan todos, el código de salida lo dice.
+    const ninguno = harness({ '/work/corpus/malo.pdf': 'esto no es un PDF' });
+    expect(await runCli(['import-cv', 'corpus', '--all'], ninguno.context)).not.toBe(EXIT_OK);
+    expect(ninguno.stderr()).toContain('0 de 1 CV importados');
+  });
+
+  it('una carpeta sin CV, o que no existe, se dice sin dejar nada a medias', async () => {
+    const vacia = harness({ '/work/corpus/notas.txt': 'nada que importar' });
+    expect(await runCli(['import-cv', 'corpus', '--all'], vacia.context)).not.toBe(EXIT_OK);
+    expect(vacia.stderr()).toContain('No hay CV que importar');
+    const ninguna = harness({});
+    expect(await runCli(['import-cv', 'no-existe', '--all'], ninguna.context)).toBe(2);
+    expect(ninguna.stderr()).toContain('No se pudo leer la carpeta');
+  });
+
+  it('--all no se combina con --copilot ni con --name', async () => {
+    const h = harness({ '/work/corpus/uno.pdf': '%PDF-1.4 uno' });
+    expect(await runCli(['import-cv', 'corpus', '--all', '--copilot'], h.context)).not.toBe(EXIT_OK);
+    expect(h.stderr()).toContain('no se combinan');
+    const conNombre = harness({ '/work/corpus/uno.pdf': '%PDF-1.4 uno' });
+    expect(await runCli(['import-cv', 'corpus', '--all', '--name', 'mio'], conNombre.context)).not.toBe(EXIT_OK);
+    expect(conNombre.stderr()).toContain('--name no aplica');
+  });
+});
