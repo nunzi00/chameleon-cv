@@ -35,9 +35,20 @@ function workspace(): MemoryFileSystem {
 
 describe('planAliases: de una propuesta verificada a un alias concreto', () => {
   it('la etiqueta que es de UNA skill da un alias con nombre y apellidos', () => {
-    expect(planAliases(PROFILE, [{ tag: 'kafka', evidence: 'sistemas de mensajería' }])).toEqual([
-      { ok: true, tag: 'kafka', alias: 'sistemas de mensajería', skill: 'Apache Kafka' },
+    // Se guarda NORMALIZADA, que es como la va a buscar el emparejado y la única forma que el esquema admite.
+    expect(planAliases(PROFILE, [{ tag: 'kafka', evidence: 'Sistemas de Mensajería' }])).toEqual([
+      { ok: true, tag: 'kafka', alias: 'sistemas de mensajeria', skill: 'Apache Kafka' },
     ]);
+  });
+
+  it('una frase que no cabe como alias no se guarda: unas fuentes que no compilan son peores que ningún alias', () => {
+    // Encontrado el 1-sep probándolo con un modelo real: «orquestación de contenedores» se escribía tal cual y
+    // «cv build» rechazaba el fichero. El acento lo resuelve la normalización; una coma, no.
+    const plan = planAliases(PROFILE, [{ tag: 'kafka', evidence: 'colas, temas y particiones' }]);
+    expect(plan[0]).toMatchObject({ ok: false, alias: 'colas, temas y particiones' });
+    expect(plan[0]?.ok === false && plan[0].reason).toContain('no cabe como alias');
+    // Y una frase larguísima tampoco: el esquema corta en 60.
+    expect(planAliases(PROFILE, [{ tag: 'kafka', evidence: 'a'.repeat(61) }])[0]).toMatchObject({ ok: false });
   });
 
   it('si la etiqueta es de varias skills no se adivina: se dice de cuáles y se deja al usuario', () => {
@@ -51,14 +62,14 @@ describe('planAliases: de una propuesta verificada a un alias concreto', () => {
       { tag: 'terraform', evidence: 'infraestructura como código' },
       { tag: 'php', evidence: 'PHP 8' },
       { tag: 'kafka', evidence: '  sistemas   de mensajería ' },
-      { tag: 'kafka', evidence: 'sistemas de mensajería' },
+      { tag: 'kafka', evidence: 'Sistemas de mensajeria' },
       { tag: 'kafka', evidence: '   ' },
     ]);
     expect(plan.map((entry) => entry.ok)).toEqual([false, false, true]);
     expect(plan[0]?.ok === false && plan[0].reason).toContain('ninguna skill');
     expect(plan[1]?.ok === false && plan[1].reason).toContain('ya lo reconoce');
     // Los espacios de más se normalizan y la repetición se descarta antes de llegar al disco.
-    expect(plan[2]).toMatchObject({ alias: 'sistemas de mensajería' });
+    expect(plan[2]).toMatchObject({ alias: 'sistemas de mensajeria' });
   });
 });
 
@@ -69,7 +80,7 @@ describe('saveAliases: se añade a la fila, no se reescribe el fichero', () => {
     const saved = await saveAliases(appContext(fs), 'data/sources', plan);
     expect(saved.ok && saved.result.written).toHaveLength(1);
     const lines = (fs.file('/work/data/sources/skills.csv')?.content ?? '').split('\n');
-    expect(lines[1]).toBe('Apache Kafka,platform,advanced,,kafka|sistemas de mensajería,kafka|mensajeria');
+    expect(lines[1]).toBe('Apache Kafka,platform,advanced,,kafka|sistemas de mensajeria,kafka|mensajeria');
     // Ni la cabecera, ni las otras filas, ni la fila entrecomillada se tocan.
     expect(lines[0]).toBe('name,category,level,years,aliases,tags');
     expect(lines[2]).toBe('RabbitMQ,platform,advanced,,,mensajeria');
@@ -77,11 +88,16 @@ describe('saveAliases: se añade a la fila, no se reescribe el fichero', () => {
     expect(fs.file('/work/data/sources/skills.csv')?.mode).toBe(0o600);
   });
 
-  it('una skill sin alias estrena la columna, y una coma en la frase se entrecomilla', async () => {
+  it('una skill sin alias estrena la columna, y una celda entrecomillada a mano se respeta', async () => {
     const fs = workspace();
-    const saved = await saveAliases(appContext(fs), 'data/sources', [{ ok: true, tag: 'mensajeria', alias: 'colas, temas y particiones', skill: 'RabbitMQ' }]);
+    const saved = await saveAliases(appContext(fs), 'data/sources', [{ ok: true, tag: 'mensajeria', alias: 'colas de mensajes', skill: 'RabbitMQ' }]);
     expect(saved.ok).toBe(true);
-    expect((fs.file('/work/data/sources/skills.csv')?.content ?? '').split('\n')[2]).toBe('RabbitMQ,platform,advanced,,"colas, temas y particiones",mensajeria');
+    expect((fs.file('/work/data/sources/skills.csv')?.content ?? '').split('\n')[2]).toBe('RabbitMQ,platform,advanced,,colas de mensajes,mensajeria');
+
+    // Un fichero editado a mano puede traer comas dentro de la celda de alias: se conserva entrecomillada.
+    const aMano = new MemoryFileSystem({ '/work/data/sources/skills.csv': 'name,aliases,tags\nRabbitMQ,"colas, temas",mensajeria\n' });
+    await saveAliases(appContext(aMano), 'data/sources', [{ ok: true, tag: 'mensajeria', alias: 'amqp', skill: 'RabbitMQ' }]);
+    expect((aMano.file('/work/data/sources/skills.csv')?.content ?? '').split('\n')[1]).toBe('RabbitMQ,"colas, temas|amqp",mensajeria');
   });
 
   it('sin nada que guardar no se toca el fichero', async () => {

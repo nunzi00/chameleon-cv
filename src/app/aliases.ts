@@ -11,7 +11,7 @@
 import { resolve } from 'node:path';
 
 import { normalizeLine } from '../core/keywords';
-import type { MasterProfile } from '../core/schema';
+import { KeywordSchema, type MasterProfile } from '../core/schema';
 import { describeError } from '../shared/errors';
 import type { AppContext } from './context';
 import { environmentError, notFoundError, type AppError } from './errors';
@@ -35,12 +35,20 @@ export function planAliases(profile: MasterProfile, proposals: readonly AliasPro
   const entries: AliasPlanEntry[] = [];
   const seen = new Set<string>();
   for (const proposal of proposals) {
-    const alias = proposal.evidence.trim().replace(/\s+/g, ' ');
-    const key = `${proposal.tag} ${normalizeLine(alias)}`;
+    // La frase se guarda **normalizada**, que es la forma en que el emparejado la va a buscar: minúsculas y sin
+    // diacríticos. No es cosmética —el esquema de `skills.csv` solo admite esa forma—: escribir «orquestación de
+    // contenedores» tal cual dejaba unas fuentes que `cv build` rechaza, y eso es peor que no guardar nada
+    // (encontrado el 1-sep probándolo con un modelo real).
+    const alias = normalizeLine(proposal.evidence);
+    const key = `${proposal.tag} ${alias}`;
     if (alias === '' || seen.has(key)) {
       continue;
     }
     seen.add(key);
+    if (!KeywordSchema.safeParse(alias).success) {
+      entries.push({ ok: false, tag: proposal.tag, alias, reason: 'no cabe como alias: solo minúsculas, dígitos, espacios y los símbolos . + # / - (hasta 60)' });
+      continue;
+    }
     const owners = profile.skills.filter((skill) => skill.tags.includes(proposal.tag));
     const skill = owners[0];
     if (skill === undefined) {
@@ -56,7 +64,7 @@ export function planAliases(profile: MasterProfile, proposals: readonly AliasPro
       });
       continue;
     }
-    if ([skill.name, ...skill.aliases].some((known) => normalizeLine(known) === normalizeLine(alias))) {
+    if ([skill.name, ...skill.aliases].some((known) => normalizeLine(known) === alias)) {
       entries.push({ ok: false, tag: proposal.tag, alias, reason: `«${skill.name}» ya lo reconoce` });
       continue;
     }
