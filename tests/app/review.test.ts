@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { contentHash, listReviews, readReview } from '../../src/app';
-import { formatReview, type ReviewHeader, type ReviewItem } from '../../src/llm';
+import { fingerprint, formatReview, type ReviewHeader, type ReviewItem } from '../../src/llm';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -20,7 +20,8 @@ describe('listReviews', () => {
     const context = appContext(new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, '/work/output/revision-rota.md': 'sin cabecera', '/work/output/cv.md': 'x', '/work/output/notas.txt': 'y' }));
     const reviews = await listReviews(context, 'output');
     expect(reviews.map((review) => review.name)).toEqual([NAME, 'revision-rota.md']);
-    expect(reviews[0]).toEqual({ name: NAME, path: `/work/output/${NAME}`, sha256: contentHash(REVIEW), task: 'improve', items: 2, marked: 1, error: undefined });
+    // Sin las fuentes delante no se puede saber si algo se aplicó ya: se dice «unknown», no se supone.
+    expect(reviews[0]).toEqual({ name: NAME, path: `/work/output/${NAME}`, sha256: contentHash(REVIEW), task: 'improve', items: 2, marked: 1, error: undefined, progress: { applied: 0, pending: 0, changed: 0, unknown: 2 } });
     expect(reviews[1]).toMatchObject({ name: 'revision-rota.md', task: undefined, items: 0, marked: 0 });
     expect(reviews[1]?.error).toEqual(expect.any(String));
   });
@@ -60,5 +61,61 @@ describe('readReview', () => {
       expect(result.file).toMatchObject({ name: NAME, text: REVIEW, sha256: contentHash(REVIEW), task: 'improve', items: 2, marked: 1 });
       expect(result.file.review?.items.map((entry) => entry.id)).toEqual(['ach-1', 'ach-2']);
     }
+  });
+});
+
+describe('reviewStatus: qué queda por aplicar de una revisión (encargo del PO del 1-sep)', () => {
+  const SOURCE = ['---', 'company: ACME', 'role: Dev', 'start: 2020-01', '---', '', '## Logros', '', '- Original uno', '- Original dos', ''].join('\n');
+
+  it('distingue lo aplicado de lo pendiente mirando la fuente, no una marca en el fichero', async () => {
+    // «ach-1» ya tiene su propuesta escrita; «ach-2» sigue con su original.
+    const aplicado = SOURCE.replace('- Original uno', '- Propuesta uno');
+    const context = appContext(new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, '/work/data/sources/experience/acme.md': aplicado }));
+    const result = await readReview(context, 'output', NAME);
+    expect(result.ok && result.file.statuses).toEqual([
+      { id: 'ach-1', state: 'applied' },
+      { id: 'ach-2', state: 'pending' },
+    ]);
+    expect(result.ok && result.file.progress).toEqual({ applied: 1, pending: 1, changed: 0, unknown: 0 });
+    // Y en la lista, lo mismo resumido: es lo que cabe al lado del nombre.
+    expect((await listReviews(context, 'output'))[0]?.progress).toEqual({ applied: 1, pending: 1, changed: 0, unknown: 0 });
+  });
+
+  it('una fuente que cambió por otro camino no es «aplicada» ni «pendiente», y se dice', async () => {
+    const context = appContext(new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, '/work/data/sources/experience/acme.md': SOURCE.replace('- Original uno', '- Otra cosa distinta') }));
+    const result = await readReview(context, 'output', NAME);
+    expect(result.ok && result.file.statuses[0]).toEqual({ id: 'ach-1', state: 'changed' });
+  });
+
+  it('un resumen ya escrito se reconoce igual, y sin fuente legible no se adivina', async () => {
+    const summaryHeader: ReviewHeader = { ...HEADER, task: 'summarize' };
+    const summaryItem: ReviewItem = { id: 'profile', location: 'perfil', original: 'Resumen viejo', source: { file: 'profile.md', line: 1, hash: fingerprint('Resumen viejo') }, proposals: [{ text: 'Resumen nuevo', rationale: 'r', verdict: OK }], fromCache: false, elapsedMs: 1, usage: {} };
+    const review = formatReview(summaryHeader, [summaryItem]);
+    const name = 'revision-summarize-2026-08-29.md';
+    const escrito = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review, '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n\nResumen nuevo\n' }));
+    expect((await readReview(escrito, 'output', name)) as { file: { statuses: unknown } }).toMatchObject({ file: { statuses: [{ id: 'profile', state: 'applied' }] } });
+    const viejo = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review, '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n\nResumen viejo\n' }));
+    expect((await readReview(viejo, 'output', name)) as { file: { statuses: unknown } }).toMatchObject({ file: { statuses: [{ id: 'profile', state: 'pending' }] } });
+    const sinFuente = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review }));
+    expect((await readReview(sinFuente, 'output', name)) as { file: { statuses: unknown } }).toMatchObject({ file: { statuses: [{ id: 'profile', state: 'unknown' }] } });
+    // Un perfil que se quedó SIN resumen: ni es la propuesta ni es el que la revisión vio.
+    const vacio = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review, '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n' }));
+    expect((await readReview(vacio, 'output', name)) as { file: { statuses: unknown } }).toMatchObject({ file: { statuses: [{ id: 'profile', state: 'changed' }] } });
+  });
+
+  it('una revisión sin directorio de fuentes en la cabecera mira el de siempre, data/sources', async () => {
+    const review = formatReview({ ...HEADER, dataDir: undefined }, [item('ach-1', 'Original uno', 'Propuesta uno')]);
+    const name = 'revision-improve-2026-08-31.md';
+    const context = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review, '/work/data/sources/experience/acme.md': SOURCE.replace('- Original uno', '- Propuesta uno') }));
+    expect((await readReview(context, 'output', name)) as { file: { statuses: unknown } }).toMatchObject({ file: { statuses: [{ id: 'ach-1', state: 'applied' }] } });
+  });
+
+  it('un ítem sin fuente registrada, o con una ruta que no se admite, es «unknown»', async () => {
+    const sinFuente: ReviewItem = { id: 'ach-9', location: 'x', original: 'Original nueve', proposals: [{ text: 'Propuesta nueve', rationale: 'r', verdict: OK }], fromCache: false, elapsedMs: 1, usage: {} };
+    const fuera: ReviewItem = { ...sinFuente, id: 'ach-8', source: { file: '../fuera.md', line: 1, hash: 'abc' } };
+    const review = formatReview(HEADER, [sinFuente, fuera]);
+    const name = 'revision-improve-2026-08-30.md';
+    const context = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review }));
+    expect((await readReview(context, 'output', name)) as { file: { progress: unknown } }).toMatchObject({ file: { progress: { unknown: 2 } } });
   });
 });

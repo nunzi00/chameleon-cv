@@ -49,6 +49,11 @@ best starting point.
 `--all` doesn't combine with `--copilot` —the co-pilot is asked draft by draft, with its cost— or with `--name`,
 which would make no sense with several.
 
+In the web interface, under **Perfil → Importar CV**, the **«Origen»** selector has a third option: a folder with
+several CVs. You type the folder (relative to the workspace) and you get the same table; if a draft already
+existed, what failed shows up with its reason and a button to **reimport replacing them**, which is a second
+action of yours and never something automatic.
+
 ## The draft report
 
 The draft's `README.md` is the map for your review. It opens with quality warnings that tell you whether it's

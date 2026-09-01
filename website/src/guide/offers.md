@@ -79,6 +79,11 @@ con «—» en vez de con un 100 % engañoso. `--json` da lo mismo para un scrip
 `--rank` no se combina todavía con `--copilot`: el co-piloto se pide oferta a oferta, con su coste y su
 confirmación. Compara primero y refina la que te interese.
 
+En la web, en **Generar → paso 2 → «Del espacio»**, «Comparar varias ofertas» lista lo que hay en `offers/`: marca
+las que estés valorando, pulsa «Comparar N ofertas» y sale la misma tabla, con un botón **«Usar esta»** en cada
+fila que deja esa oferta puesta en el formulario, lista para analizar o generar. Es el mismo análisis
+determinista: no sale nada a la red ni se pide nada a un modelo, así que no hay coste que confirmar.
+
 ## Refinar la lectura de la oferta con el co-piloto
 
 El emparejado es **literal**: si la oferta pide «arquitectura orientada a eventos» y tus skills dicen «Kafka», no

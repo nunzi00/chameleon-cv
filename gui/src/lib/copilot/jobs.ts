@@ -49,7 +49,12 @@ interface ReviewResult {
 }
 
 interface TagsResult {
-  readonly items?: readonly { readonly id?: string | undefined; readonly line?: string; readonly error?: string | undefined }[];
+  readonly items?: readonly {
+    readonly id?: string | undefined;
+    readonly line?: string;
+    readonly error?: string | undefined;
+    readonly accepted?: readonly { readonly tag: string; readonly isNew?: boolean; readonly reason?: string }[];
+  }[];
   readonly stats?: { readonly items?: number; readonly suggested?: number; readonly fresh?: number; readonly rejected?: number; readonly failed?: number };
   readonly cancelled?: boolean;
 }
@@ -79,6 +84,27 @@ export function describeResult(kind: JobKind, result: unknown): ResultView | und
     review: { name: review.review.name, path: review.review.path },
     lines: [],
   };
+}
+
+/** Un logro del resultado con las etiquetas NUEVAS que se le podrían escribir. */
+export interface TagPick {
+  readonly id: string;
+  readonly tags: readonly { readonly tag: string; readonly reason: string }[];
+}
+
+/**
+ * Lo que de un `suggest-tags` terminado se puede llevar a las fuentes (T-9.15): solo logros del perfil —un texto
+ * suelto no tiene dónde escribirse— y solo las etiquetas que la viñeta no tenía ya. Vacío si no hay nada que
+ * ofrecer, y entonces la pantalla no enseña ningún botón que escriba.
+ */
+export function tagPicks(kind: JobKind, result: unknown): readonly TagPick[] {
+  if (kind !== 'suggest-tags' || typeof result !== 'object' || result === null) {
+    return [];
+  }
+  return ((result as TagsResult).items ?? []).flatMap((item) => {
+    const tags = (item.accepted ?? []).filter((tag) => tag.isNew === true).map((tag) => ({ tag: tag.tag, reason: tag.reason ?? '' }));
+    return item.id === undefined || item.error !== undefined || tags.length === 0 ? [] : [{ id: item.id, tags }];
+  });
 }
 
 /** Qué sale y a dónde (el `sending` del 202), en una línea. */

@@ -41,7 +41,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), outputs: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(),
     themes: vi.fn(async () => ({ defaultName: 'default', configWarning: undefined, roots: [], entries: [{ name: 'default' }, { name: 'classic' }] as never })),
     generate: vi.fn(async () => MD),
-    analyze: vi.fn(async () => ANALYSIS), saveAliases: vi.fn(),
+    analyze: vi.fn(async () => ANALYSIS), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(),
     offerHistory: vi.fn(async () => ({ entries: [] })),
     extractOffer: vi.fn(async () => ({ text: 'Texto del PDF' })),
     setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(),
@@ -85,6 +85,41 @@ describe('Generar', () => {
     expect(api.generate).toHaveBeenCalledWith({ format: 'pdf', engine: 'typst', theme: 'classic', topN: 3, compact: true });
     expect(api.output).toHaveBeenCalledWith('cv.pdf');
     expect(screen.getByText('Avisos')).toBeTruthy();
+  });
+
+  it('compara varias ofertas guardadas y deja quedarse con una (T-9.13)', async () => {
+    const rankOffers = vi.fn(async () => ({
+      ranked: [
+        { name: 'acme', recognized: 5, demonstrated: 4, ratio: 0.8, requiredTotal: 3, requiredDemonstrated: 3, gaps: ['kafka'], suggestedSpecialty: 'backend' },
+        { name: 'beta', recognized: 2, demonstrated: 1, ratio: 0.5, requiredTotal: 2, requiredDemonstrated: 1, gaps: [], suggestedSpecialty: undefined },
+      ],
+      failed: [],
+      warnings: [],
+    }));
+    const api = fakeApi({
+      offers: vi.fn(async () => ({
+        files: [
+          { path: 'offers/acme.txt', bytes: 10, modifiedAt: '2026-08-31T00:00:00.000Z', kind: 'text' as const },
+          { path: 'offers/beta.txt', bytes: 10, modifiedAt: '2026-08-31T00:00:00.000Z', kind: 'text' as const },
+        ],
+      })),
+      rankOffers: rankOffers as never,
+    });
+    render(Generar, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('option', { name: 'backend' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('tab', { name: 'Del espacio' }));
+    await fireEvent.focus(screen.getByLabelText('Oferta guardada en offers/'));
+    await waitFor(() => expect(screen.getByText(/Comparar varias ofertas/)).toBeTruthy());
+    // Con una sola marcada no hay nada que comparar: el botón lo dice y no llama a nada.
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'offers/acme.txt' }));
+    expect((screen.getByRole('button', { name: 'Comparar (marca al menos dos)' }) as HTMLButtonElement).disabled).toBe(true);
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'offers/beta.txt' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Comparar 2 ofertas' }));
+    await waitFor(() => expect(screen.getByText('4/5 (80 %)')).toBeTruthy());
+    expect(rankOffers).toHaveBeenCalledWith({ offers: [{ workspaceFile: 'offers/acme.txt' }, { workspaceFile: 'offers/beta.txt' }] });
+    // «Usar esta» deja la oferta elegida en el formulario, lista para analizar o generar.
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Usar esta' })[0]!);
+    expect((screen.getByPlaceholderText('offers/acme.txt') as HTMLInputElement).value).toBe('offers/acme.txt');
   });
 
   it('S2: el selector lista offers/, la URL pasa por consentimiento y el texto llega con procedencia; guardar llama a offerSave', async () => {

@@ -43,7 +43,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     startJob: vi.fn(async () => ({ job: running, sending: { destination: 'ollama (local)', items: 1, words: 9, redactCompanies: false }, warnings: [] })),
     cancelJob: vi.fn(async () => ({ job: { ...running, status: 'cancelled' as const } })),
     jobEvents: vi.fn(() => events([{ event: 'line', data: { line: '[1/1] exp-acme-1: 1/1 aceptadas · 30 ms' }, raw: '' }, { event: 'status', data: { ...running, status: 'done', lines: ['[1/1] exp-acme-1: 1/1 aceptadas · 30 ms'], result: { review: { name: 'revision-improve-2026-08-30.md', path: 'output/revision-improve-2026-08-30.md', sha256: 'h' }, stats: { items: 1, proposals: 1, accepted: 1, rejected: 0, failed: 0, fromCache: 0 } } }, raw: '' }])),
-    validate: vi.fn(), build: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(async () => LLM_CONFIG), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
+    validate: vi.fn(), build: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(async () => LLM_CONFIG), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
     ...overrides,
   };
 }
@@ -106,6 +106,59 @@ describe('Co-piloto', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     await waitFor(() => expect(screen.getByText('cancelado')).toBeTruthy());
     expect(api.cancelJob).toHaveBeenCalledWith('job-0001');
+  });
+
+  it('las etiquetas nuevas se marcan una a una y se escriben en las fuentes; el plan se enseña entero (T-9.15)', async () => {
+    const sugeridas: JobSnapshot = {
+      ...running,
+      id: 'job-0004',
+      kind: 'suggest-tags',
+      status: 'done',
+      result: {
+        items: [
+          { id: 'exp-acme-1', line: '#php #kubernetes', accepted: [{ tag: 'php', isNew: false, reason: 'ya la tenía' }, { tag: 'kubernetes', isNew: true, reason: 'migración a Kubernetes' }, { tag: 'symfony', isNew: true, reason: '' }] },
+          { id: undefined, line: '#php' },
+        ],
+        stats: { items: 2, suggested: 3, fresh: 2, rejected: 0, failed: 0 },
+        cancelled: false,
+      },
+    };
+    const applyTags = vi.fn(async () => ({
+      plan: [{ ok: true as const, id: 'exp-acme-1', file: 'experience/acme.md', line: 12, text: 'Reduje la latencia.', add: ['kubernetes'] }],
+      applied: [{ id: 'exp-acme-1', added: ['kubernetes'] }],
+      skipped: [],
+      written: [{ file: 'experience/acme.md', backup: 'acme.md.bak', ids: ['exp-acme-1'] }],
+    }));
+    const api = fakeApi({ jobs: vi.fn(async () => ({ jobs: [sugeridas] })), applyTags: applyTags as never });
+    render(Copiloto, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByText('Etiquetas nuevas que puedes escribir en tus fuentes')).toBeTruthy());
+    // La que la viñeta ya tenía no se ofrece, y el texto suelto tampoco: no hay dónde escribirlo.
+    expect(screen.queryByText('#php')).toBeNull();
+    expect(screen.getByText('#symfony')).toBeTruthy();
+    // Nada viene marcado: hasta que el usuario elige, el botón no escribe (C2).
+    const boton = screen.getByRole('button', { name: 'Aplicar en mis fuentes' });
+    expect((boton as HTMLButtonElement).disabled).toBe(true);
+    await fireEvent.click(screen.getByRole('checkbox', { name: /kubernetes/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Aplicar 1 en mis fuentes' }));
+    await waitFor(() => expect(applyTags).toHaveBeenCalledWith({ proposals: [{ id: 'exp-acme-1', tags: ['kubernetes'] }] }));
+    expect(screen.getByText('exp-acme-1: #kubernetes')).toBeTruthy();
+    expect(screen.getByText(/Escrito en experience\/acme\.md/)).toBeTruthy();
+    // Escrito lo marcado, se desmarca: no se vuelve a escribir sin volver a elegir.
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Aplicar en mis fuentes' }) as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it('si la escritura de etiquetas falla, se explica y no se pierde lo marcado', async () => {
+    const sugeridas: JobSnapshot = { ...running, id: 'job-0005', kind: 'suggest-tags', status: 'done', result: { items: [{ id: 'exp-acme-1', line: '#kubernetes', accepted: [{ tag: 'kubernetes', isNew: true, reason: '' }] }], stats: { items: 1, suggested: 1, fresh: 1, rejected: 0, failed: 0 }, cancelled: false } };
+    const api = fakeApi({
+      jobs: vi.fn(async () => ({ jobs: [sugeridas] })),
+      applyTags: vi.fn(async () => { throw new ApiError(503, { code: 'environment', message: 'No se pudo escribir experience/acme.md: solo lectura' }); }) as never,
+    });
+    render(Copiloto, { props: { api, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByText('Etiquetas nuevas que puedes escribir en tus fuentes')).toBeTruthy());
+    await fireEvent.click(screen.getByRole('checkbox', { name: /kubernetes/ }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Aplicar 1 en mis fuentes' }));
+    await waitFor(() => expect(screen.getByText(/solo lectura/)).toBeTruthy());
+    expect(screen.getByRole('button', { name: 'Aplicar 1 en mis fuentes' })).toBeTruthy();
   });
 
   it('un 401 al cargar devuelve a la puerta de sesión', async () => {

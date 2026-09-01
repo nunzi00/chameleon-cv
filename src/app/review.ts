@@ -253,6 +253,85 @@ export async function applyReview(context: AppContext, request: ApplyRequest): P
   return { ok: true, outcome: { reviewPath, plan, written, deleted, changes, already, history: recorded.entry } };
 }
 
+/* ---------- Qué queda por aplicar de una revisión (encargo del PO del 1-sep) ---------- */
+
+/**
+ * El estado de un ítem frente a sus fuentes **ahora**, para poder decir qué revisiones ya se aplicaron sin
+ * intentar aplicarlas. Se mira el texto, no una marca en el fichero: una revisión que se aplicó y luego se
+ * deshizo vuelve a salir como pendiente, que es lo cierto.
+ */
+export type ReviewItemState =
+  /** Alguna propuesta está ya, literalmente, en la fuente: eso ya se aplicó. */
+  | 'applied'
+  /** El original sigue ahí: se aplicaría si lo marcas. */
+  | 'pending'
+  /** Ni el original ni ninguna propuesta: la fuente cambió por otro camino. */
+  | 'changed'
+  /** No se puede saber: la revisión no registra la fuente, o no se pudo leer. */
+  | 'unknown';
+
+export interface ReviewItemStatus {
+  readonly id: string;
+  readonly state: ReviewItemState;
+}
+
+/** Cuenta por estado, que es lo que cabe en una lista de revisiones. */
+export interface ReviewProgress {
+  readonly applied: number;
+  readonly pending: number;
+  readonly changed: number;
+  readonly unknown: number;
+}
+
+export function reviewProgress(items: readonly ReviewItemStatus[]): ReviewProgress {
+  const count = (state: ReviewItemState): number => items.filter((item) => item.state === state).length;
+  return { applied: count('applied'), pending: count('pending'), changed: count('changed'), unknown: count('unknown') };
+}
+
+function stateOf(task: ReviewTask, item: ParsedReviewItem, source: ReviewSource, content: string): ReviewItemState {
+  const texts = item.proposals.map((proposal) => proposal.text.trim()).filter((text) => text !== '');
+  if (task === 'improve') {
+    if (texts.some((text) => locateAchievementText(content, text, source.line) !== undefined)) {
+      return 'applied';
+    }
+    return locateAchievementText(content, item.original, source.line) === undefined ? 'changed' : 'pending';
+  }
+  const location = locateSummary(content);
+  const present = (location.kind === 'present' ? location.range.text : '').trim();
+  if (texts.some((text) => text === present)) {
+    return 'applied';
+  }
+  return fingerprint(present) === source.hash ? 'pending' : 'changed';
+}
+
+/**
+ * Compara cada ítem de una revisión con lo que hay hoy en las fuentes. Lee cada fichero una vez —una revisión
+ * suele tocar dos o tres— y no escribe nada: esto es lo que se enseña *antes* de decidir si aplicar.
+ */
+export async function reviewStatus(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>, review: ParsedReview): Promise<readonly ReviewItemStatus[]> {
+  const root = resolve(context.cwd, review.dataDir ?? DEFAULT_DATA_DIR);
+  const contents = new Map<string, string | undefined>();
+  const statuses: ReviewItemStatus[] = [];
+  for (const item of review.items) {
+    const { source } = item;
+    if (source === undefined || !isSafeSourcePath(source.file)) {
+      statuses.push({ id: item.id, state: 'unknown' });
+      continue;
+    }
+    const path = resolve(root, source.file);
+    if (!contents.has(path)) {
+      try {
+        contents.set(path, await context.datasetFileSystem.readTextFile(path));
+      } catch {
+        contents.set(path, undefined);
+      }
+    }
+    const content = contents.get(path);
+    statuses.push({ id: item.id, state: content === undefined ? 'unknown' : stateOf(review.task, item, source, content) });
+  }
+  return statuses;
+}
+
 /* ---------- Listado y lectura de revisiones (clientes) ---------- */
 
 export interface ReviewSummary {
@@ -265,16 +344,19 @@ export interface ReviewSummary {
   readonly marked: number;
   /** Motivo por el que no se pudo interpretar, si lo hay. */
   readonly error: string | undefined;
+  /** Cuántos ítems están ya en las fuentes, cuántos quedan y cuántos no cuadran (encargo del PO del 1-sep). */
+  readonly progress: ReviewProgress | undefined;
 }
 
-function summarize(name: string, path: string, text: string): ReviewSummary {
+async function summarize(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>, name: string, path: string, text: string): Promise<ReviewSummary> {
   const parsed = parseReview(text);
   const sha256 = contentHash(text);
   if (!parsed.ok) {
-    return { name, path, sha256, task: undefined, items: 0, marked: 0, error: parsed.message };
+    return { name, path, sha256, task: undefined, items: 0, marked: 0, error: parsed.message, progress: undefined };
   }
   const marked = parsed.review.items.reduce((sum, item) => sum + item.proposals.filter((proposal) => proposal.checked).length, 0);
-  return { name, path, sha256, task: parsed.review.task, items: parsed.review.items.length, marked, error: undefined };
+  const progress = reviewProgress(await reviewStatus(context, parsed.review));
+  return { name, path, sha256, task: parsed.review.task, items: parsed.review.items.length, marked, error: undefined, progress };
 }
 
 /** Las revisiones (`revision-*.md`) de un directorio, por nombre. */
@@ -292,7 +374,7 @@ export async function listReviews(context: AppContext, directory: string): Promi
   const summaries: ReviewSummary[] = [];
   for (const name of names) {
     const path = resolve(root, name);
-    summaries.push(summarize(name, path, await context.datasetFileSystem.readTextFile(path)));
+    summaries.push(await summarize(context, name, path, await context.datasetFileSystem.readTextFile(path)));
   }
   return summaries;
 }
@@ -300,6 +382,8 @@ export async function listReviews(context: AppContext, directory: string): Promi
 export interface ReviewFile extends ReviewSummary {
   readonly text: string;
   readonly review: ParsedReview | undefined;
+  /** El estado de cada ítem frente a las fuentes de ahora; vacío si la revisión no se pudo interpretar. */
+  readonly statuses: readonly ReviewItemStatus[];
 }
 
 export type ReviewReadResult = { readonly ok: true; readonly file: ReviewFile } | { readonly ok: false; readonly error: AppError };
@@ -313,7 +397,8 @@ export async function readReview(context: AppContext, directory: string, name: s
   try {
     const text = await context.datasetFileSystem.readTextFile(path);
     const parsed = parseReview(text);
-    return { ok: true, file: { ...summarize(name, path, text), text, review: parsed.ok ? parsed.review : undefined } };
+    const statuses = parsed.ok ? await reviewStatus(context, parsed.review) : [];
+    return { ok: true, file: { ...(await summarize(context, name, path, text)), text, review: parsed.ok ? parsed.review : undefined, statuses } };
   } catch (error) {
     return { ok: false, error: isMissingFile(error) ? { code: 'not-found', message: `No existe la revisión «${name}»`, exitCode: 2 } : environmentError(`No se pudo leer la revisión «${name}»: ${describeError(error)}`) };
   }

@@ -485,6 +485,12 @@ pre.cv-progress { max-height: 12rem; }
 .cv-split-salidas { display: grid; grid-template-columns: minmax(400px, 44%) 1fr; gap: 14px; align-items: start; }
 @media (max-width: 1024px) { .cv-split-salidas { grid-template-columns: 1fr; } }
 .cv-table-outputs .cv-table-head, .cv-table-outputs .cv-table-row { grid-template-columns: 1fr 62px; }
+/* Comparar ofertas (T-9.13): la misma tabla de la terminal, con el botón para quedarse con una. */
+.cv-table-rank .cv-table-head, .cv-table-rank .cv-table-row { grid-template-columns: minmax(120px, 1.4fr) 110px 110px 110px minmax(120px, 1.6fr) auto; }
+.cv-rank-panel { margin-top: 10px; }
+.cv-rank-panel > summary { cursor: pointer; font-size: var(--cv-size-sm); }
+/* Importar una carpeta (T-9.14): la tabla comparativa de los borradores. */
+.cv-table-corpus .cv-table-head, .cv-table-corpus .cv-table-row { grid-template-columns: minmax(120px, 1.4fr) minmax(120px, 1.4fr) 52px 52px 52px 62px 74px; }
 .cv-output-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .cv-output-name .cv-mono { font: var(--cv-size-sm)/1.4 var(--cv-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cv-table + .cv-actions { margin-top: 10px; }

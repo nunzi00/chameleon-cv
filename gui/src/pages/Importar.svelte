@@ -3,7 +3,7 @@
   import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
-  import type { ImportCvResponse, ImportMapJobResult, LlmConfigResponse } from '../lib/api/types';
+  import type { ImportCvResponse, ImportFolderResponse, ImportMapJobResult, LlmConfigResponse } from '../lib/api/types';
   import { ApiError } from '../lib/api/client';
   import { launchProblem, type LaunchProblem } from '../lib/copilot/consent';
   import { applyJobEvent, isFinished, type JobSnapshot } from '../lib/copilot/jobs';
@@ -20,7 +20,10 @@
   // Dos orígenes con el mismo destino: un CV maquetado (se adivina la maquetación) o la exportación oficial de
   // datos de LinkedIn (CSV estructurado, sin adivinar nada y sin líneas sin situar). La URL del perfil NO es una
   // opción: el robots.txt de LinkedIn prohíbe el acceso automatizado y esa URL devuelve el muro de acceso.
-  let source = $state<'cv' | 'linkedin'>('cv');
+  let source = $state<'cv' | 'linkedin' | 'carpeta'>('cv');
+  /* ── T-9.14: una carpeta entera del espacio de trabajo, un borrador por CV ── */
+  let folder = $state('');
+  let folderResult = $state<ImportFolderResponse | undefined>(undefined);
   let file = $state<File | undefined>(undefined);
   let name = $state('');
   let busy = $state(false);
@@ -143,6 +146,32 @@
     }
   }
 
+  /**
+   * Importa todos los CV de una carpeta del espacio de trabajo (T-9.14). Cada uno va a su propio borrador,
+   * nombrado por el fichero, y la tabla es lo que sirve para decidir cuál merece la pena revisar. Uno que falle
+   * se anota y no detiene a los demás.
+   */
+  async function importFolder(replace: boolean): Promise<void> {
+    if (folder.trim() === '' || busy) {
+      return;
+    }
+    busy = true;
+    error = undefined;
+    conflict = false;
+    folderResult = undefined;
+    try {
+      folderResult = await api.importFolder({ directory: folder.trim(), ...(replace ? { replace: true } : {}) });
+    } catch (caught) {
+      const explained = explainError(caught);
+      error = explained;
+      if (explained.kind === 'session') {
+        onsession();
+      }
+    } finally {
+      busy = false;
+    }
+  }
+
   /** El catálogo de proveedores se pide una sola vez, y solo cuando hay un borrador que refinar. */
   async function loadProviders(): Promise<void> {
     if (config !== undefined) {
@@ -218,12 +247,13 @@
     </p>
   </header>
 
-  <form class="cv-import-form" onsubmit={(event) => { event.preventDefault(); void importCv(false); }}>
+  <form class="cv-import-form" onsubmit={(event) => { event.preventDefault(); if (source === 'carpeta') { void importFolder(false); } else { void importCv(false); } }}>
     <label class="cv-field">
       <span>Origen</span>
-      <select bind:value={source} onchange={() => { file = undefined; result = undefined; error = undefined; }}>
+      <select bind:value={source} onchange={() => { file = undefined; result = undefined; folderResult = undefined; error = undefined; }}>
         <option value="cv">Un CV maquetado (.pdf o .docx)</option>
         <option value="linkedin">La exportación de datos de LinkedIn (.zip)</option>
+        <option value="carpeta">Una carpeta con varios CV (se comparan)</option>
       </select>
     </label>
     {#if source === 'linkedin'}
@@ -235,21 +265,36 @@
         prohíbe el acceso automatizado y esa dirección devuelve el muro de acceso, no el CV.
       </p>
     {/if}
-    <label class="cv-field">
-      <span>{source === 'linkedin' ? 'Fichero (.zip de la exportación)' : 'Fichero (.pdf o .docx)'}</span>
-      {#if source === 'linkedin'}
-        <input type="file" accept=".zip,application/zip" onchange={pick} />
-      {:else}
-        <input type="file" accept=".pdf,.docx,application/pdf" onchange={pick} />
-      {/if}
-    </label>
-    <label class="cv-field">
-      <span>Nombre del borrador (opcional)</span>
-      <input type="text" placeholder="por defecto, el nombre del CV" bind:value={name} />
-    </label>
-    <button class="cv-button" type="submit" disabled={file === undefined || busy}>
-      {busy ? 'Importando…' : 'Importar como borrador'}
-    </button>
+    {#if source === 'carpeta'}
+      <p class="cv-muted">
+        Se importan los <code>.pdf</code> y <code>.docx</code> del <strong>primer nivel</strong> de la carpeta, cada uno a
+        su propio borrador <strong>nombrado por el fichero</strong> —si todos son tuyos, el nombre del perfil sería el
+        mismo para todos y solo entraría el primero—. Uno que falle se anota y no detiene a los demás.
+      </p>
+      <label class="cv-field">
+        <span>Carpeta (relativa al espacio de trabajo)</span>
+        <input type="text" class="mono" placeholder="mis-cv" bind:value={folder} />
+      </label>
+      <button class="cv-button" type="submit" disabled={folder.trim() === '' || busy}>
+        {busy ? 'Importando…' : 'Importar la carpeta'}
+      </button>
+    {:else}
+      <label class="cv-field">
+        <span>{source === 'linkedin' ? 'Fichero (.zip de la exportación)' : 'Fichero (.pdf o .docx)'}</span>
+        {#if source === 'linkedin'}
+          <input type="file" accept=".zip,application/zip" onchange={pick} />
+        {:else}
+          <input type="file" accept=".pdf,.docx,application/pdf" onchange={pick} />
+        {/if}
+      </label>
+      <label class="cv-field">
+        <span>Nombre del borrador (opcional)</span>
+        <input type="text" placeholder="por defecto, el nombre del CV" bind:value={name} />
+      </label>
+      <button class="cv-button" type="submit" disabled={file === undefined || busy}>
+        {busy ? 'Importando…' : 'Importar como borrador'}
+      </button>
+    {/if}
   </form>
 
   {#if error !== undefined}
@@ -259,6 +304,32 @@
         <button class="cv-button" type="button" onclick={() => void importCv(true)} disabled={busy}>Sustituir el borrador existente</button>
       {/if}
     </Notice>
+  {/if}
+
+  {#if folderResult !== undefined}
+    <div class="cv-import-result">
+      <Notice kind={folderResult.imported.length === 0 ? 'warn' : 'ok'} title={`${folderResult.imported.length} de ${folderResult.total} CV importados`}>
+        <p>Revisa el <code>README.md</code> de cada borrador: la fila con menos avisos y menos líneas sin situar suele ser el mejor punto de partida.</p>
+      </Notice>
+      <div class="cv-table cv-table-corpus">
+        <div class="cv-table-head"><span>Fichero</span><span>Borrador</span><span>Exp.</span><span>Form.</span><span>Hab.</span><span>Avisos</span><span>Sin situar</span></div>
+        {#each folderResult.imported as row (row.file)}
+          <div class="cv-table-row static">
+            <span class="cv-mono">{row.file}</span>
+            <span class="cv-mono">import/{row.name}</span>
+            <span class="cv-muted">{row.counts.experience}</span>
+            <span class="cv-muted">{row.counts.education}</span>
+            <span class="cv-muted">{row.counts.skills}</span>
+            <span class="cv-muted">{row.issues}</span>
+            <span class="cv-muted">{row.unparsed}</span>
+          </div>
+        {/each}
+      </div>
+      {#if folderResult.failed.length > 0}
+        <Notice kind="error" title="No se pudieron importar" lines={folderResult.failed.map((entry) => `${entry.file}: ${entry.message}`)}></Notice>
+        <div class="cv-actions"><button class="cv-button small" type="button" disabled={busy} onclick={() => void importFolder(true)}>Reimportar sustituyendo los borradores</button></div>
+      {/if}
+    </div>
   {/if}
 
   {#if result !== undefined}

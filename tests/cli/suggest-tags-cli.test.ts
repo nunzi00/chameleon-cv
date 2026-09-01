@@ -1,4 +1,5 @@
-import { join } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -111,6 +112,25 @@ async function artifactWithUntagged(): Promise<string> {
   const json = JSON.parse(await loadArtifact()) as { experience: Array<{ achievements: Array<Record<string, unknown>> }> };
   json.experience[0]?.achievements.push({ id: 'exp-acme-nuevo', text: 'Migré la plataforma a Kubernetes.', tags: [] });
   return JSON.stringify(json);
+}
+
+const SOURCES = '/work/data/sources';
+const FIXTURE = join(__dirname, '../fixtures/dataset');
+let tree: Record<string, MemoryEntry> | undefined;
+
+/** Las fuentes de la fixture en memoria: `--apply` escribe en ellas, así que tienen que estar. */
+async function sources(): Promise<Record<string, MemoryEntry>> {
+  if (tree === undefined) {
+    const built: Record<string, MemoryEntry> = {};
+    for (const entry of await readdir(FIXTURE, { recursive: true, withFileTypes: true })) {
+      if (entry.isFile()) {
+        const absolute = join(entry.parentPath, entry.name);
+        built[`${SOURCES}/${relative(FIXTURE, absolute)}`] = { kind: 'file', content: await readFile(absolute, 'utf8'), mtimeMs: 100 };
+      }
+    }
+    tree = built;
+  }
+  return tree;
 }
 
 describe('cv suggest tags (T-4.6): diccionario cerrado, salida limpia, nunca escribe en las fuentes', () => {
@@ -266,5 +286,62 @@ describe('cv suggest tags (T-4.6): diccionario cerrado, salida limpia, nunca esc
     expect(accepted.stderr()).toContain('Confirmado con --yes\n');
     expect(accepted.stdout()).toBe('#php #kubernetes #symfony\n');
     expect(remoteCalls).toHaveLength(1);
+  });
+});
+
+describe('cv suggest tags --apply (T-9.15): de la sugerencia a la fuente, solo lo que apruebas', () => {
+  it('escribe solo las etiquetas nuevas, al final de la viñeta, con copia .bak y sin tocar nada más', async () => {
+    const h = await harness({ extra: await sources() });
+    const antes = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
+    expect(await runCli(['suggest', 'tags', '--only', 'exp-acme-1', '--apply', '--yes'], h.context)).toBe(EXIT_OK);
+    const despues = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
+    // #php ya la tenía: entran las dos nuevas, detrás de las que ya había.
+    expect(despues).toContain('#performance #php #kubernetes #symfony\n');
+    expect(h.stderr()).toContain('  exp-acme-1: #kubernetes #symfony\n');
+    expect(h.stderr()).toContain('(copia .bak al lado) · recompila con «cv build»\n');
+    expect(h.fs.file(`${SOURCES}/experience/acme.md.bak`)?.content).toBe(antes);
+    expect(despues.split('\n')).toHaveLength(antes.split('\n').length);
+    // Y a la segunda, aunque el artefacto siga sin recompilar, la fuente manda: ni se reescribe ni deja copia.
+    const otra = await harness({ extra: { ...(await sources()), [`${SOURCES}/experience/acme.md`]: { kind: 'file', content: despues, mtimeMs: 100 } } });
+    expect(await runCli(['suggest', 'tags', '--only', 'exp-acme-1', '--apply', '--yes'], otra.context)).toBe(EXIT_OK);
+    expect(otra.stderr()).toContain('no se aplicó «exp-acme-1»: ya las tenía\n');
+    expect(otra.fs.file(`${SOURCES}/experience/acme.md`)?.content).toBe(despues);
+    expect(otra.fs.file(`${SOURCES}/experience/acme.md.bak`)).toBeUndefined();
+  });
+
+  it('con terminal pregunta logro a logro, y lo que no confirmas no se escribe', async () => {
+    const preguntas: string[] = [];
+    const h = await harness({ extra: await sources(), confirm: (question: string) => { preguntas.push(question); return Promise.resolve(false); } });
+    const antes = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
+    expect(await runCli(['suggest', 'tags', '--only', 'exp-acme-1', '--apply'], h.context)).toBe(EXIT_OK);
+    expect(preguntas).toEqual(['¿Añadir #kubernetes #symfony a «exp-acme-1»?']);
+    expect(h.stderr()).toContain('No se aplicó ninguna etiqueta.\n');
+    expect(h.fs.file(`${SOURCES}/experience/acme.md`)?.content).toBe(antes);
+  });
+
+  it('un texto suelto no tiene fuente donde aplicarse, y se dice en vez de escribir a ciegas', async () => {
+    const h = await harness({ extra: await sources() });
+    expect(await runCli(['suggest', 'tags', 'Migré la plataforma a Kubernetes', '--apply', '--yes'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('No se aplicó ninguna etiqueta.\n');
+  });
+
+  it('si el artefacto va por delante de las fuentes, ese logro no se escribe y se dice por qué', async () => {
+    const h = await harness({ artifact: await artifactWithUntagged(), extra: await sources() });
+    expect(await runCli(['suggest', 'tags', '--only', 'exp-acme-nuevo', '--apply', '--yes'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('no se aplicó «exp-acme-nuevo»: no está en las fuentes (¿artefacto obsoleto? recompila con «cv build»)\n');
+  });
+
+  it('si la fuente no se puede escribir, la orden termina en error y lo dice', async () => {
+    const h = await harness({ extra: await sources() });
+    const readOnly = new Proxy(h.fs, { get: (target, key) => (key === 'writeFile' ? () => Promise.reject(new Error('solo lectura')) : Reflect.get(target, key, target)) });
+    expect(await runCli(['suggest', 'tags', '--only', 'exp-acme-1', '--apply', '--yes'], { ...h.context, artifactFileSystem: readOnly })).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('No se pudo escribir experience/acme.md: solo lectura');
+  });
+
+  it('unas fuentes que no validan detienen la escritura', async () => {
+    const roto = { ...(await sources()), [`${SOURCES}/experience/acme.md`]: { kind: 'file' as const, content: '---\nrole: sin empresa\n---\n', mtimeMs: 100 } };
+    const h = await harness({ extra: roto });
+    expect(await runCli(['suggest', 'tags', '--only', 'exp-acme-1', '--apply', '--yes'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('compruébalo con «cv validate»');
   });
 });

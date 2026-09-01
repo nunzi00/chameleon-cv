@@ -3,9 +3,9 @@
  * `importCvDraft` — lee el fichero, importa el borrador a `import/<nombre>/` y resume por stderr;
  * los códigos de salida siguen el `AppError` (datos/conflicto = 1, entorno = 2).
  */
-import { basename, join, resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 
-import { importCvDraft, type ImportCopilotOptions, type ImportedDraft } from '../../app/import-cv';
+import { importCvDraft, importCvFolder, type ImportCopilotOptions, type ImportedDraft } from '../../app/import-cv';
 import { selectCopilotProvider } from '../../app/copilot';
 import { IMPORT_MAP_LIMITS, estimateBatch, loadImportMapPrompt } from '../../llm';
 import type { CliContext } from '../context';
@@ -28,9 +28,6 @@ export interface ImportCvOptions {
 }
 
 /** Importa un CV (PDF/DOCX) a un borrador de fuentes; devuelve el código de salida. */
-/** Lo que el importador sabe leer. */
-const IMPORTABLE = /\.(?:pdf|docx)$/i;
-
 type ImportOneOutcome = { readonly ok: true; readonly draft: ImportedDraft } | { readonly ok: false; readonly message: string; readonly exitCode: number };
 
 /** Leer el fichero e importarlo: el mismo camino para un CV suelto y para cada uno de los de una carpeta (C14). */
@@ -45,26 +42,9 @@ async function importOne(context: CliContext, file: string, options: ImportCvOpt
   return result.ok ? { ok: true, draft: result.draft } : { ok: false, message: result.error.message, exitCode: result.error.exitCode };
 }
 
-/** Los CV de una carpeta, en orden estable: solo el primer nivel, y solo lo que el importador sabe leer. */
-async function cvsIn(context: CliContext, directory: string): Promise<readonly string[] | undefined> {
-  let entries;
-  try {
-    entries = await context.datasetFileSystem.readDirectory(resolve(context.cwd, directory));
-  } catch {
-    return undefined;
-  }
-  return entries
-    .filter((entry) => entry.kind === 'file' && IMPORTABLE.test(entry.name))
-    .map((entry) => join(directory, entry.name))
-    .sort((a, b) => a.localeCompare(b, 'es'));
-}
-
 /**
- * Importar una carpeta entera (T-9.14). Cada CV va a su propio borrador con el mismo camino de siempre —esto no
- * es un importador aparte, es un bucle— y al final se enseña una tabla comparativa. Es lo que hace falta para
- * mirar un corpus de una vez, y es justo lo que caza regresiones como B-13 o B-14.
- *
- * Un fichero que falla no detiene a los demás: se anota y se sigue, porque lo útil es ver el conjunto.
+ * Importar una carpeta entera (T-9.14): el bucle vive en el núcleo (`importCvFolder`), porque la web pide lo
+ * mismo (C14); aquí queda lo que es de la terminal —las dos combinaciones que no tienen sentido, y la tabla—.
  */
 async function runImportAll(context: CliContext, directory: string, options: ImportCvOptions): Promise<number> {
   if (options.copilot === true) {
@@ -75,38 +55,21 @@ async function runImportAll(context: CliContext, directory: string, options: Imp
     context.stderr('--all importa varios CV, así que --name no aplica: cada borrador toma el nombre de su perfil.\n');
     return EXIT_FAILURE;
   }
-  const files = await cvsIn(context, directory);
-  if (files === undefined) {
-    context.stderr(`No se pudo leer la carpeta ${directory}\n`);
-    return 2;
+  const outcome = await importCvFolder(context, directory, { replace: options.replace });
+  if (!outcome.ok) {
+    context.stderr(`${outcome.error.message}\n`);
+    return outcome.error.exitCode;
   }
-  if (files.length === 0) {
-    context.stderr(`No hay CV que importar en ${directory} (se buscan .pdf y .docx en el primer nivel)\n`);
-    return EXIT_FAILURE;
-  }
-  const rows: string[][] = [];
-  const failed: string[] = [];
-  for (const file of files) {
-    // El borrador toma el nombre del FICHERO, no el del perfil. Al importar un corpus lo normal es que todos los
-    // CV sean de la misma persona —lo son, si estás comparando el tuyo— y con el nombre del perfil los seis
-    // querrían la misma carpeta y solo entraría el primero. Además así se ve de un vistazo de dónde salió cada uno.
-    const outcome = await importOne(context, file, { ...options, name: basename(file).replace(IMPORTABLE, '') });
-    if (outcome.ok) {
-      const { draft } = outcome;
-      const { profile } = draft;
-      rows.push([
-        basename(file),
-        `import/${draft.name}`,
-        String(profile.experience.length),
-        String(profile.education.length),
-        String(profile.skills.length),
-        String(draft.issues.length),
-        String(draft.unparsed.length),
-      ]);
-    } else {
-      failed.push(`${basename(file)}: ${outcome.message}`);
-    }
-  }
+  const { total, imported, failed } = outcome.result;
+  const rows = imported.map(({ file, draft }) => [
+    basename(file),
+    `import/${draft.name}`,
+    String(draft.profile.experience.length),
+    String(draft.profile.education.length),
+    String(draft.profile.skills.length),
+    String(draft.issues.length),
+    String(draft.unparsed.length),
+  ]);
   const header = ['Fichero', 'Borrador', 'Exp.', 'Form.', 'Hab.', 'Avisos', 'Sin situar'];
   const widths = header.map((title, column) => rows.reduce((max, row) => Math.max(max, row[column]!.length), title.length));
   const line = (cells: readonly string[]): string => cells.map((cell, column) => (column <= 1 ? cell.padEnd(widths[column]!) : cell.padStart(widths[column]!))).join('  ');
@@ -115,9 +78,9 @@ async function runImportAll(context: CliContext, directory: string, options: Imp
     context.stdout(`${line(row)}\n`);
   }
   for (const failure of failed) {
-    context.stderr(`No se pudo importar ${failure}\n`);
+    context.stderr(`No se pudo importar ${basename(failure.file)}: ${failure.message}\n`);
   }
-  context.stderr(`${rows.length} de ${files.length} CV importados; revisa el README.md de cada borrador\n`);
+  context.stderr(`${rows.length} de ${total} CV importados; revisa el README.md de cada borrador\n`);
   return rows.length === 0 ? EXIT_FAILURE : EXIT_OK;
 }
 

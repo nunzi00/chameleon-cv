@@ -39,6 +39,20 @@ Envía una representación textual y seudonimizada del perfil **ya filtrado** (c
 
 Cierra el ciclo con el motor determinista: el selector y la puntuación dependen de las etiquetas, y este comando propone —**solo del diccionario cerrado** formado por las tags de tus especialidades— las que un texto («-» = stdin) o los logros del perfil (`--only <ids>`, `--untagged`, `-s` para acotar el diccionario) demuestran. El código verifica cada etiqueta devuelta: lo que no está en el diccionario se rechaza, `pin` está reservada, no hay duplicados ni más de `--max-tags`, y cada etiqueta aceptada lleva su **evidencia calculada por código** (`literal`, `contexto` o `inferida`; `--explain` la muestra). Por stdout sale la línea lista para pegar (`#php #kubernetes`).
 
+Con `--apply` no hay que pegar nada: **las que apruebes se escriben en tus fuentes**. Con terminal se pregunta
+logro a logro (`--yes` las acepta todas sin preguntar), y solo entran las etiquetas que la viñeta no tenía: se
+añaden al final de su línea, detrás de las que ya llevara, con copia `.bak` al lado y sin tocar nada más. Si el
+logro cambió a mano desde que se sugirió, ese no se escribe y se dice por qué. Después, `cv build`.
+
+```bash
+cv suggest tags --untagged --apply          # pregunta logro a logro y escribe lo que aceptes
+cv suggest tags --only exp-acme-1 --apply --yes && cv build
+```
+
+En la web es lo mismo desde **Co-piloto**: cuando el trabajo termina, cada logro enseña sus etiquetas nuevas con
+una casilla —ninguna viene marcada— y «Aplicar en mis fuentes» escribe solo las marcadas, con el mismo plan de lo
+que no se escribió y por qué.
+
 ## Cerrar el ciclo: `cv improve apply`
 
 Marca con `[x]` en el fichero de revisión (de `improve` o de `summarize`) las propuestas que quieras adoptar —puedes retocar su texto— y aplícalas. Es la única orden que escribe en `data/sources/`, con cuatro garantías: **solo lo marcado** (una propuesta por ítem); **cambio mínimo** (solo el texto del logro o el resumen; `#hashtags`, metadatos y el resto del fichero quedan byte a byte iguales); **copia de seguridad previa** (`<fichero>.bak`, y `.bak.1`, `.bak.2`… si ya existía); y **comprobación por huella**: la revisión registra fichero, línea y `sha256` de cada original, y si el original ya no está tal cual no se escribe nada. `--dry-run` muestra el plan, `--delete-review` elimina la revisión aplicada, y después recompila con `cv build`.
@@ -48,6 +62,11 @@ Marca con `[x]` en el fichero de revisión (de `improve` o de `summarize`) las p
 de fuentes, que la propia orden te recuerda: `cv history` lista las versiones anteriores y
 `cv history restore latest <fuente>` devuelve la de antes (la actual queda a su vez en el histórico). En la web,
 lo mismo desde **Fuentes → Historial de esta fuente**, con «Ver diferencias» y «Restaurar esta versión».
+
+Y no hace falta aplicar para saberlo: en la web, **Revisiones** compara cada ítem con lo que hay **hoy** en tus
+fuentes y lo dice al lado —«ya aplicada», «sin aplicar», «la fuente cambió» o «sin fuente registrada»—, con el
+recuento junto al nombre en la lista («1 de 3 ya aplicadas»). Se mira el texto, no una marca guardada: una
+revisión que apliques y luego deshagas con `cv history restore` vuelve a salir como pendiente, que es lo cierto.
 
 ## Proveedores remotos (opcional)
 

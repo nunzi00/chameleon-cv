@@ -128,7 +128,7 @@ describe('cv improve (T-4.3)', () => {
     expect(await runCli(['improve', '--only', 'exp-acme-1', '--no-cache'], fresh.context)).toBe(EXIT_OK);
     // Con --no-wait-quota se vuelve al comportamiento de antes: si el proveedor agota la cuota, se para a la
     // primera en vez de esperar lo que pida (T-9.16).
-    const sinEspera = await harness();
+    const sinEspera = await harness(undefined);
     expect(await runCli(['improve', '--only', 'exp-acme-1', '--no-wait-quota'], sinEspera.context)).toBe(EXIT_OK);
     expect(fresh.calls).toHaveLength(1);
     expect(fresh.cache.size).toBe(0);

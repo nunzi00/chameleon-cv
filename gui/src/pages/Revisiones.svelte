@@ -41,6 +41,19 @@
   const dirty = $derived(file !== undefined && text !== file.text);
   const markedCount = $derived(countMarks(text));
   const TASKS: Readonly<Record<string, string>> = { improve: 'mejorar logros', summarize: 'resumen profesional' };
+  /** El estado de cada ítem frente a las fuentes de AHORA (encargo del PO del 1-sep: saber qué ya se aplicó). */
+  const STATES: Readonly<Record<string, { readonly label: string; readonly badge: string }>> = {
+    applied: { label: 'ya aplicada', badge: 'ok' },
+    pending: { label: 'sin aplicar', badge: '' },
+    changed: { label: 'la fuente cambió', badge: 'warn' },
+    unknown: { label: 'sin fuente registrada', badge: 'warn' },
+  };
+  const stateOf = $derived((itemId: string): string | undefined => file?.statuses.find((status) => status.id === itemId)?.state);
+
+  /** Lo que se dice al lado del nombre en la lista: «3 de 5 ya aplicadas» solo cuando hay algo aplicado. */
+  function progressOf(entry: { readonly progress?: { readonly applied: number } | undefined; readonly items: number }): string {
+    return entry.progress === undefined || entry.progress.applied === 0 ? '' : ` · ${entry.progress.applied} de ${entry.items} ya aplicadas`;
+  }
 
   function key(itemId: string, number: number): string {
     return `${itemId}#${number}`;
@@ -196,7 +209,7 @@
           {#each list as entry (entry.name)}
             <button class="cv-tree-file cv-review-entry" type="button" aria-current={item === entry.name ? 'true' : undefined} onclick={() => navigate({ page: 'revisiones', item: entry.name })}>
               <span>{entry.name}</span>
-              <small class="cv-muted">{entry.error !== undefined ? 'no interpretable' : `${TASKS[entry.task ?? ''] ?? entry.task} · ${plural(entry.items, 'ítem', 'ítems')} · ${entry.marked} marcadas`}</small>
+              <small class="cv-muted">{entry.error !== undefined ? 'no interpretable' : `${TASKS[entry.task ?? ''] ?? entry.task} · ${plural(entry.items, 'ítem', 'ítems')} · ${entry.marked} marcadas${progressOf(entry)}`}</small>
             </button>
           {/each}
         </div>
@@ -251,6 +264,9 @@
                 <code class="cv-review-id">{entry.id}</code>
                 <span class="cv-muted">{entry.location}</span>
                 <span class="cv-header-spacer"></span>
+                {#if stateOf(entry.id) !== undefined}
+                  <span class={`cv-badge ${STATES[stateOf(entry.id) ?? '']?.badge ?? ''}`}>{STATES[stateOf(entry.id) ?? '']?.label ?? ''}</span>
+                {/if}
                 <span class="cv-muted">{markedIn(entry.id, entry.proposals)} de {entry.proposals.length} marcada{entry.proposals.length === 1 ? '' : 's'}</span>
               </div>
               {#if entry.error !== undefined}<Notice kind="error" title="Sin propuestas">{entry.error}</Notice>{/if}

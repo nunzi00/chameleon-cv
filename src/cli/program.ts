@@ -280,6 +280,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--explain', 'explica cada etiqueta: evidencia calculada por código (literal, contexto, inferida), si es nueva y la justificación del modelo', false)
     .option('--no-cache', 'no leer ni guardar la caché local de respuestas')
     .option('--no-wait-quota', 'si el proveedor agota la cuota y dice cuánto esperar, no esperar: detener la tanda a la primera (por defecto se espera y se reintenta hasta dos veces)')
+    .option('--apply', 'escribe en tus fuentes las etiquetas nuevas que aceptes (con terminal se pregunta una a una; deja copia .bak y hay que recompilar)', false)
     .option('--show-prompt', 'imprime el prompt exacto y termina', false)
     .option('--show-payload', 'imprime los fragmentos seudonimizados que saldrían', false)
     .option('--dry-run', 'no envía nada: solo dice qué saldría y a dónde', false)

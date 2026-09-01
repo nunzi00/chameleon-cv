@@ -15,17 +15,19 @@ const PARSED: ReviewResponse['review'] = {
   marked: 0,
   error: undefined,
   text: TEXT,
+  statuses: [{ id: 'ach-1', state: 'pending' as const }],
+  progress: { applied: 0, pending: 1, changed: 0, unknown: 0 },
   review: { task: 'improve', specialty: 'backend', dataDir: 'data/sources', items: [{ id: 'ach-1', location: 'Dev · ACME', original: 'Reduje la latencia.', source: { file: 'experience/acme.md', line: 15, hash: 'abc' }, proposals: [{ number: 1, text: 'Reduje la latencia un 40 %.', accepted: true, checked: false }, { number: 2, text: 'Bajé la latencia.', accepted: false, checked: false }] }] },
 };
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined }, { name: 'revision-rota.md', path: '/work/output/revision-rota.md', sha256: 'x', task: undefined, items: 0, marked: 0, error: 'sin cabecera' }] })),
+    reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined, progress: { applied: 0, pending: 1, changed: 0, unknown: 0 } }, { name: 'revision-rota.md', path: '/work/output/revision-rota.md', sha256: 'x', task: undefined, items: 0, marked: 0, error: 'sin cabecera', progress: undefined }] })),
     review: vi.fn(async (name: string) => ({ review: name === 'revision-rota.md' ? { ...PARSED, name, text: 'sin cabecera', review: undefined, error: 'sin cabecera' } : PARSED })),
     writeReview: vi.fn(async (name: string) => ({ name, sha256: 'sha-2' })),
-    applyReview: vi.fn(async (_name: string, body: { dryRun?: boolean }) => (body.dryRun === false ? { reviewPath: '/work/output/r.md', plan: [], written: [{ path: '/work/data/sources/experience/acme.md', backup: '/work/data/sources/experience/acme.md.bak', ids: ['ach-1'] }], deleted: false, changes: 1, history: undefined } : { reviewPath: '/work/output/r.md', plan: [{ path: '/work/data/sources/experience/acme.md', edits: [{ id: 'ach-1', text: 'Reduje la latencia un 40 %.' }], before: '---\nrole: Dev\n---\n- Reduje la latencia.\n- Otro logro.\n', after: '---\nrole: Dev\n---\n- Reduje la latencia un 40 %.\n- Otro logro.\n' }], written: [], deleted: false, changes: 0, history: undefined })),
+    applyReview: vi.fn(async (_name: string, body: { dryRun?: boolean }) => (body.dryRun === false ? { reviewPath: '/work/output/r.md', plan: [], written: [{ path: '/work/data/sources/experience/acme.md', backup: '/work/data/sources/experience/acme.md.bak', ids: ['ach-1'] }], already: [], deleted: false, changes: 1, history: undefined } : { reviewPath: '/work/output/r.md', plan: [{ path: '/work/data/sources/experience/acme.md', edits: [{ id: 'ach-1', text: 'Reduje la latencia un 40 %.' }], before: '---\nrole: Dev\n---\n- Reduje la latencia.\n- Otro logro.\n', after: '---\nrole: Dev\n---\n- Reduje la latencia un 40 %.\n- Otro logro.\n' }], written: [], already: [], deleted: false, changes: 0, history: undefined })),
     deleteReview: vi.fn(async (name: string) => ({ deleted: name })),
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
     ...overrides,
   };
 }
@@ -79,5 +81,21 @@ describe('Revisiones', () => {
     (api.review as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new ApiError(401, { code: 'unauthorized', message: 'caducó' }));
     await rerender({ api, item: PARSED.name, onsession, navigate });
     await waitFor(() => expect(onsession).toHaveBeenCalled());
+  });
+
+  it('dice qué ítems ya están en las fuentes y cuáles no, antes de aplicar nada (encargo del PO del 1-sep)', async () => {
+    const yaAplicada = {
+      ...PARSED,
+      statuses: [{ id: 'ach-1', state: 'applied' as const }],
+      progress: { applied: 1, pending: 0, changed: 0, unknown: 0 },
+    };
+    const api = fakeApi({
+      reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined, progress: { applied: 1, pending: 0, changed: 0, unknown: 0 } }] })) as never,
+      review: vi.fn(async () => ({ review: yaAplicada })) as never,
+    });
+    render(Revisiones, { props: { api, onsession: vi.fn(), navigate: vi.fn(), item: PARSED.name } });
+    // En la lista, al lado del nombre; en el ítem, su etiqueta.
+    await waitFor(() => expect(screen.getByText(/1 de 1 ya aplicadas/)).toBeTruthy());
+    expect(screen.getByText('ya aplicada')).toBeTruthy();
   });
 });

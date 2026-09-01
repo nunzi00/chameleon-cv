@@ -47,6 +47,11 @@ revisar: la fila con menos avisos y menos líneas sin situar suele ser la mejor 
 `--all` no se combina con `--copilot` —el co-piloto se pide borrador a borrador, con su coste— ni con `--name`,
 que no tendría sentido con varios.
 
+En la web, en **Perfil → Importar CV**, el selector **«Origen»** tiene una tercera opción: «Una carpeta con varios
+CV». Escribes la carpeta (relativa al espacio de trabajo) y sale la misma tabla; si algún borrador ya existía, lo
+que falló aparece con su motivo y un botón para **reimportar sustituyendo**, que es una segunda acción tuya y
+nunca algo automático.
+
 ## El informe del borrador
 
 El `README.md` del borrador es el mapa de la revisión. Empieza por sus avisos de calidad, que te dicen si merece la

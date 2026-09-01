@@ -8,6 +8,7 @@ import type { LlmProvider, LlmRequest, ProviderSelection } from '../../src/llm';
 import type { WritableFileSystem } from '../../src/artifact/writable-file-system';
 import { NodeFileSystem, defaultSourceParsers, loadDataset } from '../../src/parsers';
 import { startServer, type ServerHandle } from '../../src/serve';
+import { BACKEND_OFFER } from '../fixtures/offer';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem, type MemoryEntry } from '../helpers/memory-file-system';
 
@@ -206,6 +207,106 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
       expect((await response.json()) as object).toMatchObject({ error: { message: expect.stringContaining('skills.csv') as string } });
     } finally {
       await server2.close();
+    }
+  });
+
+  it('POST /tags/apply escribe en la fuente solo las etiquetas que faltan y devuelve el plan entero (T-9.15)', async () => {
+    // Con su propio espacio: esto escribe en las fuentes y el resto de pruebas cuenta con verlas intactas.
+    const propio = await workspace();
+    const suyo = await startServer({ context: appContext(propio, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const enviar = (body: unknown): Promise<Response> =>
+        fetch(`${suyo.url}api/v1/tags/apply`, { method: 'POST', body: JSON.stringify(body), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+      const antes = propio.file('/work/data/sources/experience/acme.md')?.content ?? '';
+      const response = await enviar({ proposals: [{ id: 'exp-acme-1', tags: ['php', 'kubernetes'] }, { id: 'exp-inventado-9', tags: ['php'] }] });
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        plan: Array<{ ok: boolean; id: string; reason?: string }>;
+        applied: Array<{ id: string; added: string[] }>;
+        skipped: unknown[];
+        written: Array<{ file: string; backup: string; ids: string[] }>;
+      };
+      // #php ya la tenía la viñeta: solo entra lo que falta.
+      expect(body.applied).toEqual([{ id: 'exp-acme-1', added: ['kubernetes'] }]);
+      expect(body.written).toEqual([{ file: 'experience/acme.md', backup: 'acme.md.bak', ids: ['exp-acme-1'] }]);
+      expect(body.plan[1]).toMatchObject({ ok: false, id: 'exp-inventado-9', reason: expect.stringContaining('no está en las fuentes') as string });
+      const despues = propio.file('/work/data/sources/experience/acme.md')?.content ?? '';
+      expect(despues).toContain('#performance #php #kubernetes');
+      expect(propio.file('/work/data/sources/experience/acme.md.bak')?.content).toBe(antes);
+      // A la segunda no hay nada que escribir y se dice, sin tocar el fichero ni dejar otra copia.
+      const otra = (await (await enviar({ proposals: [{ id: 'exp-acme-1', tags: ['kubernetes'] }] })).json()) as { skipped: Array<{ id: string; reason: string }>; written: unknown[] };
+      expect(otra.skipped).toEqual([{ id: 'exp-acme-1', reason: 'ya las tenía' }]);
+      expect(otra.written).toEqual([]);
+      expect(propio.file('/work/data/sources/experience/acme.md')?.content).toBe(despues);
+      // Y sin propuestas no hay nada que decidir: el contrato lo rechaza.
+      expect((await enviar({ proposals: [] })).status).toBe(400);
+    } finally {
+      await suyo.close();
+    }
+  });
+
+  it('POST /tags/apply: unas fuentes que no validan o una fuente que no se puede escribir se explican, no se escribe a medias', async () => {
+    const roto = await workspace();
+    await roto.writeFile('/work/data/sources/experience/acme.md', '---\nrole: sin empresa\n---\n', 0o600);
+    const servidor = await startServer({ context: appContext(roto, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const response = await fetch(`${servidor.url}api/v1/tags/apply`, { method: 'POST', body: JSON.stringify({ proposals: [{ id: 'exp-acme-1', tags: ['php'] }] }), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+      expect(response.status).toBe(422);
+      expect((await response.json()) as object).toMatchObject({ error: { message: expect.stringContaining('cv validate') as string } });
+    } finally {
+      await servidor.close();
+    }
+
+    const soloLectura = await workspace();
+    const disco = new Proxy(soloLectura, { get: (target, key) => (key === 'writeFile' ? () => Promise.reject(new Error('solo lectura')) : Reflect.get(target, key, target)) });
+    const otro = await startServer({ context: appContext(soloLectura, { llmProvider, now: () => NOW, artifactFileSystem: disco }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const response = await fetch(`${otro.url}api/v1/tags/apply`, { method: 'POST', body: JSON.stringify({ proposals: [{ id: 'exp-acme-1', tags: ['kubernetes'] }] }), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+      expect(response.status).toBe(503);
+      expect((await response.json()) as object).toMatchObject({ error: { message: expect.stringContaining('solo lectura') as string } });
+    } finally {
+      await otro.close();
+    }
+  });
+
+  it('POST /offers/rank compara varias ofertas de una vez, en su orden, sin red ni modelo (T-9.13)', async () => {
+    const conOfertas = await workspace({ '/work/offers/backend.txt': BACKEND_OFFER, '/work/offers/vacia.txt': 'Buscamos a alguien con ganas.' });
+    const suyo = await startServer({ context: appContext(conOfertas, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+    try {
+      const enviar = (body: unknown): Promise<Response> =>
+        fetch(`${suyo.url}api/v1/offers/rank`, { method: 'POST', body: JSON.stringify(body), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+      const response = await enviar({ offers: [{ workspaceFile: 'offers/vacia.txt' }, { workspaceFile: 'offers/backend.txt' }, { text: 'Buscamos PHP y Symfony.' }] });
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { ranked: Array<{ name: string; recognized: number; ratio: number | null }>; failed: unknown[]; warnings: Array<{ offer: number }> };
+      expect(body.failed).toEqual([]);
+      // La que no declara ni un requisito reconocible va la última y sin porcentaje inventado.
+      expect(body.ranked.at(-1)).toMatchObject({ recognized: 0 });
+      expect(body.ranked.at(-1)?.ratio ?? null).toBeNull();
+      // Y cada aviso dice de qué oferta es: con varias, «la oferta» no basta.
+      expect(body.warnings.every((warning) => typeof warning.offer === 'number')).toBe(true);
+      // Una oferta que no se puede leer se anota y no tumba la comparación.
+      const rota = (await (await enviar({ offers: [{ workspaceFile: 'offers/no-existe.txt' }, { workspaceFile: 'offers/backend.txt' }] })).json()) as { ranked: unknown[]; failed: Array<{ offer: number; message: string }> };
+      expect(rota.ranked).toHaveLength(1);
+      expect(rota.failed[0]?.offer).toBe(0);
+      // Fuera del espacio de trabajo, sin ofertas y con una especialidad que no existe.
+      expect((await enviar({ offers: [{ workspaceFile: '../fuera.txt' }] })).status).toBe(400);
+      expect((await enviar({ offers: [] })).status).toBe(400);
+      // Una especialidad que no existe no rompe la respuesta: cada oferta falla con el mismo motivo, dicho.
+      const rara = (await (await enviar({ offers: [{ text: 'PHP y Symfony' }], specialty: 'no-existe' })).json()) as { ranked: unknown[]; failed: Array<{ offer: number; message: string }> };
+      expect(rara.ranked).toEqual([]);
+      expect(rara.failed[0]).toMatchObject({ offer: 0, message: expect.stringContaining('no-existe') as string });
+      // Y sin perfil compilado no hay con qué comparar: falla la comparación entera, dicho una sola vez.
+      const vacio = await workspace();
+      await vacio.remove('/work/data/dist/profile.json');
+      const sinPerfil = await startServer({ context: appContext(vacio, { llmProvider, now: () => NOW }), host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowRemote: false, allowedHosts: [], token: TOKEN });
+      try {
+        const response = await fetch(`${sinPerfil.url}api/v1/offers/rank`, { method: 'POST', body: JSON.stringify({ offers: [{ text: 'PHP' }] }), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+        expect(response.status).not.toBe(200);
+      } finally {
+        await sinPerfil.close();
+      }
+    } finally {
+      await suyo.close();
     }
   });
 

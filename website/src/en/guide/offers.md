@@ -93,6 +93,12 @@ comes out as «—» instead of a misleading 100 %. `--json` gives the same for 
 `--rank` doesn't combine with `--copilot` yet: the co-pilot is asked offer by offer, with its cost and its
 confirmation. Compare first, then refine the one you care about.
 
+In the web interface, under **Generar → step 2 → «Del espacio»**, «Comparar varias ofertas» lists what is in
+`offers/`: tick the ones you're weighing up, press «Comparar N ofertas» and you get the same table, with a
+**«Usar esta»** button on each row that leaves that offer set in the form, ready to analyse or generate. It is
+the same deterministic analysis: nothing goes to the network and nothing is asked of a model, so there is no cost
+to confirm.
+
 ## Refining how the offer is read, with the co-pilot
 
 Matching is **literal**: if the offer asks for «event-driven architecture» and your skills say «Kafka», there is

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { KIND_LABELS, STATUS_LABELS, applyJobEvent, describeResult, describeSending, isFinished, upsertJob, type JobSnapshot } from './jobs';
+import { KIND_LABELS, STATUS_LABELS, applyJobEvent, describeResult, describeSending, isFinished, tagPicks, upsertJob, type JobSnapshot } from './jobs';
 
 const job: JobSnapshot = { id: 'j1', kind: 'improve', status: 'running', createdAt: '2026-08-30T00:00:00.000Z', startedAt: '2026-08-30T00:00:01.000Z', finishedAt: undefined, lines: [], result: undefined, error: undefined };
 
@@ -41,5 +41,29 @@ describe('trabajos del co-piloto', () => {
     expect(describeSending({ destination: 'ollama (http://127.0.0.1:11434, local; modelo m)', items: 1, words: 12, redactCompanies: false })).toBe('hacia ollama (http://127.0.0.1:11434, local; modelo m) · 1 fragmento · 12 palabras · sin nombre ni datos de contacto');
     expect(describeSending({ destination: 'x', items: 3, scope: 'diccionario cerrado de 9 etiquetas', redactCompanies: true })).toBe('hacia x · 3 fragmentos · diccionario cerrado de 9 etiquetas · sin empresas');
     expect(describeSending({})).toBe('sin nombre ni datos de contacto');
+  });
+});
+
+describe('tagPicks: lo que de un «sugerir etiquetas» se puede llevar a las fuentes', () => {
+  it('solo logros del perfil y solo las etiquetas que la viñeta no tenía', () => {
+    const result = {
+      items: [
+        { id: 'exp-acme-1', accepted: [{ tag: 'php', isNew: false, reason: 'ya la tenía' }, { tag: 'kubernetes', isNew: true, reason: 'migración a Kubernetes' }] },
+        { id: undefined, accepted: [{ tag: 'php', isNew: true, reason: '' }] },
+        { id: 'exp-acme-2', error: 'timeout', accepted: [{ tag: 'php', isNew: true, reason: '' }] },
+        { id: 'exp-acme-3', accepted: [{ tag: 'php', isNew: false, reason: '' }] },
+        { id: 'exp-acme-4' },
+      ],
+    };
+    expect(tagPicks('suggest-tags', result)).toEqual([{ id: 'exp-acme-1', tags: [{ tag: 'kubernetes', reason: 'migración a Kubernetes' }] }]);
+    // Sin motivo, la etiqueta sigue estando: lo que falta es la explicación, no la propuesta.
+    expect(tagPicks('suggest-tags', { items: [{ id: 'a', accepted: [{ tag: 'php', isNew: true }] }] })).toEqual([{ id: 'a', tags: [{ tag: 'php', reason: '' }] }]);
+  });
+
+  it('otra tarea, un resultado que no es un objeto o uno sin ítems no ofrecen nada que escribir', () => {
+    expect(tagPicks('improve', { items: [{ id: 'a', accepted: [{ tag: 'php', isNew: true }] }] })).toEqual([]);
+    expect(tagPicks('suggest-tags', undefined)).toEqual([]);
+    expect(tagPicks('suggest-tags', null)).toEqual([]);
+    expect(tagPicks('suggest-tags', {})).toEqual([]);
   });
 });

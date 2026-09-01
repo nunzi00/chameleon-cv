@@ -75,6 +75,21 @@ no duplicates and no more than `--max-tags`, and each accepted tag carries its *
 (`literal`, `contexto` or `inferida`; `--explain` shows it). Standard output gives you the line ready to paste
 (`#php #kubernetes`).
 
+With `--apply` there is nothing to paste: **the ones you approve are written to your sources**. On a terminal it
+asks achievement by achievement (`--yes` accepts them all without asking), and only the tags the bullet didn't
+have go in: they are appended at the end of its line, after any it already carried, with a `.bak` copy beside it
+and nothing else touched. If the achievement changed by hand since it was suggested, that one isn't written and
+you're told why. Then, `cv build`.
+
+```bash
+cv suggest tags --untagged --apply          # asks achievement by achievement and writes what you accept
+cv suggest tags --only exp-acme-1 --apply --yes && cv build
+```
+
+The web does the same from **Co-piloto**: when the job finishes, each achievement shows its new tags with a
+checkbox —none is ticked— and «Aplicar en mis fuentes» writes only the ticked ones, with the same report of what
+wasn't written and why.
+
 ## Closing the loop: `cv improve apply`
 
 Mark with `[x]` in the review file (from `improve` or `summarize`) the proposals you want to adopt —you can edit
@@ -84,6 +99,19 @@ what is marked** (one proposal per item); **minimal change** (only the achieveme
 and `.bak.1`, `.bak.2`… if one already existed); and a **fingerprint check**: the review records file, line and
 `sha256` of every original, and if the original is no longer exactly that, nothing is written. `--dry-run` shows
 the plan, `--delete-review` removes the applied review, and afterwards you rebuild with `cv build`.
+
+**Applying the same review twice is not an error.** If the source already holds the proposal's text, it is
+reported —«2 propuestas ya aplicadas (…)»—, nothing is rewritten and the command exits with 0. To undo it, the
+source history is there and the command reminds you: `cv history` lists the previous versions and
+`cv history restore latest <source>` brings the earlier one back (the current one goes to the history in turn).
+In the web interface, the same from **Fuentes → Historial de esta fuente**, with «Ver diferencias» and «Restaurar
+esta versión».
+
+And you don't have to apply to find out: in the web interface, **Revisiones** compares every item with what is in
+your sources **today** and says so next to it —«ya aplicada», «sin aplicar», «la fuente cambió» or «sin fuente
+registrada»—, with the count beside the name in the list («1 de 3 ya aplicadas»). It looks at the text, not at a
+stored mark: a review you apply and then undo with `cv history restore` shows up as pending again, which is the
+truth.
 
 ## Remote providers (optional)
 

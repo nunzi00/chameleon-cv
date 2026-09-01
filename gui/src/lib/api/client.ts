@@ -15,6 +15,12 @@ import type {
   OfferSaveResponse,
   AliasesRequest,
   AliasesResponse,
+  TagsApplyRequest,
+  TagsApplyResponse,
+  RankRequest,
+  RankResponse,
+  ImportFolderRequest,
+  ImportFolderResponse,
   AnalyzeRequest,
   AnalyzeResponse,
   ApplyRequest,
@@ -125,6 +131,12 @@ export interface ApiClient {
   analyze(body: AnalyzeRequest): Promise<AnalyzeResponse>;
   /** Guarda como alias lo que el co-piloto tendió (T-9.12): escribe en skills.csv, por eso lo pide un botón. */
   saveAliases(body: AliasesRequest): Promise<AliasesResponse>;
+  /** POST /tags/apply (T-9.15): escribe en las fuentes las etiquetas que el usuario marcó de las que sugirió el co-piloto. */
+  applyTags(body: TagsApplyRequest): Promise<TagsApplyResponse>;
+  /** POST /offers/rank (T-9.13): compara varias ofertas de una vez con el motor determinista. */
+  rankOffers(body: RankRequest): Promise<RankResponse>;
+  /** POST /import-cv/folder (T-9.14): importa todos los CV de una carpeta del espacio de trabajo. */
+  importFolder(body: ImportFolderRequest): Promise<ImportFolderResponse>;
   /** Historial de una oferta (solo lectura): procesamientos previos por la huella de su texto. */
   offerHistory(body: HistoryLookupRequest): Promise<HistoryLookupResponse>;
   /** Un PDF (bytes) → su texto, extraído en el worker aislado del servidor. */
@@ -286,6 +298,9 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     generate: (body) => request('POST', '/generate', { body }),
     analyze: (body) => request('POST', '/analyze-offer', { body }),
     saveAliases: (body) => request('POST', '/aliases', { body }),
+    applyTags: (body) => request('POST', '/tags/apply', { body }),
+    rankOffers: (body) => request('POST', '/offers/rank', { body }),
+    importFolder: (body) => request('POST', '/import-cv/folder', { body }),
     offerHistory: (body) => request('POST', '/offers/history', { body }),
     extractOffer: async (pdf) => {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });

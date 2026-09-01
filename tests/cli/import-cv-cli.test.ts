@@ -313,6 +313,20 @@ describe('cv import-cv --all (T-9.14)', () => {
     expect(ninguna.stderr()).toContain('No se pudo leer la carpeta');
   });
 
+  it('un CV que ni siquiera se puede leer se anota como los demás, no revienta la tanda', async () => {
+    const h = harness({ '/work/corpus/bueno.pdf': '%PDF-1.4 uno', '/work/corpus/ilegible.pdf': '%PDF-1.4 dos' });
+    const disco = new Proxy(h.fs, {
+      get: (target, key) =>
+        key === 'readBinaryFile'
+          ? (path: string) => (path.endsWith('ilegible.pdf') ? Promise.reject(new Error('permiso denegado')) : target.readBinaryFile(path))
+          : Reflect.get(target, key, target),
+    });
+    expect(await runCli(['import-cv', 'corpus', '--all'], { ...h.context, datasetFileSystem: disco })).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('import/bueno');
+    expect(h.stderr()).toContain('No se pudo importar ilegible.pdf: No se pudo leer corpus/ilegible.pdf: permiso denegado');
+    expect(h.stderr()).toContain('1 de 2 CV importados');
+  });
+
   it('--all no se combina con --copilot ni con --name', async () => {
     const h = harness({ '/work/corpus/uno.pdf': '%PDF-1.4 uno' });
     expect(await runCli(['import-cv', 'corpus', '--all', '--copilot'], h.context)).not.toBe(EXIT_OK);

@@ -7,7 +7,7 @@
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
   import { EMPTY_COPILOT_FORM, buildJobRequest, type CopilotForm } from '../lib/copilot/form';
-  import { KIND_LABELS, STATUS_LABELS, applyJobEvent, describeResult, describeSending, isFinished, upsertJob, type JobSnapshot } from '../lib/copilot/jobs';
+  import { KIND_LABELS, STATUS_LABELS, applyJobEvent, describeResult, describeSending, isFinished, tagPicks, upsertJob, type JobSnapshot } from '../lib/copilot/jobs';
   import { launchProblem, type LaunchProblem } from '../lib/copilot/consent';
   import { TASK_OPTIONS, describePlan, jobCounts, jobProgress } from '../lib/copilot/plan';
   import { achievementOptions, type AchievementOption } from '../lib/copilot/profile';
@@ -35,6 +35,10 @@
   let error = $state<ExplainedError | undefined>(undefined);
   let problem = $state<LaunchProblem | undefined>(undefined);
   let busy = $state(false);
+  /** Etiquetas marcadas para escribir, como «trabajo|logro|etiqueta»: nada viene marcado (C2). */
+  let chosenTags = $state<readonly string[]>([]);
+  /** El plan de la última escritura, por trabajo: lo escrito y lo que no, con su motivo. */
+  let tagNotice = $state<Readonly<Record<string, readonly string[]>>>({});
   const subscriptions = new Map<string, AbortController>();
   const plan = $derived(describePlan(form, { local: status?.llm.provider === undefined ? undefined : `${status.llm.provider} · ${status.llm.model ?? 'modelo configurado'}`, remote: remoteOptions.find((option) => option.id === form.provider) }));
   const counts = $derived(jobCounts(jobs, new Date()));
@@ -49,6 +53,47 @@
     error = explained;
     if (explained.kind === 'session') {
       onsession();
+    }
+  }
+
+  function toggleTag(key: string): void {
+    chosenTags = chosenTags.includes(key) ? chosenTags.filter((chosen) => chosen !== key) : [...chosenTags, key];
+  }
+
+  /** Las que se marcaron de este trabajo, agrupadas por logro y en el orden en que se sugirieron. */
+  function chosenOf(job: JobSnapshot): ReadonlyArray<{ readonly id: string; readonly tags: readonly string[] }> {
+    return tagPicks(job.kind, job.result)
+      .map((pick) => ({ id: pick.id, tags: pick.tags.filter((tag) => chosenTags.includes(`${job.id}|${pick.id}|${tag.tag}`)).map((tag) => tag.tag) }))
+      .filter((pick) => pick.tags.length > 0);
+  }
+
+  /**
+   * Escribe en las fuentes solo lo que la persona marcó (T-9.15). El co-piloto sugirió; esto lo aplica, con copia
+   * `.bak` al lado, y enseña el plan entero: lo escrito y lo que no, con su motivo.
+   */
+  async function writeTags(job: JobSnapshot): Promise<void> {
+    const proposals = chosenOf(job);
+    if (proposals.length === 0 || busy) {
+      return;
+    }
+    busy = true;
+    error = undefined;
+    try {
+      const applied = await api.applyTags({ proposals: proposals.map((pick) => ({ id: pick.id, tags: [...pick.tags] })) });
+      tagNotice = {
+        ...tagNotice,
+        [job.id]: [
+          ...applied.applied.map((entry) => `${entry.id}: ${entry.added.map((tag) => `#${tag}`).join(' ')}`),
+          ...applied.plan.flatMap((entry) => (entry.ok ? [] : [`${entry.id} no se escribió: ${entry.reason}`])),
+          ...applied.skipped.map((entry) => `${entry.id} no se escribió: ${entry.reason}`),
+          ...(applied.written.length === 0 ? [] : [`Escrito en ${applied.written.map((file) => file.file).join(', ')} (copia .bak al lado). Recompila el artefacto en Estado para que cuente.`]),
+        ],
+      };
+      chosenTags = chosenTags.filter((key) => !key.startsWith(`${job.id}|`));
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      busy = false;
     }
   }
 
@@ -334,6 +379,36 @@
                 <div class="cv-actions"><button class="cv-button small" type="button" onclick={() => navigate({ page: 'revisiones', item: result.review?.name })}>Abrir la revisión</button><span class="cv-mono cv-muted">{result.review.path}</span></div>
               {/if}
               {#if result.lines.length > 0}<pre class="cv-text">{result.lines.join('\n')}</pre>{/if}
+              {@const picks = tagPicks(job.kind, job.result)}
+              {#if picks.length > 0}
+                <div class="cv-copilot-contrib">
+                  <p><strong>Etiquetas nuevas que puedes escribir en tus fuentes</strong></p>
+                  <ul class="cv-copilot-picks">
+                    {#each picks as pick (pick.id)}
+                      <li>
+                        <span class="cv-mono">{pick.id}</span>
+                        {#each pick.tags as tag (tag.tag)}
+                          <label class="cv-check">
+                            <input type="checkbox" checked={chosenTags.includes(`${job.id}|${pick.id}|${tag.tag}`)} onchange={() => toggleTag(`${job.id}|${pick.id}|${tag.tag}`)} />
+                            <span><strong>#{tag.tag}</strong>{tag.reason === '' ? '' : ' '}<span class="cv-muted">{tag.reason}</span></span>
+                          </label>
+                        {/each}
+                      </li>
+                    {/each}
+                  </ul>
+                  <div class="cv-actions">
+                    <button class="cv-button small" type="button" disabled={busy || chosenOf(job).length === 0} onclick={() => writeTags(job)}>
+                      {chosenTags.filter((key) => key.startsWith(`${job.id}|`)).length === 0 ? 'Aplicar en mis fuentes' : `Aplicar ${chosenTags.filter((key) => key.startsWith(`${job.id}|`)).length} en mis fuentes`}
+                    </button>
+                    <span class="cv-actions-note">Se añaden al final de la viñeta, con copia <code>.bak</code> al lado; nada más se toca. Ninguna viene marcada: eliges tú (C2).</span>
+                  </div>
+                  {#if tagNotice[job.id] !== undefined}
+                    <ul class="cv-alias-plan">
+                      {#each tagNotice[job.id] ?? [] as line, index (index)}<li>{line}</li>{/each}
+                    </ul>
+                  {/if}
+                </div>
+              {/if}
             {/if}
           </li>
         {/each}

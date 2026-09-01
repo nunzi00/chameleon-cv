@@ -8,6 +8,9 @@ import { basename, dirname, extname, resolve, sep } from 'node:path';
 import { z } from 'zod';
 
 import { planAliases, saveAliases } from '../app/aliases';
+import { applyTags, planApplyTags } from '../app/tags-apply';
+import { rankOffers } from '../app/rank';
+import { indexSources } from '../app/provenance';
 import { analysisPayload, analyzeOffer, type OfferCopilotOptions } from '../app/analyze';
 import { lookupHistory, offerFingerprint, readHistory, recordHistory } from '../app/history';
 import type { AppContext } from '../app/context';
@@ -29,7 +32,7 @@ import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings
 import { describeKeys, isRemoteProviderId, removeApiKey, writeApiKey, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
-import { importCvDraft } from '../app/import-cv';
+import { importCvFolder, importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
@@ -39,7 +42,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AliasesSchema, type AliasesResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -327,6 +330,31 @@ function addAliasRoutes(router: Router<ServerState>): void {
         return appErrorResponse(saved.error);
       }
       return json(200, { plan, written: saved.result.written, path: `${state.data}/skills.csv` } satisfies AliasesResponse);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/tags/apply`,
+    summary:
+      'Escribe en tus fuentes las etiquetas que marcaste de las que sugirió el co-piloto (T-9.15): solo las que la viñeta no tenía, al final de su línea y sin tocar nada más, con copia .bak al lado. Devuelve el plan completo con lo que no se escribió y por qué; después hay que recompilar con «cv build».',
+    writes: true,
+    body: TagsApplySchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, TagsApplySchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const sources = await indexSources(state.context, resolve(state.context.cwd, state.data));
+      if (!sources.ok) {
+        return errorResponse('invalid-data', sources.message);
+      }
+      const plan = planApplyTags(sources.index, parsed.value.proposals);
+      const written = await applyTags(state.context, state.data, plan);
+      if (!written.ok) {
+        return appErrorResponse(written.error);
+      }
+      return json(200, { plan, ...written.result } satisfies TagsApplyResponse);
     },
   });
 }
@@ -792,6 +820,31 @@ function addOfferRoutes(router: Router<ServerState>): void {
   });
 
   router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/offers/rank`,
+    summary:
+      'Compara varias ofertas de una vez (T-9.13): analiza cada una con el motor determinista de siempre y devuelve la tabla ordenada por imprescindibles cubiertos y después por adecuación. Una oferta que no se pueda leer se anota y no tumba la comparación. Sin red y sin modelo.',
+    writes: false,
+    body: RankSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, RankSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const inputs: OfferInput[] = [];
+      for (const offer of parsed.value.offers) {
+        const input = offerInputOf(state.context, offer);
+        if (!('kind' in input)) {
+          return appErrorResponse(input);
+        }
+        inputs.push(input);
+      }
+      const outcome = await rankOffers(state.context, { data: state.data, profile: state.profile, build: parsed.value.build ?? false, specialty: parsed.value.specialty }, inputs);
+      return outcome.ok ? json(200, outcome.result satisfies RankResponse) : appErrorResponse(outcome.error);
+    },
+  });
+
+  router.add({
     method: 'GET',
     path: `${API_PREFIX}/offers`,
     summary: 'Lista offers/ del espacio de trabajo (≤ 3 niveles, ≤ 500 entradas), de la más reciente a la más antigua, con tipo (text | markdown | pdf).',
@@ -943,6 +996,41 @@ function addImportRoutes(router: Router<ServerState>): void {
         unparsed: [],
         readme: draft.readme,
       } satisfies ImportCvResponse);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/import-cv/folder`,
+    summary:
+      'Importa todos los CV (.pdf y .docx, primer nivel) de una carpeta del espacio de trabajo (T-9.14): cada uno a su propio borrador, nombrado por el fichero, y devuelve la tabla para comparar. Uno que falle se anota y no detiene a los demás. Nunca escribe en data/sources.',
+    writes: true,
+    body: ImportFolderSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, ImportFolderSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const directory = workspaceFile(state.context, parsed.value.directory);
+      if (!directory.ok) {
+        return appErrorResponse(directory.error);
+      }
+      const outcome = await importCvFolder(state.context, parsed.value.directory, { replace: parsed.value.replace ?? false });
+      if (!outcome.ok) {
+        return appErrorResponse(outcome.error);
+      }
+      const { total, imported, failed } = outcome.result;
+      return json(200, {
+        total,
+        imported: imported.map(({ file, draft }) => ({
+          file,
+          name: draft.name,
+          counts: { experience: draft.profile.experience.length, education: draft.profile.education.length, skills: draft.profile.skills.length },
+          issues: draft.issues.length,
+          unparsed: draft.unparsed.length,
+        })),
+        failed,
+      } satisfies ImportFolderResponse);
     },
   });
 

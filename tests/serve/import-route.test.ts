@@ -36,6 +36,8 @@ const DOC = '<w:document xmlns:w="x"><w:body><w:p><w:r><w:t>Ada Ejemplo</w:t></w
 describe('cv serve: POST /import', () => {
   let stubbed: ServerHandle;
   let real: ServerHandle;
+  let corpus: ServerHandle;
+  let corpusFs: MemoryFileSystem;
 
   const post = (handle: ServerHandle, body: Uint8Array | string, headers: Record<string, string> = {}): Promise<Response> =>
     fetch(`${handle.url}api/v1/import-cv`, { method: 'POST', body: typeof body === 'string' ? Buffer.from(body, 'utf8') : body, headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/pdf', ...headers } });
@@ -43,12 +45,15 @@ describe('cv serve: POST /import', () => {
   beforeAll(async () => {
     const options = { host: '127.0.0.1', port: 0, data: 'data/sources', profile: 'data/dist/profile.json', version: '9.9.9', apiOnly: true, allowedHosts: [], token: TOKEN, allowRemote: false };
     stubbed = await startServer({ ...options, context: appContext(new MemoryFileSystem({ '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n' }), { itemsExtractor: async () => ITEMS, now: () => new Date('2026-08-30T21:00:00.000Z') }) });
+    corpusFs = new MemoryFileSystem({ '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n', '/work/corpus/uno.pdf': '%PDF-1.4 uno', '/work/corpus/dos.pdf': '%PDF-1.4 dos', '/work/corpus/roto.pdf': 'esto no es un PDF', '/work/corpus/notas.txt': 'nada' });
+    corpus = await startServer({ ...options, context: appContext(corpusFs, { itemsExtractor: async () => ITEMS, now: () => new Date('2026-08-30T21:00:00.000Z') }) });
     real = await startServer({ ...options, context: appContext(new MemoryFileSystem({ '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n' })) });
   });
 
   afterAll(async () => {
     await stubbed.close();
     await real.close();
+    await corpus.close();
   });
 
   it('201 con el resumen, el README y el nombre del perfil; 409 sin replace y 201 sustituyendo', async () => {
@@ -86,5 +91,29 @@ describe('cv serve: POST /import', () => {
     const realWorker = await post(real, '%PDF-1.4 finto');
     expect(realWorker.status).toBe(422);
     expect(((await realWorker.json()) as { error: { message: string } }).error.message).toContain('No se pudo extraer el PDF (invalid)');
+  });
+
+  it('POST /import-cv/folder importa la carpeta entera y devuelve la tabla; lo que falla se anota (T-9.14)', async () => {
+    const enviar = (body: unknown, handle: ServerHandle = corpus): Promise<Response> =>
+      fetch(`${handle.url}api/v1/import-cv/folder`, { method: 'POST', body: JSON.stringify(body), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } });
+    const response = await enviar({ directory: 'corpus' });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { total: number; imported: Array<{ file: string; name: string; counts: { experience: number } }>; failed: Array<{ file: string; message: string }> };
+    // Solo .pdf y .docx del primer nivel, en orden estable, y cada borrador nombrado por su fichero.
+    expect(body.total).toBe(3);
+    expect(body.imported.map((entry) => entry.name)).toEqual(['dos', 'uno']);
+    expect(body.imported[0]?.counts.experience).toBe(2);
+    expect(body.failed.map((entry) => entry.file)).toEqual(['corpus/roto.pdf']);
+    expect(corpusFs.file('/work/import/uno/README.md')).toBeDefined();
+    // Repetir sin «replace» choca con lo que ya existe, y se cuenta como fallo de ese CV, no de la tanda.
+    const otra = (await (await enviar({ directory: 'corpus' })).json()) as { imported: unknown[]; failed: Array<{ message: string }> };
+    expect(otra.imported).toEqual([]);
+    expect(otra.failed[0]?.message).toContain('--replace');
+    expect((await (await enviar({ directory: 'corpus', replace: true })).json() as { imported: unknown[] }).imported).toHaveLength(2);
+    // Una carpeta fuera del espacio de trabajo, una que no existe, una sin CV y un cuerpo vacío.
+    expect((await enviar({ directory: '../fuera' })).status).toBe(400);
+    expect((await enviar({ directory: 'no-existe' })).status).toBe(404);
+    expect((await enviar({ directory: 'import' })).status).toBe(404);
+    expect((await enviar({})).status).toBe(400);
   });
 });

@@ -110,8 +110,10 @@ Before launching, the «qué sale y a dónde» panel says what is sent to the pr
 or of the profile, and the offer if there is one; never your whole files) and to which one. With a remote
 provider (`cv serve --allow-remote`), the server first answers with an **estimate** of what would be sent and the
 interface asks for your confirmation; only then is it launched. The result of improving and summarising is a
-**review** in `output/`, linked from the job; the result of suggesting tags is a list you copy and apply yourself
-in the source. No job writes to your sources.
+**review** in `output/`, linked from the job; the result of suggesting tags is the list of achievements
+with their **new tags and a checkbox per tag**: none is ticked, and «Aplicar en mis fuentes» writes only the ones
+you tick, at the end of the bullet and with a `.bak` copy beside it (then rebuild from «Estado»). No job writes
+to your sources on its own: only that action of yours does.
 
 ## Revisiones — reviews
 

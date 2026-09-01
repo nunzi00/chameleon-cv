@@ -31,7 +31,7 @@ const RESULT: ImportCvResponse = {
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), cancelJob: vi.fn(), outputs: vi.fn(), output: vi.fn(),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), cancelJob: vi.fn(), outputs: vi.fn(), output: vi.fn(),
     offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(),
     setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(async () => RESULT), importCv: vi.fn(async () => RESULT),
     startJob: vi.fn(async () => ({ job: JOB, sending: { destination: 'ollama (local)', items: 1, words: 2, redactCompanies: false }, warnings: [] })),
@@ -189,6 +189,43 @@ describe('Importar', () => {
     expect(screen.getByText(/el plan gratuito usa tus peticiones/)).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Confirmar y enviar' }));
     await waitFor(() => expect(startJob).toHaveBeenLastCalledWith({ kind: 'import-map', body: { name: 'ada-ejemplo', provider: 'openai', consent: { estimateId: 'e1' } } }));
+  });
+
+  it('con el origen «carpeta» importa todos los CV de una vez y los compara (T-9.14)', async () => {
+    const importFolder = vi
+      .fn()
+      .mockResolvedValueOnce({
+        total: 3,
+        imported: [
+          { file: 'mis-cv/dos.pdf', name: 'dos', counts: { experience: 12, education: 6, skills: 0 }, issues: 14, unparsed: 41 },
+          { file: 'mis-cv/uno.pdf', name: 'uno', counts: { experience: 11, education: 7, skills: 0 }, issues: 15, unparsed: 4 },
+        ],
+        failed: [{ file: 'mis-cv/roto.pdf', message: 'Ya existe import/roto; usa --replace para sustituirlo' }],
+      })
+      .mockResolvedValueOnce({ total: 3, imported: [], failed: [] });
+    const api = fakeApi({ importFolder: importFolder as never });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'carpeta' } });
+    await fireEvent.input(screen.getByLabelText('Carpeta (relativa al espacio de trabajo)'), { target: { value: ' mis-cv ' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar la carpeta' }));
+    await waitFor(() => expect(screen.getByText('2 de 3 CV importados')).toBeTruthy());
+    expect(importFolder).toHaveBeenCalledWith({ directory: 'mis-cv' });
+    // Cada borrador lleva el nombre de su fichero, y lo que falló se dice con su motivo.
+    expect(screen.getByText('import/dos')).toBeTruthy();
+    expect(screen.getByText(/mis-cv\/roto\.pdf: Ya existe/)).toBeTruthy();
+    // Reimportar sustituyendo es una segunda acción explícita, nunca automática.
+    await fireEvent.click(screen.getByRole('button', { name: 'Reimportar sustituyendo los borradores' }));
+    await waitFor(() => expect(importFolder).toHaveBeenLastCalledWith({ directory: 'mis-cv', replace: true }));
+  });
+
+  it('si la carpeta no existe, se explica y no se enseña ninguna tabla', async () => {
+    const api = fakeApi({ importFolder: vi.fn(async () => { throw new ApiError(404, { code: 'not-found', message: 'No se pudo leer la carpeta mis-cv' }); }) as never });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'carpeta' } });
+    await fireEvent.input(screen.getByLabelText('Carpeta (relativa al espacio de trabajo)'), { target: { value: 'mis-cv' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar la carpeta' }));
+    await waitFor(() => expect(screen.getByText('No se pudo leer la carpeta mis-cv')).toBeTruthy());
+    expect(screen.queryByText(/CV importados/)).toBeNull();
   });
 
   it('con el origen «LinkedIn» sube el zip por la ruta de la exportación, no por la del CV maquetado (T-9.8)', async () => {

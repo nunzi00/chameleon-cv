@@ -7,6 +7,8 @@
 import { z } from 'zod';
 
 import type { AliasPlanEntry } from '../app/aliases';
+import type { TagApplyEntry } from '../app/tags-apply';
+import type { RankResult } from '../app/rank';
 import type { AnalysisPayload, OfferAnalysis } from '../app/analyze';
 import type { DatasetLoadResult } from '../app/dataset';
 import { CV_ENGINES, CV_FORMATS } from '../app/format';
@@ -78,6 +80,14 @@ export const OfferMapSchema = z.object({
   consent: z.object({ estimateId: z.string().min(1) }).optional(),
 });
 export const AnalyzeSchema = z.object({ offer: OfferSchema, specialty: z.string().min(1).optional(), build: z.boolean().optional(), copilot: OfferMapSchema.optional() });
+/**
+ * Comparar varias ofertas de una vez (T-9.13) desde cualquier cliente: las mismas ofertas que admite `analyze`,
+ * en lista. Sin `copilot`: el co-piloto se pide oferta a oferta, con su coste delante.
+ */
+/** Importar una carpeta entera del espacio de trabajo (T-9.14): la ruta es relativa y se comprueba como el resto. */
+export const ImportFolderSchema = z.object({ directory: z.string().min(1), replace: z.boolean().optional() });
+
+export const RankSchema = z.object({ offers: z.array(OfferSchema).min(1).max(50), specialty: z.string().min(1).optional(), build: z.boolean().optional() });
 export const SourceWriteSchema = z.object({ content: z.string() });
 export const ThemeCreateSchema = z.object({ name: z.string().min(1), from: z.string().min(1).optional() });
 /** `cv theme install` por la API (T-8.3): un `source` https exige --allow-remote y el consentimiento en dos pasos. */
@@ -206,6 +216,30 @@ export interface AliasesResponse {
   readonly path: string;
 }
 
+/**
+ * Escribir en las fuentes las etiquetas que el co-piloto sugirió (T-9.15). Llega el id del logro y las etiquetas
+ * que la persona marcó, no las que el modelo propuso: el paso de «te propongo» a «lo escribo» lo da quien decide
+ * (C2, C9).
+ */
+export const TagsApplySchema = z.object({
+  proposals: z
+    .array(z.strictObject({ id: z.string().min(1).max(120), tags: z.array(z.string().min(1).max(40)).min(1).max(10) }))
+    .min(1)
+    .max(50),
+});
+export type TagsApplyRequest = z.infer<typeof TagsApplySchema>;
+
+export interface TagsApplyResponse {
+  /** Qué se decidió con cada logro, escrito o no, con su motivo. */
+  readonly plan: readonly TagApplyEntry[];
+  /** Lo que llegó a la fuente, ya sin lo que la viñeta tenía. */
+  readonly applied: ReadonlyArray<{ readonly id: string; readonly added: readonly string[] }>;
+  /** Lo que no se escribió al llegar al fichero, con su motivo. */
+  readonly skipped: ReadonlyArray<{ readonly id: string; readonly reason: string }>;
+  /** Ficheros tocados, con la copia que se dejó al lado. */
+  readonly written: ReadonlyArray<{ readonly file: string; readonly backup: string; readonly ids: readonly string[] }>;
+}
+
 export interface ImportApplyResponse {
   readonly name: string;
   readonly section: string;
@@ -282,6 +316,8 @@ export type LlmRuntimeActionResponse = JobCreatedResponse | LlmRuntimeDownRespon
 export type OfferInputBody = z.infer<typeof OfferSchema>;
 export type GenerateRequest = z.infer<typeof GenerateSchema>;
 export type AnalyzeRequest = z.infer<typeof AnalyzeSchema>;
+export type RankRequest = z.infer<typeof RankSchema>;
+export type ImportFolderRequest = z.infer<typeof ImportFolderSchema>;
 export type SourceWriteRequest = z.infer<typeof SourceWriteSchema>;
 export type ThemeCreateRequest = z.infer<typeof ThemeCreateSchema>;
 export type ThemeInstallRequest = z.infer<typeof ThemeInstallSchema>;
@@ -457,6 +493,24 @@ export interface OutputListResponse {
 export interface AnalyzeResponse extends AnalysisPayload {
   readonly selection: OfferAnalysis['scored']['selection']['report'];
   readonly warnings: readonly AppWarning[];
+}
+/** La tabla de la comparación, ya ordenada, con lo que no se pudo analizar y los avisos de cada oferta. */
+export interface RankResponse {
+  readonly ranked: RankResult['ranked'];
+  readonly failed: RankResult['failed'];
+  readonly warnings: RankResult['warnings'];
+}
+/** La tabla de una carpeta importada: una fila por CV, y lo que falló con su motivo. */
+export interface ImportFolderResponse {
+  readonly total: number;
+  readonly imported: ReadonlyArray<{
+    readonly file: string;
+    readonly name: string;
+    readonly counts: { readonly experience: number; readonly education: number; readonly skills: number };
+    readonly issues: number;
+    readonly unparsed: number;
+  }>;
+  readonly failed: ReadonlyArray<{ readonly file: string; readonly message: string }>;
 }
 export interface ExtractResponse {
   readonly text: string;

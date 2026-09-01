@@ -5,6 +5,12 @@
 export type {
   AliasesRequest,
   AliasesResponse,
+  TagsApplyRequest,
+  TagsApplyResponse,
+  RankRequest,
+  RankResponse,
+  ImportFolderRequest,
+  ImportFolderResponse,
   AnalyzeRequest,
   AnalyzeResponse,
   HistoryEntry,

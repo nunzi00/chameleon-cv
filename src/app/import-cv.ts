@@ -4,15 +4,16 @@
  * producto, estructura de forma determinista y escribe el BORRADOR en `import/<nombre>/` — nunca sobre
  * `data/sources/` — con su `README.md` (informe). Los fallos son `AppError` (datos, conflicto o entorno).
  */
-import { basename, dirname, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { createItemsRunner, draftFiles, draftReport, extractDocxText, extractItems, itemsWorkerSource, layoutText, qualityWarnings, structureCv, type DraftFiles } from '../import';
 import { importMapFragment, runImportMap, type ImportMapLine, type ImportMapProposal } from '../llm/tasks/import-map';
 import type { LlmProvider } from '../llm/provider';
 import type { MasterProfile } from '../core/schema';
+import { describeError } from '../shared/errors';
 import type { AppContext } from './context';
-import { conflictError, dataError, environmentError, type AppError } from './errors';
+import { conflictError, dataError, environmentError, notFoundError, type AppError } from './errors';
 import { slugify } from './slug';
 
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
@@ -144,4 +145,67 @@ export async function writeDraft(
   }
 
   return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme, proposals } };
+}
+
+
+/** Lo que el importador sabe leer, para elegir qué ficheros de una carpeta son un CV. */
+export const IMPORTABLE_CV = /\.(?:pdf|docx)$/i;
+
+/** Una fila de la comparación: el CV, su borrador y los recuentos que deciden cuál merece la pena revisar. */
+export interface ImportedFromFolder {
+  readonly file: string;
+  readonly draft: ImportedDraft;
+}
+
+export interface FolderImportResult {
+  /** Los CV que había en la carpeta, se importaran o no. */
+  readonly total: number;
+  readonly imported: readonly ImportedFromFolder[];
+  /** Los que fallaron, con su motivo: uno roto no detiene a los demás. */
+  readonly failed: ReadonlyArray<{ readonly file: string; readonly message: string }>;
+}
+
+export type FolderImportOutcome = { readonly ok: true; readonly result: FolderImportResult } | { readonly ok: false; readonly error: AppError };
+
+/**
+ * Importar una carpeta entera (T-9.14). No es un importador aparte: es un bucle sobre el de siempre, y por eso
+ * vive aquí y no en la CLI —la web pide exactamente lo mismo (C14)—. Un fichero que falla se anota y se sigue,
+ * porque lo útil es ver el conjunto.
+ *
+ * Cada borrador toma el nombre del **fichero**, no el del perfil: al mirar un corpus lo normal es que todos los
+ * CV sean de la misma persona, y con el nombre del perfil todos querrían la misma carpeta y solo entraría el
+ * primero. Además así se ve de dónde salió cada uno.
+ */
+export async function importCvFolder(context: AppContext, directory: string, options: { readonly replace?: boolean | undefined } = {}): Promise<FolderImportOutcome> {
+  let entries;
+  try {
+    entries = await context.datasetFileSystem.readDirectory(resolve(context.cwd, directory));
+  } catch {
+    return { ok: false, error: notFoundError(`No se pudo leer la carpeta ${directory}`) };
+  }
+  const files = entries
+    .filter((entry) => entry.kind === 'file' && IMPORTABLE_CV.test(entry.name))
+    .map((entry) => join(directory, entry.name))
+    .sort((a, b) => a.localeCompare(b, 'es'));
+  if (files.length === 0) {
+    return { ok: false, error: notFoundError(`No hay CV que importar en ${directory} (se buscan .pdf y .docx en el primer nivel)`) };
+  }
+  const imported: ImportedFromFolder[] = [];
+  const failed: Array<{ file: string; message: string }> = [];
+  for (const file of files) {
+    let bytes: Uint8Array;
+    try {
+      bytes = await context.datasetFileSystem.readBinaryFile(resolve(context.cwd, file));
+    } catch (error) {
+      failed.push({ file, message: `No se pudo leer ${file}: ${describeError(error)}` });
+      continue;
+    }
+    const result = await importCvDraft(context, bytes, file, { name: basename(file).replace(IMPORTABLE_CV, ''), replace: options.replace === true });
+    if (result.ok) {
+      imported.push({ file, draft: result.draft });
+    } else {
+      failed.push({ file, message: result.error.message });
+    }
+  }
+  return { ok: true, result: { total: files.length, imported, failed } };
 }

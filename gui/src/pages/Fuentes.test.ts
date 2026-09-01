@@ -20,7 +20,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     source: vi.fn(async (path: string) => ({ path, content: `# ${path}\n`, sha256: 'sha-1' })),
     writeSource: vi.fn(async (path: string) => ({ path, sha256: 'sha-2' })),
     generate: vi.fn(),
-    analyze: vi.fn(), saveAliases: vi.fn(),
+    analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(),
     extractOffer: vi.fn(),
     setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(),
     offers: vi.fn(),

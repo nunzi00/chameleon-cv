@@ -5,10 +5,15 @@
  * demás, por stderr. Nunca escribe en las fuentes (C9); consentimiento visible y de coste como en `improve`
  * (C3, C11); cada etiqueta se verifica en código contra el diccionario (C10).
  */
+import { resolve } from 'node:path';
+
 import { InvalidArgumentError } from 'commander';
 
 import { DEFAULT_MAX_ITEMS, describeProvider, executeSuggestTags, planSuggestTags, selectCopilotProvider, suggestTagsEstimate, suggestTagsPayload } from '../../app/copilot';
 import { SUGGEST_TAGS_LIMITS, formatTagLine, loadSuggestTagsPrompt } from '../../llm';
+import type { TagSuggestionItem } from '../../llm';
+import { indexSources } from '../../app/provenance';
+import { applyTags, planApplyTags, type TagProposal } from '../../app/tags-apply';
 import type { CliContext } from '../context';
 import { EXIT_FAILURE, EXIT_OK, pluralize, reportError, reportQuota, reportWarnings } from '../output';
 import { parseOnly } from './improve';
@@ -32,6 +37,8 @@ export interface SuggestTagsOptions {
   readonly cache: boolean;
   /** T-9.16: si el proveedor dice cuánto esperar tras un 429, esperar y reintentar. Por defecto, sí. */
   readonly waitQuota?: boolean | undefined;
+  /** T-9.15: escribir en las fuentes las etiquetas nuevas que se acepten. */
+  readonly apply?: boolean | undefined;
   readonly showPrompt: boolean;
   readonly showPayload: boolean;
   readonly dryRun: boolean;
@@ -48,6 +55,50 @@ export function parseMaxTags(value: string): number {
     throw new InvalidArgumentError(`debe ser un entero entre 1 y ${SUGGEST_TAGS_LIMITS.maxTagsCeiling}`);
   }
   return parsed;
+}
+
+
+/**
+ * Escribe en las fuentes las etiquetas nuevas que el usuario acepte. Solo los ítems con id (un logro del perfil:
+ * un texto suelto no tiene dónde ir) y solo las etiquetas que la viñeta no tuviera ya.
+ */
+async function applySuggested(context: CliContext, options: SuggestTagsOptions, items: readonly TagSuggestionItem[]): Promise<number> {
+  const proposals: TagProposal[] = [];
+  for (const item of items) {
+    const fresh = item.accepted.filter((tag) => tag.isNew).map((tag) => tag.tag);
+    if (item.id === undefined || fresh.length === 0) {
+      continue;
+    }
+    const ask = options.yes || context.confirm === undefined ? undefined : context.confirm;
+    if (ask === undefined || (await ask(`¿Añadir ${fresh.map((tag) => `#${tag}`).join(' ')} a «${item.id}»?`))) {
+      proposals.push({ id: item.id, tags: fresh });
+    }
+  }
+  if (proposals.length === 0) {
+    context.stderr('No se aplicó ninguna etiqueta.\n');
+    return EXIT_OK;
+  }
+  const index = await indexSources(context, resolve(context.cwd, options.data));
+  if (!index.ok) {
+    context.stderr(`${index.message}\n`);
+    return EXIT_FAILURE;
+  }
+  const plan = planApplyTags(index.index, proposals);
+  const written = await applyTags(context, options.data, plan);
+  if (!written.ok) {
+    return reportError(context, written.error);
+  }
+  // Lo que no se pudo escribir, viniera del plan o de la propia escritura, se cuenta igual y con su motivo.
+  for (const entry of [...plan.flatMap((item) => (item.ok ? [] : [item])), ...written.result.skipped]) {
+    context.stderr(`  no se aplicó «${entry.id}»: ${entry.reason}\n`);
+  }
+  for (const entry of written.result.applied) {
+    context.stderr(`  ${entry.id}: ${entry.added.map((tag) => `#${tag}`).join(' ')}\n`);
+  }
+  if (written.result.written.length > 0) {
+    context.stderr(`Escrito en ${written.result.written.map((file) => file.file).join(', ')} (copia .bak al lado) · recompila con «cv build»\n`);
+  }
+  return EXIT_OK;
 }
 
 export async function runSuggestTagsCommand(context: CliContext, options: SuggestTagsOptions): Promise<number> {
@@ -119,6 +170,14 @@ export async function runSuggestTagsCommand(context: CliContext, options: Sugges
     }
     for (const rejected of item.rejected) {
       context.stderr(`  ✗ ${rejected.tag}: ${rejected.code}\n`);
+    }
+  }
+  // Cerrar el ciclo (T-9.15): hasta ahora la línea se copiaba y se pegaba a mano. Con --apply se escribe, y con
+  // terminal se pregunta logro a logro: propone el modelo, elige la persona (C2, C9).
+  if (options.apply === true) {
+    const written = await applySuggested(context, options, outcome.items);
+    if (written !== EXIT_OK) {
+      return written;
     }
   }
   const { stats } = outcome;
