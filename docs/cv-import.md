@@ -161,8 +161,11 @@ y lo único propio de LinkedIn es el mapeo de columnas.
 
 ### §8.3 Fuera de alcance
 
-Descargar desde la URL (§8, decidido); la exportación «completa» de LinkedIn, que trae decenas de CSV de
-mensajes, anuncios y conexiones que no son un CV; y la pantalla web, que iría después con el mismo núcleo.
+Descargar desde la URL (§8, decidido) y la exportación «completa» de LinkedIn: **descartada por el PO el
+1-sep-2026**. Trae decenas de CSV de mensajes, anuncios y conexiones que no son un CV, tarda hasta 24 horas
+frente a los diez minutos de la selección concreta, y **no aporta ningún dato que la selección no traiga** (los
+nueve CSV que se leen están en las dos). Admitirla solo añadiría superficie y datos personales que no queremos
+tocar. La pantalla web sí se hizo, con el mismo núcleo (§8.2).
 
 ## §9 El «Guardar como PDF» de un perfil de LinkedIn (B-13)
 
