@@ -77,6 +77,12 @@ in, each with its «Solo estas» / «Todas menos estas» switch, fed from your p
 the notice of whether it was already processed, when and with which CV (the history in
 `output/historial-ofertas.json`).
 
+The screen **remembers how you generate**: specialty, format, engine, theme, language, limits and compact come
+back exactly as you left them the last time you generated (stored in your browser, never on the server). What
+doesn't come back is what belongs to each search —the offer, the skills and projects you picked— or the co-pilot:
+leaving something ticked that sends data would be deciding for you. If you delete a specialty or uninstall a
+theme, what was stored is dropped by itself.
+
 - **Analizar oferta** is `cv analyze-offer`: the percentage of requirements proven with its bar, which ones your
   profile proves (and with which achievements), which it doesn't, the gaps and the best evidence. The
   **«Refinar la lectura con el co-piloto»** checkbox beside it adds a second reading of the offer by a model,

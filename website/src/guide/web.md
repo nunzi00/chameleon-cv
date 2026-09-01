@@ -47,6 +47,11 @@ El árbol de `data/sources` a la izquierda —con filtro, botón «+» para crea
 
 Un formulario en tres pasos —**Especialidad** (con la vista previa del titular y de cuánto perfil la reconoce), **Oferta** (opcional: texto pegado, PDF subido o fichero del espacio de trabajo, por pestañas) y **Salida** (formato, motor, tema, límites y más opciones)— y una barra de acciones fija con **Generar CV** y **Analizar oferta**. Las mismas opciones que `cv generate-cv` —incluidos dos selectores de etiquetas para elegir a mano qué skills y qué proyectos entran, alimentados por tu perfil— y, al añadir una oferta, el aviso de si ya se procesó, cuándo y con qué CV (historial de `output/historial-ofertas.json`): especialidad, oferta (pegada como texto, subida como **PDF** —el texto se extrae en local— o un fichero del espacio de trabajo), formato, motor (Typst si está disponible), tema, límites (`Top N`, skills, proyectos, certificaciones), idioma, nombre del fichero, compacto y recompilar antes.
 
+La pantalla **recuerda cómo generas**: especialidad, formato, motor, tema, idioma, límites y compacto vuelven tal
+como los dejaste la última vez que generaste (se guarda en tu navegador, nunca en el servidor). No vuelve lo que
+es de cada búsqueda —la oferta, la selección de skills y proyectos— ni el co-piloto: dejar marcado algo que envía
+datos sería decidir por ti. Si borras una especialidad o desinstalas un tema, lo guardado se descarta solo.
+
 - **Analizar oferta** es `cv analyze-offer`: el porcentaje de requisitos demostrados con su barra, cuáles demuestra tu perfil (y con qué logros), cuáles no, las carencias y las mejores evidencias.
 - **Generar CV** escribe el fichero en `output/`. El Markdown se muestra como texto con descarga; el **PDF** se abre en el visor del navegador (se descarga con tu token y se muestra desde la memoria de la pestaña) con su botón de descarga.
 - **Informe de decisiones** es `--explain`: la selección por especialidad, la cobertura de la oferta, los recortes y el tema, con las mismas palabras que la CLI.

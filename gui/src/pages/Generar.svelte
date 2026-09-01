@@ -5,6 +5,7 @@
   import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import PdfViewer from '../components/PdfViewer.svelte';
+  import OfferRanking from '../components/OfferRanking.svelte';
   import TagPicker from '../components/TagPicker.svelte';
   import { ApiError } from '../lib/api/client';
 import type { ApiClient, OutputFile } from '../lib/api/client';
@@ -14,7 +15,8 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { EMPTY_FORM, buildAnalyzeRequest, buildGenerateRequest, offerOf, projectOptions, selectionSummary, skillGroups, specialtyPreview, type GenerateForm } from '../lib/generate/form';
   import { describeHistoryEntries } from '../lib/generate/history';
-  import { rankView, type RankView } from '../lib/generate/rank';
+  import { rememberOptions, restoreOptions } from '../lib/generate/remember';
+  import { browserStorage } from '../lib/storage';
   import { analysisView, reportSections, type AnalysisView, type ReportSection } from '../lib/generate/report';
   import type { Route } from '../lib/router';
   import { describeInstalled, installProblem, themeGroups, themeOptionLabel, type InstallProblem } from '../lib/themes/install';
@@ -85,9 +87,6 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
   let fetchedOrigin = $state<string | undefined>(undefined);
   let saveOfferName = $state('');
   let saveOfferBusy = $state(false);
-  /* ── T-9.13: comparar varias de las ofertas guardadas, con el motor determinista ── */
-  let chosenOffers = $state<readonly string[]>([]);
-  let ranking = $state<RankView | undefined>(undefined);
   /* ── T-9.10: el co-piloto como segunda lectura de la oferta al analizar ── */
   let llmConfig = $state<LlmConfigResponse | undefined>(undefined);
   let copilotProblem = $state<LaunchProblem | undefined>(undefined);
@@ -100,31 +99,6 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
     } catch {
       offersList = [];
       offersLoaded = true;
-    }
-  }
-
-  function toggleOffer(path: string): void {
-    chosenOffers = chosenOffers.includes(path) ? chosenOffers.filter((chosen) => chosen !== path) : [...chosenOffers, path];
-  }
-
-  /**
-   * Compara las ofertas marcadas (T-9.13). Es el mismo análisis determinista de una sola, ejecutado sobre cada
-   * una: ni sale nada a la red ni se pide nada a un modelo, así que no hay coste que confirmar.
-   */
-  async function compareOffers(): Promise<void> {
-    if (chosenOffers.length < 2 || busy !== undefined) {
-      return;
-    }
-    busy = `Comparando ${chosenOffers.length} ofertas…`;
-    error = undefined;
-    ranking = undefined;
-    try {
-      const sources = [...chosenOffers];
-      ranking = rankView(await api.rankOffers({ offers: sources.map((path) => ({ workspaceFile: path })), ...(form.specialty === '' ? {} : { specialty: form.specialty }) }), sources);
-    } catch (caught) {
-      fail(caught);
-    } finally {
-      busy = undefined;
     }
   }
 
@@ -180,6 +154,8 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
   let error = $state<ExplainedError | undefined>(undefined);
   let notice = $state<string | undefined>(undefined);
   let busy = $state<string | undefined>(undefined);
+  /** Preferencias del navegador: aquí solo se recuerda cómo generas, nunca la oferta ni el co-piloto. */
+  const preferences = browserStorage();
   let generated = $state<GenerateResponse | undefined>(undefined);
   let pdf = $state<OutputFile | undefined>(undefined);
   let markdownUrl = $state<string | undefined>(undefined);
@@ -219,6 +195,8 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
       if (typstUsable) {
         form = { ...form, engine: 'typst' };
       }
+      // Y encima, lo que elegiste la última vez —si sigue existiendo—: casi siempre generas el CV igual.
+      form = restoreOptions(preferences, form, { specialties, themes: inventory.entries.map((entry) => entry.name), typstUsable });
     } catch (caught) {
       fail(caught);
     }
@@ -325,6 +303,8 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
         pdf = await api.output(result.output.name);
       }
       const kept = result.report?.kept.length ?? 0;
+      // Se recuerda al generar, no al teclear: lo que se guarda es una decisión terminada, no un tanteo.
+      rememberOptions(preferences, form);
       notice = `CV escrito en ${result.output.path}${kept === 0 ? '' : ` · ${kept} ${kept === 1 ? 'evidencia de la oferta conservada' : 'evidencias de la oferta conservadas'}`}${result.warnings.length === 0 ? '' : ' (con avisos)'}`;
     } catch (caught) {
       fail(caught);
@@ -458,42 +438,14 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
             <button class="cv-button" type="button" onclick={() => void loadOffers()}>Recargar</button>
           </div>
           {#if offersList.length > 1}
-            <details class="cv-rank-panel">
-              <summary>Comparar varias ofertas ({offersList.length} guardadas)</summary>
-              <p class="cv-muted cv-step-note">Marca las que estés valorando y se analizan todas con el mismo motor determinista —sin red y sin modelo—, ordenadas por imprescindibles cubiertos y después por adecuación.</p>
-              <ul class="cv-copilot-picks">
-                {#each offersList as offer (offer.path)}
-                  <li>
-                    <label class="cv-check">
-                      <input type="checkbox" checked={chosenOffers.includes(offer.path)} onchange={() => toggleOffer(offer.path)} />
-                      <span class="cv-mono">{offer.path}</span>
-                    </label>
-                  </li>
-                {/each}
-              </ul>
-              <div class="cv-actions">
-                <button class="cv-button small" type="button" disabled={busy !== undefined || chosenOffers.length < 2} onclick={() => void compareOffers()}>
-                  {chosenOffers.length < 2 ? 'Comparar (marca al menos dos)' : `Comparar ${chosenOffers.length} ofertas`}
-                </button>
-              </div>
-              {#if ranking !== undefined}
-                <div class="cv-table cv-table-rank">
-                  <div class="cv-table-head"><span>Oferta</span><span>Adecuación</span><span>Imprescindibles</span><span>Especialidad</span><span>Carencias</span><span></span></div>
-                  {#each ranking.rows as row, index (`${row.name}-${index}`)}
-                    <div class="cv-table-row static">
-                      <span>{row.name}</span>
-                      <span class="cv-muted">{row.fit}</span>
-                      <span class="cv-muted">{row.required}</span>
-                      <span class="cv-muted">{row.specialty}</span>
-                      <span class="cv-muted">{row.gaps}</span>
-                      <button class="cv-button small" type="button" onclick={() => (form = { ...form, offerMode: 'file', offerFile: chosenOffers[index] ?? form.offerFile })}>Usar esta</button>
-                    </div>
-                  {/each}
-                </div>
-                {#if ranking.warnings.length > 0}<Notice kind="warn" title="Avisos" lines={ranking.warnings}></Notice>{/if}
-                {#if ranking.failed.length > 0}<Notice kind="error" title="No se pudieron analizar" lines={ranking.failed}></Notice>{/if}
-              {/if}
-            </details>
+            <OfferRanking
+              {api}
+              offers={offersList}
+              specialty={form.specialty}
+              busy={busy !== undefined}
+              onuse={(path) => (form = { ...form, offerMode: 'file', offerFile: path })}
+              onerror={fail}
+            />
           {/if}
         {:else}
           <label class="cv-field">

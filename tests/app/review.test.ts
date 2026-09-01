@@ -81,6 +81,24 @@ describe('reviewStatus: qué queda por aplicar de una revisión (encargo del PO 
     expect((await listReviews(context, 'output'))[0]?.progress).toEqual({ applied: 1, pending: 1, changed: 0, unknown: 0 });
   });
 
+  it('al listar, la misma fuente se lee UNA vez para todas las revisiones', async () => {
+    const otra = 'revision-improve-2026-08-30.md';
+    const fs = new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, [`/work/output/${otra}`]: REVIEW, '/work/data/sources/experience/acme.md': SOURCE });
+    let lecturas = 0;
+    const contando = new Proxy(fs, {
+      get: (target, key) =>
+        key === 'readTextFile'
+          ? (path: string) => {
+              lecturas += path.endsWith('experience/acme.md') ? 1 : 0;
+              return target.readTextFile(path);
+            }
+          : Reflect.get(target, key, target),
+    });
+    const reviews = await listReviews(appContext(contando), 'output');
+    expect(reviews).toHaveLength(2);
+    expect(lecturas).toBe(1);
+  });
+
   it('una fuente que cambió por otro camino no es «aplicada» ni «pendiente», y se dice', async () => {
     const context = appContext(new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, '/work/data/sources/experience/acme.md': SOURCE.replace('- Original uno', '- Otra cosa distinta') }));
     const result = await readReview(context, 'output', NAME);

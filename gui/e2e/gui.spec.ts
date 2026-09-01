@@ -70,6 +70,13 @@ test('Generar analiza una oferta del espacio de trabajo y genera el CV en Markdo
   const frame = page.locator('iframe[title^="Vista previa de"]');
   await expect(frame).toHaveAttribute('src', /^blob:/);
   await expect(page.getByRole('link', { name: /Descargar .*\.pdf/ })).toBeVisible();
+
+  // T-9.18: al volver, la pantalla recuerda CÓMO generas —especialidad, formato, motor— pero no la oferta.
+  await page.reload();
+  await expect(page.getByLabel('Especialidad')).toHaveValue('backend');
+  await expect(page.getByLabel('Formato')).toHaveValue('pdf');
+  await expect(page.getByLabel('Motor')).toHaveValue('pdfkit');
+  await expect(page.getByLabel(/Fichero \(relativo/)).toHaveCount(0);
 });
 
 test('Generar refina la lectura de la oferta con el co-piloto y enseña cada etiqueta con su evidencia (T-9.10)', async ({ page }) => {

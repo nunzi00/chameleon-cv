@@ -305,12 +305,19 @@ function stateOf(task: ReviewTask, item: ParsedReviewItem, source: ReviewSource,
 }
 
 /**
- * Compara cada ítem de una revisión con lo que hay hoy en las fuentes. Lee cada fichero una vez —una revisión
- * suele tocar dos o tres— y no escribe nada: esto es lo que se enseña *antes* de decidir si aplicar.
+ * Lo que se lee de las fuentes para decidir el estado, compartible entre revisiones: al listarlas, varias suelen
+ * tocar los mismos ficheros y no hay razón para leerlos una vez por revisión. `undefined` = no se pudo leer.
  */
-export async function reviewStatus(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>, review: ParsedReview): Promise<readonly ReviewItemStatus[]> {
+export type SourceCache = Map<string, string | undefined>;
+
+/**
+ * Compara cada ítem de una revisión con lo que hay hoy en las fuentes. Cada fichero se lee una sola vez —y, con
+ * `cache`, una sola vez para todas las revisiones del listado— y no se escribe nada: esto es lo que se enseña
+ * *antes* de decidir si aplicar.
+ */
+export async function reviewStatus(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>, review: ParsedReview, cache?: SourceCache): Promise<readonly ReviewItemStatus[]> {
   const root = resolve(context.cwd, review.dataDir ?? DEFAULT_DATA_DIR);
-  const contents = new Map<string, string | undefined>();
+  const contents = cache ?? new Map<string, string | undefined>();
   const statuses: ReviewItemStatus[] = [];
   for (const item of review.items) {
     const { source } = item;
@@ -348,14 +355,14 @@ export interface ReviewSummary {
   readonly progress: ReviewProgress | undefined;
 }
 
-async function summarize(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>, name: string, path: string, text: string): Promise<ReviewSummary> {
+async function summarize(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>, name: string, path: string, text: string, cache?: SourceCache): Promise<ReviewSummary> {
   const parsed = parseReview(text);
   const sha256 = contentHash(text);
   if (!parsed.ok) {
     return { name, path, sha256, task: undefined, items: 0, marked: 0, error: parsed.message, progress: undefined };
   }
   const marked = parsed.review.items.reduce((sum, item) => sum + item.proposals.filter((proposal) => proposal.checked).length, 0);
-  const progress = reviewProgress(await reviewStatus(context, parsed.review));
+  const progress = reviewProgress(await reviewStatus(context, parsed.review, cache));
   return { name, path, sha256, task: parsed.review.task, items: parsed.review.items.length, marked, error: undefined, progress };
 }
 
@@ -372,9 +379,11 @@ export async function listReviews(context: AppContext, directory: string): Promi
     throw error;
   }
   const summaries: ReviewSummary[] = [];
+  // Un solo cache para todo el listado: varias revisiones del mismo día tocan las mismas fuentes.
+  const cache: SourceCache = new Map();
   for (const name of names) {
     const path = resolve(root, name);
-    summaries.push(await summarize(context, name, path, await context.datasetFileSystem.readTextFile(path)));
+    summaries.push(await summarize(context, name, path, await context.datasetFileSystem.readTextFile(path), cache));
   }
   return summaries;
 }
