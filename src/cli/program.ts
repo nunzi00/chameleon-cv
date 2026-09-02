@@ -26,6 +26,7 @@ import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit, parseList, parseProposals } from './limits';
+import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions } from './commands/drafts';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
@@ -173,6 +174,37 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--rank', 'compara varias ofertas en una tabla (adecuación, imprescindibles, especialidad y carencias), de la que mejor encaja a la que menos', false)
     .action(async (offer: string | undefined, extra: string[], options: AnalyzeOfferOptions) => {
       onExit(await runAnalyzeOffer(context, offer, extra, options));
+    });
+
+  const drafts = program.command('drafts').description('los borradores de import/: verlos, comparar sus duplicados y adoptar entradas sueltas en data/sources/ (T-9.19)');
+  drafts
+    .command('list', { isDefault: true })
+    .description('lista los borradores de import/ con su origen, lo que reconoció cada uno y lo que dejó en el informe')
+    .action(async () => {
+      onExit(await runDraftsList(context));
+    });
+  drafts
+    .command('show <nombre>')
+    .description('las experiencias, formaciones y proyectos de un borrador, con el id que hay que señalar para adoptarlos')
+    .action(async (name: string) => {
+      onExit(await runDraftsShow(context, name));
+    });
+  drafts
+    .command('duplicates')
+    .description('agrupa las entradas que parecen la misma cosa, entre borradores y contra tus fuentes de hoy; enseña los grupos, no fusiona ninguno')
+    .option('-d, --data <dir>', 'directorio de fuentes con el que comparar', DEFAULT_DATA_DIR)
+    .action(async (options: DraftsListOptions) => {
+      onExit(await runDraftsDuplicates(context, options));
+    });
+  drafts
+    .command('adopt <nombre>')
+    .description('copia en data/sources/ las entradas señaladas del borrador, como ficheros NUEVOS con id libre; nunca sobrescribe una fuente tuya y no escribe nada si el perfil resultante no valida')
+    .option('--entry <id...>', 'ids de las entradas a adoptar (repetible)')
+    .option('--section <seccion>', 'adopta toda una sección del borrador: experience, education o projects')
+    .option('-d, --data <dir>', 'directorio de fuentes de destino', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'enseña lo que escribiría sin escribir nada', false)
+    .action(async (name: string, options: DraftsAdoptOptions) => {
+      onExit(await runDraftsAdopt(context, name, options));
     });
 
   const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');

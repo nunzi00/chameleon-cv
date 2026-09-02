@@ -9,6 +9,7 @@ import { importCvDraft, importCvFolder, type ImportCopilotOptions, type Imported
 import { selectCopilotProvider } from '../../app/copilot';
 import { IMPORT_MAP_LIMITS, estimateBatch, loadImportMapPrompt } from '../../llm';
 import type { CliContext } from '../context';
+import { formatTable } from '../output';
 import { ensureProviderReady } from './remote';
 
 export const EXIT_OK = 0;
@@ -70,13 +71,7 @@ async function runImportAll(context: CliContext, directory: string, options: Imp
     String(draft.issues.length),
     String(draft.unparsed.length),
   ]);
-  const header = ['Fichero', 'Borrador', 'Exp.', 'Form.', 'Hab.', 'Avisos', 'Sin situar'];
-  const widths = header.map((title, column) => rows.reduce((max, row) => Math.max(max, row[column]!.length), title.length));
-  const line = (cells: readonly string[]): string => cells.map((cell, column) => (column <= 1 ? cell.padEnd(widths[column]!) : cell.padStart(widths[column]!))).join('  ');
-  context.stdout(`${line(header)}\n`);
-  for (const row of rows) {
-    context.stdout(`${line(row)}\n`);
-  }
+  context.stdout(formatTable(['Fichero', 'Borrador', 'Exp.', 'Form.', 'Hab.', 'Avisos', 'Sin situar'], rows, 2));
   for (const failure of failed) {
     context.stderr(`No se pudo importar ${basename(failure.file)}: ${failure.message}\n`);
   }

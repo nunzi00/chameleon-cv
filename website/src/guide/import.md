@@ -5,8 +5,8 @@ title: Importar un CV que ya tienes
 # Importar un CV que ya tienes
 
 Si llegas con un CV en PDF o DOCX, `cv import-cv` lo convierte en un **borrador de fuentes** para que no empieces de
-cero. El borrador se escribe en `import/<nombre>/` y **nunca** en `data/sources/`: lo revisas, lo ajustas y lo mueves
-tú cuando estés conforme.
+cero. El borrador se escribe en `import/<nombre>/` y **nunca** en `data/sources/`: lo revisas, lo ajustas y **adoptas lo
+que quieras** con `cv drafts` (o la pantalla «Borradores») cuando estés conforme.
 
 ```bash
 cv import-cv cv-antiguo.pdf              # borrador en import/<nombre>/ con su informe
@@ -166,8 +166,42 @@ viene sin fechas —y no se le inventa ninguna—, y el nombre se comprueba cont
 borrador limpio, pero **la exportación de datos sigue siendo mejor**: son datos estructurados en vez de una
 maquetación que hay que adivinar.
 
+## Revisar los borradores y adoptarlos
+
+Importar deja un **borrador**, no toca tu perfil. Para verlos todos y llevarte lo que te interese está
+`cv drafts`, y en la web la pantalla **Perfil → Borradores**:
+
+```bash
+cv drafts                                      # todos los borradores, con lo que reconoció cada uno
+cv drafts show cv-antiguo                      # sus entradas, con el id de cada una
+cv drafts duplicates                           # lo que se repite entre borradores y contra tus fuentes
+cv drafts adopt cv-antiguo --entry exp-acme    # copia esa entrada a data/sources/
+cv build                                       # y recompila cuando la hayas revisado
+```
+
+**Adoptar añade, no sustituye.** Cada entrada se escribe como un **fichero nuevo** con un id libre, y no se toca
+ni una fuente tuya: si te equivocas, borras el fichero y ya está. Antes de escribir nada se valida el perfil
+entero que quedará, así que no puedes dejar unas fuentes que `cv build` rechace. `--dry-run` te enseña el plan.
+
+**No es un *merge***: no se mezclan dos versiones del mismo empleo. Adoptas la que prefieras y la editas después.
+
+### Qué está repetido
+
+Si has importado varias versiones de tu CV, el mismo empleo aparece en todas —y casi nunca igual: cambian las
+fechas, a veces la empresa y el puesto salen intercambiados, y un PDF maquetado letra a letra llega como
+`B A S E R  L U G O`—. `cv drafts duplicates` **agrupa y pregunta**: te enseña cada grupo con todos sus miembros,
+de qué borrador viene cada uno y **cuál ya tienes en tus fuentes**, para que no lo dupliques. No elige por ti,
+porque cuando los CV se contradicen no hay forma honesta de saber cuál lleva razón: eso lo sabes tú.
+
+### Corregir antes de adoptar
+
+Los ficheros del borrador se editan como una fuente cualquiera, desde la pantalla **Borradores** o con tu editor.
+Es lo que hace falta cuando el informe dice «experiencia sin empresa reconocida: lleva "Empresa pendiente"».
+Corregir un borrador **no toca** `data/sources/`.
+
 ## Después de importar
 
-1. Lee el `README.md` y corrige lo señalado.
+1. Lee el `README.md` y corrige lo señalado (en la web, **Perfil → Borradores**).
 2. Valida: `cv build --data import/<nombre>`.
-3. Mueve las fuentes a `data/sources/` cuando estén a tu gusto y sigue con [Generar el CV](/guide/generate).
+3. Adopta lo que quieras con `cv drafts adopt` —o el botón «Adoptar en mis fuentes»— y sigue con
+   [Generar el CV](/guide/generate).

@@ -26,6 +26,7 @@ import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { applyImportProposal } from '../app/import-apply';
+import { adoptEntries, draftDuplicates, listDraftFiles, listDrafts, readDraftFile, writeDraftFile } from '../app/drafts';
 import { importLinkedInDraft } from '../app/import-linkedin';
 import { executeImportMap, importMapEstimate, planImportMap, type ImportMapPlan } from '../app/import-map';
 import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
@@ -35,6 +36,7 @@ import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme
 import { importCvFolder, importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
+import { DraftsAdoptSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse } from './contract';
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
 import type { LlmProvider } from '../llm/provider';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -176,6 +178,7 @@ export function createRouter(): Router<ServerState> {
   addGenerateRoutes(router);
   addOfferRoutes(router);
   addImportRoutes(router);
+  addDraftRoutes(router);
   addThemeRoutes(router);
   addServerRoutes(router);
   addCopilotRoutes(router);
@@ -1068,6 +1071,92 @@ function addImportRoutes(router: Router<ServerState>): void {
         readme: draft.readme,
         backup: draft.backup === undefined ? undefined : basename(draft.backup),
       } satisfies ImportCvResponse);
+    },
+  });
+}
+
+/**
+ * Los borradores de `import/` (T-9.19): verlos, editarlos como se edita una fuente y adoptar en `data/sources/`
+ * las entradas que se elijan. El criterio —qué se parece a qué, qué se puede adoptar, con qué id— vive entero
+ * en `src/app/drafts.ts`, que es lo que usa también `cv drafts` (C14).
+ */
+function addDraftRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/drafts`,
+    summary:
+      'Los borradores de import/ con lo que reconoció cada uno y lo que dejó en su informe, más los grupos de entradas que parecen la misma cosa (entre borradores y contra las fuentes de hoy). Agrupar no fusiona nada.',
+    writes: false,
+    handler: async (_request, state) => {
+      const listed = await listDrafts(state.context);
+      if (!listed.ok) {
+        return appErrorResponse(listed.error);
+      }
+      const duplicates = await draftDuplicates(state.context, { data: state.data });
+      if (!duplicates.ok) {
+        return appErrorResponse(duplicates.error);
+      }
+      return json(200, { drafts: listed.drafts, duplicates: duplicates.result } satisfies DraftsResponse);
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/drafts/{name}/files`,
+    summary: 'Los ficheros de un borrador con su tamaño, fecha y huella SHA-256, como el árbol de las fuentes.',
+    writes: false,
+    handler: async (request, state) => {
+      const name = String(request.params['name']);
+      const result = await listDraftFiles(state.context, name);
+      return result.ok ? json(200, { name, entries: result.entries } satisfies DraftFilesResponse) : appErrorResponse(result.error, { issues: result.issues });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/drafts/{name}/files/{path+}`,
+    summary: 'Contenido de un fichero del borrador con su huella (también en la cabecera ETag).',
+    writes: false,
+    handler: async (request, state) => {
+      const result = await readDraftFile(state.context, String(request.params['name']), String(request.params['path']));
+      return result.ok ? json(200, result.file satisfies SourceResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/drafts/{name}/files/{path+}`,
+    summary: 'Corrige un fichero del borrador antes de adoptarlo. Mismas garantías que editar una fuente: exige If-Match con la huella actual, o «*» para crear. Atómico, 0600. Escribe en import/, nunca en data/sources.',
+    writes: true,
+    body: SourceWriteSchema,
+    handler: async (request, state) => {
+      const ifMatch = request.headers['if-match'];
+      if (ifMatch === undefined) {
+        return errorResponse('precondition-required', 'Falta la cabecera If-Match: la huella actual del fichero, o «*» para crearlo');
+      }
+      const parsed = parseJsonBody(request.body, SourceWriteSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await writeDraftFile(state.context, String(request.params['name']), String(request.params['path']), parsed.value.content, ifMatch.trim().replace(/^"|"$/g, ''));
+      return result.ok ? json(200, { path: result.file.path, sha256: result.file.sha256 } satisfies SourceWriteResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/drafts/adopt`,
+    summary:
+      'Copia en data/sources/ las entradas señaladas de los borradores, como ficheros NUEVOS con id libre. Nunca sobrescribe una fuente existente y no escribe nada si el perfil resultante no valida. Con dryRun devuelve el plan.',
+    writes: true,
+    body: DraftsAdoptSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, DraftsAdoptSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await adoptEntries(state.context, { data: state.data, entries: parsed.value.entries, dryRun: parsed.value.dryRun });
+      return result.ok ? json(parsed.value.dryRun === true ? 200 : 201, result.outcome satisfies DraftsAdoptResponse) : appErrorResponse(result.error);
     },
   });
 }

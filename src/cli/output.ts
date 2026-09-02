@@ -12,6 +12,20 @@ export const EXIT_DATA_ERROR = 1;
 /** Uso incorrecto o fallo inesperado del entorno (permisos, disco…). */
 export const EXIT_FAILURE = 2;
 
+/**
+ * Una tabla de texto con las columnas ajustadas a su contenido. `numeric` dice a partir de qué columna se
+ * alinea a la derecha, que es lo que hace legible una columna de recuentos.
+ */
+export function formatTable(header: readonly string[], rows: ReadonlyArray<readonly string[]>, numeric = header.length): string {
+  const widths = header.map((title, column) => rows.reduce((max, row) => Math.max(max, (row[column] ?? '').length), title.length));
+  const line = (cells: readonly string[]): string =>
+    cells
+      .map((cell, column) => (column >= numeric ? cell.padStart(widths[column]!) : cell.padEnd(widths[column]!)))
+      .join('  ')
+      .trimEnd();
+  return [header, ...rows].map((row) => `${line(row)}\n`).join('');
+}
+
 /** Imprime un error de la capa de casos de uso en stderr, línea a línea, y devuelve su código de salida. */
 export function reportError(context: Pick<CliContext, 'stderr'>, error: AppError): number {
   for (const line of errorLines(error)) {

@@ -4,6 +4,10 @@
  * servidor convertida en `ApiError`. Sin caché ni estado: la verdad está en el servidor.
  */
 import type {
+  DraftsResponse,
+  DraftFilesResponse,
+  DraftsAdoptRequest,
+  DraftsAdoptResponse,
   ImportCvResponse,
   ImportApplyRequestBody,
   ImportApplyResponse,
@@ -151,6 +155,15 @@ export interface ApiClient {
   removeLlmKey(provider: string): Promise<LlmKeyResponse>;
   /** POST /import/apply (T-9.5): mueve UNA línea sin situar del borrador a la sección indicada; 422 si falta un dato. */
   applyImportProposal(body: ImportApplyRequestBody): Promise<ImportApplyResponse>;
+  /** GET /drafts (T-9.19): los borradores de import/ con sus cuentas y los grupos de entradas que se parecen. */
+  drafts(): Promise<DraftsResponse>;
+  /** GET /drafts/{name}/files: el árbol de ficheros de un borrador, para abrirlos y corregirlos. */
+  draftFiles(name: string): Promise<DraftFilesResponse>;
+  draftFile(name: string, path: string): Promise<SourceResponse>;
+  /** PUT /drafts/{name}/files/{ruta}: corrige un fichero del borrador; `ifMatch` es su huella, o «*» para crear. */
+  writeDraftFile(name: string, path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
+  /** POST /drafts/adopt (T-9.19): copia en data/sources/ las entradas señaladas; escribe fuentes, por eso lo pide un botón. */
+  adoptDraftEntries(body: DraftsAdoptRequest): Promise<DraftsAdoptResponse>;
   /** GET /offers (T-8.5 S2): el listado de offers/ para el selector de Generar. */
   offers(): Promise<OffersListResponse>;
   /** POST /offers/fetch: 409 consent-required con estimateId la primera vez; repetir con consent para descargar. */
@@ -328,6 +341,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });
       return parseJson(await response.text()) as ExtractResponse;
     },
+    drafts: () => request('GET', '/drafts'),
+    draftFiles: (name) => request('GET', `/drafts/${encodeId(name)}/files`),
+    draftFile: (name, path) => request('GET', `/drafts/${encodeId(name)}/files/${encodeId(path)}`),
+    writeDraftFile: (name, path, content, ifMatch) => requestWithHeaders('PUT', `/drafts/${encodeId(name)}/files/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
+    adoptDraftEntries: (body) => request('POST', '/drafts/adopt', { body }),
     offers: () => request('GET', '/offers'),
     offerFetch: (body) => request('POST', '/offers/fetch', { body }),
     offerSave: (body) => request('POST', '/offers', { body }),

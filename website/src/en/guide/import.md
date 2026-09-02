@@ -6,7 +6,7 @@ title: Importing a CV you already have
 
 If you arrive with a CV in PDF or DOCX, `cv import-cv` turns it into a **draft dataset** so you don't start from
 scratch. The draft is written to `import/<name>/` and **never** to `data/sources/`: you review it, adjust it and
-move it yourself when you're happy with it.
+**adopt whatever you want** with `cv drafts` (or the «Borradores» screen) once you're happy with it.
 
 ```bash
 cv import-cv old-cv.pdf                  # draft in import/<name>/ with its report
@@ -168,9 +168,45 @@ page footer, and applies that format's rules: the company goes above and the rol
 dates —and none is invented for it—, and the name is checked against your URL's *slug*. You get a clean draft,
 but **the data export is still better**: structured data instead of a layout that has to be guessed.
 
+## Reviewing drafts and adopting them
+
+Importing leaves a **draft**; it does not touch your profile. To see them all and take what you want there is
+`cv drafts`, and in the web interface the **Perfil → Borradores** screen:
+
+```bash
+cv drafts                                      # every draft, with what each one recognised
+cv drafts show cv-old                          # its entries, each with its id
+cv drafts duplicates                           # what repeats across drafts and against your sources
+cv drafts adopt cv-old --entry exp-acme        # copies that entry into data/sources/
+cv build                                       # and rebuild once you've reviewed it
+```
+
+**Adopting adds, it does not replace.** Each entry is written as a **new file** with a free id, and not one of
+your sources is touched: if you get it wrong, delete the file and you're done. Before anything is written the
+whole resulting profile is validated, so you cannot end up with sources `cv build` rejects. `--dry-run` shows you
+the plan.
+
+**It is not a merge**: two versions of the same job are never blended. You adopt the one you prefer and edit it
+afterwards.
+
+### What is repeated
+
+If you imported several versions of your CV, the same job shows up in all of them — and hardly ever the same way:
+the dates move, sometimes company and role come out swapped, and a CV laid out letter by letter arrives as
+`B A S E R  L U G O`. `cv drafts duplicates` **groups and asks**: it shows you each group with all its members,
+which draft each came from, and **which one you already have in your sources**, so you don't duplicate it. It does
+not choose for you, because when the CVs contradict each other there is no honest way to tell which is right —
+you are the one who knows.
+
+### Fixing before adopting
+
+A draft's files are edited like any source, from the **Borradores** screen or with your own editor. That is what
+you need when the report says «experiencia sin empresa reconocida: lleva "Empresa pendiente"». Fixing a draft
+**does not touch** `data/sources/`.
+
 ## After importing
 
-1. Read the `README.md` and fix what it points at.
+1. Read the `README.md` and fix what it points at (in the web interface, **Perfil → Borradores**).
 2. Validate: `cv build --data import/<name>`.
-3. Move the sources to `data/sources/` when they're to your liking and carry on with
+3. Adopt what you want with `cv drafts adopt` — or the «Adoptar en mis fuentes» button — and carry on with
    [Generating the CV](/en/guide/generate).

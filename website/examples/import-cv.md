@@ -11,6 +11,8 @@ cv build --data import/mi-cv                   # valida el borrador antes de mov
   contenido del producto (límites de páginas, memoria y tiempo) y su orden de lectura se reconstruye desde la
   maquetación (columnas laterales, tablas con fechas al margen, viñetas partidas).
 - Determinista y sin inventar: lo que no se entiende va al `README.md` del borrador («Degradado o avisado» y
-  «Sin situar», con la línea de origen), y cada fichero lleva la cabecera `BORRADOR importado de <fichero>`.
-- Revisa, ajusta y muévelo a mano (o con `cv import` desde un perfil JSON exportado) cuando esté a tu gusto.
+  «Sin situar», con la línea de origen). Los `.md` del borrador no llevan banner: el cuerpo tras el frontmatter es
+  el resumen que lee el cargador, así que la procedencia vive en el informe.
+- Revísalo y adóptalo con `cv drafts`: `cv drafts show <nombre>` lista sus entradas y `cv drafts adopt` copia en
+  `data/sources/` las que señales, como ficheros nuevos y sin pisar nada tuyo.
 - En la interfaz web (`cv serve`), la pantalla **Importar CV** (grupo Perfil) hace lo mismo: eliges el fichero, opcionalmente el nombre, y ves el resumen y el informe del borrador; si ya existe, te ofrece sustituirlo.

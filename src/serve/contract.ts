@@ -25,6 +25,8 @@ import type { WorkspaceStatus } from '../app/workspace';
 import type { MasterProfile } from '../core/schema';
 import { SUGGEST_TAGS_LIMITS } from '../llm';
 import type { PlanDescription } from '../app/portability';
+import { ADOPTABLE_SECTIONS } from '../app/drafts';
+import type { AdoptOutcome, DraftSummary, DuplicatesResult } from '../app/drafts';
 import type { LlmStatus, QuotaSnapshot } from '../llm';
 import type { LocalModelsState, RuntimeState } from '../llm/runtime';
 import type { SourceHistoryEntry, SourceHistoryFile } from '../app/source-history';
@@ -166,6 +168,26 @@ export interface LlmKeyResponse {
   /** Solo al borrar: si había algo que borrar. */
   readonly removed?: boolean | undefined;
 }
+
+/**
+ * `POST /drafts/adopt` (T-9.19): copia en `data/sources/` las entradas señaladas de los borradores. Escribe
+ * fuentes, así que la lista la manda el cliente entera y explícita: aquí no se adopta «todo lo que se parezca».
+ */
+export const DraftsAdoptSchema = z.object({
+  entries: z
+    .array(
+      z.strictObject({
+        draft: z.string().trim().min(1).max(120),
+        section: z.enum(ADOPTABLE_SECTIONS),
+        id: z.string().trim().min(1).max(120),
+      }),
+    )
+    .min(1)
+    .max(200),
+  /** Enseña lo que escribiría sin escribir nada. */
+  dryRun: z.boolean().optional(),
+});
+export type DraftsAdoptRequest = z.infer<typeof DraftsAdoptSchema>;
 
 /**
  * `POST /import/apply` (T-9.5): mueve UNA línea sin situar del borrador a la sección propuesta. Síncrona y sin
@@ -478,6 +500,25 @@ export interface ImportCvResponse {
   /** Con `replace`, la carpeta donde quedó completo el borrador anterior; ausente si no había ninguno. */
   readonly backup?: string | undefined;
 }
+
+/**
+ * `GET /drafts` (T-9.19): los borradores de `import/` con lo que reconoció cada uno, y los grupos de entradas
+ * que parecen la misma cosa. Van juntos en una respuesta porque la pantalla enseña las dos cosas a la vez y el
+ * criterio de agrupado es del núcleo, no del cliente (C14): duplicarlo en la GUI sería un segundo criterio.
+ */
+export interface DraftsResponse {
+  readonly drafts: readonly DraftSummary[];
+  readonly duplicates: DuplicatesResult;
+}
+
+/** `GET /drafts/{name}/files`: los ficheros del borrador, para abrirlos y editarlos como una fuente. */
+export interface DraftFilesResponse {
+  readonly name: string;
+  readonly entries: SourcesResponse['entries'];
+}
+
+/** `POST /drafts/adopt`: lo adoptado, lo que se quedó fuera con su motivo y si fue un ensayo. */
+export type DraftsAdoptResponse = AdoptOutcome;
 
 /** `POST /offers/history`: consulta de solo lectura del historial de una oferta. */
 export const HistoryLookupSchema = z.object({ offer: OfferSchema });
