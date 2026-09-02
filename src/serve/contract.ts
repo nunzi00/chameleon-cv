@@ -27,6 +27,7 @@ import { SUGGEST_TAGS_LIMITS } from '../llm';
 import type { PlanDescription } from '../app/portability';
 import { ADOPTABLE_SECTIONS } from '../app/drafts';
 import type { AdoptOutcome, DraftSummary, DuplicatesResult } from '../app/drafts';
+import type { ResolveOutcome, SourceDuplicates } from '../app/dedupe';
 import type { LlmStatus, QuotaSnapshot } from '../llm';
 import type { LocalModelsState, RuntimeState } from '../llm/runtime';
 import type { SourceHistoryEntry, SourceHistoryFile } from '../app/source-history';
@@ -168,6 +169,19 @@ export interface LlmKeyResponse {
   /** Solo al borrar: si había algo que borrar. */
   readonly removed?: boolean | undefined;
 }
+
+/**
+ * `POST /duplicates/resolve` (T-9.20): la entrada `keep` se queda y absorbe de las de `absorb` SOLO lo que le
+ * falta; las absorbidas se borran. Escribe y borra fuentes, así que la lista la manda el cliente entera: aquí no
+ * se resuelve «todo lo que se parezca».
+ */
+export const DuplicatesResolveSchema = z.object({
+  keep: z.string().trim().min(1).max(120),
+  absorb: z.array(z.string().trim().min(1).max(120)).min(1).max(50),
+  /** Enseña lo que haría sin escribir ni borrar nada. */
+  dryRun: z.boolean().optional(),
+});
+export type DuplicatesResolveRequest = z.infer<typeof DuplicatesResolveSchema>;
 
 /**
  * `POST /drafts/adopt` (T-9.19): copia en `data/sources/` las entradas señaladas de los borradores. Escribe
@@ -519,6 +533,12 @@ export interface DraftFilesResponse {
 
 /** `POST /drafts/adopt`: lo adoptado, lo que se quedó fuera con su motivo y si fue un ensayo. */
 export type DraftsAdoptResponse = AdoptOutcome;
+
+/** `GET /duplicates` (T-9.20): lo repetido en las PROPIAS fuentes, con el fichero real de cada entrada. */
+export type DuplicatesResponse = SourceDuplicates;
+
+/** `POST /duplicates/resolve`: qué se tomó, qué se conservó, qué se borró y con qué entrada del histórico se deshace. */
+export type DuplicatesResolveResponse = ResolveOutcome;
 
 /** `POST /offers/history`: consulta de solo lectura del historial de una oferta. */
 export const HistoryLookupSchema = z.object({ offer: OfferSchema });

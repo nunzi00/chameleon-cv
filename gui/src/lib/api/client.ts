@@ -4,6 +4,9 @@
  * servidor convertida en `ApiError`. Sin caché ni estado: la verdad está en el servidor.
  */
 import type {
+  DuplicatesResponse,
+  DuplicatesResolveRequest,
+  DuplicatesResolveResponse,
   DraftsResponse,
   DraftFilesResponse,
   DraftsAdoptRequest,
@@ -164,6 +167,10 @@ export interface ApiClient {
   writeDraftFile(name: string, path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
   /** POST /drafts/adopt (T-9.19): copia en data/sources/ las entradas señaladas; escribe fuentes, por eso lo pide un botón. */
   adoptDraftEntries(body: DraftsAdoptRequest): Promise<DraftsAdoptResponse>;
+  /** GET /duplicates (T-9.20): lo repetido en las propias fuentes, agrupado, con el fichero de cada entrada. */
+  duplicates(): Promise<DuplicatesResponse>;
+  /** POST /duplicates/resolve: la elegida absorbe lo que le falta y las otras se borran; con dryRun, solo el plan. */
+  resolveDuplicate(body: DuplicatesResolveRequest): Promise<DuplicatesResolveResponse>;
   /** GET /offers (T-8.5 S2): el listado de offers/ para el selector de Generar. */
   offers(): Promise<OffersListResponse>;
   /** POST /offers/fetch: 409 consent-required con estimateId la primera vez; repetir con consent para descargar. */
@@ -346,6 +353,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     draftFile: (name, path) => request('GET', `/drafts/${encodeId(name)}/files/${encodeId(path)}`),
     writeDraftFile: (name, path, content, ifMatch) => requestWithHeaders('PUT', `/drafts/${encodeId(name)}/files/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
     adoptDraftEntries: (body) => request('POST', '/drafts/adopt', { body }),
+    duplicates: () => request('GET', '/duplicates'),
+    resolveDuplicate: (body) => request('POST', '/duplicates/resolve', { body }),
     offers: () => request('GET', '/offers'),
     offerFetch: (body) => request('POST', '/offers/fetch', { body }),
     offerSave: (body) => request('POST', '/offers', { body }),

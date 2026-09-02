@@ -6,6 +6,7 @@
  */
 import { dirname, relative, resolve } from 'node:path';
 
+import { isMissingFile } from '../artifact';
 import type { AppContext } from './context';
 import { dataError, environmentError, type AppError } from './errors';
 import { isSafeSourcePath } from './paths';
@@ -200,7 +201,12 @@ export async function restoreSourceVersion(context: HistoryContext, entryId: str
   try {
     current = await context.artifactFileSystem.readFile(target);
   } catch (error) {
-    return { ok: false, error: environmentError(`No se pudo leer la fuente actual ${target}: ${error instanceof Error ? error.message : String(error)}`) };
+    // Una fuente que YA NO EXISTE se restaura igual: su versión actual es «no existe», y eso es justo lo que hay
+    // que guardar para poder deshacer la restauración. Sin esto, borrar una fuente (T-9.20) no tendría vuelta.
+    if (!isMissingFile(error)) {
+      return { ok: false, error: environmentError(`No se pudo leer la fuente actual ${target}: ${error instanceof Error ? error.message : String(error)}`) };
+    }
+    current = '';
   }
   const recorded = await recordSourceVersions(context, { action: 'restore', origin: version.entry.id, root: version.entry.root, versions: [{ path: target, before: current, after: version.content, ids: [version.entry.id] }], at });
   if (!recorded.ok) {

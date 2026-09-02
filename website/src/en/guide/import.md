@@ -198,6 +198,25 @@ which draft each came from, and **which one you already have in your sources**, 
 not choose for you, because when the CVs contradict each other there is no honest way to tell which is right —
 you are the one who knows.
 
+### If you end up with something repeated
+
+Adopting the same job from several drafts leaves it twice. That is what `cv duplicates` and the
+**Perfil → Duplicados** screen are for:
+
+```bash
+cv duplicates                                            # what is repeated in your sources
+cv duplicates resolve <id> --absorb <id> --dry-run       # the plan, without touching anything
+cv duplicates resolve <id> --absorb <id>                 # resolved
+```
+
+You choose **which one stays**, and it absorbs from the other **only the data it lacks** — which is the usual
+shape after importing: one half has the dates and «Centro pendiente», the other the real institution and no dates
+at all. The absorbed one is deleted. A value the chosen entry already had is **never overwritten**: if the other
+brought a different one, you are told which is kept and which is discarded. Everything goes to the history, so
+`cv history restore` undoes it.
+
+The same job **split into periods** (one entry per stage) does not count as a duplicate: its dates do not overlap.
+
 ### Fixing before adopting
 
 A draft's files are edited like any source, from the **Borradores** screen or with your own editor. That is what

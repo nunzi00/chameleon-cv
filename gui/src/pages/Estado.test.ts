@@ -26,7 +26,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     generate: vi.fn(),
     analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(),
     extractOffer: vi.fn(),
-    setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(),
+    setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(), importCv: vi.fn(),
     offers: vi.fn(),
     offerFetch: vi.fn(),
     offerSave: vi.fn(),

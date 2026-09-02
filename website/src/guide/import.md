@@ -193,6 +193,25 @@ fechas, a veces la empresa y el puesto salen intercambiados, y un PDF maquetado 
 de qué borrador viene cada uno y **cuál ya tienes en tus fuentes**, para que no lo dupliques. No elige por ti,
 porque cuando los CV se contradicen no hay forma honesta de saber cuál lleva razón: eso lo sabes tú.
 
+### Si acabas con algo repetido
+
+Adoptar de varios borradores el mismo empleo lo deja dos veces. Para eso está `cv duplicates` y la pantalla
+**Perfil → Duplicados**:
+
+```bash
+cv duplicates                                            # lo que está repetido en tus fuentes
+cv duplicates resolve <id> --absorb <id> --dry-run       # el plan, sin tocar nada
+cv duplicates resolve <id> --absorb <id>                 # resuelto
+```
+
+Eliges **cuál se queda** y absorbe de la otra **solo los datos que le faltan** —es lo normal al importar: una
+mitad trae las fechas y «Centro pendiente», la otra el centro de verdad y ninguna fecha—; la absorbida se borra.
+Un valor que la elegida ya tenía **no se pisa nunca**: si la otra traía uno distinto, se te dice cuál se conserva
+y cuál se descarta. Todo queda en el histórico, así que `cv history restore` lo deshace.
+
+Un mismo empleo **partido en periodos** (una entrada por etapa) no cuenta como duplicado: sus fechas no se
+solapan.
+
 ### Corregir antes de adoptar
 
 Los ficheros del borrador se editan como una fuente cualquiera, desde la pantalla **Borradores** o con tu editor.

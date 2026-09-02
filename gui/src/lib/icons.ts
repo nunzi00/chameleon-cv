@@ -10,6 +10,7 @@ export type IconName =
   | 'file-down'
   | 'file-up'
   | 'layers'
+  | 'copy'
   | 'robot'
   | 'checklist'
   | 'sliders'
@@ -37,6 +38,7 @@ export const ICONS: Readonly<Record<IconName, readonly string[]>> = {
   'file-down': ['M6 4h8l4 4v12H6z', 'M12 10v6M9.5 13.5L12 16l2.5-2.5'],
   'file-up': ['M6 4h8l4 4v12H6z', 'M12 16v-6M9.5 12.5L12 10l2.5 2.5'],
   layers: ['M12 4l8 4-8 4-8-4z', 'M4 12l8 4 8-4', 'M4 16l8 4 8-4'],
+  copy: ['M9 9h9v11H9z', 'M6 15H4V4h11v2'],
   robot: ['M7 8h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z', 'M12 5v3M9 12.5h.01M15 12.5h.01'],
   checklist: ['M4 7.5l2 2 3-3M4 16.5l2 2 3-3M12 8h8M12 17h8'],
   sliders: ['M4 8h10M18 8h2M4 16h4M12 16h8', 'M14 8a2 2 0 104 0a2 2 0 10-4 0', 'M8 16a2 2 0 104 0a2 2 0 10-4 0'],

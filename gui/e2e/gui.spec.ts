@@ -223,11 +223,11 @@ test('la barra lateral y la cabecera de contexto (T-8.6 S1): chips en toda panta
 
   await page.getByRole('link', { name: 'Fuentes' }).focus();
   const order: string[] = [];
-  for (let i = 0; i < 10; i += 1) {
+  for (let i = 0; i < 11; i += 1) {
     order.push(await page.evaluate(() => document.activeElement?.querySelector('span')?.textContent?.trim() ?? ''));
     await page.keyboard.press('Tab');
   }
-  expect(order).toEqual(['Fuentes', 'Importar CV', 'Borradores', 'Estado del artefacto', 'Generar', 'Salidas', 'Trabajos', 'Revisiones', 'Ajustes', 'Portada']);
+  expect(order).toEqual(['Fuentes', 'Importar CV', 'Borradores', 'Duplicados', 'Estado del artefacto', 'Generar', 'Salidas', 'Trabajos', 'Revisiones', 'Ajustes', 'Portada']);
   expect(await page.evaluate(() => getComputedStyle(document.activeElement as Element).outlineStyle)).toBe('solid');
 
   await page.getByRole('button', { name: 'Plegar a iconos' }).click();

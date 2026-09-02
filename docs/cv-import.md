@@ -279,3 +279,60 @@ reconocida: lleva "Empresa pendiente"». Corregir un borrador **no toca** `data/
 - **Elegir por ti el «mejor» miembro de un grupo**. No hay forma honesta de saberlo, y fingirla sería peor que
   no ofrecerla.
 - **Borrar borradores** desde el producto. `import/` es del usuario; se borra con `rm`.
+
+## §11 Duplicados en las propias fuentes (T-9.20)
+
+**El encargo del PO (2-sep, tras adoptar de varios borradores)**: «necesito una herramienta para detectar
+duplicados en mis fuentes y poder solventarlos». Adoptar entrada a entrada de varios borradores (§10) es justo
+lo que los crea: el mismo empleo entra dos veces desde dos CV que lo cuentan distinto.
+
+`cv duplicates` los detecta y `cv duplicates resolve` los resuelve; en la web, la pantalla **Duplicados**. En la
+API, `GET /api/v1/duplicates` y `POST /api/v1/duplicates/resolve`.
+
+### §11.1 Detectar es la misma regla, aplicada a otra cosa
+
+No hay un segundo criterio: se reutiliza `src/app/duplicates.ts`, el mismo que agrupa las entradas de los
+borradores (§10.2), aplicado a `data/sources/` contra sí mismo. Por eso el módulo salió de `drafts.ts` en esta
+tarea: qué es «la misma cosa» no es de los borradores.
+
+**Lo importante es lo que NO marca.** Un mismo empleo contado por periodos —una entrada por etapa, que es la
+forma normal de enseñar una promoción— comparte empresa pero no fechas, y la regla del solapamiento lo respeta.
+Medido sobre el espacio de trabajo real: de 22 entradas, **2 grupos** (dos formaciones repetidas al adoptar) y
+**cero** falsos positivos sobre las cuatro entradas de Life5 partidas por periodo. Sería el peor falso positivo
+posible: son la carrera de la persona.
+
+### §11.2 Resolver: quedarse con una y absorber lo que le falta
+
+La forma la decidió el dato real. En los duplicados que salen de importar, **cada mitad tiene lo que a la otra
+le falta**: una trae las fechas y `Centro pendiente`, la otra el centro de verdad y ninguna fecha. Borrar
+cualquiera de las dos pierde información, así que resolver es *quedarse con una y absorber de las otras solo lo
+que le falta*:
+
+| Regla | Por qué |
+| --- | --- |
+| Un valor que la elegida ya tiene **no se pisa nunca** | Quien eligió la entrada eligió sus datos. Si la otra trae uno distinto, se **dice** y se descarta: no se pierde en silencio. |
+| «Empresa pendiente» y «Centro pendiente» cuentan como **ausencia** | Son la marca que escribe el importador cuando NO reconoció el dato. Tratarlas como texto dejaría el hueco sin rellenar, que es el caso real. |
+| El periodo va **entero** | Un `end` ausente significa «en curso», que es un dato y no un hueco: no se rellena desde otra entrada. |
+| Las listas se **añaden sin repetir** | Logros, tecnologías y etiquetas se comparan normalizadas; un logro absorbido entra con un id libre. |
+| Antes del disco, se **valida el perfil entero** | Unas fuentes que `cv build` rechaza son peor que un duplicado. |
+
+### §11.3 Borrar una fuente, y poder deshacerlo
+
+Resolver **borra** el fichero de la entrada absorbida, que es lo que el producto no sabía hacer. Se apoya en el
+histórico de fuentes (T-8.10), no en una copia nueva: lo escrito y lo borrado quedan en
+`output/historial-fuentes/<id>/`, y `cv history restore <id> <ruta>` lo devuelve. Un solo mecanismo de deshacer
+para todo (C9).
+
+Hizo falta un arreglo pequeño para que fuera cierto: `restoreSourceVersion` fallaba si la fuente **ya no
+existía**, porque leía su versión actual sin contemplar que faltara. Ahora una fuente borrada se restaura igual;
+su versión actual es «no existe», que es exactamente lo que hay que guardar para poder deshacer la restauración.
+Un fallo de lectura que no sea «no existe» sigue siendo un error.
+
+### §11.4 Fuera de alcance
+
+- **Resolver solo**: la elección de cuál se queda es siempre de una persona. Cuando dos entradas se contradicen
+  no hay forma honesta de saber cuál lleva razón.
+- **Fusionar dos textos** (juntar dos resúmenes en uno). Se absorbe el que falta o se conserva el que hay; para
+  redactar está el editor.
+- **Duplicados de habilidades, certificaciones y logros transversales**: viven en ficheros compartidos
+  (`skills.csv`, `certifications.csv`, `achievements.md`) y su unicidad ya la vigila el esquema por id.

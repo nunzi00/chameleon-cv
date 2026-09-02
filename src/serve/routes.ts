@@ -27,6 +27,7 @@ import { contentHash, listSources, readSource, writeSource } from '../app/source
 import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { applyImportProposal } from '../app/import-apply';
 import { adoptEntries, draftDuplicates, listDraftFiles, listDrafts, readDraftFile, writeDraftFile } from '../app/drafts';
+import { resolveDuplicate, sourceDuplicates } from '../app/dedupe';
 import { importLinkedInDraft } from '../app/import-linkedin';
 import { executeImportMap, importMapEstimate, planImportMap, type ImportMapPlan } from '../app/import-map';
 import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
@@ -36,7 +37,7 @@ import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme
 import { importCvFolder, importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
-import { DraftsAdoptSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse } from './contract';
+import { DraftsAdoptSchema, DuplicatesResolveSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse, type DuplicatesResolveResponse, type DuplicatesResponse } from './contract';
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
 import type { LlmProvider } from '../llm/provider';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -179,6 +180,7 @@ export function createRouter(): Router<ServerState> {
   addOfferRoutes(router);
   addImportRoutes(router);
   addDraftRoutes(router);
+  addDuplicateRoutes(router);
   addThemeRoutes(router);
   addServerRoutes(router);
   addCopilotRoutes(router);
@@ -1157,6 +1159,40 @@ function addDraftRoutes(router: Router<ServerState>): void {
       }
       const result = await adoptEntries(state.context, { data: state.data, entries: parsed.value.entries, dryRun: parsed.value.dryRun });
       return result.ok ? json(parsed.value.dryRun === true ? 200 : 201, result.outcome satisfies DraftsAdoptResponse) : appErrorResponse(result.error);
+    },
+  });
+}
+
+/**
+ * Duplicados en las PROPIAS fuentes (T-9.20): verlos y resolverlos. Resolver escribe una fuente y borra otra, así
+ * que pasa por el histórico (`cv history restore` lo deshace) y solo ocurre con la lista explícita del cliente.
+ */
+function addDuplicateRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/duplicates`,
+    summary: 'Las entradas de data/sources que parecen la misma cosa, agrupadas, con el fichero real de cada una. Solo lectura: agrupar no fusiona ni borra nada.',
+    writes: false,
+    handler: async (_request, state) => {
+      const result = await sourceDuplicates(state.context, { data: state.data });
+      return result.ok ? json(200, result.result satisfies DuplicatesResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/duplicates/resolve`,
+    summary:
+      'La entrada «keep» se queda y absorbe de las de «absorb» SOLO los datos que le faltan; las absorbidas se borran. No pisa un valor que la elegida ya tenía, no escribe nada si el perfil resultante no valida, y todo queda en el histórico de fuentes. Con dryRun devuelve el plan.',
+    writes: true,
+    body: DuplicatesResolveSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, DuplicatesResolveSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await resolveDuplicate(state.context, { data: state.data, keep: parsed.value.keep, absorb: parsed.value.absorb, dryRun: parsed.value.dryRun });
+      return result.ok ? json(200, result.outcome satisfies DuplicatesResolveResponse) : appErrorResponse(result.error);
     },
   });
 }

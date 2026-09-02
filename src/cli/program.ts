@@ -27,6 +27,7 @@ import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit, parseList, parseProposals } from './limits';
 import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions } from './commands/drafts';
+import { runDuplicatesList, runDuplicatesResolve, type DuplicatesListOptions, type DuplicatesResolveOptions } from './commands/duplicates';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
@@ -205,6 +206,24 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--dry-run', 'enseña lo que escribiría sin escribir nada', false)
     .action(async (name: string, options: DraftsAdoptOptions) => {
       onExit(await runDraftsAdopt(context, name, options));
+    });
+
+  const duplicates = program.command('duplicates').description('lo que está repetido en TUS fuentes y cómo resolverlo (T-9.20); adoptar de varios borradores el mismo empleo es lo que lo crea');
+  duplicates
+    .command('list', { isDefault: true })
+    .description('agrupa las entradas de data/sources que parecen la misma cosa; enseña los grupos con su id y su fichero, y no toca nada')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .action(async (options: DuplicatesListOptions) => {
+      onExit(await runDuplicatesList(context, options));
+    });
+  duplicates
+    .command('resolve <id>')
+    .description('la entrada <id> se queda y absorbe de las señaladas SOLO los datos que le faltan; las absorbidas se borran y todo queda en el histórico, así que «cv history restore» lo deshace')
+    .option('--absorb <id...>', 'ids de las entradas que se absorben y se borran (repetible)')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'enseña lo que haría sin escribir ni borrar nada', false)
+    .action(async (keep: string, options: DuplicatesResolveOptions) => {
+      onExit(await runDuplicatesResolve(context, keep, options));
     });
 
   const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');

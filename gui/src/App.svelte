@@ -161,6 +161,12 @@
               {:then borradores}
                 <borradores.default {api} item={route.item} onsession={sessionLost} {navigate} />
               {/await}
+            {:else if route.page === 'duplicados'}
+              {#await import('./pages/Duplicados.svelte')}
+                <p class="cv-muted">Cargando…</p>
+              {:then duplicados}
+                <duplicados.default {api} onsession={sessionLost} onopen={(file) => navigate({ page: 'fuentes', item: file })} />
+              {/await}
             {:else if route.page === 'salidas'}
               {#await import('./pages/Salidas.svelte')}
                 <p class="cv-muted">Cargando…</p>
