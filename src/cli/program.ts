@@ -26,6 +26,7 @@ import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit, parseList, parseProposals } from './limits';
+import { runImportManfred, type ImportManfredOptions } from './commands/import-manfred';
 import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions } from './commands/drafts';
 import { runDuplicatesList, runDuplicatesResolve, type DuplicatesListOptions, type DuplicatesResolveOptions } from './commands/duplicates';
 import { EXIT_FAILURE, EXIT_OK } from './output';
@@ -150,6 +151,16 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
     .action(async (file: string, options: ImportLinkedInOptions) => {
       onExit(await runImportLinkedIn(context, file, options));
+    });
+
+  program
+    .command('import-manfred')
+    .description('importa un MAC de Manfred (el JSON de «Manfred Awesome CV») como borrador en import/<nombre>/; datos estructurados, sin red y sin adivinar maquetación')
+    .argument('<fichero>', 'el MAC exportado (.json)')
+    .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
+    .action(async (file: string, options: ImportManfredOptions) => {
+      onExit(await runImportManfred(context, file, options));
     });
 
   program

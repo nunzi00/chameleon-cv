@@ -155,6 +155,8 @@ export interface ApiClient {
   importCv(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
   /** POST /import-linkedin (T-9.8): la exportación oficial de datos (zip) como borrador; datos estructurados, sin red. */
   importLinkedIn(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
+  /** POST /import-manfred (T-9.22): el MAC de Manfred (JSON) como borrador; datos estructurados, sin red. */
+  importManfred(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
   /** PUT /config/llm/keys/{provider}: guarda la clave en el fichero de claves (0600). La clave viaja solo aquí; ninguna respuesta la devuelve. */
   setLlmKey(provider: string, key: string): Promise<LlmKeyResponse>;
   /** DELETE /config/llm/keys/{provider}: la borra del fichero de claves. */
@@ -370,6 +372,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     importLinkedIn: async (file, options = {}) => {
       const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
       const response = await raw('POST', '/import-linkedin', { body: file, contentType: 'application/pdf', headers });
+      return (await response.json()) as ImportCvResponse;
+    },
+    importManfred: async (file, options = {}) => {
+      const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
+      const response = await raw('POST', '/import-manfred', { body: file, contentType: 'application/pdf', headers });
       return (await response.json()) as ImportCvResponse;
     },
     setLlmKey: (provider, key) => request('PUT', `/config/llm/keys/${encodeId(provider)}`, { body: { key } }),

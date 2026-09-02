@@ -356,3 +356,80 @@ Un fallo de lectura que no sea «no existe» sigue siendo un error.
   redactar está el editor.
 - **Duplicados de habilidades, certificaciones y logros transversales**: viven en ficheros compartidos
   (`skills.csv`, `certifications.csv`, `achievements.md`) y su unicidad ya la vigila el esquema por id.
+
+## §12 Importar un MAC de Manfred (T-9.22)
+
+**El encargo del PO (2-sep)**: «añade importador desde Manfred con JSON», con su propio MAC como caso de prueba.
+
+El **MAC** («Manfred Awesome CV», <https://github.com/getmanfred/mac>) es el JSON que Manfred deja exportar del
+perfil. Como la exportación de LinkedIn (§8), trae los datos **ya estructurados**: no hay maquetación que
+adivinar, se leen los campos y se rellena el mismo `DraftProfile` que produce el importador de PDF, así que todo
+lo de aguas abajo —validación entidad a entidad, ficheros del borrador, informe, duplicados, adopción— sirve sin
+cambios. **Nada queda «sin situar»**, porque el fichero dice a qué sección pertenece cada dato.
+
+`cv import-manfred <fichero.json>`, `POST /api/v1/import-manfred` y, en la web, la opción **«Un MAC de Manfred
+(.json)»** del selector «Origen» de *Importar CV*.
+
+### §12.1 El mapeo
+
+| MAC | Perfil |
+| --- | --- |
+| `aboutMe.profile.name` + `surnames` | `fullName` |
+| `.title` / `.description` | titular / resumen |
+| `.location` (`municipality`, `region`, `country`) | ubicación |
+| `.contact.contactMails[0]` / `.phoneNumbers[0]` | correo / teléfono |
+| `aboutMe.relevantLinks[]` + `careerPreferences.contact.publicProfiles[]` | enlaces, sin repetir |
+| `experience.jobs[].roles[]` | **una experiencia por rol**, con la empresa y la ubicación de la organización |
+| `roles[].challenges[]` (y sus `actions`) | logros de esa experiencia |
+| `roles[].competences[]` | tecnologías de esa experiencia |
+| `experience.projects[]` | proyectos, con su enlace y su descripción |
+| `knowledge.studies[]` con `studyType: certification` | certificaciones |
+| el resto de `knowledge.studies[]` | formación |
+| `knowledge.hardSkills[]` + `manfredSpecificData.mainStackTechs` | habilidades, sin repetir |
+| `knowledge.softSkills[]` | habilidades de categoría `soft` |
+| `knowledge.languages[]` | idiomas, con los cinco niveles traducidos al MCER |
+
+Tres decisiones que no son obvias:
+
+- **`location.notes` se descarta a propósito.** Manfred la rellena con la traza de su autocompletado
+  («Autocompleted using Google Maps API (id: …)»), que no es una ubicación sino cómo se obtuvo.
+- **Un empleo con varios roles son varias entradas.** En el perfil cada puesto tiene sus fechas y sus logros;
+  fundirlos perdería la promoción.
+- **Las habilidades duras entran sin categoría.** MAC dice de cada una un `type` («technology») que no es
+  ninguna de las categorías del perfil, así que se dejan en `other` para clasificarlas a mano. Las blandas sí
+  van a `soft`: ahí la equivalencia es exacta.
+
+### §12.2 Lo que no cabe, se dice
+
+Un MAC guarda cosas que este perfil no modela: los puestos y el tipo de contrato que buscas, tu salario, el
+estado de búsqueda, las recomendaciones, los *interesting facts* y los artefactos públicos. **No se les busca un
+hueco forzado ni se callan**: encabezan el informe del borrador como «no importado (el perfil no lo guarda)»,
+para que se vea qué se quedó en Manfred.
+
+Dos avisos más, medidos sobre el MAC real del PO:
+
+- **Fechas de formación rellenadas de una sentada.** Manfred pone el día en que lo escribiste si no recuerdas
+  cuándo cursaste. Cuando **varios estudios comparten la fecha de inicio y ninguno tiene fin** se avisa —en el
+  MAC del PO, tres con «2024-12-20»—. La fecha **no se toca**: es lo que dice el fichero.
+- **Una ubicación que se queda en el país.** El perfil exige `city`; si el MAC no da municipio, ahí acaba el
+  país, y se dice para que se ajuste en `profile.md`.
+
+### §12.3 Tolerante, y sin red
+
+El `$schema` que el fichero declara **no se descarga**. Lo que no se reconoce se ignora en vez de tirar la
+importación, y una versión distinta de la 0.5 se avisa y se importa igual. Solo se exige que el fichero **sea**
+un MAC —`settings.MACVersion`, un `$schema` de MAC o alguna de sus secciones—, porque importar otro JSON
+cualquiera daría un perfil vacío sin decir por qué. Un `cv import-cv` con un JSON tampoco dice ya «cabecera
+desconocida»: dice por dónde entra.
+
+**Medido sobre `my-mac-from-manfred.json`**: 6 experiencias, 3 formaciones, 41 habilidades, 2 idiomas, **0
+degradado y 0 sin situar**, y `cv build --data import/lucas-nunzi` en verde.
+
+### §12.4 Fuera de alcance
+
+- **Exportar a MAC.** Es la tarea inversa y tiene su propia decisión: el esquema canónico del producto es el
+  suyo (`docs/portability.md` §1).
+- **Descargar el `$schema` para validar**: implicaría red en una orden que hoy no la tiene, y la lectura
+  tolerante ya cubre lo que hace falta.
+- **Los niveles de habilidad de MAC** (básico/intermedio/alto/experto): se avisa de que no entran, porque el
+  nivel de una skill es de las cosas que conviene repasar a mano.

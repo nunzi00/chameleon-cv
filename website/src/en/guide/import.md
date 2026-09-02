@@ -117,6 +117,31 @@ On confirmation the line is written to the file it belongs to (`skills.csv`, `ex
 lets you undo it by hand. If something wouldn't satisfy the schema, nothing is written and the dialog tells you
 what's missing: the draft that comes out of applying a proposal still validates with `cv build --data`.
 
+## From Manfred (MAC)
+
+If you have a profile on [Manfred](https://www.getmanfred.com), its JSON export — the **MAC**, «Manfred Awesome
+CV» — is one of the best routes in: **structured data**, no layout to guess and nothing left unplaced.
+
+```bash
+cv import-manfred my-mac-from-manfred.json   # draft in import/<name>/ with its report
+cv build --data import/<name>                # validate the draft
+```
+
+In the web interface, under **Perfil → Importar CV**, the **«Origen»** selector has the «Un MAC de Manfred
+(.json)» option.
+
+In come the profile, the links, the experience — **one entry per role**, with challenges as achievements and
+competences as technologies —, the projects, the studies, the certifications, the skills and the languages. What
+a MAC keeps and this profile does not — the roles and contract type you're after, your salary, your search
+status, the recommendations — **is not imported and you are told so** in the report, so you know what stayed
+behind in Manfred.
+
+Two things worth checking afterwards: if you filled the studies in one sitting without remembering the dates,
+Manfred stores the day you typed them and the report warns you; and if your location only reaches country level,
+it ends up in the city field and needs adjusting.
+
+**No network**: the `$schema` the file declares is not downloaded.
+
 ## From LinkedIn
 
 If your CV lives on LinkedIn, the way in is its **official data export**, not the profile URL: that URL returns

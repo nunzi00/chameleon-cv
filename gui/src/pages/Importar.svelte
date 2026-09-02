@@ -20,7 +20,7 @@
   // Dos orígenes con el mismo destino: un CV maquetado (se adivina la maquetación) o la exportación oficial de
   // datos de LinkedIn (CSV estructurado, sin adivinar nada y sin líneas sin situar). La URL del perfil NO es una
   // opción: el robots.txt de LinkedIn prohíbe el acceso automatizado y esa URL devuelve el muro de acceso.
-  let source = $state<'cv' | 'linkedin' | 'carpeta'>('cv');
+  let source = $state<'cv' | 'linkedin' | 'manfred' | 'carpeta'>('cv');
   /* ── T-9.14: una carpeta entera del espacio de trabajo, un borrador por CV ── */
   let folder = $state('');
   let folderResult = $state<ImportFolderResponse | undefined>(undefined);
@@ -137,7 +137,7 @@
     conflict = false;
     try {
       const options = { ...(name.trim() === '' ? {} : { name: name.trim() }), ...(replace ? { replace: true } : {}) };
-      result = source === 'linkedin' ? await api.importLinkedIn(file, options) : await api.importCv(file, options);
+      result = source === 'linkedin' ? await api.importLinkedIn(file, options) : source === 'manfred' ? await api.importManfred(file, options) : await api.importCv(file, options);
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === 'conflict') {
         conflict = true;
@@ -296,6 +296,7 @@
       <select bind:value={source} onchange={chooseSource}>
         <option value="cv">Un CV maquetado (.pdf o .docx)</option>
         <option value="linkedin">La exportación de datos de LinkedIn (.zip)</option>
+        <option value="manfred">Un MAC de Manfred (.json)</option>
         <option value="carpeta">Una carpeta con varios CV (se comparan)</option>
       </select>
     </label>
@@ -306,6 +307,15 @@
         Projects, Profile). Llega por correo en unos minutos. Trae los datos <strong>estructurados</strong>, así
         que no hay maquetación que adivinar y no queda nada sin situar. La URL del perfil no sirve: LinkedIn
         prohíbe el acceso automatizado y esa dirección devuelve el muro de acceso, no el CV.
+      </p>
+    {/if}
+    {#if source === 'manfred'}
+      <p class="cv-muted">
+        El <strong>MAC</strong> («Manfred Awesome CV») es el JSON que <a href="https://www.getmanfred.com" target="_blank" rel="noreferrer noopener">Manfred</a> te deja
+        exportar de tu perfil. Trae los datos <strong>estructurados</strong>, así que no hay maquetación que adivinar y
+        no queda nada sin situar. Lo que el MAC guarda y este perfil no —los puestos que buscas, el tipo de contrato,
+        tu salario— <strong>no se importa y se te dice</strong> en el informe del borrador, para que sepas qué se
+        quedó en Manfred. El <code>$schema</code> que declara el fichero no se descarga: se lee sin red.
       </p>
     {/if}
     {#if source === 'carpeta'}
@@ -345,9 +355,11 @@
       </button>
     {:else}
       <label class="cv-field">
-        <span>{source === 'linkedin' ? 'Fichero (.zip de la exportación)' : 'Fichero (.pdf o .docx)'}</span>
+        <span>{source === 'linkedin' ? 'Fichero (.zip de la exportación)' : source === 'manfred' ? 'Fichero (.json del MAC)' : 'Fichero (.pdf o .docx)'}</span>
         {#if source === 'linkedin'}
           <input type="file" accept=".zip,application/zip" onchange={pick} />
+        {:else if source === 'manfred'}
+          <input type="file" accept=".json,application/json" onchange={pick} />
         {:else}
           <input type="file" accept=".pdf,.docx,application/pdf" onchange={pick} />
         {/if}

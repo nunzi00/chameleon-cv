@@ -34,7 +34,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), cancelJob: vi.fn(), outputs: vi.fn(), output: vi.fn(),
     offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(),
     cvFolders: vi.fn(async () => ({ folders: [] })),
-    setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(async () => RESULT), importCv: vi.fn(async () => RESULT),
+    setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(async () => RESULT), importManfred: vi.fn(async () => RESULT), importCv: vi.fn(async () => RESULT),
     startJob: vi.fn(async () => ({ job: JOB, sending: { destination: 'ollama (local)', items: 1, words: 2, redactCompanies: false }, warnings: [] })),
     jobEvents: vi.fn(() => events([{ event: 'line', data: { line: 'Enviando 1 línea(s) sin situar a ollama (qwen3:8b)' }, raw: '' }, { event: 'status', data: DONE, raw: '' }])),
     ...overrides,
@@ -67,7 +67,7 @@ describe('Importar', () => {
 
   it('un 409 ofrece sustituir y la segunda llamada va con replace; otros errores solo se explican', async () => {
     const api = fakeApi({
-      importLinkedIn: vi.fn(), importCv: vi.fn()
+      importLinkedIn: vi.fn(), importManfred: vi.fn(), importCv: vi.fn()
         .mockRejectedValueOnce(new ApiError(409, { code: 'conflict', message: 'Ya existe import/ada-ejemplo' }))
         .mockResolvedValueOnce(RESULT),
     });
@@ -190,6 +190,22 @@ describe('Importar', () => {
     expect(screen.getByText(/el plan gratuito usa tus peticiones/)).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Confirmar y enviar' }));
     await waitFor(() => expect(startJob).toHaveBeenLastCalledWith({ kind: 'import-map', body: { name: 'ada-ejemplo', provider: 'openai', consent: { estimateId: 'e1' } } }));
+  });
+
+  it('con el origen «Manfred» sube el JSON por su propia ruta, no por la del CV maquetado (T-9.22)', async () => {
+    const importManfred = vi.fn(async () => RESULT);
+    const api = fakeApi({ importManfred: importManfred as never });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'manfred' } });
+    // Se explica qué es un MAC y, sobre todo, que lo que no cabe en el perfil se dice en vez de perderse.
+    expect(screen.getByText(/Manfred Awesome CV/)).toBeTruthy();
+    expect(screen.getByText(/no se importa y se te dice/)).toBeTruthy();
+    const mac = new File(['{"settings":{"MACVersion":"0.5"}}'], 'my-mac-from-manfred.json', { type: 'application/json' });
+    await fireEvent.change(screen.getByLabelText(/Fichero \(\.json del MAC\)/) as HTMLInputElement, { target: { files: [mac] } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar como borrador' }));
+    await waitFor(() => expect(importManfred).toHaveBeenCalledWith(mac, {}));
+    expect(api.importCv).not.toHaveBeenCalled();
+    expect(api.importLinkedIn).not.toHaveBeenCalled();
   });
 
   it('con el origen «carpeta» importa todos los CV de una vez y los compara (T-9.14)', async () => {

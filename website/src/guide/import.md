@@ -114,6 +114,30 @@ Al confirmar, la línea se escribe en el fichero que le corresponde (`skills.csv
 deshacerlo a mano. Si algo no cumpliera el esquema no se escribe nada y el diálogo te dice qué falta: el borrador que
 sale de aplicar una propuesta sigue validando con `cv build --data`.
 
+## Desde Manfred (MAC)
+
+Si tienes perfil en [Manfred](https://www.getmanfred.com), su exportación en JSON —el **MAC**, «Manfred Awesome
+CV»— es de las mejores vías: **datos estructurados**, sin maquetación que adivinar y sin nada que quede sin
+situar.
+
+```bash
+cv import-manfred my-mac-from-manfred.json   # borrador en import/<nombre>/ con su informe
+cv build --data import/<nombre>              # valida el borrador
+```
+
+En la web, en **Perfil → Importar CV**, el selector **«Origen»** tiene la opción «Un MAC de Manfred (.json)».
+
+Entran el perfil, los enlaces, la experiencia —**una entrada por rol**, con los retos como logros y las
+competencias como tecnologías—, los proyectos, la formación, las certificaciones, las habilidades y los idiomas.
+Lo que un MAC guarda y este perfil no —los puestos y el contrato que buscas, tu salario, el estado de búsqueda,
+las recomendaciones— **no se importa y se te dice** en el informe, para que sepas qué se quedó en Manfred.
+
+Dos cosas que conviene mirar después: si rellenaste la formación de una sentada sin recordar las fechas, Manfred
+guarda el día en que lo escribiste y el informe te avisa; y si tu ubicación solo llega a nivel de país, acabará
+en el campo de ciudad y hay que ajustarla.
+
+**Sin red**: el `$schema` que declara el fichero no se descarga.
+
 ## Desde LinkedIn
 
 Si tu CV vive en LinkedIn, la vía es su **exportación oficial de datos**, no la URL del perfil: esa URL devuelve

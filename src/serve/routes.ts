@@ -29,6 +29,7 @@ import { applyImportProposal } from '../app/import-apply';
 import { adoptEntries, draftDuplicates, listDraftFiles, listDrafts, readDraftFile, writeDraftFile } from '../app/drafts';
 import { resolveDuplicate, sourceDuplicates } from '../app/dedupe';
 import { importLinkedInDraft } from '../app/import-linkedin';
+import { importManfredDraft } from '../app/import-manfred';
 import { executeImportMap, importMapEstimate, planImportMap, type ImportMapPlan } from '../app/import-map';
 import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
 import { describeKeys, isRemoteProviderId, removeApiKey, writeApiKey, type LlmStatus, type RuntimeErrorCode } from '../llm';
@@ -1000,6 +1001,45 @@ function addImportRoutes(router: Router<ServerState>): void {
         // queda nada «sin situar». Es la ventaja de este origen frente a importar el PDF del mismo perfil.
         unparsed: [],
         readme: draft.readme,
+      } satisfies ImportCvResponse);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/import-manfred`,
+    summary:
+      'Importa un MAC de Manfred (cuerpo binario JSON, hasta 10 MiB) como borrador en import/<nombre>/ con su README; datos estructurados, sin red y sin adivinar maquetación. Nunca escribe en data/sources. Cabeceras opcionales x-cv-import-name y x-cv-import-replace: 1.',
+    writes: true,
+    accepts: 'application/pdf',
+    handler: async (request, state) => {
+      const nameHeader = headerValue(request.headers['x-cv-import-name']);
+      const result = await importManfredDraft(state.context, request.body, nameHeader ?? 'manfred', {
+        name: nameHeader,
+        replace: headerValue(request.headers['x-cv-import-replace']) === '1',
+      });
+      if (!result.ok) {
+        return appErrorResponse(result.error);
+      }
+      const { draft } = result;
+      const { profile } = draft;
+      return json(201, {
+        name: draft.name,
+        files: draft.files,
+        counts: {
+          experience: profile.experience.length,
+          projects: profile.projects.length,
+          education: profile.education.length,
+          certifications: profile.certifications.length,
+          skills: profile.skills.length,
+          achievements: profile.achievements.length,
+          languages: profile.languages.length,
+        },
+        issues: draft.issues.map((issue) => ({ reason: issue.reason, line: issue.provenance?.line })),
+        // Vacío SIEMPRE: el MAC dice a qué sección pertenece cada dato, así que nada queda «sin situar».
+        unparsed: [],
+        readme: draft.readme,
+        backup: draft.backup === undefined ? undefined : basename(draft.backup),
       } satisfies ImportCvResponse);
     },
   });

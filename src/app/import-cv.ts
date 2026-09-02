@@ -76,6 +76,10 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
       return { ok: false, error: dataError(`No se pudo extraer el DOCX: ${docx.message}`) };
     }
     text = docx.text;
+  } else if (bytes[0] === 0x7b) {
+    // Un JSON no es un CV maquetado, pero sí puede ser un MAC de Manfred: se dice por dónde entra en vez de
+    // dejar al usuario con un «cabecera desconocida» delante de un fichero perfectamente importable.
+    return { ok: false, error: dataError(`«${origin}» es un JSON, no un CV maquetado. Si es un MAC de Manfred, impórtalo con «cv import-manfred»; si es un perfil canónico exportado, con «cv import»`) };
   } else {
     return { ok: false, error: dataError(`«${origin}» no es un PDF ni un DOCX (cabecera desconocida); el borrador se importa desde el CV maquetado`) };
   }
