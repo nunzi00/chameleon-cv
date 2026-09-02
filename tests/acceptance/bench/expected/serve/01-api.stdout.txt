@@ -6141,7 +6141,7 @@
     "code": "bad-request",
     "issues": [
       {
-        "message": "Opción inválida: se esperaba una de \"md\"|\"pdf\"",
+        "message": "Opción inválida: se esperaba una de \"md\"|\"pdf\"|\"odt\"",
         "path": "format"
       }
     ],

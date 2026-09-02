@@ -119,6 +119,12 @@ describe('cv generate-cv --format pdf --engine typst (T-3.2)', () => {
     }
     expect(formatConflict({ format: 'md', stdout: false, template: 'x.hbs', engine: 'pdfkit', typstPath: undefined, typstAnyVersion: false, theme: undefined })).toBeUndefined();
     expect(formatConflict({ format: 'pdf', stdout: false, template: 'x.typ', engine: 'typst', typstPath: undefined, typstAnyVersion: false, theme: undefined })).toBeUndefined();
+    // ODT (T-9.23): ni motor, ni plantilla, ni salida por pantalla; su aspecto se toca en el propio documento.
+    const odt = { format: 'odt' as const, engine: 'pdfkit' as const, typstPath: undefined, typstAnyVersion: false, theme: undefined };
+    expect(formatConflict({ ...odt, stdout: false, template: undefined })).toBeUndefined();
+    expect(formatConflict({ ...odt, stdout: true, template: undefined })).toContain('«--stdout» solo admite «--format md»');
+    expect(formatConflict({ ...odt, stdout: false, template: 'x.hbs' })).toContain('«--template» no aplica a «--format odt»');
+    expect(formatConflict({ ...odt, engine: 'typst', stdout: false, template: undefined })).toContain('«--engine» solo aplica a «--format pdf»');
 
     const unknown = harness(OK);
     expect(await runCli(['generate-cv', '--format', 'pdf', '--engine', 'latex'], unknown.context)).toBe(EXIT_FAILURE);

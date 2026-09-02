@@ -2,6 +2,13 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **El CV, también en un formato abierto que puedes editar** (T-9.23, encargo del PO del 2-sep: «añade la opción de generar cv en formato abierto como odt por ejemplo para poder editarlo manualmente»). `cv generate-cv --format odt`, la opción **«ODT (documento editable)»** en la pantalla Generar y `"format": "odt"` en `POST /api/v1/generate`. **ODT** (OpenDocument, estándar ISO) lo abren LibreOffice, Word y Google Docs; el PDF es para entregar y el Markdown para el control de versiones, pero ninguno servía para que alguien te pida el CV «en un documento» y lo retoques. Se escribe **sin dependencias y sin red**: el paquete se arma con `zlib` y los XML salen del mismo modelo que ya consumen Typst y pdfkit, así que el CV es exactamente el mismo —misma selección, mismos recortes, mismos logros—, solo cambia el envase.
+- **Y está hecho para editarlo, no para imprimirlo.** Usa **estilos con nombre** (`Heading_20_1`, `Standard`, `Meta`…), así que cambiar el aspecto de todas las secciones es tocar **un** estilo en LibreOffice en vez de repasar el documento; la estructura es plana, sin cajas ni columnas, para poder reordenar sin pelearse; las negritas, cursivas y enlaces del Markdown llegan como estilos y enlaces de verdad; y los logros van en listas con su impacto. `--engine`, `--theme` y `--template` no aplican y se dice por qué. El fichero es **determinista** —el mismo perfil da los mismos bytes— y su `mimetype` va primero y sin comprimir, que es lo que hace que `file` responda «OpenDocument Text» en vez de «zip». Verificado con **LibreOffice de verdad** en las pruebas y con el perfil real del PO.
+
 ## [1.19.0] - 2026-09-02
 
 ### Añadido

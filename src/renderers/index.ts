@@ -3,6 +3,7 @@
  * seleccionado) en un documento a partir del mismo modelo de vista; nunca parsea ni selecciona.
  */
 export * from './markdown';
+export * from './odt';
 export * from './pdf';
 export * from './structured';
 export * from './typst';

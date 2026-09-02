@@ -20,8 +20,8 @@
   let { api, item, onsession, navigate }: Props = $props();
 
   /** Etiqueta larga (nombre accesible) y corta (etiqueta visible) por tipo. */
-  const KIND_LABELS = { pdf: 'PDF', markdown: 'Markdown', review: 'Revisión', other: 'Otro' } as const;
-  const KIND_TAGS = { pdf: 'PDF', markdown: 'MD', review: 'REV', other: '—' } as const;
+  const KIND_LABELS = { pdf: 'PDF', odt: 'ODT', markdown: 'Markdown', review: 'Revisión', other: 'Otro' } as const;
+  const KIND_TAGS = { pdf: 'PDF', odt: 'ODT', markdown: 'MD', review: 'REV', other: '—' } as const;
   let items = $state<readonly OutputItem[]>([]);
   let loaded = $state(false);
   let error = $state<ExplainedError | undefined>(undefined);
@@ -72,8 +72,10 @@
     }
   });
 
+  // La URL de descarga vale para CUALQUIER fichero, no solo para el texto: un ODT no se puede enseñar aquí,
+  // pero descargarlo es justo lo que se quiere hacer con él.
   $effect(() => {
-    if (file === undefined || text === undefined) {
+    if (file === undefined) {
       textUrl = undefined;
       return undefined;
     }
@@ -91,7 +93,7 @@
       <div class="cv-empty-inner">
         <div class="cv-empty-icon"><Icon name="file-down" size={26} /></div>
         <h1><code>output/</code> está vacío</h1>
-        <p>Aquí aparecerán los CV generados (PDF y Markdown) y las revisiones del co-piloto. Todavía no hay nada.</p>
+        <p>Aquí aparecerán los CV generados (PDF, ODT y Markdown) y las revisiones del co-piloto. Todavía no hay nada.</p>
         <div class="cv-actions">
           <button class="cv-button primary" type="button" onclick={() => navigate({ page: 'generar' })}>Generar mi primer CV</button>
           <button class="cv-button" type="button" onclick={load}>Actualizar</button>
@@ -128,14 +130,19 @@
         {:else}
           <div class="cv-card-head">
             <span class="cv-mono">output/{file.name}</span>
-            {#if text !== undefined && textUrl !== undefined}
+            {#if textUrl !== undefined}
               <a class="cv-button small" href={textUrl} download={file.name}>Descargar</a>
             {/if}
           </div>
           {#if text !== undefined}
             <pre class="cv-text">{text}</pre>
-          {:else}
+          {:else if file.contentType.startsWith('application/pdf')}
             <PdfViewer blob={file.blob} name={file.name} />
+          {:else}
+            <p class="cv-muted">
+              Un <strong>documento abierto</strong> (ODT): no se previsualiza aquí, se descarga y se abre en LibreOffice, Word o Google Docs. Está pensado para
+              <strong>seguir editándolo a mano</strong>; su aspecto se cambia con los estilos del propio documento.
+            </p>
           {/if}
         {/if}
       </div>

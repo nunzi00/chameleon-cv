@@ -114,7 +114,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('-p, --profile <file>', 'ruta del artefacto', DEFAULT_ARTIFACT_PATH)
     .option('-d, --data <dir>', 'directorio de fuentes, solo para avisar si el artefacto está obsoleto', DEFAULT_DATA_DIR)
     .option('-o, --output <file>', 'fichero de salida')
-    .option('--format <fmt>', 'formato de salida: md o pdf', parseFormat, 'md')
+    .option('--format <fmt>', 'formato de salida: md, pdf (para entregar) u odt (documento abierto, para seguir editándolo en LibreOffice, Word o Google Docs)', parseFormat, 'md')
     .option('--engine <engine>', 'motor de --format pdf: pdfkit (por defecto, sin dependencias) o typst (binario oficial, calidad editorial)', parseEngine, 'pdfkit')
     .option('--typst-path <file>', 'binario de Typst (por defecto: CHAMELEON_TYPST, la caché de usuario o el PATH)')
     .option('--typst-any-version', 'acepta una versión de Typst distinta de la fijada', false)

@@ -175,8 +175,18 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(pdfBody.output.kind).toBe('pdf');
     expect(pdfBody.output.bytes).toBeGreaterThan(1000);
 
+    // ODT (T-9.23): un documento abierto para seguir editándolo; se sirve con su tipo, no como binario suelto.
+    const odt = await post('/generate', { specialty: 'backend', format: 'odt', output: 'cv.odt' });
+    expect(odt.status).toBe(200);
+    const odtBody = (await odt.json()) as { output: { kind: string; bytes: number } };
+    expect(odtBody.output.kind).toBe('odt');
+    expect(odtBody.output.bytes).toBeGreaterThan(500);
+    const servedOdt = await api('/output/cv.odt');
+    expect(servedOdt.headers.get('content-type')).toBe('application/vnd.oasis.opendocument.text');
+    expect(Buffer.from(await servedOdt.arrayBuffer()).subarray(30, 38).toString('latin1')).toBe('mimetype');
+
     const list = (await (await api('/output')).json()) as { files: Array<{ name: string; bytes: number }> };
-    expect(list.files.map((file) => file.name)).toEqual(['cv-ada-ejemplo-backend-oferta.md', 'cv.pdf', 'fichero.md', 'historial-ofertas.json', 'propio.md', 'sin-historial.md']);
+    expect(list.files.map((file) => file.name)).toEqual(['cv-ada-ejemplo-backend-oferta.md', 'cv.odt', 'cv.pdf', 'fichero.md', 'historial-ofertas.json', 'propio.md', 'sin-historial.md']);
     const served = await api('/output/cv.pdf');
     expect(served.status).toBe(200);
     expect(served.headers.get('content-type')).toBe('application/pdf');
