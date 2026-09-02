@@ -40,6 +40,14 @@ describe('cliente de la API', () => {
     await api.sources();
     await api.shutdown();
     await api.offerHistory({ offer: { text: 'Kubernetes' } });
+    // Borradores y duplicados (T-9.19, T-9.20): el nombre y la ruta se codifican por segmento, como las fuentes.
+    await api.drafts();
+    await api.draftFiles('cv-lucas');
+    await api.draftFile('cv-lucas', 'experience/ñ acme.md');
+    await api.writeDraftFile('cv-lucas', 'experience/acme.md', 'nuevo', 'abc');
+    await api.adoptDraftEntries({ entries: [{ draft: 'cv-lucas', section: 'experience', id: 'exp-acme' }] });
+    await api.duplicates();
+    await api.resolveDuplicate({ keep: 'edu-a', absorb: ['edu-b'], dryRun: true });
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
       'GET /api/v1/sources/experience/%C3%B1%20acme.md',
       'PUT /api/v1/sources/experience/acme.md',
@@ -51,8 +59,17 @@ describe('cliente de la API', () => {
       'GET /api/v1/sources',
       'POST /api/v1/shutdown',
       'POST /api/v1/offers/history',
+      'GET /api/v1/drafts',
+      'GET /api/v1/drafts/cv-lucas/files',
+      'GET /api/v1/drafts/cv-lucas/files/experience/%C3%B1%20acme.md',
+      'PUT /api/v1/drafts/cv-lucas/files/experience/acme.md',
+      'POST /api/v1/drafts/adopt',
+      'GET /api/v1/duplicates',
+      'POST /api/v1/duplicates/resolve',
     ]);
     expect(calls[3]?.body).toBe('{}');
+    // Corregir un borrador exige la huella, igual que corregir una fuente.
+    expect(calls.find((call) => call.url === '/api/v1/drafts/cv-lucas/files/experience/acme.md')).toMatchObject({ method: 'PUT', headers: { 'If-Match': '"abc"' }, body: '{"content":"nuevo"}' });
   });
 
   it('generar, analizar, extraer un PDF, temas y salidas: cuerpos, tipos de contenido y respuestas binarias', async () => {
@@ -81,6 +98,9 @@ describe('cliente de la API', () => {
     await api.applyTags({ proposals: [{ id: 'exp-acme-1', tags: ['kubernetes'] }] });
     await api.rankOffers({ offers: [{ workspaceFile: 'offers/a.txt' }, { text: 'PHP' }] });
     await api.importFolder({ directory: 'mis-cv' });
+    await api.cvFolders();
+    await api.importManfred(new Blob(['{}']), { name: 'mac', replace: true });
+    await api.importManfred(new Blob(['{}']));
     await api.setLlmKey('gemini', 'sk-secreta');
     await api.removeLlmKey('gemini');
     await api.themes();
@@ -90,13 +110,19 @@ describe('cliente de la API', () => {
     expect(pdf).toMatchObject({ name: 'cv.pdf', contentType: 'application/pdf' });
     expect(await pdf.blob.text()).toBe('%PDF');
     expect((await api.output('sin-tipo')).contentType).toBe('application/octet-stream');
-    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'POST /api/v1/import-cv', 'POST /api/v1/import-cv', 'POST /api/v1/import-linkedin', 'POST /api/v1/import-linkedin', 'GET /api/v1/offers', 'POST /api/v1/offers/fetch', 'POST /api/v1/offers', 'POST /api/v1/import/apply', 'POST /api/v1/aliases', 'POST /api/v1/tags/apply', 'POST /api/v1/offers/rank', 'POST /api/v1/import-cv/folder', 'PUT /api/v1/config/llm/keys/gemini', 'DELETE /api/v1/config/llm/keys/gemini', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/generate', 'POST /api/v1/analyze-offer', 'POST /api/v1/offers/extract', 'POST /api/v1/import-cv', 'POST /api/v1/import-cv', 'POST /api/v1/import-linkedin', 'POST /api/v1/import-linkedin', 'GET /api/v1/offers', 'POST /api/v1/offers/fetch', 'POST /api/v1/offers', 'POST /api/v1/import/apply', 'POST /api/v1/aliases', 'POST /api/v1/tags/apply', 'POST /api/v1/offers/rank', 'POST /api/v1/import-cv/folder', 'GET /api/v1/import-cv/folders', 'POST /api/v1/import-manfred', 'POST /api/v1/import-manfred', 'PUT /api/v1/config/llm/keys/gemini', 'DELETE /api/v1/config/llm/keys/gemini', 'GET /api/v1/themes', 'POST /api/v1/themes', 'GET /api/v1/output', 'GET /api/v1/output/cv.pdf', 'GET /api/v1/output/sin-tipo']);
     expect(calls[0]?.body).toBe('{"format":"md","specialty":"backend"}');
     expect(calls[2]).toMatchObject({ headers: { 'Content-Type': 'application/pdf' }, body: '%PDF-1.7' });
     expect(calls[3]).toMatchObject({ headers: { 'x-cv-import-name': 'mío borrador', 'x-cv-import-replace': '1' }, body: '%PDF-1.4' });
     expect(calls[4]?.headers['x-cv-import-name']).toBeUndefined();
     expect(calls[4]?.headers['x-cv-import-replace']).toBeUndefined();
-    expect(calls[20]?.headers['Accept']).toBe('*/*');
+    // La descarga de una salida no pide JSON: acepta cualquier cosa. Se busca por su URL para que añadir una
+    // llamada más arriba no obligue a renumerar.
+    expect(calls.find((call) => call.url === '/api/v1/output/cv.pdf')?.headers['Accept']).toBe('*/*');
+    // Y el MAC de Manfred viaja como cuerpo binario, con sus cabeceras de nombre y sustitución.
+    const manfred = calls.filter((call) => call.url === '/api/v1/import-manfred');
+    expect(manfred[0]).toMatchObject({ headers: { 'Content-Type': 'application/pdf', 'x-cv-import-name': 'mac', 'x-cv-import-replace': '1' } });
+    expect(manfred[1]?.headers['x-cv-import-name']).toBeUndefined();
   });
 
   it('trabajos: encolar, listar, consultar, cancelar y seguir los eventos por SSE con Accept y señal', async () => {

@@ -54,7 +54,6 @@ function harness(extra: Record<string, string | MemoryEntry> = {}): Harness {
     llmCache: new MemoryLlmCache(),
     assets: defaultAssets(),
     confirm: () => Promise.resolve(true),
-    interactive: false,
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
 }

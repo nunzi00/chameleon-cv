@@ -156,7 +156,8 @@ describe('resolveDuplicate: escribir una y borrar la otra, deshacible', () => {
     const fs = workspace();
     const context = appContext(fs);
     const result = await resolveDuplicate(context, request);
-    const historyId = result.ok ? result.outcome.historyId : undefined;
+    // El tipo lo dice: solo una resolución de verdad trae entrada de histórico.
+    const historyId = result.ok && !result.outcome.dryRun ? result.outcome.historyId : undefined;
     expect(historyId).toBeDefined();
     const entries = await readSourceHistory(context);
     expect(entries[0]?.files.map((file) => file.path)).toEqual(['education/ciclo-superior-administrador-de-sistemas.md', 'education/cs-administrador-ies-piringalla.md']);
@@ -171,7 +172,7 @@ describe('resolveDuplicate: escribir una y borrar la otra, deshacible', () => {
     const result = await resolveDuplicate(appContext(fs), { ...request, dryRun: true });
     expect(result.ok && result.outcome.dryRun).toBe(true);
     expect(result.ok && result.outcome.taken).toHaveLength(1);
-    expect(result.ok && result.outcome.historyId).toBeUndefined();
+    expect(result.ok && result.outcome.dryRun && !('historyId' in result.outcome)).toBe(true);
     expect(fs.file('/work/data/sources/education/ciclo-superior-administrador-de-sistemas.md')?.content).toBe(before);
     expect(fs.file('/work/data/sources/education/cs-administrador-ies-piringalla.md')).toBeDefined();
     expect(await readSourceHistory(appContext(fs))).toEqual([]);

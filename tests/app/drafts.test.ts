@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDraftFiles, listDrafts, periodsOverlap, readDraft, readDraftFile, readReport, signatureOf, similarity, writeDraftFile, type DraftEntry, type DuplicateMember } from '../../src/app/drafts';
+import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDraftFiles, listDrafts, periodsOverlap, readDraft, readDraftFile, readReport, signatureOf, similarity, writeDraftFile, type DuplicateMember, type ProfileEntry } from '../../src/app/drafts';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -41,11 +41,11 @@ const REPORT = [
 ].join('\n');
 
 /** Una entrada suelta para las reglas puras (sin disco). */
-function entry(title: string, start?: string, end?: string, section: DraftEntry['section'] = 'experience'): DraftEntry {
+function entry(title: string, start?: string, end?: string, section: ProfileEntry['section'] = 'experience'): ProfileEntry {
   return { section, id: `x-${title.length}-${start ?? ''}`, title, start, end, path: `${section}/x.md` };
 }
 
-function member(draft: string | undefined, title: string, start?: string, end?: string, section: DraftEntry['section'] = 'experience'): DuplicateMember {
+function member(draft: string | undefined, title: string, start?: string, end?: string, section: ProfileEntry['section'] = 'experience'): DuplicateMember {
   return { draft, entry: entry(title, start, end, section) };
 }
 
