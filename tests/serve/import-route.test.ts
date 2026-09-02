@@ -73,6 +73,15 @@ describe('cv serve: POST /import', () => {
     expect(replaced.status).toBe(201);
   });
 
+  it('GET /import-cv/folders ofrece las carpetas con CV, para elegir una sin escribir la ruta (T-9.21)', async () => {
+    const response = await fetch(`${corpus.url}api/v1/import-cv/folders`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { folders: ReadonlyArray<{ path: string; files: number }> };
+    // El espacio de la prueba tiene corpus/ con tres PDF (uno roto, que también cuenta: se ve al importar) y
+    // data/sources, que no se ofrece por ser del producto.
+    expect(body.folders).toEqual([{ path: 'corpus', files: 3 }]);
+  });
+
   it('la cabecera x-cv-import-name elige la carpeta; un DOCX entra por su cabecera mágica', async () => {
     const named = await post(stubbed, '%PDF-1.4 finto', { 'x-cv-import-name': 'mío borrador' });
     expect(named.status).toBe(201);

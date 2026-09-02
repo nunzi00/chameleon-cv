@@ -280,6 +280,26 @@ reconocida: lleva "Empresa pendiente"». Corregir un borrador **no toca** `data/
   no ofrecerla.
 - **Borrar borradores** desde el producto. `import/` es del usuario; se borra con `rm`.
 
+### §10.5 Elegir la carpeta en vez de escribir su ruta (T-9.21)
+
+**El encargo del PO (2-sep)**: «al importar CV, cuando selecciono carpeta quiero poder seleccionar la carpeta
+sin tener que escribir la ruta».
+
+Un selector de directorio del navegador **no sirve aquí**, y no es un detalle de implementación: la web entrega
+los ficheros de la carpeta elegida, nunca su sitio en el disco (`webkitdirectory` y `showDirectoryPicker` dan
+contenido, no rutas). Y esta importación la hace el **servidor**, leyendo el espacio de trabajo, que es lo que
+permite la tabla comparativa y lo que la iguala con `cv import-cv <carpeta> --all` (C14). Así que las carpetas
+las ofrece quien sí conoce las rutas: el servidor.
+
+`GET /api/v1/import-cv/folders` recorre el espacio de trabajo y devuelve **las carpetas que tienen CV dentro**,
+con cuántos. Se elige sabiendo lo que se importaría, y no se puede pedir una carpeta que no traería nada. Tres
+niveles como mucho y 400 carpetas como tope: explorar no puede costar un minuto. Quedan fuera `node_modules`,
+las ocultas, las copias `.bak` y las del propio producto —`import/` son borradores en Markdown, `data/` son tus
+fuentes y `output/` son los CV que este programa acaba de generar—.
+
+Con una sola candidata queda puesta y solo hay que pulsar. **La lista no es una jaula**: el campo de ruta sigue
+ahí para una carpeta que no esté, y si el recorrido falla la pantalla cae a él sola.
+
 ## §11 Duplicados en las propias fuentes (T-9.20)
 
 **El encargo del PO (2-sep, tras adoptar de varios borradores)**: «necesito una herramienta para detectar

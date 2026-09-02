@@ -33,6 +33,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), cancelJob: vi.fn(), outputs: vi.fn(), output: vi.fn(),
     offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(),
+    cvFolders: vi.fn(async () => ({ folders: [] })),
     setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(async () => RESULT), importCv: vi.fn(async () => RESULT),
     startJob: vi.fn(async () => ({ job: JOB, sending: { destination: 'ollama (local)', items: 1, words: 2, redactCompanies: false }, warnings: [] })),
     jobEvents: vi.fn(() => events([{ event: 'line', data: { line: 'Enviando 1 línea(s) sin situar a ollama (qwen3:8b)' }, raw: '' }, { event: 'status', data: DONE, raw: '' }])),
@@ -216,6 +217,48 @@ describe('Importar', () => {
     // Reimportar sustituyendo es una segunda acción explícita, nunca automática.
     await fireEvent.click(screen.getByRole('button', { name: 'Reimportar sustituyendo los borradores' }));
     await waitFor(() => expect(importFolder).toHaveBeenLastCalledWith({ directory: 'mis-cv', replace: true }));
+  });
+
+  it('elige la carpeta de una lista, sin escribir la ruta (T-9.21)', async () => {
+    const importFolder = vi.fn(async () => ({ total: 6, imported: [], failed: [] }));
+    const cvFolders = vi.fn(async () => ({ folders: [{ path: 'cv-corpus', files: 6 }, { path: 'viejos/2020', files: 2 }] }));
+    const api = fakeApi({ importFolder: importFolder as never, cvFolders: cvFolders as never });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'carpeta' } });
+    // Las candidatas las da el SERVIDOR: el navegador nunca puede saber la ruta de una carpeta del disco.
+    await waitFor(() => expect(screen.getByText('cv-corpus')).toBeTruthy());
+    expect(cvFolders).toHaveBeenCalledTimes(1);
+    // Se dice cuántos CV trae cada una: se elige sabiendo qué se importaría.
+    expect(screen.getByText('6 CV')).toBeTruthy();
+    expect(screen.queryByLabelText('Carpeta (relativa al espacio de trabajo)')).toBeNull();
+    await fireEvent.click(screen.getAllByRole('radio')[1] as HTMLInputElement);
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar la carpeta' }));
+    await waitFor(() => expect(importFolder).toHaveBeenCalledWith({ directory: 'viejos/2020' }));
+  });
+
+  it('con una sola carpeta candidata la deja puesta, y siempre se puede escribir la ruta', async () => {
+    const cvFolders = vi.fn(async () => ({ folders: [{ path: 'cv-corpus', files: 6 }] }));
+    const importFolder = vi.fn(async () => ({ total: 6, imported: [], failed: [] }));
+    const api = fakeApi({ importFolder: importFolder as never, cvFolders: cvFolders as never });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'carpeta' } });
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Importar la carpeta' }) as HTMLButtonElement).disabled).toBe(false));
+    // Y la lista no es una jaula: una carpeta que no esté se escribe a mano.
+    await fireEvent.click(screen.getByRole('button', { name: '¿No está? Escribir la ruta' }));
+    await fireEvent.input(screen.getByLabelText('Carpeta (relativa al espacio de trabajo)'), { target: { value: 'otra/parte' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar la carpeta' }));
+    await waitFor(() => expect(importFolder).toHaveBeenCalledWith({ directory: 'otra/parte' }));
+  });
+
+  it('si el catálogo de carpetas falla, se puede importar igual escribiendo la ruta', async () => {
+    const importFolder = vi.fn(async () => ({ total: 1, imported: [], failed: [] }));
+    const api = fakeApi({ importFolder: importFolder as never, cvFolders: vi.fn(async () => { throw new ApiError(500, { code: 'environment', message: 'no se pudo recorrer' }); }) as never });
+    render(Importar, { props: { api, onsession: vi.fn() } });
+    await fireEvent.change(screen.getByLabelText('Origen'), { target: { value: 'carpeta' } });
+    await waitFor(() => expect(screen.getByLabelText('Carpeta (relativa al espacio de trabajo)')).toBeTruthy());
+    await fireEvent.input(screen.getByLabelText('Carpeta (relativa al espacio de trabajo)'), { target: { value: 'mis-cv' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Importar la carpeta' }));
+    await waitFor(() => expect(importFolder).toHaveBeenCalledWith({ directory: 'mis-cv' }));
   });
 
   it('si la carpeta no existe, se explica y no se enseña ninguna tabla', async () => {

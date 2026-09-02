@@ -50,9 +50,14 @@ best starting point.
 which would make no sense with several.
 
 In the web interface, under **Perfil → Importar CV**, the **«Origen»** selector has a third option: a folder with
-several CVs. You type the folder (relative to the workspace) and you get the same table; if a draft already
-existed, what failed shows up with its reason and a button to **reimport replacing them**, which is a second
-action of yours and never something automatic.
+several CVs. **You don't have to type the path**: the folders in your workspace that have CVs in them are offered
+to you, with how many each one holds, and if there is only one it comes preselected. You pick one and you get the
+same table; if a draft already existed, what failed shows up with its reason and a button to **reimport replacing
+them**, which is a second action of yours and never something automatic.
+
+Three levels of folders are scanned, and the program's own ones (`import/`, `data/`, `output/`) and
+`node_modules` are left out. For a folder that isn't listed, «¿No está? Escribir la ruta» brings back the usual
+field.
 
 ## The draft report
 

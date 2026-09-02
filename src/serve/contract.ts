@@ -563,6 +563,11 @@ export interface RankResponse {
   readonly failed: RankResult['failed'];
   readonly warnings: RankResult['warnings'];
 }
+/** `GET /import-cv/folders` (T-9.21): las carpetas del espacio de trabajo que tienen CV dentro, para elegir una. */
+export interface CvFoldersResponse {
+  readonly folders: ReadonlyArray<{ readonly path: string; readonly files: number }>;
+}
+
 /** La tabla de una carpeta importada: una fila por CV, y lo que falló con su motivo. */
 export interface ImportFolderResponse {
   readonly total: number;

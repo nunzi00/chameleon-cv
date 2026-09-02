@@ -3,6 +3,7 @@
  * compilador de la GUI lo detecta. Vite no incluye código del servidor: las importaciones de tipos se borran.
  */
 export type {
+  CvFoldersResponse,
   DuplicatesResponse,
   DuplicatesResolveRequest,
   DuplicatesResolveResponse,

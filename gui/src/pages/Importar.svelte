@@ -3,7 +3,7 @@
   import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
-  import type { ImportCvResponse, ImportFolderResponse, ImportMapJobResult, LlmConfigResponse } from '../lib/api/types';
+  import type { CvFoldersResponse, ImportCvResponse, ImportFolderResponse, ImportMapJobResult, LlmConfigResponse } from '../lib/api/types';
   import { ApiError } from '../lib/api/client';
   import { launchProblem, type LaunchProblem } from '../lib/copilot/consent';
   import { applyJobEvent, isFinished, type JobSnapshot } from '../lib/copilot/jobs';
@@ -24,6 +24,14 @@
   /* ── T-9.14: una carpeta entera del espacio de trabajo, un borrador por CV ── */
   let folder = $state('');
   let folderResult = $state<ImportFolderResponse | undefined>(undefined);
+  /* ── T-9.21: elegir la carpeta en vez de escribir su ruta ── */
+  // El navegador NO puede dar la ruta de una carpeta (un selector de directorio entrega los ficheros, nunca su
+  // sitio en el disco), y esta importación la hace el SERVIDOR leyendo el espacio de trabajo. Así que las
+  // carpetas las ofrece el servidor: las suyas, las que de verdad tienen CV dentro.
+  let folders = $state<CvFoldersResponse['folders'] | undefined>(undefined);
+  let scanning = $state(false);
+  /** Con él, el campo de ruta a mano; se activa solo si la carpeta buscada no está en la lista. */
+  let manualFolder = $state(false);
   let file = $state<File | undefined>(undefined);
   let name = $state('');
   let busy = $state(false);
@@ -172,6 +180,41 @@
     }
   }
 
+  /** Las carpetas con CV, una sola vez y solo al elegir ese origen: es un recorrido del disco. */
+  async function loadFolders(): Promise<void> {
+    if (folders !== undefined || scanning) {
+      return;
+    }
+    scanning = true;
+    try {
+      folders = (await api.cvFolders()).folders;
+      // Con una sola candidata no hay nada que elegir: se deja puesta.
+      if (folder.trim() === '' && folders.length === 1) {
+        folder = folders[0]?.path ?? '';
+      }
+    } catch (caught) {
+      // Que el catálogo falle no puede impedir importar: se cae al campo de ruta a mano.
+      folders = [];
+      manualFolder = true;
+      const explained = explainError(caught);
+      if (explained.kind === 'session') {
+        onsession();
+      }
+    } finally {
+      scanning = false;
+    }
+  }
+
+  function chooseSource(): void {
+    file = undefined;
+    result = undefined;
+    folderResult = undefined;
+    error = undefined;
+    if (source === 'carpeta') {
+      void loadFolders();
+    }
+  }
+
   /** El catálogo de proveedores se pide una sola vez, y solo cuando hay un borrador que refinar. */
   async function loadProviders(): Promise<void> {
     if (config !== undefined) {
@@ -250,7 +293,7 @@
   <form class="cv-import-form" onsubmit={(event) => { event.preventDefault(); if (source === 'carpeta') { void importFolder(false); } else { void importCv(false); } }}>
     <label class="cv-field">
       <span>Origen</span>
-      <select bind:value={source} onchange={() => { file = undefined; result = undefined; folderResult = undefined; error = undefined; }}>
+      <select bind:value={source} onchange={chooseSource}>
         <option value="cv">Un CV maquetado (.pdf o .docx)</option>
         <option value="linkedin">La exportación de datos de LinkedIn (.zip)</option>
         <option value="carpeta">Una carpeta con varios CV (se comparan)</option>
@@ -271,10 +314,32 @@
         su propio borrador <strong>nombrado por el fichero</strong> —si todos son tuyos, el nombre del perfil sería el
         mismo para todos y solo entraría el primero—. Uno que falle se anota y no detiene a los demás.
       </p>
-      <label class="cv-field">
-        <span>Carpeta (relativa al espacio de trabajo)</span>
-        <input type="text" class="mono" placeholder="mis-cv" bind:value={folder} />
-      </label>
+      {#if scanning}
+        <p class="cv-loading" aria-live="polite">Buscando carpetas con CV en tu espacio de trabajo…</p>
+      {:else if folders !== undefined && folders.length > 0 && !manualFolder}
+        <fieldset class="cv-folder-pick">
+          <legend>Carpeta</legend>
+          {#each folders as candidate (candidate.path)}
+            <label>
+              <input type="radio" name="carpeta" value={candidate.path} checked={folder === candidate.path} onchange={() => (folder = candidate.path)} />
+              <span class="cv-mono">{candidate.path === '.' ? 'la raíz del espacio de trabajo' : candidate.path}</span>
+              <span class="cv-muted">{plural(candidate.files, 'CV', 'CV')}</span>
+            </label>
+          {/each}
+        </fieldset>
+        <button class="cv-link-button" type="button" onclick={() => (manualFolder = true)}>¿No está? Escribir la ruta</button>
+      {:else}
+        {#if folders !== undefined && folders.length === 0}
+          <p class="cv-muted">No hay ninguna carpeta con <code>.pdf</code> o <code>.docx</code> en tu espacio de trabajo (se miran tres niveles). Escribe la ruta si está en otro sitio.</p>
+        {/if}
+        <label class="cv-field">
+          <span>Carpeta (relativa al espacio de trabajo)</span>
+          <input type="text" class="mono" placeholder="mis-cv" bind:value={folder} />
+        </label>
+        {#if folders !== undefined && folders.length > 0}
+          <button class="cv-link-button" type="button" onclick={() => (manualFolder = false)}>Volver a la lista</button>
+        {/if}
+      {/if}
       <button class="cv-button" type="submit" disabled={folder.trim() === '' || busy}>
         {busy ? 'Importando…' : 'Importar la carpeta'}
       </button>
@@ -448,6 +513,35 @@
 </section>
 
 <style>
+  .cv-folder-pick {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--cv-border);
+    border-radius: var(--cv-radius-md);
+  }
+  .cv-folder-pick legend {
+    padding: 0 4px;
+    font-size: var(--cv-size-sm);
+    color: var(--cv-muted);
+  }
+  .cv-folder-pick label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 6px;
+    border-radius: var(--cv-radius-sm);
+    cursor: pointer;
+  }
+  .cv-folder-pick label:hover {
+    background: var(--cv-surface-2);
+  }
+  .cv-folder-pick .cv-mono {
+    flex: 1;
+    min-width: 0;
+  }
+
   .cv-import-form {
     display: grid;
     gap: var(--cv-space-3);

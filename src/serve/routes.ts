@@ -34,7 +34,7 @@ import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings
 import { describeKeys, isRemoteProviderId, removeApiKey, writeApiKey, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
-import { importCvFolder, importCvDraft } from '../app/import-cv';
+import { findCvFolders, importCvFolder, importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
 import { DraftsAdoptSchema, DuplicatesResolveSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse, type DuplicatesResolveResponse, type DuplicatesResponse } from './contract';
@@ -45,7 +45,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -1002,6 +1002,14 @@ function addImportRoutes(router: Router<ServerState>): void {
         readme: draft.readme,
       } satisfies ImportCvResponse);
     },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/import-cv/folders`,
+    summary: 'Las carpetas del espacio de trabajo que tienen CV (.pdf/.docx) en su primer nivel, con cuántos, para elegir una sin escribir la ruta. Solo lectura; no sale del espacio de trabajo.',
+    writes: false,
+    handler: async (_request, state) => json(200, { folders: await findCvFolders(state.context) } satisfies CvFoldersResponse),
   });
 
   router.add({
