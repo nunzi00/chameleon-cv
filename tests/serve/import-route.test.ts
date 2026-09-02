@@ -73,6 +73,38 @@ describe('cv serve: POST /import', () => {
     expect(replaced.status).toBe(201);
   });
 
+  it('POST /import-manfred entra por su propia ruta y no deja nada sin situar (T-9.22)', async () => {
+    const mac = JSON.stringify({
+      settings: { MACVersion: '0.5' },
+      aboutMe: { profile: { name: 'Ada', surnames: 'Ejemplo', title: 'Backend' } },
+      experience: { jobs: [{ organization: { name: 'Acme' }, roles: [{ name: 'Backend Senior', startDate: '2020-01-01' }] }] },
+      careerPreferences: { preferences: { preferredRoles: ['Backend Developer'] } },
+    });
+    const response = await fetch(`${stubbed.url}api/v1/import-manfred`, {
+      method: 'POST',
+      body: Buffer.from(mac, 'utf8'),
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/pdf', 'x-cv-import-name': 'mac-de-ada' },
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { name: string; counts: { experience: number }; issues: readonly unknown[]; unparsed: readonly unknown[]; readme: string };
+    expect(body.name).toBe('mac-de-ada');
+    expect(body.counts.experience).toBe(1);
+    expect(body.unparsed).toEqual([]);
+    // Lo que el MAC guarda y el perfil no, encabeza el informe en vez de perderse.
+    expect(body.readme).toContain('los puestos que buscas');
+    const invalido = await fetch(`${stubbed.url}api/v1/import-manfred`, { method: 'POST', body: Buffer.from('{"cualquier":"cosa"}', 'utf8'), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/pdf' } });
+    expect(invalido.status).toBe(422);
+  });
+
+  it('GET /import-cv/folders ofrece las carpetas con CV, para elegir una sin escribir la ruta (T-9.21)', async () => {
+    const response = await fetch(`${corpus.url}api/v1/import-cv/folders`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { folders: ReadonlyArray<{ path: string; files: number }> };
+    // El espacio de la prueba tiene corpus/ con tres PDF (uno roto, que también cuenta: se ve al importar) y
+    // data/sources, que no se ofrece por ser del producto.
+    expect(body.folders).toEqual([{ path: 'corpus', files: 3 }]);
+  });
+
   it('la cabecera x-cv-import-name elige la carpeta; un DOCX entra por su cabecera mágica', async () => {
     const named = await post(stubbed, '%PDF-1.4 finto', { 'x-cv-import-name': 'mío borrador' });
     expect(named.status).toBe(201);

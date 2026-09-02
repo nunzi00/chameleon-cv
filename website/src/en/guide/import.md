@@ -6,7 +6,7 @@ title: Importing a CV you already have
 
 If you arrive with a CV in PDF or DOCX, `cv import-cv` turns it into a **draft dataset** so you don't start from
 scratch. The draft is written to `import/<name>/` and **never** to `data/sources/`: you review it, adjust it and
-move it yourself when you're happy with it.
+**adopt whatever you want** with `cv drafts` (or the «Borradores» screen) once you're happy with it.
 
 ```bash
 cv import-cv old-cv.pdf                  # draft in import/<name>/ with its report
@@ -50,9 +50,14 @@ best starting point.
 which would make no sense with several.
 
 In the web interface, under **Perfil → Importar CV**, the **«Origen»** selector has a third option: a folder with
-several CVs. You type the folder (relative to the workspace) and you get the same table; if a draft already
-existed, what failed shows up with its reason and a button to **reimport replacing them**, which is a second
-action of yours and never something automatic.
+several CVs. **You don't have to type the path**: the folders in your workspace that have CVs in them are offered
+to you, with how many each one holds, and if there is only one it comes preselected. You pick one and you get the
+same table; if a draft already existed, what failed shows up with its reason and a button to **reimport replacing
+them**, which is a second action of yours and never something automatic.
+
+Three levels of folders are scanned, and the program's own ones (`import/`, `data/`, `output/`) and
+`node_modules` are left out. For a folder that isn't listed, «¿No está? Escribir la ruta» brings back the usual
+field.
 
 ## The draft report
 
@@ -112,6 +117,31 @@ On confirmation the line is written to the file it belongs to (`skills.csv`, `ex
 lets you undo it by hand. If something wouldn't satisfy the schema, nothing is written and the dialog tells you
 what's missing: the draft that comes out of applying a proposal still validates with `cv build --data`.
 
+## From Manfred (MAC)
+
+If you have a profile on [Manfred](https://www.getmanfred.com), its JSON export — the **MAC**, «Manfred Awesome
+CV» — is one of the best routes in: **structured data**, no layout to guess and nothing left unplaced.
+
+```bash
+cv import-manfred my-mac-from-manfred.json   # draft in import/<name>/ with its report
+cv build --data import/<name>                # validate the draft
+```
+
+In the web interface, under **Perfil → Importar CV**, the **«Origen»** selector has the «Un MAC de Manfred
+(.json)» option.
+
+In come the profile, the links, the experience — **one entry per role**, with challenges as achievements and
+competences as technologies —, the projects, the studies, the certifications, the skills and the languages. What
+a MAC keeps and this profile does not — the roles and contract type you're after, your salary, your search
+status, the recommendations — **is not imported and you are told so** in the report, so you know what stayed
+behind in Manfred.
+
+Two things worth checking afterwards: if you filled the studies in one sitting without remembering the dates,
+Manfred stores the day you typed them and the report warns you; and if your location only reaches country level,
+it ends up in the city field and needs adjusting.
+
+**No network**: the `$schema` the file declares is not downloaded.
+
 ## From LinkedIn
 
 If your CV lives on LinkedIn, the way in is its **official data export**, not the profile URL: that URL returns
@@ -168,9 +198,64 @@ page footer, and applies that format's rules: the company goes above and the rol
 dates —and none is invented for it—, and the name is checked against your URL's *slug*. You get a clean draft,
 but **the data export is still better**: structured data instead of a layout that has to be guessed.
 
+## Reviewing drafts and adopting them
+
+Importing leaves a **draft**; it does not touch your profile. To see them all and take what you want there is
+`cv drafts`, and in the web interface the **Perfil → Borradores** screen:
+
+```bash
+cv drafts                                      # every draft, with what each one recognised
+cv drafts show cv-old                          # its entries, each with its id
+cv drafts duplicates                           # what repeats across drafts and against your sources
+cv drafts adopt cv-old --entry exp-acme        # copies that entry into data/sources/
+cv build                                       # and rebuild once you've reviewed it
+```
+
+**Adopting adds, it does not replace.** Each entry is written as a **new file** with a free id, and not one of
+your sources is touched: if you get it wrong, delete the file and you're done. Before anything is written the
+whole resulting profile is validated, so you cannot end up with sources `cv build` rejects. `--dry-run` shows you
+the plan.
+
+**It is not a merge**: two versions of the same job are never blended. You adopt the one you prefer and edit it
+afterwards.
+
+### What is repeated
+
+If you imported several versions of your CV, the same job shows up in all of them — and hardly ever the same way:
+the dates move, sometimes company and role come out swapped, and a CV laid out letter by letter arrives as
+`B A S E R  L U G O`. `cv drafts duplicates` **groups and asks**: it shows you each group with all its members,
+which draft each came from, and **which one you already have in your sources**, so you don't duplicate it. It does
+not choose for you, because when the CVs contradict each other there is no honest way to tell which is right —
+you are the one who knows.
+
+### If you end up with something repeated
+
+Adopting the same job from several drafts leaves it twice. That is what `cv duplicates` and the
+**Perfil → Duplicados** screen are for:
+
+```bash
+cv duplicates                                            # what is repeated in your sources
+cv duplicates resolve <id> --absorb <id> --dry-run       # the plan, without touching anything
+cv duplicates resolve <id> --absorb <id>                 # resolved
+```
+
+You choose **which one stays**, and it absorbs from the other **only the data it lacks** — which is the usual
+shape after importing: one half has the dates and «Centro pendiente», the other the real institution and no dates
+at all. The absorbed one is deleted. A value the chosen entry already had is **never overwritten**: if the other
+brought a different one, you are told which is kept and which is discarded. Everything goes to the history, so
+`cv history restore` undoes it.
+
+The same job **split into periods** (one entry per stage) does not count as a duplicate: its dates do not overlap.
+
+### Fixing before adopting
+
+A draft's files are edited like any source, from the **Borradores** screen or with your own editor. That is what
+you need when the report says «experiencia sin empresa reconocida: lleva "Empresa pendiente"». Fixing a draft
+**does not touch** `data/sources/`.
+
 ## After importing
 
-1. Read the `README.md` and fix what it points at.
+1. Read the `README.md` and fix what it points at (in the web interface, **Perfil → Borradores**).
 2. Validate: `cv build --data import/<name>`.
-3. Move the sources to `data/sources/` when they're to your liking and carry on with
+3. Adopt what you want with `cv drafts adopt` — or the «Adoptar en mis fuentes» button — and carry on with
    [Generating the CV](/en/guide/generate).

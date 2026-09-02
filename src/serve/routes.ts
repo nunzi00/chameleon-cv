@@ -26,15 +26,19 @@ import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { applyImportProposal } from '../app/import-apply';
+import { adoptEntries, draftDuplicates, listDraftFiles, listDrafts, readDraftFile, writeDraftFile } from '../app/drafts';
+import { resolveDuplicate, sourceDuplicates } from '../app/dedupe';
 import { importLinkedInDraft } from '../app/import-linkedin';
+import { importManfredDraft } from '../app/import-manfred';
 import { executeImportMap, importMapEstimate, planImportMap, type ImportMapPlan } from '../app/import-map';
 import { loadServeSettings, readConfigFile, writeLlmSettings, writeServeSettings } from '../app/settings';
 import { describeKeys, isRemoteProviderId, removeApiKey, writeApiKey, type LlmStatus, type RuntimeErrorCode } from '../llm';
 import { profileSummary } from '../app/text';
 import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme, themeInventory, verifyThemes } from '../app/themes';
-import { importCvFolder, importCvDraft } from '../app/import-cv';
+import { findCvFolders, importCvFolder, importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
+import { DraftsAdoptSchema, DuplicatesResolveSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse, type DuplicatesResolveResponse, type DuplicatesResponse } from './contract';
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
 import type { LlmProvider } from '../llm/provider';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -42,7 +46,7 @@ import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { describeError } from '../shared/errors';
-import { AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -176,6 +180,8 @@ export function createRouter(): Router<ServerState> {
   addGenerateRoutes(router);
   addOfferRoutes(router);
   addImportRoutes(router);
+  addDraftRoutes(router);
+  addDuplicateRoutes(router);
   addThemeRoutes(router);
   addServerRoutes(router);
   addCopilotRoutes(router);
@@ -1001,6 +1007,53 @@ function addImportRoutes(router: Router<ServerState>): void {
 
   router.add({
     method: 'POST',
+    path: `${API_PREFIX}/import-manfred`,
+    summary:
+      'Importa un MAC de Manfred (cuerpo binario JSON, hasta 10 MiB) como borrador en import/<nombre>/ con su README; datos estructurados, sin red y sin adivinar maquetación. Nunca escribe en data/sources. Cabeceras opcionales x-cv-import-name y x-cv-import-replace: 1.',
+    writes: true,
+    accepts: 'application/pdf',
+    handler: async (request, state) => {
+      const nameHeader = headerValue(request.headers['x-cv-import-name']);
+      const result = await importManfredDraft(state.context, request.body, nameHeader ?? 'manfred', {
+        name: nameHeader,
+        replace: headerValue(request.headers['x-cv-import-replace']) === '1',
+      });
+      if (!result.ok) {
+        return appErrorResponse(result.error);
+      }
+      const { draft } = result;
+      const { profile } = draft;
+      return json(201, {
+        name: draft.name,
+        files: draft.files,
+        counts: {
+          experience: profile.experience.length,
+          projects: profile.projects.length,
+          education: profile.education.length,
+          certifications: profile.certifications.length,
+          skills: profile.skills.length,
+          achievements: profile.achievements.length,
+          languages: profile.languages.length,
+        },
+        issues: draft.issues.map((issue) => ({ reason: issue.reason, line: issue.provenance?.line })),
+        // Vacío SIEMPRE: el MAC dice a qué sección pertenece cada dato, así que nada queda «sin situar».
+        unparsed: [],
+        readme: draft.readme,
+        backup: draft.backup === undefined ? undefined : basename(draft.backup),
+      } satisfies ImportCvResponse);
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/import-cv/folders`,
+    summary: 'Las carpetas del espacio de trabajo que tienen CV (.pdf/.docx) en su primer nivel, con cuántos, para elegir una sin escribir la ruta. Solo lectura; no sale del espacio de trabajo.',
+    writes: false,
+    handler: async (_request, state) => json(200, { folders: await findCvFolders(state.context) } satisfies CvFoldersResponse),
+  });
+
+  router.add({
+    method: 'POST',
     path: `${API_PREFIX}/import-cv/folder`,
     summary:
       'Importa todos los CV (.pdf y .docx, primer nivel) de una carpeta del espacio de trabajo (T-9.14): cada uno a su propio borrador, nombrado por el fichero, y devuelve la tabla para comparar. Uno que falle se anota y no detiene a los demás. Nunca escribe en data/sources.',
@@ -1066,7 +1119,128 @@ function addImportRoutes(router: Router<ServerState>): void {
         issues: draft.issues.map((issue) => ({ reason: issue.reason, line: issue.provenance?.line })),
         unparsed: draft.unparsed.map((item) => ({ line: item.line, text: item.text })),
         readme: draft.readme,
+        backup: draft.backup === undefined ? undefined : basename(draft.backup),
       } satisfies ImportCvResponse);
+    },
+  });
+}
+
+/**
+ * Los borradores de `import/` (T-9.19): verlos, editarlos como se edita una fuente y adoptar en `data/sources/`
+ * las entradas que se elijan. El criterio —qué se parece a qué, qué se puede adoptar, con qué id— vive entero
+ * en `src/app/drafts.ts`, que es lo que usa también `cv drafts` (C14).
+ */
+function addDraftRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/drafts`,
+    summary:
+      'Los borradores de import/ con lo que reconoció cada uno y lo que dejó en su informe, más los grupos de entradas que parecen la misma cosa (entre borradores y contra las fuentes de hoy). Agrupar no fusiona nada.',
+    writes: false,
+    handler: async (_request, state) => {
+      const listed = await listDrafts(state.context);
+      if (!listed.ok) {
+        return appErrorResponse(listed.error);
+      }
+      const duplicates = await draftDuplicates(state.context, { data: state.data });
+      if (!duplicates.ok) {
+        return appErrorResponse(duplicates.error);
+      }
+      return json(200, { drafts: listed.drafts, duplicates: duplicates.result } satisfies DraftsResponse);
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/drafts/{name}/files`,
+    summary: 'Los ficheros de un borrador con su tamaño, fecha y huella SHA-256, como el árbol de las fuentes.',
+    writes: false,
+    handler: async (request, state) => {
+      const name = String(request.params['name']);
+      const result = await listDraftFiles(state.context, name);
+      return result.ok ? json(200, { name, entries: result.entries } satisfies DraftFilesResponse) : appErrorResponse(result.error, { issues: result.issues });
+    },
+  });
+
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/drafts/{name}/files/{path+}`,
+    summary: 'Contenido de un fichero del borrador con su huella (también en la cabecera ETag).',
+    writes: false,
+    handler: async (request, state) => {
+      const result = await readDraftFile(state.context, String(request.params['name']), String(request.params['path']));
+      return result.ok ? json(200, result.file satisfies SourceResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'PUT',
+    path: `${API_PREFIX}/drafts/{name}/files/{path+}`,
+    summary: 'Corrige un fichero del borrador antes de adoptarlo. Mismas garantías que editar una fuente: exige If-Match con la huella actual, o «*» para crear. Atómico, 0600. Escribe en import/, nunca en data/sources.',
+    writes: true,
+    body: SourceWriteSchema,
+    handler: async (request, state) => {
+      const ifMatch = request.headers['if-match'];
+      if (ifMatch === undefined) {
+        return errorResponse('precondition-required', 'Falta la cabecera If-Match: la huella actual del fichero, o «*» para crearlo');
+      }
+      const parsed = parseJsonBody(request.body, SourceWriteSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await writeDraftFile(state.context, String(request.params['name']), String(request.params['path']), parsed.value.content, ifMatch.trim().replace(/^"|"$/g, ''));
+      return result.ok ? json(200, { path: result.file.path, sha256: result.file.sha256 } satisfies SourceWriteResponse, { ETag: `"${result.file.sha256}"` }) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/drafts/adopt`,
+    summary:
+      'Copia en data/sources/ las entradas señaladas de los borradores, como ficheros NUEVOS con id libre. Nunca sobrescribe una fuente existente y no escribe nada si el perfil resultante no valida. Con dryRun devuelve el plan.',
+    writes: true,
+    body: DraftsAdoptSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, DraftsAdoptSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await adoptEntries(state.context, { data: state.data, entries: parsed.value.entries, dryRun: parsed.value.dryRun });
+      return result.ok ? json(parsed.value.dryRun === true ? 200 : 201, result.outcome satisfies DraftsAdoptResponse) : appErrorResponse(result.error);
+    },
+  });
+}
+
+/**
+ * Duplicados en las PROPIAS fuentes (T-9.20): verlos y resolverlos. Resolver escribe una fuente y borra otra, así
+ * que pasa por el histórico (`cv history restore` lo deshace) y solo ocurre con la lista explícita del cliente.
+ */
+function addDuplicateRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/duplicates`,
+    summary: 'Las entradas de data/sources que parecen la misma cosa, agrupadas, con el fichero real de cada una. Solo lectura: agrupar no fusiona ni borra nada.',
+    writes: false,
+    handler: async (_request, state) => {
+      const result = await sourceDuplicates(state.context, { data: state.data });
+      return result.ok ? json(200, result.result satisfies DuplicatesResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/duplicates/resolve`,
+    summary:
+      'La entrada «keep» se queda y absorbe de las de «absorb» SOLO los datos que le faltan; las absorbidas se borran. No pisa un valor que la elegida ya tenía, no escribe nada si el perfil resultante no valida, y todo queda en el histórico de fuentes. Con dryRun devuelve el plan.',
+    writes: true,
+    body: DuplicatesResolveSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, DuplicatesResolveSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await resolveDuplicate(state.context, { data: state.data, keep: parsed.value.keep, absorb: parsed.value.absorb, dryRun: parsed.value.dryRun });
+      return result.ok ? json(200, result.outcome satisfies DuplicatesResolveResponse) : appErrorResponse(result.error);
     },
   });
 }

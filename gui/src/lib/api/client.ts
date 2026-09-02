@@ -4,6 +4,14 @@
  * servidor convertida en `ApiError`. Sin caché ni estado: la verdad está en el servidor.
  */
 import type {
+  CvFoldersResponse,
+  DuplicatesResponse,
+  DuplicatesResolveRequest,
+  DuplicatesResolveResponse,
+  DraftsResponse,
+  DraftFilesResponse,
+  DraftsAdoptRequest,
+  DraftsAdoptResponse,
   ImportCvResponse,
   ImportApplyRequestBody,
   ImportApplyResponse,
@@ -137,6 +145,8 @@ export interface ApiClient {
   rankOffers(body: RankRequest): Promise<RankResponse>;
   /** POST /import-cv/folder (T-9.14): importa todos los CV de una carpeta del espacio de trabajo. */
   importFolder(body: ImportFolderRequest): Promise<ImportFolderResponse>;
+  /** GET /import-cv/folders (T-9.21): las carpetas del espacio con CV dentro, para elegir una sin escribir la ruta. */
+  cvFolders(): Promise<CvFoldersResponse>;
   /** Historial de una oferta (solo lectura): procesamientos previos por la huella de su texto. */
   offerHistory(body: HistoryLookupRequest): Promise<HistoryLookupResponse>;
   /** Un PDF (bytes) → su texto, extraído en el worker aislado del servidor. */
@@ -145,12 +155,27 @@ export interface ApiClient {
   importCv(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
   /** POST /import-linkedin (T-9.8): la exportación oficial de datos (zip) como borrador; datos estructurados, sin red. */
   importLinkedIn(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
+  /** POST /import-manfred (T-9.22): el MAC de Manfred (JSON) como borrador; datos estructurados, sin red. */
+  importManfred(file: Blob, options?: { readonly name?: string; readonly replace?: boolean }): Promise<ImportCvResponse>;
   /** PUT /config/llm/keys/{provider}: guarda la clave en el fichero de claves (0600). La clave viaja solo aquí; ninguna respuesta la devuelve. */
   setLlmKey(provider: string, key: string): Promise<LlmKeyResponse>;
   /** DELETE /config/llm/keys/{provider}: la borra del fichero de claves. */
   removeLlmKey(provider: string): Promise<LlmKeyResponse>;
   /** POST /import/apply (T-9.5): mueve UNA línea sin situar del borrador a la sección indicada; 422 si falta un dato. */
   applyImportProposal(body: ImportApplyRequestBody): Promise<ImportApplyResponse>;
+  /** GET /drafts (T-9.19): los borradores de import/ con sus cuentas y los grupos de entradas que se parecen. */
+  drafts(): Promise<DraftsResponse>;
+  /** GET /drafts/{name}/files: el árbol de ficheros de un borrador, para abrirlos y corregirlos. */
+  draftFiles(name: string): Promise<DraftFilesResponse>;
+  draftFile(name: string, path: string): Promise<SourceResponse>;
+  /** PUT /drafts/{name}/files/{ruta}: corrige un fichero del borrador; `ifMatch` es su huella, o «*» para crear. */
+  writeDraftFile(name: string, path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
+  /** POST /drafts/adopt (T-9.19): copia en data/sources/ las entradas señaladas; escribe fuentes, por eso lo pide un botón. */
+  adoptDraftEntries(body: DraftsAdoptRequest): Promise<DraftsAdoptResponse>;
+  /** GET /duplicates (T-9.20): lo repetido en las propias fuentes, agrupado, con el fichero de cada entrada. */
+  duplicates(): Promise<DuplicatesResponse>;
+  /** POST /duplicates/resolve: la elegida absorbe lo que le falta y las otras se borran; con dryRun, solo el plan. */
+  resolveDuplicate(body: DuplicatesResolveRequest): Promise<DuplicatesResolveResponse>;
   /** GET /offers (T-8.5 S2): el listado de offers/ para el selector de Generar. */
   offers(): Promise<OffersListResponse>;
   /** POST /offers/fetch: 409 consent-required con estimateId la primera vez; repetir con consent para descargar. */
@@ -323,11 +348,19 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     applyTags: (body) => request('POST', '/tags/apply', { body }),
     rankOffers: (body) => request('POST', '/offers/rank', { body }),
     importFolder: (body) => request('POST', '/import-cv/folder', { body }),
+    cvFolders: () => request('GET', '/import-cv/folders'),
     offerHistory: (body) => request('POST', '/offers/history', { body }),
     extractOffer: async (pdf) => {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });
       return parseJson(await response.text()) as ExtractResponse;
     },
+    drafts: () => request('GET', '/drafts'),
+    draftFiles: (name) => request('GET', `/drafts/${encodeId(name)}/files`),
+    draftFile: (name, path) => request('GET', `/drafts/${encodeId(name)}/files/${encodeId(path)}`),
+    writeDraftFile: (name, path, content, ifMatch) => requestWithHeaders('PUT', `/drafts/${encodeId(name)}/files/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
+    adoptDraftEntries: (body) => request('POST', '/drafts/adopt', { body }),
+    duplicates: () => request('GET', '/duplicates'),
+    resolveDuplicate: (body) => request('POST', '/duplicates/resolve', { body }),
     offers: () => request('GET', '/offers'),
     offerFetch: (body) => request('POST', '/offers/fetch', { body }),
     offerSave: (body) => request('POST', '/offers', { body }),
@@ -339,6 +372,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     importLinkedIn: async (file, options = {}) => {
       const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
       const response = await raw('POST', '/import-linkedin', { body: file, contentType: 'application/pdf', headers });
+      return (await response.json()) as ImportCvResponse;
+    },
+    importManfred: async (file, options = {}) => {
+      const headers: Record<string, string> = { ...(options.name === undefined ? {} : { 'x-cv-import-name': options.name }), ...(options.replace === true ? { 'x-cv-import-replace': '1' } : {}) };
+      const response = await raw('POST', '/import-manfred', { body: file, contentType: 'application/pdf', headers });
       return (await response.json()) as ImportCvResponse;
     },
     setLlmKey: (provider, key) => request('PUT', `/config/llm/keys/${encodeId(provider)}`, { body: { key } }),

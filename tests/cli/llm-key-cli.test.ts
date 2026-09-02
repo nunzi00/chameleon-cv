@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { PassThrough } from 'node:stream';
 
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, askSecretInTerminal, createNodeContext, runCli, type CliContext } from '../../src/cli';
+import { KEY_ENV_VARIABLES } from '../../src/llm';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -38,8 +39,11 @@ let configHome: string;
 beforeAll(async () => {
   configHome = await mkdtemp(join(tmpdir(), 'cv-key-cli-'));
   vi.stubEnv('XDG_CONFIG_HOME', configHome);
-  vi.stubEnv('CHAMELEON_OPENAI_API_KEY', '');
-  vi.stubEnv('CHAMELEON_ANTHROPIC_API_KEY', '');
+  // TODAS las variables del registro, no una lista a mano: enumerando dos, esta prueba dejó de ser hermética en
+  // cuanto entró un tercer proveedor, y fallaba en la máquina de quien tuviera esa clave exportada.
+  for (const variable of Object.values(KEY_ENV_VARIABLES)) {
+    vi.stubEnv(variable, '');
+  }
 });
 
 afterAll(async () => {

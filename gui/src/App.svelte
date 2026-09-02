@@ -124,7 +124,7 @@
             </div>
           </div>
         {:else}
-          <div class={route.page === 'fuentes' || route.page === 'generar' ? 'cv-page-wide' : 'cv-page'}>
+          <div class={route.page === 'fuentes' || route.page === 'generar' || route.page === 'borradores' ? 'cv-page-wide' : 'cv-page'}>
             {#if route.page === 'estado'}
               {#await import('./pages/Estado.svelte')}
                 <p class="cv-loading" aria-live="polite">Cargando…</p>
@@ -154,6 +154,18 @@
                 <p class="cv-muted">Cargando…</p>
               {:then importar}
                 <importar.default {api} onsession={sessionLost} />
+              {/await}
+            {:else if route.page === 'borradores'}
+              {#await import('./pages/Borradores.svelte')}
+                <p class="cv-muted">Cargando…</p>
+              {:then borradores}
+                <borradores.default {api} item={route.item} onsession={sessionLost} {navigate} />
+              {/await}
+            {:else if route.page === 'duplicados'}
+              {#await import('./pages/Duplicados.svelte')}
+                <p class="cv-muted">Cargando…</p>
+              {:then duplicados}
+                <duplicados.default {api} onsession={sessionLost} onopen={(file) => navigate({ page: 'fuentes', item: file })} />
               {/await}
             {:else if route.page === 'salidas'}
               {#await import('./pages/Salidas.svelte')}

@@ -61,11 +61,10 @@ class Layout {
     items.forEach((run, index) => {
       const last = index === items.length - 1;
       this.doc.font(this.fontFor(run)).fontSize(size).fillColor(color);
-      const options: PDFKit.Mixins.TextOptions = { continued: !last, width };
-      if (run.link !== undefined) {
-        options.link = run.link;
-        options.underline = true;
-      }
+      // `link` y `underline` se fijan SIEMPRE, también a null/false: con `continued: true` pdfkit arrastra las
+      // opciones al fragmento siguiente, así que omitirlas dejaba el enlace del run anterior puesto (B-16). Un
+      // PDF en el que un texto lleva a un sitio que no dice es peor que uno sin enlaces.
+      const options: PDFKit.Mixins.TextOptions = { continued: !last, width, link: run.link ?? null, underline: run.link !== undefined };
       if (index === 0) {
         this.doc.text(run.text, x, this.doc.y, options);
       } else {

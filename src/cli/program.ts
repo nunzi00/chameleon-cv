@@ -26,6 +26,9 @@ import { parseEngine, parseFormat } from './format';
 import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit, parseList, parseProposals } from './limits';
+import { runImportManfred, type ImportManfredOptions } from './commands/import-manfred';
+import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions } from './commands/drafts';
+import { runDuplicatesList, runDuplicatesResolve, type DuplicatesListOptions, type DuplicatesResolveOptions } from './commands/duplicates';
 import { EXIT_FAILURE, EXIT_OK } from './output';
 import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
@@ -130,7 +133,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .description('importa un CV ya maquetado (PDF o DOCX) como borrador de fuentes en import/<nombre>/, con informe de lo reconocido; nunca escribe en data/sources/')
     .argument('<fichero>', 'el CV a importar (.pdf o .docx); con --all, la carpeta que los contiene')
     .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
-    .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
     .option('--all', 'el argumento es una carpeta: importa todos los CV que haya en ella (primer nivel) y compara el resultado en una tabla', false)
     .option('--copilot', 'pide al co-piloto que PROPONGA sección para las líneas sin situar (van al README, no se aplican)', false)
     .option('--provider <id>', 'proveedor del co-piloto para --copilot (por defecto, el configurado)')
@@ -145,9 +148,19 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .description('importa la exportación oficial de datos de LinkedIn (el zip de «Obtener una copia de tus datos») como borrador en import/<nombre>/; datos estructurados, sin red y sin adivinar maquetación')
     .argument('<archivo>', 'el zip de la exportación de LinkedIn')
     .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
-    .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
     .action(async (file: string, options: ImportLinkedInOptions) => {
       onExit(await runImportLinkedIn(context, file, options));
+    });
+
+  program
+    .command('import-manfred')
+    .description('importa un MAC de Manfred (el JSON de «Manfred Awesome CV») como borrador en import/<nombre>/; datos estructurados, sin red y sin adivinar maquetación')
+    .argument('<fichero>', 'el MAC exportado (.json)')
+    .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
+    .action(async (file: string, options: ImportManfredOptions) => {
+      onExit(await runImportManfred(context, file, options));
     });
 
   program
@@ -173,6 +186,55 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--rank', 'compara varias ofertas en una tabla (adecuación, imprescindibles, especialidad y carencias), de la que mejor encaja a la que menos', false)
     .action(async (offer: string | undefined, extra: string[], options: AnalyzeOfferOptions) => {
       onExit(await runAnalyzeOffer(context, offer, extra, options));
+    });
+
+  const drafts = program.command('drafts').description('los borradores de import/: verlos, comparar sus duplicados y adoptar entradas sueltas en data/sources/ (T-9.19)');
+  drafts
+    .command('list', { isDefault: true })
+    .description('lista los borradores de import/ con su origen, lo que reconoció cada uno y lo que dejó en el informe')
+    .action(async () => {
+      onExit(await runDraftsList(context));
+    });
+  drafts
+    .command('show <nombre>')
+    .description('las experiencias, formaciones y proyectos de un borrador, con el id que hay que señalar para adoptarlos')
+    .action(async (name: string) => {
+      onExit(await runDraftsShow(context, name));
+    });
+  drafts
+    .command('duplicates')
+    .description('agrupa las entradas que parecen la misma cosa, entre borradores y contra tus fuentes de hoy; enseña los grupos, no fusiona ninguno')
+    .option('-d, --data <dir>', 'directorio de fuentes con el que comparar', DEFAULT_DATA_DIR)
+    .action(async (options: DraftsListOptions) => {
+      onExit(await runDraftsDuplicates(context, options));
+    });
+  drafts
+    .command('adopt <nombre>')
+    .description('copia en data/sources/ las entradas señaladas del borrador, como ficheros NUEVOS con id libre; nunca sobrescribe una fuente tuya y no escribe nada si el perfil resultante no valida')
+    .option('--entry <id...>', 'ids de las entradas a adoptar (repetible)')
+    .option('--section <seccion>', 'adopta toda una sección del borrador: experience, education o projects')
+    .option('-d, --data <dir>', 'directorio de fuentes de destino', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'enseña lo que escribiría sin escribir nada', false)
+    .action(async (name: string, options: DraftsAdoptOptions) => {
+      onExit(await runDraftsAdopt(context, name, options));
+    });
+
+  const duplicates = program.command('duplicates').description('lo que está repetido en TUS fuentes y cómo resolverlo (T-9.20); adoptar de varios borradores el mismo empleo es lo que lo crea');
+  duplicates
+    .command('list', { isDefault: true })
+    .description('agrupa las entradas de data/sources que parecen la misma cosa; enseña los grupos con su id y su fichero, y no toca nada')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .action(async (options: DuplicatesListOptions) => {
+      onExit(await runDuplicatesList(context, options));
+    });
+  duplicates
+    .command('resolve <id>')
+    .description('la entrada <id> se queda y absorbe de las señaladas SOLO los datos que le faltan; las absorbidas se borran y todo queda en el histórico, así que «cv history restore» lo deshace')
+    .option('--absorb <id...>', 'ids de las entradas que se absorben y se borran (repetible)')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'enseña lo que haría sin escribir ni borrar nada', false)
+    .action(async (keep: string, options: DuplicatesResolveOptions) => {
+      onExit(await runDuplicatesResolve(context, keep, options));
     });
 
   const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');

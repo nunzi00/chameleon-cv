@@ -98,7 +98,30 @@ describe('readSourceVersion / restoreSourceVersion', () => {
     expect(entries[0]).toMatchObject({ action: 'restore', origin: id, files: [{ path: 'experience/acme.md', ids: [id] }] });
     expect(fs.file(historyVersionPath('/work', entries[0]?.id ?? '', 'experience/acme.md'))?.content).toBe('v2');
     expect(await restoreSourceVersion(context(fs), 'no', 'experience/acme.md')).toMatchObject({ ok: false });
+  });
+
+  it('una fuente BORRADA se restaura igual: su versión actual es «no existe»', async () => {
+    // Es lo que hace de «cv history restore» el deshacer de resolver un duplicado (T-9.20), que borra la fuente
+    // absorbida. Antes, restaurar sobre un fichero inexistente fallaba con un error de entorno.
+    const fs = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v1' });
+    const recorded = await recordSourceVersions(context(fs), { action: 'apply', origin: 'duplicados-a', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: '', ids: ['a'] }], at: AT });
+    const id = recorded.ok ? recorded.entry.id : '';
     await fs.remove(`${ROOT}/experience/acme.md`);
+    expect(fs.file(`${ROOT}/experience/acme.md`)).toBeUndefined();
+    expect(await restoreSourceVersion(context(fs), id, 'experience/acme.md', new Date('2026-08-31T10:00:00.000Z'))).toMatchObject({ ok: true });
+    expect(fs.file(`${ROOT}/experience/acme.md`)?.content).toBe('v1');
+    // Y la entrada nueva guarda «no existe» como versión anterior, para poder deshacer la restauración.
+    const entries = await readSourceHistory(context(fs));
+    expect(entries[0]).toMatchObject({ action: 'restore', origin: id });
+    expect(fs.file(historyVersionPath('/work', entries[0]?.id ?? '', 'experience/acme.md'))?.content).toBe('');
+  });
+
+  it('un fallo de lectura que NO es «no existe» sigue siendo un error de entorno', async () => {
+    // La guarda distingue el fichero borrado de un fallo real: si no lo hiciera, cualquier error de lectura
+    // pasaría por «no existía» y la restauración escribiría creyendo que no había nada.
+    const fs = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: { kind: 'directory' } });
+    const recorded = await recordSourceVersions(context(fs), { action: 'apply', origin: 'r.md', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['a'] }], at: AT });
+    const id = recorded.ok ? recorded.entry.id : '';
     expect(await restoreSourceVersion(context(fs), id, 'experience/acme.md')).toMatchObject({ ok: false, error: { code: 'environment' } });
   });
 

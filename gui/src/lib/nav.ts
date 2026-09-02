@@ -29,6 +29,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { page: 'fuentes', label: 'Fuentes', icon: 'folder' },
       { page: 'importar', label: 'Importar CV', icon: 'file-up' },
+      { page: 'borradores', label: 'Borradores', icon: 'layers' },
+      { page: 'duplicados', label: 'Duplicados', icon: 'copy' },
       { page: 'estado', label: 'Estado del artefacto', icon: 'check-circle' },
     ],
   },

@@ -14,6 +14,7 @@ import type { MasterProfile } from '../core/schema';
 import { describeError } from '../shared/errors';
 import type { AppContext } from './context';
 import { conflictError, dataError, environmentError, notFoundError, type AppError } from './errors';
+import { backupDirectory } from './portability';
 import { slugify } from './slug';
 
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
@@ -52,6 +53,8 @@ export interface ImportedDraft {
   readonly readme: string;
   /** Propuestas del co-piloto verificadas por código; vacío sin `copilot`. */
   readonly proposals: readonly ImportMapProposal[];
+  /** Con `replace`, la carpeta a la que se apartó el borrador anterior; ausente si no había ninguno. */
+  readonly backup?: string | undefined;
 }
 
 export type ImportCvResult = { readonly ok: true; readonly draft: ImportedDraft } | { readonly ok: false; readonly error: AppError };
@@ -73,6 +76,10 @@ export async function importCvDraft(context: AppContext, bytes: Uint8Array, orig
       return { ok: false, error: dataError(`No se pudo extraer el DOCX: ${docx.message}`) };
     }
     text = docx.text;
+  } else if (bytes[0] === 0x7b) {
+    // Un JSON no es un CV maquetado, pero sí puede ser un MAC de Manfred: se dice por dónde entra en vez de
+    // dejar al usuario con un «cabecera desconocida» delante de un fichero perfectamente importable.
+    return { ok: false, error: dataError(`«${origin}» es un JSON, no un CV maquetado. Si es un MAC de Manfred, impórtalo con «cv import-manfred»; si es un perfil canónico exportado, con «cv import»`) };
   } else {
     return { ok: false, error: dataError(`«${origin}» no es un PDF ni un DOCX (cabecera desconocida); el borrador se importa desde el CV maquetado`) };
   }
@@ -133,6 +140,20 @@ export async function writeDraft(
     return { ok: false, error: conflictError(`Ya existe import/${name}; usa --replace para sustituirlo o --name para otro destino`) };
   }
 
+  // Sustituir es APARTAR y escribir de cero, no escribir encima: un borrador con menos entradas que el anterior
+  // dejaba vivos los ficheros sobrantes y `cv build --data import/<nombre>` cargaba la suma de las dos pasadas.
+  // Se aparta con el mismo procedimiento que `cv import --replace` (C9: la herramienta no borra tu trabajo, y un
+  // borrador ya se puede editar a mano); las copias quedan como `import/<nombre>.<marca>.bak`.
+  let backup: string | undefined;
+  if (exists) {
+    backup = await backupDirectory(context, target);
+    try {
+      await context.artifactFileSystem.rename(target, backup);
+    } catch (error) {
+      return { ok: false, error: environmentError(`No se pudo apartar el borrador anterior «import/${name}» como «${basename(backup)}»: ${describeError(error)}`) };
+    }
+  }
+
   const readme = draftReport(result, basename(origin), importedAt, proposals);
   try {
     for (const planned of [...result.files, { path: 'README.md', content: readme }]) {
@@ -141,15 +162,74 @@ export async function writeDraft(
       await context.artifactFileSystem.writeFile(destination, planned.content, 0o600);
     }
   } catch (error) {
-    return { ok: false, error: environmentError(`No se pudo escribir el borrador en import/${name}: ${error instanceof Error ? error.message : String(error)}`) };
+    return { ok: false, error: environmentError(`No se pudo escribir el borrador en import/${name}: ${describeError(error)}`) };
   }
 
-  return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme, proposals } };
+  return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme, proposals, backup } };
 }
 
 
 /** Lo que el importador sabe leer, para elegir qué ficheros de una carpeta son un CV. */
 export const IMPORTABLE_CV = /\.(?:pdf|docx)$/i;
+
+/**
+ * Carpetas que NO se ofrecen al buscar CV en el espacio de trabajo. Unas por ruido (`node_modules`, `.git`) y
+ * otras porque son del propio producto: `import/` son borradores en Markdown, `data/` son tus fuentes y
+ * `output/` son los CV que ESTE programa generó —reimportar lo que acaba de salir no tiene sentido—. Ninguna
+ * queda inalcanzable: el campo de ruta sigue admitiendo cualquier carpeta.
+ */
+const SKIPPED_FOLDERS: ReadonlySet<string> = new Set(['node_modules', 'output', 'import', 'data', 'themes', 'templates', 'offers']);
+
+/** Hasta dónde se baja buscando, y cuántas carpetas se miran como mucho: explorar no puede costar un minuto. */
+export const FOLDER_SCAN = { maxDepth: 3, maxDirectories: 400 } as const;
+
+/** Una carpeta del espacio de trabajo con CV dentro, tal como se ofrece para importarla entera. */
+export interface CvFolder {
+  /** Ruta relativa al espacio de trabajo; `.` es la raíz. */
+  readonly path: string;
+  /** CV importables en su primer nivel, que es lo que `--all` leería. */
+  readonly files: number;
+}
+
+/**
+ * Las carpetas del espacio de trabajo que **tienen CV dentro**, para poder elegir una en vez de escribir su
+ * ruta. Se ofrece lo que de verdad se importaría —el recuento es el del primer nivel, igual que `--all`—, así
+ * que una carpeta vacía de CV no aparece y no hay forma de pedir una importación que no traería nada.
+ */
+export async function findCvFolders(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>): Promise<readonly CvFolder[]> {
+  const found: CvFolder[] = [];
+  let visited = 0;
+  const walk = async (relative: string, depth: number): Promise<void> => {
+    if (visited >= FOLDER_SCAN.maxDirectories) {
+      return;
+    }
+    visited += 1;
+    let entries;
+    try {
+      entries = await context.datasetFileSystem.readDirectory(relative === '.' ? context.cwd : resolve(context.cwd, relative));
+    } catch {
+      // Una carpeta que no se puede leer (permisos) no es un error de la orden: simplemente no se ofrece.
+      return;
+    }
+    const files = entries.filter((entry) => entry.kind === 'file' && IMPORTABLE_CV.test(entry.name)).length;
+    if (files > 0) {
+      found.push({ path: relative, files });
+    }
+    if (depth >= FOLDER_SCAN.maxDepth) {
+      return;
+    }
+    // Solo 'directory': un enlace simbólico se declara como tal y no se sigue, así que no hay ciclos.
+    const children = entries
+      .filter((entry) => entry.kind === 'directory' && !entry.name.startsWith('.') && !entry.name.endsWith('.bak') && !SKIPPED_FOLDERS.has(entry.name))
+      .map((entry) => entry.name)
+      .sort((a, b) => a.localeCompare(b, 'es'));
+    for (const child of children) {
+      await walk(relative === '.' ? child : `${relative}/${child}`, depth + 1);
+    }
+  };
+  await walk('.', 0);
+  return found.sort((a, b) => b.files - a.files || a.path.localeCompare(b.path, 'es'));
+}
 
 /** Una fila de la comparación: el CV, su borrador y los recuentos que deciden cuál merece la pena revisar. */
 export interface ImportedFromFolder {

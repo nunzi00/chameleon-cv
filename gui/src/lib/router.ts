@@ -1,5 +1,5 @@
 /** Rutas por fragmento (`#/fuentes/experience%2Facme.md`): una pantalla por tarea y, opcionalmente, un elemento. */
-export type Page = 'estado' | 'fuentes' | 'importar' | 'generar' | 'copiloto' | 'revisiones' | 'salidas' | 'ajustes';
+export type Page = 'estado' | 'fuentes' | 'importar' | 'borradores' | 'duplicados' | 'generar' | 'copiloto' | 'revisiones' | 'salidas' | 'ajustes';
 
 export interface Route {
   readonly page: Page;
@@ -10,6 +10,8 @@ export const PAGES: readonly { readonly page: Page; readonly label: string }[] =
   { page: 'estado', label: 'Estado' },
   { page: 'fuentes', label: 'Fuentes' },
   { page: 'importar', label: 'Importar' },
+  { page: 'borradores', label: 'Borradores' },
+  { page: 'duplicados', label: 'Duplicados' },
   { page: 'generar', label: 'Generar' },
   { page: 'copiloto', label: 'Co-piloto' },
   { page: 'revisiones', label: 'Revisiones' },

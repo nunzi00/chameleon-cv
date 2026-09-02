@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { defaultAssets } from '../../src/shared/assets';
+import { findCvFolders } from '../../src/app/import-cv';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, runCli, type CliContext } from '../../src/cli';
 import { MemoryLlmCache, llmStatus } from '../../src/llm';
 import { defaultSourceParsers } from '../../src/parsers';
@@ -79,13 +80,27 @@ describe('cv import-cv (T-8.4b)', () => {
   });
 
   it('--name elige la carpeta y --replace permite sustituir; sin él, el borrador existente se respeta', async () => {
-    const existing: Record<string, MemoryEntry> = { '/work/import/mio': { kind: 'directory' }, '/work/import/mio/README.md': { kind: 'file', content: 'anterior' } };
+    const existing: Record<string, MemoryEntry> = {
+      '/work/import/mio': { kind: 'directory' },
+      '/work/import/mio/README.md': { kind: 'file', content: 'anterior' },
+      '/work/import/mio/experience/sobrante.md': { kind: 'file', content: '---\ncompany: Vieja\nrole: Antigua\nstart: 2001\n---\n' },
+    };
     const denied = harness(existing);
     expect(await runCli(['import-cv', 'cv.pdf', '--name', 'mio'], denied.context)).toBe(EXIT_DATA_ERROR);
     expect(denied.stderr()).toContain('Ya existe import/mio');
     const replaced = harness(existing);
     expect(await runCli(['import-cv', 'cv.pdf', '--name', 'mio', '--replace'], replaced.context)).toBe(EXIT_OK);
     expect(replaced.fs.file('/work/import/mio/profile.md')?.content).toContain('Ada Ejemplo');
+    // Sustituir es apartar y escribir de cero: si el CV nuevo trae menos entradas, las del anterior NO sobreviven
+    // en la carpeta (antes se escribía encima fichero a fichero y `cv build --data` cargaba la suma de las pasadas).
+    expect(replaced.fs.file('/work/import/mio/experience/sobrante.md')).toBeUndefined();
+    // Y tampoco se pierden: el borrador anterior queda entero en su copia, que la CLI nombra (C9).
+    const entries = await replaced.fs.readDirectory('/work/import');
+    const backup = entries.map((entry) => entry.name).find((entry) => entry.startsWith('mio.') && entry.endsWith('.bak'));
+    expect(backup).toBeDefined();
+    expect(replaced.fs.file(`/work/import/${backup!}/experience/sobrante.md`)?.content).toContain('Vieja');
+    expect(replaced.fs.file(`/work/import/${backup!}/README.md`)?.content).toBe('anterior');
+    expect(replaced.stderr()).toContain(`se apartó completo en ${backup!}`);
   });
 
   it('los errores del extractor de PDF distinguen datos (invalid) de fallos (timeout…)', async () => {
@@ -334,5 +349,42 @@ describe('cv import-cv --all (T-9.14)', () => {
     const conNombre = harness({ '/work/corpus/uno.pdf': '%PDF-1.4 uno' });
     expect(await runCli(['import-cv', 'corpus', '--all', '--name', 'mio'], conNombre.context)).not.toBe(EXIT_OK);
     expect(conNombre.stderr()).toContain('--name no aplica');
+  });
+});
+
+describe('findCvFolders: las carpetas del espacio con CV dentro (T-9.21)', () => {
+  it('ofrece las que tienen CV, con cuántos, y deja fuera las del propio producto', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/cv-corpus/uno.pdf': '%PDF',
+      '/work/cv-corpus/dos.docx': 'PK',
+      '/work/cv-corpus/notas.txt': 'nada',
+      '/work/viejos/2020/tres.pdf': '%PDF',
+      '/work/vacia/leeme.md': 'sin CV',
+      // Del producto: borradores en Markdown, fuentes y CV ya generados. Reimportarlos no tiene sentido.
+      '/work/import/mio/profile.md': '---\nfullName: Ada\n---\n',
+      '/work/output/cv-ada.pdf': '%PDF',
+      '/work/data/sources/profile.md': '---\nfullName: Ada\n---\n',
+      '/work/node_modules/paquete/manual.pdf': '%PDF',
+      '/work/.oculta/otro.pdf': '%PDF',
+      '/work/cv-corpus.20260902-140535.bak/copia.pdf': '%PDF',
+    });
+    const folders = await findCvFolders({ cwd: '/work', datasetFileSystem: fs });
+    expect(folders).toEqual([
+      { path: 'cv-corpus', files: 2 },
+      { path: 'viejos/2020', files: 1 },
+    ]);
+  });
+
+  it('una carpeta sin CV no se ofrece, y la raíz sí cuando los tiene', async () => {
+    const fs = new MemoryFileSystem({ '/work/suelto.pdf': '%PDF', '/work/nada/leeme.md': 'x' });
+    expect(await findCvFolders({ cwd: '/work', datasetFileSystem: fs })).toEqual([{ path: '.', files: 1 }]);
+  });
+
+  it('no baja más de tres niveles ni se rompe con una carpeta ilegible', async () => {
+    const fs = new MemoryFileSystem({ '/work/a/b/c/hondo.pdf': '%PDF', '/work/a/b/c/d/demasiado.pdf': '%PDF' });
+    expect(await findCvFolders({ cwd: '/work', datasetFileSystem: fs })).toEqual([{ path: 'a/b/c', files: 1 }]);
+    const roto = new MemoryFileSystem({ '/work/cv-corpus/uno.pdf': '%PDF' });
+    roto.failures.add('readFile');
+    expect(await findCvFolders({ cwd: '/work', datasetFileSystem: roto })).toEqual([{ path: 'cv-corpus', files: 1 }]);
   });
 });

@@ -33,6 +33,25 @@ describe('renderPdfCv', () => {
     expect(await textOf(await backendPdf())).toEqual({ text: GOLDEN, pages: 1 });
   });
 
+  it('cada enlace apunta a lo suyo: el texto que sigue a uno NO hereda su destino (B-16)', async () => {
+    // pdfkit arrastra las opciones entre fragmentos con `continued: true`: un run sin enlace se quedaba con el
+    // del anterior, así que en «… · GitHub · LinkedIn» el separador de después de GitHub apuntaba a GitHub y en
+    // un resumen con un enlace, TODO el texto siguiente se volvía un enlace a esa URL. Un PDF donde algo lleva a
+    // un sitio que no dice es peor que un PDF sin enlaces.
+    const profile = parseMasterProfile({
+      ...minimalProfileInput(),
+      personal: {
+        ...minimalProfileInput().personal,
+        links: [
+          { label: 'GitHub', url: 'https://github.com/ada' },
+          { label: 'LinkedIn', url: 'https://linkedin.com/in/ada' },
+        ],
+      },
+    } satisfies MasterProfileInput);
+    const uris = [...(await renderPdfCv(profile)).toString('latin1').matchAll(/\/URI \(([^)]*)\)/g)].map((match) => match[1]);
+    expect(uris).toEqual(['https://github.com/ada', 'https://linkedin.com/in/ada']);
+  });
+
   it('es reproducible byte a byte, embebe la fuente y no contiene código ni acciones automáticas', async () => {
     const first = await backendPdf();
     const second = await backendPdf();
