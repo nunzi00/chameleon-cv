@@ -1,5 +1,8 @@
-/** Formatos de salida de `generate-cv` (`docs/pdf-integration.md` §3.4): `md` por defecto, `pdf` opcional. */
-export const CV_FORMATS = ['md', 'pdf'] as const;
+/**
+ * Formatos de salida de `generate-cv`: `md` por defecto, `pdf` para entregar (`docs/pdf-integration.md` §3.4) y
+ * `odt` para **seguir editando a mano** en LibreOffice, Word o Google Docs (`docs/odt-integration.md`).
+ */
+export const CV_FORMATS = ['md', 'pdf', 'odt'] as const;
 export type CvFormat = (typeof CV_FORMATS)[number];
 
 export function isCvFormat(value: string): value is CvFormat {

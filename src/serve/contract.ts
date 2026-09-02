@@ -11,7 +11,7 @@ import type { TagApplyEntry } from '../app/tags-apply';
 import type { RankResult } from '../app/rank';
 import type { AnalysisPayload, OfferAnalysis } from '../app/analyze';
 import type { DatasetLoadResult } from '../app/dataset';
-import { CV_ENGINES, CV_FORMATS } from '../app/format';
+import { CV_ENGINES, CV_FORMATS, type CvFormat } from '../app/format';
 import type { AppWarning } from '../app/freshness';
 import type { HistoryEntry } from '../app/history';
 
@@ -447,7 +447,7 @@ export type GenerateReportPayload = Pick<GenerateReport, 'selection' | 'match' |
 export interface GenerateResponse {
   readonly output: {
     readonly name: string;
-    readonly kind: 'md' | 'pdf';
+    readonly kind: CvFormat;
     /** Identificador para GET /output/{name}. */
     readonly path: string;
     readonly markdown?: string | undefined;

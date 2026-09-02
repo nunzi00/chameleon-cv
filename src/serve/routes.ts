@@ -45,6 +45,7 @@ import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
+import { ODT_MIMETYPE } from '../renderers';
 import { describeError } from '../shared/errors';
 import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
@@ -95,9 +96,15 @@ function statusPayload(status: WorkspaceStatus, version: string): StatusResponse
   };
 }
 
+const CONTENT_TYPES: Readonly<Record<string, string>> = {
+  '.pdf': 'application/pdf',
+  '.md': 'text/markdown; charset=utf-8',
+  '.json': 'application/json',
+  '.odt': ODT_MIMETYPE,
+};
+
 function contentTypeOf(name: string): string {
-  const extension = extname(name).toLowerCase();
-  return extension === '.pdf' ? 'application/pdf' : extension === '.md' ? 'text/markdown; charset=utf-8' : extension === '.json' ? 'application/json' : 'application/octet-stream';
+  return CONTENT_TYPES[extname(name).toLowerCase()] ?? 'application/octet-stream';
 }
 
 
@@ -681,7 +688,7 @@ function addGenerateRoutes(router: Router<ServerState>): void {
           historyWarnings.push({ kind: 'history-unwritable', message: unwritable });
         }
       }
-      return json(200, { output: { name, kind: result.cv.kind, path: `${OUTPUT_DIR}/${name}`, ...(result.cv.kind === 'md' ? { markdown: result.cv.markdown } : { bytes: result.cv.pdf.byteLength }) }, report, history: result.history.previous, warnings: [...result.warnings, ...historyWarnings] } satisfies GenerateResponse);
+      return json(200, { output: { name, kind: result.cv.kind, path: `${OUTPUT_DIR}/${name}`, ...(result.cv.kind === 'md' ? { markdown: result.cv.markdown } : { bytes: (result.cv.kind === 'pdf' ? result.cv.pdf : result.cv.odt).byteLength }) }, report, history: result.history.previous, warnings: [...result.warnings, ...historyWarnings] } satisfies GenerateResponse);
     },
   });
 

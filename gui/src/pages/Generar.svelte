@@ -478,6 +478,7 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
             <span>Formato</span>
             <select name="format" bind:value={form.format}>
               <option value="pdf">PDF</option>
+              <option value="odt">ODT (documento editable)</option>
               <option value="md">Markdown</option>
             </select>
           </label>

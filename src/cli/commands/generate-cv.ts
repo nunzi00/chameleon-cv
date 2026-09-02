@@ -53,6 +53,17 @@ export function formatConflict(options: ConflictOptions): string | undefined {
   if (options.engine !== 'typst' && options.theme !== undefined) {
     return '«--theme» solo aplica a «--engine typst» (con --format pdf)';
   }
+  if (options.format === 'odt') {
+    // ODT es un documento para editar: ni motor, ni plantilla, ni salida por pantalla (es binario). Su aspecto
+    // se cambia con los estilos del propio documento, que es de lo que sirve un formato abierto.
+    if (options.stdout) {
+      return '«--stdout» solo admite «--format md»: el ODT es binario y se escribe siempre en un fichero (--output)';
+    }
+    if (options.template !== undefined) {
+      return '«--template» no aplica a «--format odt»: su aspecto se ajusta con los estilos del propio documento';
+    }
+    return options.engine === 'typst' ? '«--engine» solo aplica a «--format pdf»' : undefined;
+  }
   if (options.format !== 'pdf') {
     return options.engine === 'typst' ? '«--engine» solo aplica a «--format pdf»' : undefined;
   }

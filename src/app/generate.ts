@@ -8,7 +8,7 @@ import { dirname, resolve } from 'node:path';
 import type { MasterProfile } from '../core/schema';
 import { type MatchReport, type RemovedItem, type SectionLimits, applyLimits, evidenceIds } from '../core/scoring';
 import type { SelectionReport } from '../core/selection';
-import { loadFonts, renderMarkdownCv, renderPdfCv, type TypstRenderErrorCode } from '../renderers';
+import { loadFonts, renderMarkdownCv, renderOdtCv, renderPdfCv, type TypstRenderErrorCode } from '../renderers';
 import { describeError } from '../shared/errors';
 import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys } from '../themes';
 import { projectThemeRoots } from './assets';
@@ -68,7 +68,8 @@ export interface GenerateReport {
 
 export type GeneratedCv =
   | { readonly kind: 'md'; readonly outputPath: string; readonly markdown: string }
-  | { readonly kind: 'pdf'; readonly outputPath: string; readonly pdf: Buffer };
+  | { readonly kind: 'pdf'; readonly outputPath: string; readonly pdf: Buffer }
+  | { readonly kind: 'odt'; readonly outputPath: string; readonly odt: Buffer };
 
 export type GenerateResult =
   | { readonly ok: true; readonly cv: GeneratedCv; readonly report: GenerateReport; readonly history: GenerateHistory; readonly warnings: readonly AppWarning[] }
@@ -168,6 +169,11 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
   const outputPath = resolve(context.cwd, request.output ?? defaultOutputPath(trimmed.profile, request.specialty, tailored.tailored.offerName, request.format));
   const history = await generateHistory(context, offer, request, outputPath);
 
+  if (request.format === 'odt') {
+    // Sin motor ni tema: ODT es para editarlo, y su aspecto se cambia con los estilos del propio documento.
+    return { ok: true, cv: { kind: 'odt', outputPath, odt: renderOdtCv(trimmed.profile, { locale: request.locale }) }, report, history, warnings };
+  }
+
   if (request.format === 'pdf') {
     const rendered = request.engine === 'typst' ? await renderWithTypst(context, trimmed.profile, request, report) : { ok: true as const, pdf: await renderPdfCv(trimmed.profile, { locale: request.locale, fonts: await loadFonts(context.assets) }) };
     return rendered.ok ? { ok: true, cv: { kind: 'pdf', outputPath, pdf: rendered.pdf }, report, history, warnings } : { ok: false, error: rendered.error, report, warnings };
@@ -206,6 +212,8 @@ export async function writeCvFile(context: Pick<AppContext, 'artifactFileSystem'
     await context.artifactFileSystem.mkdir(dirname(cv.outputPath));
     if (cv.kind === 'pdf') {
       await context.artifactFileSystem.writeBinaryFile(cv.outputPath, cv.pdf, OUTPUT_MODE);
+    } else if (cv.kind === 'odt') {
+      await context.artifactFileSystem.writeBinaryFile(cv.outputPath, cv.odt, OUTPUT_MODE);
     } else {
       await context.artifactFileSystem.writeFile(cv.outputPath, cv.markdown, OUTPUT_MODE);
     }

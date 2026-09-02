@@ -11,7 +11,7 @@ export interface GenerateForm {
   readonly offerText: string;
   /** Identificador de fichero del espacio de trabajo (`ofertas/acme.txt`). */
   readonly offerFile: string;
-  readonly format: 'md' | 'pdf';
+  readonly format: 'md' | 'pdf' | 'odt';
   readonly engine: 'pdfkit' | 'typst';
   readonly theme: string;
   readonly locale: string;

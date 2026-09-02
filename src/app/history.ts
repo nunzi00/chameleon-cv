@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 
 import type { AppContext } from './context';
+import type { CvFormat } from './format';
 
 export const HISTORY_FILE = 'output/historial-ofertas.json';
 /** Entradas conservadas (las más antiguas se descartan). */
@@ -22,7 +23,7 @@ export interface HistoryEntry {
   readonly offer: { readonly name: string; readonly sha256: string };
   readonly specialty?: string | undefined;
   /** Solo `generate`: el CV escrito. */
-  readonly output?: { readonly path: string; readonly format: 'md' | 'pdf'; readonly engine?: 'pdfkit' | 'typst' | undefined; readonly theme?: string | undefined } | undefined;
+  readonly output?: { readonly path: string; readonly format: CvFormat; readonly engine?: 'pdfkit' | 'typst' | undefined; readonly theme?: string | undefined } | undefined;
 }
 
 interface HistoryFile {

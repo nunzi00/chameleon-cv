@@ -11,16 +11,35 @@ cv generate-cv                                # CV completo, sin selección
 cv generate-cv -s backend --explain           # además, explica en stderr qué se incluyó y por qué
 cv generate-cv -s backend --stdout            # imprime el Markdown en lugar de escribir un fichero
 cv generate-cv -s backend --format pdf        # output/cv-<nombre>-backend.pdf (pdfkit, fuente embebida)
+cv generate-cv -s backend --format odt        # documento abierto, para seguir editándolo a mano
 cv generate-cv -s backend -o cv/backend.md    # otra ruta de salida
 ```
 
 ## El fichero de salida
 
-Por defecto, `output/cv-<nombre>[-<especialidad>][-<oferta>].md` (o `.pdf`), con permisos 0600. `<nombre>` sale de `fullName`, `<especialidad>` de `-s` y `<oferta>` del nombre del fichero de la oferta. `-o` fija otra ruta; `--stdout` imprime el Markdown (solo Markdown).
+Por defecto, `output/cv-<nombre>[-<especialidad>][-<oferta>].md` (o `.pdf`, o `.odt`), con permisos 0600. `<nombre>` sale de `fullName`, `<especialidad>` de `-s` y `<oferta>` del nombre del fichero de la oferta. `-o` fija otra ruta; `--stdout` imprime el Markdown (solo Markdown).
 
 ## Artefacto al día
 
 Si editas las fuentes y olvidas recompilar, `generate-cv` te avisa: `Aviso: experience/acme.md es más reciente que el artefacto; ejecuta «cv build»`. Con `--build`, `generate-cv` (y `analyze-offer`) recompilan el artefacto antes de trabajar. `-d` indica dónde están las fuentes solo para ese aviso.
+
+## ODT: el CV para seguir editándolo
+
+`--format odt` da un **documento abierto** (OpenDocument, estándar ISO) que abren **LibreOffice, Word y Google
+Docs**. Es la salida para cuando alguien te pide el CV «en un documento» y quieres retocarlo a mano: el PDF es
+para entregar y el Markdown para versionar.
+
+Está pensado para editarse, no para imprimirse. Usa **estilos con nombre**, así que cambiar el aspecto de todas
+las secciones es tocar **un** estilo (Formato → Estilos en LibreOffice) en vez de repasar el documento; la
+estructura es plana, sin cajas ni columnas, para poder reordenar sin pelearse con el maquetado; y las negritas,
+cursivas y enlaces llegan como estilos y enlaces de verdad.
+
+Es el **mismo CV** que las demás salidas: misma especialidad, misma oferta, mismos recortes. `--engine`,
+`--theme` y `--template` no aplican —su aspecto se ajusta dentro del propio documento— y `--stdout` tampoco,
+porque es binario.
+
+En la web, el selector «Formato» de **Generar** tiene la opción «ODT (documento editable)»; en **Salidas** se
+descarga (no se previsualiza: no es texto ni PDF).
 
 ## Markdown y plantillas propias
 

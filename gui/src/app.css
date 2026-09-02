@@ -290,6 +290,7 @@ code, pre, .cv-mono { font-family: var(--cv-mono); }
 .cv-filetype { padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700;
   background: var(--cv-surface-2); border: 1px solid var(--cv-border); color: var(--cv-muted); }
 .cv-filetype.pdf { background: var(--cv-accent); border-color: var(--cv-accent); color: var(--cv-accent-text); }
+.cv-filetype.odt { background: var(--cv-ok-soft); border-color: var(--cv-ok); color: var(--cv-ok); }
 
 /* ── Plegable ──────────────────────────────────────────── */
 details.cv-collapse { border: 1px solid var(--cv-border); border-radius: var(--cv-radius-md); padding: 13px 15px; }

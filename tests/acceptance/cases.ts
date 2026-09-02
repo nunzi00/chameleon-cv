@@ -6,7 +6,7 @@
  * independientes entre sí (cada uno arranca de una copia limpia); dentro de un escenario los pasos
  * son secuenciales y acumulan estado, como lo haría una persona.
  */
-export type OutputKind = 'text' | 'json' | 'pdf' | 'tree';
+export type OutputKind = 'text' | 'json' | 'pdf' | 'binary' | 'tree';
 
 export interface StepOutput {
   /** Ruta relativa al espacio de trabajo. */
@@ -66,7 +66,7 @@ export const SCENARIOS: readonly Scenario[] = [
   },
   {
     id: 'core',
-    description: 'flujos deterministas del núcleo: build, generate-cv (Markdown y pdfkit), analyze-offer, vista previa del co-piloto, estado y temas',
+    description: 'flujos deterministas del núcleo: build, generate-cv (Markdown, ODT y pdfkit), analyze-offer, vista previa del co-piloto, estado y temas',
     workspace: 'bench',
     steps: [
       { id: 'validate', args: ['validate'], exitCode: 0 },
@@ -83,6 +83,8 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'generate-em-acme-en', args: ['generate-cv', '-s', 'engineering-manager', '-f', 'offers/acme-engineering-manager-en.txt', '-l', 'en', '-o', 'output/cv-em-acme-en.md'], exitCode: 0, outputs: [{ path: 'output/cv-em-acme-en.md', kind: 'text' }] },
       { id: 'generate-data-lumen', args: ['generate-cv', '-s', 'data', '-f', 'offers/lumen-data-engineer.txt', '-o', 'output/cv-data-lumen.md'], exitCode: 0, outputs: [{ path: 'output/cv-data-lumen.md', kind: 'text' }] },
       { id: 'generate-backend-stdout', args: ['generate-cv', '-s', 'backend', '--stdout'], exitCode: 0 },
+      // ODT (T-9.23): documento abierto y determinista, así que se compara byte a byte contra su golden.
+      { id: 'generate-backend-odt', args: ['generate-cv', '-s', 'backend', '--format', 'odt', '-o', 'output/cv-backend.odt'], exitCode: 0, outputs: [{ path: 'output/cv-backend.odt', kind: 'binary' }] },
       { id: 'generate-full-pdfkit', args: ['generate-cv', '--format', 'pdf', '-o', 'output/cv-full.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.pdfkit.pdf', kind: 'pdf' }] },
       { id: 'generate-backend-pdfkit', args: ['generate-cv', '-s', 'backend', '--format', 'pdf', '-o', 'output/cv-backend.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-backend.pdfkit.pdf', kind: 'pdf' }] },
       { id: 'generate-nexo-pdf-compact-pdfkit', args: ['generate-cv', '-s', 'backend', '-f', 'offers/pdf/nexo-senior-backend.pdf', '--compact', '--format', 'pdf', '-o', 'output/cv-backend-nexo-compact.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-backend-nexo-compact.pdfkit.pdf', kind: 'pdf' }] },

@@ -61,7 +61,7 @@ datos sería decidir por ti. Si borras una especialidad o desinstalas un tema, l
 
 ![Pantalla Salidas: la tabla de ficheros de output/ con su tipo y tamaño y la vista previa de un CV en Markdown](/gui/salidas.png)
 
-Los ficheros de `output/` —CV en PDF y Markdown, revisiones del co-piloto— en una tabla con su tipo y tamaño; cada uno se ve (texto o visor de PDF) y se descarga. Si no hay nada, la pantalla lleva a Generar.
+Los ficheros de `output/` —CV en PDF, ODT y Markdown, revisiones del co-piloto— en una tabla con su tipo y tamaño; cada uno se ve (texto o visor de PDF) y se descarga; un ODT no se previsualiza, se descarga para abrirlo en tu editor. Si no hay nada, la pantalla lleva a Generar.
 
 ## Co-piloto
 
