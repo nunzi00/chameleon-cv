@@ -29,7 +29,8 @@ function printGroup(context: CliContext, group: DuplicateGroup, files: Readonly<
   context.stdout(
     formatTable(
       ['Id', 'Periodo', 'Entrada', 'Fichero'],
-      group.members.map((member) => [member.entry.id, period(member.entry.start, member.entry.end), member.entry.title, files[member.entry.id] ?? member.entry.path]),
+      // `files` trae la ruta de TODA entrada del perfil: el grupo sale de ahí, así que nunca falta.
+      group.members.map((member) => [member.entry.id, period(member.entry.start, member.entry.end), member.entry.title, files[member.entry.id] as string]),
     ),
   );
 }
@@ -47,9 +48,11 @@ export async function runDuplicatesList(context: CliContext, options: Duplicates
   groups.forEach((group, index) => {
     printGroup(context, group, result.result.files, index);
   });
+  // Un grupo tiene siempre al menos dos miembros (con uno no habría grupo), así que la orden de ejemplo se
+  // puede componer entera en vez de dejar un hueco.
   const first = groups[0]!.members;
   context.stderr(
-    `\n${pluralize(groups.length, 'grupo', 'grupos')} sobre ${compared} entradas de ${root}. Resuelve cada uno quedándote con una: «cv duplicates resolve ${first[0]!.entry.id} --absorb ${first[1]?.entry.id ?? '<id>'}»\n`,
+    `\n${pluralize(groups.length, 'grupo', 'grupos')} sobre ${compared} entradas de ${root}. Resuelve cada uno quedándote con una: «cv duplicates resolve ${first[0]!.entry.id} --absorb ${first[1]!.entry.id}»\n`,
   );
   return EXIT_OK;
 }
@@ -84,6 +87,6 @@ export async function runDuplicatesResolve(context: CliContext, keep: string, op
     return EXIT_OK;
   }
   context.stderr(`Se queda «${outcome.keep.title}» en ${outcome.keep.path}; borrado(s) ${outcome.absorbed.map((entry) => entry.path).join(', ')}\n`);
-  context.stderr(`Deshazlo con «cv history restore ${outcome.historyId ?? 'latest'} <ruta>»; después, «cv build»\n`);
+  context.stderr(`Deshazlo con «cv history restore ${outcome.historyId} <ruta>»; después, «cv build»\n`);
   return EXIT_OK;
 }

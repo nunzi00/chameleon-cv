@@ -79,6 +79,33 @@ describe('cv serve: rutas de duplicados', () => {
     expect(fs.file('/work/data/sources/education/piringalla.md')).toBeDefined();
   });
 
+  it('unas fuentes que no cargan se explican en las dos rutas, sin tocar nada', async () => {
+    const roto = new MemoryFileSystem({ '/work/data/sources/profile.md': '---\nschemaVersion: 1\n---\n' });
+    const otro = await startServer({
+      host: '127.0.0.1',
+      port: 0,
+      data: 'data/sources',
+      profile: 'data/dist/profile.json',
+      version: '9.9.9',
+      apiOnly: true,
+      allowedHosts: [],
+      token: TOKEN,
+      allowRemote: false,
+      context: appContext(roto),
+    });
+    try {
+      expect((await fetch(`${otro.url}api/v1/duplicates`, { headers: { Authorization: `Bearer ${TOKEN}` } })).status).toBe(422);
+      const resolver = await fetch(`${otro.url}api/v1/duplicates/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ keep: 'edu-a', absorb: ['edu-b'] }),
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      });
+      expect(resolver.status).toBe(422);
+    } finally {
+      await otro.close();
+    }
+  });
+
   it('resuelve de verdad: la elegida queda completa, la otra se borra y el histórico lo deshace', async () => {
     const response = await api('duplicates/resolve', resolveBody());
     expect(response.status).toBe(200);

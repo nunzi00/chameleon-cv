@@ -118,6 +118,75 @@ describe('cv drafts duplicates', () => {
   });
 });
 
+describe('cv drafts: los bordes de cada orden', () => {
+  it('un borrador sin origen ni entradas se lista y se abre sin inventar nada', async () => {
+    const h = harness({ '/work/import/vacio/profile.md': PROFILE });
+    expect(await runCli(['drafts'], h.context)).toBe(EXIT_OK);
+    // Sin README no hay origen: se dice con un guion, no con una ruta adivinada.
+    expect(h.stdout()).toContain('—');
+    const abierto = harness({ '/work/import/vacio/profile.md': PROFILE });
+    expect(await runCli(['drafts', 'show', 'vacio'], abierto.context)).toBe(EXIT_OK);
+    expect(abierto.stderr()).toContain('no tiene experiencias, formaciones ni proyectos');
+  });
+
+  it('un borrador que no carga sale marcado en la lista, sin tumbarla', async () => {
+    const h = harness({ '/work/import/roto/profile.md': '---\nschemaVersion: 1\n---\n' });
+    expect(await runCli(['drafts'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('!');
+    expect(h.stderr()).toContain('no carga');
+  });
+
+  it('un grupo que solo está en los borradores no dice que ya lo tengas', async () => {
+    const h = harness({
+      '/work/data/sources/experience/life5.md': experience('Otra', 'Cosa', '1990-01', '1990-06'),
+      '/work/import/otro/profile.md': PROFILE,
+      '/work/import/otro/experience/acme.md': experience('Acme', 'Backend Senior', '2020-01', '2021-01'),
+    });
+    expect(await runCli(['drafts', 'duplicates'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).not.toContain('YA TIENES UNA EN TUS FUENTES');
+  });
+
+  it('--section y --entry juntos acotan a esa sección Y a esos ids', async () => {
+    const h = harness();
+    expect(await runCli(['drafts', 'adopt', 'mio', '--section', 'experience', '--entry', 'exp-acme'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe('experience/acme.md\n');
+  });
+
+  it('sin duplicados entre borradores se dice, y no es un error', async () => {
+    const h = harness({ '/work/import/mio/experience/life5.md': experience('Otra Cosa', 'Puesto distinto', '1999-01', '1999-06') });
+    expect(await runCli(['drafts', 'duplicates'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('Ninguna entrada se parece a otra');
+  });
+
+  it('un periodo sin fecha de fin se ve como en curso, y uno sin fechas con un guion', async () => {
+    const h = harness({ '/work/import/mio/education/sin-fechas.md': ['---', 'institution: I.E.S', 'degree: Ciclo', '---', ''].join('\n') });
+    expect(await runCli(['drafts', 'show', 'mio'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('2022-04 → …');
+    expect(h.stdout()).toContain('—');
+  });
+
+  it('adoptar de un borrador que no carga no escribe nada', async () => {
+    const h = harness({ '/work/import/roto/profile.md': '---\nschemaVersion: 1\n---\n' });
+    expect(await runCli(['drafts', 'adopt', 'roto', '--section', 'experience'], h.context)).toBe(EXIT_DATA_ERROR);
+    expect(h.stderr()).toContain('no carga');
+  });
+
+  it('un id que no está en el borrador se dice, y lo demás entra igual', async () => {
+    const h = harness();
+    expect(await runCli(['drafts', 'adopt', 'mio', '--entry', 'exp-acme', 'exp-fantasma'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('sin adoptar exp-fantasma: no es una entrada de import/mio');
+    expect(h.fs.file('/work/data/sources/experience/acme.md')).toBeDefined();
+  });
+
+  it('unas fuentes que no cargan paran la adopción antes de escribir', async () => {
+    const h = harness({ '/work/data/sources/experience/roto.md': '---\ncompany: Solo empresa\n---\n' });
+    expect(await runCli(['drafts', 'adopt', 'mio', '--entry', 'exp-acme'], h.context)).not.toBe(EXIT_OK);
+    // `errorLines` prefiere el detalle al titular: se ven los problemas del dataset, que es lo accionable.
+    expect(h.stderr()).toContain('problemas en /work/data/sources');
+    expect(h.fs.file('/work/data/sources/experience/acme.md')).toBeUndefined();
+  });
+});
+
 describe('cv drafts adopt', () => {
   it('escribe la entrada señalada como fichero nuevo y no toca lo que ya había', async () => {
     const h = harness();

@@ -20,15 +20,16 @@ import { resolve } from 'node:path';
 
 import { normalize } from '../import/text';
 import { resolveProvenance, type Provenance } from '../parsers';
+import { describeError } from '../shared/errors';
 import { entityFileName, serializeEducation, serializeExperience, serializeProject } from '../parsers';
 import { validateMasterProfile, type Education, type Experience, type MasterProfile, type Project } from '../core/schema';
 import type { AppContext } from './context';
 import { loadSources } from './dataset';
-import { SECTION_LABEL, entriesOf, groupDuplicates, titleOf, type AdoptableSection, type DuplicateGroup, type ProfileEntry } from './duplicates';
-import { conflictError, dataError, environmentError, notFoundError, type AppError } from './errors';
+import { SECTION_LABEL, entriesOf, groupDuplicates, titleOf, type AdoptableSection, type DuplicateGroup } from './duplicates';
+import { dataError, environmentError, notFoundError, type AppError } from './errors';
 import { isSafeSourcePath } from './paths';
 import { recordSourceVersions } from './source-history';
-import { SOURCE_FILE_MODE, contentHash } from './sources';
+import { SOURCE_FILE_MODE } from './sources';
 
 /** Lo que el importador escribe cuando NO reconoció el dato: es la marca de un hueco, no un valor. */
 const PLACEHOLDERS: ReadonlySet<string> = new Set(['empresa pendiente', 'centro pendiente', 'nombre pendiente']);
@@ -75,7 +76,10 @@ export function filesById(profile: MasterProfile, provenance: readonly Provenanc
   for (const section of ['experience', 'education', 'projects'] as const) {
     profile[section].forEach((item, index) => {
       const origin = resolveProvenance([section, index], provenance);
-      files[item.id] = origin?.file ?? `${section}/${entityFileName(section, item.id).fileName}.md`;
+      // La ruta del cargador solo se acepta si es relativa y contenida: de aquí sale lo que luego se escribe y
+      // se BORRA, así que la comprobación va en el origen y no repartida por quien lo use.
+      const file = origin?.file;
+      files[item.id] = file !== undefined && isSafeSourcePath(file) ? file : `${section}/${entityFileName(section, item.id).fileName}.md`;
     });
   }
   return files;
@@ -118,7 +122,7 @@ export interface ResolveRequest {
   readonly dryRun?: boolean | undefined;
 }
 
-export interface ResolveOutcome {
+interface ResolvedBase {
   readonly root: string;
   readonly section: AdoptableSection;
   readonly keep: { readonly id: string; readonly title: string; readonly path: string };
@@ -128,10 +132,13 @@ export interface ResolveOutcome {
   readonly conflicts: readonly ConflictField[];
   /** Logros y elementos de lista añadidos a la entrada que se queda. */
   readonly added: readonly string[];
-  /** Entrada del histórico que deshace todo esto; ausente con `dryRun`. */
-  readonly historyId?: string | undefined;
-  readonly dryRun: boolean;
 }
+
+/**
+ * El resultado dice en su forma si se escribió: un ensayo no tiene entrada de histórico y una resolución de
+ * verdad SIEMPRE la tiene. Así quien lo usa no tiene que contemplar un «deshacer» que no existe.
+ */
+export type ResolveOutcome = (ResolvedBase & { readonly dryRun: true }) | (ResolvedBase & { readonly dryRun: false; readonly historyId: string });
 
 export type ResolveResult = { readonly ok: true; readonly outcome: ResolveOutcome } | { readonly ok: false; readonly error: AppError };
 
@@ -208,8 +215,9 @@ export function absorbInto(
     }
 
     for (const field of LISTS[section]) {
-      const incoming = (other[field] ?? []) as readonly string[];
-      const current = [...((merged[field] ?? []) as readonly string[])];
+      // El esquema garantiza las listas (con su `default([])`), así que aquí nunca faltan.
+      const incoming = other[field] as readonly string[];
+      const current = [...(merged[field] as readonly string[])];
       const seen = new Set(current.map((value) => normalize(value)));
       for (const value of incoming) {
         if (!seen.has(normalize(value))) {
@@ -222,8 +230,8 @@ export function absorbInto(
     }
 
     if (section !== 'education') {
-      const incoming = (other['achievements'] ?? []) as ReadonlyArray<{ id: string; text: string }>;
-      const current = [...((merged['achievements'] ?? []) as ReadonlyArray<{ id: string; text: string }>)];
+      const incoming = other['achievements'] as ReadonlyArray<{ id: string; text: string }>;
+      const current = [...(merged['achievements'] as ReadonlyArray<{ id: string; text: string }>)];
       const seen = new Set(current.map((item) => normalize(item.text)));
       for (const achievement of incoming) {
         if (seen.has(normalize(achievement.text))) {
@@ -304,15 +312,10 @@ export async function resolveDuplicate(context: AppContext, request: ResolveRequ
   }
 
   const keepPath = files[request.keep] as string;
-  for (const path of [keepPath, ...absorbed.map((entry) => entry.path)]) {
-    if (!isSafeSourcePath(path)) {
-      return { ok: false, error: dataError(`Ruta de fuente no admitida: «${path}»`) };
-    }
-  }
-  // Dos entradas del mismo fichero no se pueden resolver así: borrarlo se llevaría por delante la que se queda.
-  if (absorbed.some((entry) => entry.path === keepPath)) {
-    return { ok: false, error: conflictError(`«${request.keep}» y otra de las señaladas viven en el mismo fichero (${keepPath}): edítalo a mano`) };
-  }
+  // Lo que se borra, sin el fichero de la que se queda: si dos entradas salieran del mismo fichero, borrarlo se
+  // llevaría por delante lo que acabamos de escribir. Un `delete` sobre el conjunto lo excluye sin condiciones.
+  const removable = new Set(absorbed.map((entry) => entry.path));
+  removable.delete(keepPath);
 
   const used = usedIds(profile);
   const { entity, taken, conflicts, added } = absorbInto(
@@ -336,7 +339,7 @@ export async function resolveDuplicate(context: AppContext, request: ResolveRequ
 
   const naming = namingOf(section, request.keep, keepPath);
   const content = serializeEntity(section, entity, naming.fileName, naming.explicitId);
-  const outcome: ResolveOutcome = {
+  const outcome: ResolvedBase = {
     root,
     section,
     keep: { id: request.keep, title: titleOf(section, entity), path: keepPath },
@@ -344,10 +347,9 @@ export async function resolveDuplicate(context: AppContext, request: ResolveRequ
     taken,
     conflicts,
     added,
-    dryRun: request.dryRun === true,
   };
   if (request.dryRun === true) {
-    return { ok: true, outcome };
+    return { ok: true, outcome: { ...outcome, dryRun: true } };
   }
 
   // El histórico primero: si no se puede deshacer, no se hace. Lo borrado se guarda con «después» vacío, que es
@@ -357,7 +359,7 @@ export async function resolveDuplicate(context: AppContext, request: ResolveRequ
     try {
       before.set(path, await context.artifactFileSystem.readFile(resolve(root, path)));
     } catch (error) {
-      return { ok: false, error: environmentError(`No se pudo leer la fuente «${path}»: ${error instanceof Error ? error.message : String(error)}`) };
+      return { ok: false, error: environmentError(`No se pudo leer la fuente «${path}»: ${describeError(error)}`) };
     }
   }
   const recorded = await recordSourceVersions(context, {
@@ -375,27 +377,17 @@ export async function resolveDuplicate(context: AppContext, request: ResolveRequ
 
   try {
     await context.artifactFileSystem.writeFile(resolve(root, keepPath), content, SOURCE_FILE_MODE);
-    for (const entry of absorbed) {
-      await context.artifactFileSystem.remove(resolve(root, entry.path));
+    for (const path of removable) {
+      await context.artifactFileSystem.remove(resolve(root, path));
     }
   } catch (error) {
     return {
       ok: false,
       error: {
-        ...environmentError(`Resolución interrumpida: ${error instanceof Error ? error.message : String(error)}`),
+        ...environmentError(`Resolución interrumpida: ${describeError(error)}`),
         lines: [`las versiones anteriores están en el histórico, entrada ${recorded.entry.id}`, `deshazlo con «cv history restore ${recorded.entry.id} <ruta>»`],
       },
     };
   }
-  return { ok: true, outcome: { ...outcome, historyId: recorded.entry.id } };
-}
-
-/** La huella del contenido escrito, para quien quiera comprobarlo sin releer el fichero. */
-export function resolvedHash(content: string): string {
-  return contentHash(content);
-}
-
-/** Una entrada de un grupo con el fichero en el que vive, que es lo que enseña la terminal y la web. */
-export function memberFile(files: Readonly<Record<string, string>>, entry: ProfileEntry): string {
-  return files[entry.id] ?? entry.path;
+  return { ok: true, outcome: { ...outcome, dryRun: false, historyId: recorded.entry.id } };
 }

@@ -6,9 +6,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { absorbInto, isAbsent, resolveDuplicate, sourceDuplicates } from '../../src/app/dedupe';
+import { absorbInto, filesById, isAbsent, resolveDuplicate, sourceDuplicates } from '../../src/app/dedupe';
 import { readSourceHistory, restoreSourceVersion } from '../../src/app/source-history';
-import type { Education, Experience } from '../../src/core/schema';
+import { parseMasterProfile, type Education, type Experience } from '../../src/core/schema';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -39,6 +39,20 @@ describe('isAbsent: qué cuenta como hueco', () => {
     expect(isAbsent(undefined)).toBe(true);
     expect(isAbsent('   ')).toBe(true);
     expect(isAbsent('I.E.S Piringalla')).toBe(false);
+  });
+});
+
+describe('filesById: la ruta de cada entrada, comprobada en el origen', () => {
+  it('sin procedencia, o con una ruta que se escapa, cae al nombre que deduce el id', () => {
+    // De aquí sale lo que luego se escribe y se BORRA: una ruta que no sea relativa y contenida no se usa.
+    const profile = parseMasterProfile({
+      meta: { schemaVersion: 1, locale: 'es-ES' },
+      personal: { fullName: 'Ada Ejemplo' },
+      experience: [{ id: 'exp-acme', company: 'Acme', role: 'Backend', dates: { start: '2020-01' } }],
+    });
+    expect(filesById(profile, [])).toEqual({ 'exp-acme': 'experience/acme.md' });
+    expect(filesById(profile, [{ path: ['experience', 0], file: '../fuera.md' }])).toEqual({ 'exp-acme': 'experience/acme.md' });
+    expect(filesById(profile, [{ path: ['experience', 0], file: 'experience/otro-nombre.md' }])).toEqual({ 'exp-acme': 'experience/otro-nombre.md' });
   });
 });
 
@@ -187,3 +201,140 @@ describe('resolveDuplicate: escribir una y borrar la otra, deshacible', () => {
     expect(result.ok && result.outcome.taken.map((field) => field.field)).toEqual(['institution']);
   });
 });
+
+describe('resolveDuplicate: se niega antes de tocar el disco', () => {
+  it('unas fuentes que no cargan, un id que no existe y dos entradas del mismo fichero', async () => {
+    const roto = new MemoryFileSystem({ '/work/data/sources/profile.md': '---\nschemaVersion: 1\n---\n' });
+    expect(await resolveDuplicate(appContext(roto), { data: 'data/sources', keep: 'a', absorb: ['b'] })).toMatchObject({
+      ok: false,
+      error: { message: expect.stringContaining('no cargan') as string },
+    });
+    const fs = workspace();
+    expect(await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'edu-inventada', absorb: ['edu-cs-administrador-ies-piringalla'] })).toMatchObject({
+      ok: false,
+      error: { code: 'not-found', message: expect.stringContaining('no es una experiencia, formación ni proyecto') as string },
+    });
+    expect(fs.file('/work/data/sources/education/cs-administrador-ies-piringalla.md')).toBeDefined();
+  });
+
+  it('las listas ausentes no rompen la absorción: se tratan como vacías', async () => {
+    // Una entrada sin `technologies`, `tags` ni `## Logros` es lo normal en un borrador recién importado.
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/experience/a.md': experience('Acme', 'Backend', '2020-01', '2021-01'),
+      '/work/data/sources/experience/b.md': experience('Acme', 'Backend', '2020-01', '2021-01', ['location: Madrid']),
+    });
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'exp-a', absorb: ['exp-b'] });
+    expect(result.ok && result.outcome.added).toEqual([]);
+    expect(result.ok && result.outcome.taken.map((field) => field.field)).toEqual(['location']);
+  });
+
+  it('dos periodos distintos se dicen los dos: gana el de la elegida y el otro se descarta a la vista', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/experience/a.md': experience('Acme', 'Backend', '2020-01', '2021-01'),
+      '/work/data/sources/experience/b.md': experience('Acme', 'Backend', '2020-03'),
+    });
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'exp-a', absorb: ['exp-b'], dryRun: true });
+    expect(result.ok && result.outcome.conflicts[0]).toMatchObject({ field: 'dates', kept: '2020-01 → 2021-01', discarded: '2020-03 → en curso' });
+  });
+});
+
+describe('resolveDuplicate: lo que no se toca', () => {
+  it('un periodo abierto se dice «en curso» también cuando es el que se conserva', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/experience/a.md': experience('Acme', 'Backend', '2020-01'),
+      '/work/data/sources/experience/b.md': experience('Acme', 'Backend', '2020-03', '2021-01'),
+      // Una tercera entrada de la misma sección: ni se absorbe ni se toca.
+      '/work/data/sources/experience/otra.md': experience('Beta', 'Frontend', '2015-01', '2016-01'),
+    });
+    const antes = fs.file('/work/data/sources/experience/otra.md')?.content;
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'exp-a', absorb: ['exp-b'] });
+    expect(result.ok && result.outcome.conflicts[0]).toMatchObject({ field: 'dates', kept: '2020-01 → en curso', discarded: '2020-03 → 2021-01' });
+    expect(fs.file('/work/data/sources/experience/otra.md')?.content).toBe(antes);
+  });
+});
+
+describe('resolveDuplicate: los bordes que protegen el disco', () => {
+  it('no escribe si el perfil resultante no valida, aunque las dos partes lo fueran', async () => {
+    // Absorber puede completar una entrada, pero nunca puede dejar unas fuentes que `cv build` rechace: dos
+    // entradas con 60 tecnologías cada una son válidas por separado y su unión pasa del máximo del esquema.
+    const muchas = (from: number): string => `technologies: [${Array.from({ length: 60 }, (_, i) => `t${from + i}`).join(', ')}]`;
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/experience/a.md': experience('Acme', 'Backend', '2020-01', '2021-01', [muchas(0)]),
+      '/work/data/sources/experience/b.md': experience('Acme', 'Backend', '2020-01', '2021-01', [muchas(100)]),
+    });
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'exp-a', absorb: ['exp-b'] });
+    expect(result).toMatchObject({ ok: false, error: { message: expect.stringContaining('no valida') as string } });
+    expect(fs.file('/work/data/sources/experience/b.md')).toBeDefined();
+  });
+
+  it('un fallo al leer la fuente antes de guardarla en el histórico no borra nada', async () => {
+    const fs = workspace();
+    fs.failures.add('readFile');
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'edu-ciclo-superior-administrador-de-sistemas', absorb: ['edu-cs-administrador-ies-piringalla'] });
+    expect(result).toMatchObject({ ok: false, error: { code: 'environment' } });
+    expect(fs.file('/work/data/sources/education/cs-administrador-ies-piringalla.md')).toBeDefined();
+  });
+
+  it('si el histórico no se puede escribir, tampoco se resuelve: sin deshacer no se hace', async () => {
+    const fs = workspace();
+    fs.failures.add('mkdir');
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'edu-ciclo-superior-administrador-de-sistemas', absorb: ['edu-cs-administrador-ies-piringalla'] });
+    expect(result.ok).toBe(false);
+    expect(fs.file('/work/data/sources/education/cs-administrador-ies-piringalla.md')).toBeDefined();
+  });
+
+  it('si la escritura se corta a medias, se dice con qué entrada del histórico se deshace', async () => {
+    const fs = workspace();
+    const context = appContext(fs);
+    // El histórico ya está escrito y la entrada que se queda también; lo que falla es borrar la absorbida.
+    fs.failures.add('remove');
+    const result = await resolveDuplicate(context, { data: 'data/sources', keep: 'edu-ciclo-superior-administrador-de-sistemas', absorb: ['edu-cs-administrador-ies-piringalla'] });
+    expect(result).toMatchObject({ ok: false, error: { message: expect.stringContaining('Resolución interrumpida') as string } });
+    expect(result.ok === false && result.error.lines?.some((line) => line.includes('cv history restore'))).toBe(true);
+  });
+
+  it('resuelve también experiencias y proyectos, no solo formación', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/experience/a.md': experience('Acme', 'Backend', '2020-01', '2021-01'),
+      '/work/data/sources/experience/b.md': experience('Acme', 'Backend', '2020-01', '2021-01', ['location: Madrid']),
+      '/work/data/sources/projects/uno.md': ['---', 'name: Chameleon', 'start: 2026-01', '---', ''].join('\n'),
+      '/work/data/sources/projects/dos.md': ['---', 'name: Chameleon', 'start: 2026-01', 'url: https://example.org/cv', '---', ''].join('\n'),
+    });
+    const context = appContext(fs);
+    expect(await resolveDuplicate(context, { data: 'data/sources', keep: 'exp-a', absorb: ['exp-b'] })).toMatchObject({ ok: true });
+    expect(fs.file('/work/data/sources/experience/a.md')?.content).toContain('location: Madrid');
+    expect(await resolveDuplicate(context, { data: 'data/sources', keep: 'proj-uno', absorb: ['proj-dos'] })).toMatchObject({ ok: true });
+    expect(fs.file('/work/data/sources/projects/uno.md')?.content).toContain('url: https://example.org/cv');
+  });
+
+  it('un periodo en curso se enseña como tal al tomarlo y al descartarlo', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/education/sin.md': education('I.E.S', 'Ciclo Superior de Sistemas'),
+      '/work/data/sources/education/con.md': education('I.E.S', 'Ciclo Superior de Sistemas', '2008'),
+    });
+    const tomado = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'edu-sin', absorb: ['edu-con'], dryRun: true });
+    expect(tomado.ok && tomado.outcome.taken[0]).toMatchObject({ field: 'dates', value: '2008 → en curso' });
+    const otro = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'edu-con', absorb: ['edu-sin'], dryRun: true });
+    // Al revés no hay nada que tomar: la que se queda ya tiene periodo y la otra no trae ninguno.
+    expect(otro.ok && otro.outcome.taken).toEqual([]);
+  });
+
+  it('los logros que ya existen en el perfil no chocan de id al absorberse', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/achievements.md': '- Un logro transversal del perfil.\n',
+      '/work/data/sources/experience/a.md': experience('Acme', 'Backend', '2020-01', '2021-01'),
+      '/work/data/sources/experience/b.md': ['---', 'company: Acme', 'role: Backend', 'start: 2020-01', 'end: 2021-01', '---', '', '## Logros', '', '- Migré 14 servicios.', ''].join('\n'),
+    });
+    const result = await resolveDuplicate(appContext(fs), { data: 'data/sources', keep: 'exp-a', absorb: ['exp-b'] });
+    expect(result.ok && result.outcome.added.some((line) => line.startsWith('logro:'))).toBe(true);
+    expect(fs.file('/work/data/sources/experience/a.md')?.content).toContain('Migré 14 servicios.');
+  });
+});
+

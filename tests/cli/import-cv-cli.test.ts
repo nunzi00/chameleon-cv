@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { defaultAssets } from '../../src/shared/assets';
-import { findCvFolders } from '../../src/app/import-cv';
+import { FOLDER_SCAN, findCvFolders } from '../../src/app/import-cv';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, runCli, type CliContext } from '../../src/cli';
 import { MemoryLlmCache, llmStatus } from '../../src/llm';
 import { defaultSourceParsers } from '../../src/parsers';
@@ -101,6 +101,15 @@ describe('cv import-cv (T-8.4b)', () => {
     expect(replaced.fs.file(`/work/import/${backup!}/experience/sobrante.md`)?.content).toContain('Vieja');
     expect(replaced.fs.file(`/work/import/${backup!}/README.md`)?.content).toBe('anterior');
     expect(replaced.stderr()).toContain(`se apartó completo en ${backup!}`);
+  });
+
+  it('si no se puede apartar el borrador anterior, no se escribe el nuevo encima', async () => {
+    // La alternativa sería escribir sobre lo que no se ha podido apartar: justo el fallo que B-15 corrigió.
+    const h = harness({ '/work/import/mio': { kind: 'directory' }, '/work/import/mio/README.md': { kind: 'file', content: 'anterior' } });
+    h.fs.failures.add('rename');
+    expect(await runCli(['import-cv', 'cv.pdf', '--name', 'mio', '--replace'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('No se pudo apartar el borrador anterior');
+    expect(h.fs.file('/work/import/mio/README.md')?.content).toBe('anterior');
   });
 
   it('los errores del extractor de PDF distinguen datos (invalid) de fallos (timeout…)', async () => {
@@ -375,6 +384,31 @@ describe('findCvFolders: las carpetas del espacio con CV dentro (T-9.21)', () =>
     ]);
   });
 
+  it('se para al llegar al tope de carpetas, en vez de recorrer un disco entero', async () => {
+    // Muchas carpetas, cada una con su CV: el recorrido se corta y devuelve lo que alcanzó a ver.
+    const tree: Record<string, string> = {};
+    for (let i = 0; i < FOLDER_SCAN.maxDirectories + 20; i += 1) {
+      tree[`/work/c${String(i).padStart(4, '0')}/cv.pdf`] = '%PDF';
+    }
+    const folders = await findCvFolders({ cwd: '/work', datasetFileSystem: new MemoryFileSystem(tree) });
+    expect(folders.length).toBeGreaterThan(0);
+    expect(folders.length).toBeLessThan(FOLDER_SCAN.maxDirectories + 20);
+  });
+
+  it('las carpetas salen ordenadas por cuántos CV traen, y a igualdad por su ruta', async () => {
+    const fs = new MemoryFileSystem({
+      '/work/zeta/uno.pdf': '%PDF',
+      '/work/alfa/uno.pdf': '%PDF',
+      '/work/muchos/uno.pdf': '%PDF',
+      '/work/muchos/dos.pdf': '%PDF',
+    });
+    expect(await findCvFolders({ cwd: '/work', datasetFileSystem: fs })).toEqual([
+      { path: 'muchos', files: 2 },
+      { path: 'alfa', files: 1 },
+      { path: 'zeta', files: 1 },
+    ]);
+  });
+
   it('una carpeta sin CV no se ofrece, y la raíz sí cuando los tiene', async () => {
     const fs = new MemoryFileSystem({ '/work/suelto.pdf': '%PDF', '/work/nada/leeme.md': 'x' });
     expect(await findCvFolders({ cwd: '/work', datasetFileSystem: fs })).toEqual([{ path: '.', files: 1 }]);
@@ -383,8 +417,21 @@ describe('findCvFolders: las carpetas del espacio con CV dentro (T-9.21)', () =>
   it('no baja más de tres niveles ni se rompe con una carpeta ilegible', async () => {
     const fs = new MemoryFileSystem({ '/work/a/b/c/hondo.pdf': '%PDF', '/work/a/b/c/d/demasiado.pdf': '%PDF' });
     expect(await findCvFolders({ cwd: '/work', datasetFileSystem: fs })).toEqual([{ path: 'a/b/c', files: 1 }]);
-    const roto = new MemoryFileSystem({ '/work/cv-corpus/uno.pdf': '%PDF' });
-    roto.failures.add('readFile');
-    expect(await findCvFolders({ cwd: '/work', datasetFileSystem: roto })).toEqual([{ path: 'cv-corpus', files: 1 }]);
+    // Una carpeta que no se puede leer (permisos) no es un error de la orden: no se ofrece y se sigue.
+    const base = new MemoryFileSystem({ '/work/cv-corpus/uno.pdf': '%PDF', '/work/prohibida/dos.pdf': '%PDF' });
+    const conPermisos = {
+      ...base,
+      readDirectory: async (path: string) => {
+        if (path.endsWith('prohibida')) {
+          throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+        }
+        return base.readDirectory(path);
+      },
+      stat: (path: string) => base.stat(path),
+      realPath: (path: string) => base.realPath(path),
+      readTextFile: (path: string) => base.readTextFile(path),
+      readBinaryFile: (path: string) => base.readBinaryFile(path),
+    };
+    expect(await findCvFolders({ cwd: '/work', datasetFileSystem: conPermisos })).toEqual([{ path: 'cv-corpus', files: 1 }]);
   });
 });

@@ -129,7 +129,10 @@
       const outcome = await api.resolveDuplicate({ keep: chosen, absorb: [...absorb] });
       plan = undefined;
       keep = {};
-      message = `Se queda «${outcome.keep.title}» en ${outcome.keep.path}; borrado(s) ${outcome.absorbed.map((entry) => entry.path).join(', ')}. Deshazlo desde «Fuentes → Historial de esta fuente», o con «cv history restore ${outcome.historyId ?? 'latest'} <ruta>». Después, recompila el artefacto.`;
+      // El tipo dice que una resolución de verdad SIEMPRE trae su entrada de histórico: no hay «deshacer» que
+      // suponer, y por eso se puede nombrar sin alternativa.
+      const undo = outcome.dryRun ? 'latest' : outcome.historyId;
+      message = `Se queda «${outcome.keep.title}» en ${outcome.keep.path}; borrado(s) ${outcome.absorbed.map((entry) => entry.path).join(', ')}. Deshazlo desde «Fuentes → Historial de esta fuente», o con «cv history restore ${undo} <ruta>». Después, recompila el artefacto.`;
       await load();
     } catch (caught) {
       fail(caught);

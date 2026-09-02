@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { EXIT_FAILURE, EXIT_OK, runCli, type CliContext } from '../../src/cli';
+import { formatTable } from '../../src/cli/output';
 import { MemoryLlmCache, llmStatus } from '../../src/llm';
 import { defaultSourceParsers } from '../../src/parsers';
 import { extractPdfText } from '../../src/pdf';
@@ -70,10 +71,39 @@ describe('cv duplicates', () => {
     expect(h.stderr()).toContain('cv duplicates resolve');
   });
 
+  it('la orden que propone incluye el id del segundo miembro, y un periodo abierto se ve como tal', async () => {
+    const h = harness({ '/work/data/sources/education/piringalla.md': education('I.E.S Piringalla', 'cs administrador de sistemas informaticos', '2008') });
+    expect(await runCli(['duplicates'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('--absorb edu-piringalla');
+    expect(h.stdout()).toContain('2008 → …');
+  });
+
   it('sin nada repetido lo dice, y no es un error', async () => {
     const limpio = harness({ '/work/data/sources/education/piringalla.md': education('I.E.S Otra', 'Grado en Historia', '1990', '1995') });
     expect(await runCli(['duplicates'], limpio.context)).toBe(EXIT_OK);
     expect(limpio.stderr()).toContain('Ninguna entrada');
+  });
+});
+
+describe('formatTable: una fila más corta que la cabecera no descuadra', () => {
+  it('rellena las celdas que faltan en vez de romper el ancho', () => {
+    const table = formatTable(['Uno', 'Dos', 'Tres'], [['a', 'b', 'c'], ['solo']]);
+    expect(table.split('\n')[2]).toBe('solo');
+  });
+});
+
+describe('cv duplicates: los bordes', () => {
+  it('unas fuentes que no cargan se explican, y no se listan grupos a medias', async () => {
+    const roto = harness({ '/work/data/sources/education/ciclo.md': '---\ninstitution: I.E.S\n---\n' });
+    expect(await runCli(['duplicates'], roto.context)).not.toBe(EXIT_OK);
+    expect(roto.stdout()).toBe('');
+  });
+
+  it('una entrada sin fechas se lista como tal, no con una fecha inventada', async () => {
+    const h = harness();
+    expect(await runCli(['duplicates'], h.context)).toBe(EXIT_OK);
+    // «piringalla» no trae fechas en el fichero: la columna del periodo lo dice con un guion.
+    expect(h.stdout()).toContain('—');
   });
 });
 
@@ -99,6 +129,17 @@ describe('cv duplicates resolve', () => {
     expect(h.stderr()).toContain('--dry-run');
     expect(h.fs.file('/work/data/sources/education/piringalla.md')).toBeDefined();
     expect(h.fs.file('/work/data/sources/education/ciclo.md')?.content).toContain('institution: Centro pendiente');
+  });
+
+  it('los logros y las tecnologías que se añaden se enumeran uno a uno', async () => {
+    // La rama de «añadido»: lo que entra en listas, no en campos, también se dice antes de escribir.
+    const conListas = harness({
+      '/work/data/sources/experience/a.md': ['---', 'company: Acme', 'role: Backend', 'start: 2020-01', 'technologies: [PHP]', '---', ''].join('\n'),
+      '/work/data/sources/experience/b.md': ['---', 'company: Acme', 'role: Backend', 'start: 2020-01', 'technologies: [PHP, Kubernetes]', '---', '', '## Logros', '', '- Migré 14 servicios.', ''].join('\n'),
+    });
+    expect(await runCli(['duplicates', 'resolve', 'exp-a', '--absorb', 'exp-b'], conListas.context)).toBe(EXIT_OK);
+    expect(conListas.stderr()).toContain('añadido technologies: Kubernetes');
+    expect(conListas.stderr()).toContain('añadido logro: Migré 14 servicios.');
   });
 
   it('sin --absorb no hay nada que resolver, y un id inventado no borra nada', async () => {

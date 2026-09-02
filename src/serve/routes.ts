@@ -1138,15 +1138,9 @@ function addDraftRoutes(router: Router<ServerState>): void {
       'Los borradores de import/ con lo que reconoció cada uno y lo que dejó en su informe, más los grupos de entradas que parecen la misma cosa (entre borradores y contra las fuentes de hoy). Agrupar no fusiona nada.',
     writes: false,
     handler: async (_request, state) => {
-      const listed = await listDrafts(state.context);
-      if (!listed.ok) {
-        return appErrorResponse(listed.error);
-      }
-      const duplicates = await draftDuplicates(state.context, { data: state.data });
-      if (!duplicates.ok) {
-        return appErrorResponse(duplicates.error);
-      }
-      return json(200, { drafts: listed.drafts, duplicates: duplicates.result } satisfies DraftsResponse);
+      // Ninguna de las dos puede fallar: sin `import/` la lista es vacía, y unas fuentes que no cargan solo
+      // dejan los duplicados sin comparar contra ellas. Un borrador roto se ve en su propia ficha.
+      return json(200, { drafts: await listDrafts(state.context), duplicates: await draftDuplicates(state.context, { data: state.data }) } satisfies DraftsResponse);
     },
   });
 

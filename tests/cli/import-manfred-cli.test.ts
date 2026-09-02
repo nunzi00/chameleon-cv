@@ -89,7 +89,14 @@ describe('cv import-manfred', () => {
     const replaced = harness(existing);
     expect(await runCli(['import-manfred', 'mac.json', '--name', 'mio', '--replace'], replaced.context)).toBe(EXIT_OK);
     expect(replaced.fs.file('/work/import/mio/profile.md')?.content).toContain('Ada Ejemplo');
-    expect(replaced.stderr()).toContain('se apartó completo');
+    expect(replaced.stderr()).toMatch(/se apartó completo en mio\.\d{8}-\d{6}\.bak/);
+  });
+
+  it('un MAC sin nada que avisar no imprime la línea de avisos', async () => {
+    // La otra rama del resumen: sin nada que decir, no se dice nada.
+    const limpio = harness({ '/work/limpio.json': JSON.stringify({ settings: { MACVersion: '0.5' }, aboutMe: { profile: { name: 'Ada', surnames: 'Ejemplo' } }, knowledge: {} }) });
+    expect(await runCli(['import-manfred', 'limpio.json'], limpio.context)).toBe(EXIT_OK);
+    expect(limpio.stderr()).not.toContain('Revisa el README.md');
   });
 
   it('un JSON que no es un MAC se rechaza diciendo qué se esperaba, y uno ilegible no rompe nada', async () => {

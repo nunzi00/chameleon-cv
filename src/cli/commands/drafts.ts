@@ -41,21 +41,18 @@ function listRow(draft: DraftSummary): readonly string[] {
 }
 
 export async function runDraftsList(context: CliContext): Promise<number> {
-  const listed = await listDrafts(context);
-  if (!listed.ok) {
-    return reportError(context, listed.error);
-  }
-  if (listed.drafts.length === 0) {
+  const drafts = await listDrafts(context);
+  if (drafts.length === 0) {
     context.stderr('No hay borradores en import/: impórtalos con «cv import-cv <fichero>» o «cv import-cv <carpeta> --all»\n');
     return EXIT_OK;
   }
-  context.stdout(formatTable(['Borrador', 'Origen', 'Exp.', 'Form.', 'Proy.', 'Avisos', 'Sin situar'], listed.drafts.map(listRow), 2));
-  for (const draft of listed.drafts) {
+  context.stdout(formatTable(['Borrador', 'Origen', 'Exp.', 'Form.', 'Proy.', 'Avisos', 'Sin situar'], drafts.map(listRow), 2));
+  for (const draft of drafts) {
     if (draft.problem !== undefined) {
       context.stderr(`import/${draft.name} no carga: ${draft.problem}\n`);
     }
   }
-  context.stderr(`${pluralize(listed.drafts.length, 'borrador', 'borradores')}; mira uno con «cv drafts show <nombre>»\n`);
+  context.stderr(`${pluralize(drafts.length, 'borrador', 'borradores')}; mira uno con «cv drafts show <nombre>»\n`);
   return EXIT_OK;
 }
 
@@ -95,11 +92,7 @@ function printGroup(context: CliContext, group: DuplicateGroup, index: number): 
 }
 
 export async function runDraftsDuplicates(context: CliContext, options: DraftsListOptions): Promise<number> {
-  const result = await draftDuplicates(context, { data: options.data });
-  if (!result.ok) {
-    return reportError(context, result.error);
-  }
-  const { groups, compared } = result.result;
+  const { groups, compared } = await draftDuplicates(context, { data: options.data });
   if (groups.length === 0) {
     context.stderr(`Ninguna entrada se parece a otra (${compared} comparadas)\n`);
     return EXIT_OK;
@@ -132,6 +125,11 @@ export async function runDraftsAdopt(context: CliContext, name: string, options:
     return EXIT_DATA_ERROR;
   }
   const selected = draft.entries.filter((entry) => (section === undefined ? ids.includes(entry.id) : entry.section === section && (ids.length === 0 || ids.includes(entry.id))));
+  // Un id que no está en el borrador se dice AQUÍ: como la selección se resuelve contra sus entradas —hace falta
+  // para saber de qué sección es cada id—, nunca llega al caso de uso y este es el único sitio donde se sabe.
+  for (const missing of ids.filter((id) => !selected.some((entry) => entry.id === id))) {
+    context.stderr(`sin adoptar ${missing}: no es una entrada de import/${name}\n`);
+  }
   if (selected.length === 0) {
     context.stderr(`Ninguna entrada de import/${name} coincide con lo pedido; «cv drafts show ${name}» las lista\n`);
     return EXIT_DATA_ERROR;
@@ -144,12 +142,9 @@ export async function runDraftsAdopt(context: CliContext, name: string, options:
   if (!result.ok) {
     return reportError(context, result.error);
   }
-  const { adopted, skipped, dryRun } = result.outcome;
+  const { adopted, dryRun } = result.outcome;
   for (const entry of adopted) {
     context.stdout(`${entry.path}\n`);
-  }
-  for (const entry of skipped) {
-    context.stderr(`sin adoptar ${entry.id}: ${entry.reason}\n`);
   }
   context.stderr(
     dryRun

@@ -103,6 +103,42 @@ describe('cv serve: rutas de borradores', () => {
     expect(((await backup.json()) as { error: { message: string } }).error.message).toContain('no es un nombre de borrador');
   });
 
+  it('los fallos de cada ruta se explican en vez de romper, y unas fuentes rotas no ocultan los borradores', async () => {
+    const roto = new MemoryFileSystem({
+      '/work/data/sources/profile.md': '---\nschemaVersion: 1\n---\n',
+      '/work/import/mio/profile.md': PROFILE,
+      '/work/import/mio/experience/acme.md': experience('Acme', 'Backend Senior', '2020-01', '2021-01'),
+    });
+    const otro = await startServer({
+      host: '127.0.0.1',
+      port: 0,
+      data: 'data/sources',
+      profile: 'data/dist/profile.json',
+      version: '9.9.9',
+      apiOnly: true,
+      allowedHosts: [],
+      token: TOKEN,
+      allowRemote: false,
+      context: appContext(roto),
+    });
+    try {
+      // Que las fuentes no carguen no puede esconderte tus borradores: solo deja los duplicados sin comparar
+      // contra ellas. Verlos es justo lo que hace falta para arreglar el perfil.
+      const response = await fetch(`${otro.url}api/v1/drafts`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { drafts: readonly unknown[]; duplicates: { compared: number } };
+      expect(body.drafts).toHaveLength(1);
+      expect(body.duplicates.compared).toBe(1);
+    } finally {
+      await otro.close();
+    }
+    // Un fichero que no está en el borrador es un 404, no un 500.
+    expect((await api('drafts/mio/files/experience/no-existe.md')).status).toBe(404);
+    // Y un cuerpo que no es el del esquema se para antes del caso de uso.
+    const malo = await api('drafts/mio/files/experience/acme.md', { method: 'PUT', body: JSON.stringify({ contenido: 'x' }), headers: { 'Content-Type': 'application/json', 'If-Match': '*' } });
+    expect(malo.status).toBe(400);
+  });
+
   it('POST /drafts/adopt escribe con 201, ensaya con 200 y rechaza un cuerpo que no cumple el esquema', async () => {
     const dry = await api('drafts/adopt', {
       method: 'POST',
@@ -125,6 +161,14 @@ describe('cv serve: rutas de borradores', () => {
     // Lista vacía y sección inventada las para el esquema del cuerpo, antes de llegar al caso de uso: 400.
     const empty = await api('drafts/adopt', { method: 'POST', body: JSON.stringify({ entries: [] }), headers: { 'Content-Type': 'application/json' } });
     expect(empty.status).toBe(400);
+    // Un id que el borrador no tiene es un 404 del caso de uso, no un 500.
+    const inventada = await api('drafts/adopt', {
+      method: 'POST',
+      body: JSON.stringify({ entries: [{ draft: 'mio', section: 'experience', id: 'exp-inventada' }] }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(inventada.status).toBe(404);
+
     const unknownSection = await api('drafts/adopt', {
       method: 'POST',
       body: JSON.stringify({ entries: [{ draft: 'mio', section: 'habilidades', id: 'x' }] }),

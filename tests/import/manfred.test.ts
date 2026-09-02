@@ -180,6 +180,80 @@ describe('importManfredMac: lo que no cabe en el perfil', () => {
   });
 });
 
+describe('importManfredMac: entradas incompletas dentro de cada sección', () => {
+  it('un reto sin descripción, una acción vacía y una competencia sin nombre no abren nada', () => {
+    const result = read({
+      ...MAC,
+      experience: {
+        jobs: [
+          {
+            organization: { name: 'Acme' },
+            roles: [{ name: 'Backend', startDate: '2020-01-01', competences: [{ type: 'technology' }, { name: 'PHP' }], challenges: [{ actions: [{}, ''] }, { description: 'Un reto' }] }],
+          },
+        ],
+      },
+    });
+    const job = result.ok ? result.draft.experience[0] : undefined;
+    expect(job?.technologies).toEqual(['PHP']);
+    expect(job?.achievements.map((item) => item.text)).toEqual(['Un reto']);
+  });
+
+  it('un estudio, un proyecto y un idioma sin nombre se ignoran en vez de entrar vacíos', () => {
+    const result = read({
+      ...MAC,
+      experience: { jobs: [], projects: [{ details: { URL: 'https://example.org' }, roles: [] }] },
+      knowledge: {
+        languages: [{ level: 'Native or bilingual proficiency' }],
+        studies: [{ studyType: 'officialDegree', degreeAchieved: true, startDate: '2010-01-01' }],
+        hardSkills: [],
+      },
+      // El «stack principal» también aporta habilidades: sin él tampoco hay grupo que crear.
+      manfredSpecificData: {},
+    });
+    expect(result.ok && result.draft.projects).toEqual([]);
+    expect(result.ok && result.draft.education).toEqual([]);
+    expect(result.ok && result.draft.languages).toEqual([]);
+    // Sin habilidades no se crea un grupo vacío.
+    expect(result.ok && result.draft.skills).toEqual([]);
+  });
+
+  it('una certificación sin fecha de fin toma la de inicio, que es la única que hay', () => {
+    const result = read({
+      ...MAC,
+      knowledge: { ...MAC.knowledge, studies: [{ studyType: 'certification', degreeAchieved: true, name: 'CKA', startDate: '2024-03-01', institution: { name: 'CNCF', URL: 'https://cncf.io' } }] },
+    });
+    expect(result.ok && result.draft.certifications[0]).toMatchObject({ title: 'CKA', date: '2024-03-01', url: 'https://cncf.io' });
+  });
+
+  it('un idioma sin fullName se queda con su código ISO, y sin nivel se queda sin nivel', () => {
+    const result = read({ ...MAC, knowledge: { ...MAC.knowledge, languages: [{ name: 'PT', level: 'Elementary proficiency' }, { name: 'IT' }] } });
+    expect(result.ok && result.draft.languages).toEqual([
+      { name: 'PT', level: 'A2' },
+      { name: 'IT', level: undefined },
+    ]);
+  });
+
+  it('avisa del salario y de los niveles de habilidad, que tampoco entran', () => {
+    const result = read({
+      ...MAC,
+      aboutMe: { ...MAC.aboutMe, currentSalary: { amount: 60000, currency: 'EUR' }, recommendations: [{ title: 'Una' }], interestingFacts: [{ topic: 'x', fact: 'y' }] },
+      experience: { ...MAC.experience, publicArtifacts: [{ type: 'talk', details: { name: 'Una charla' } }] },
+      knowledge: { ...MAC.knowledge, hardSkills: [{ skill: { name: 'PHP', type: 'technology' }, level: 'expert' }] },
+    });
+    const notes = result.ok ? result.notes : [];
+    expect(notes.some((note) => note.includes('salario'))).toBe(true);
+    expect(notes.some((note) => note.includes('recomendaciones'))).toBe(true);
+    expect(notes.some((note) => note.includes('interesting facts'))).toBe(true);
+    expect(notes.some((note) => note.includes('artefactos públicos'))).toBe(true);
+    expect(notes.some((note) => note.includes('niveles de las habilidades'))).toBe(true);
+  });
+
+  it('un MAC con BOM se lee igual: el byte invisible no lo invalida', () => {
+    const result = importManfredMac(`\ufeff${JSON.stringify(MAC)}`);
+    expect(result.ok && result.draft.fullName).toBe('Lucas Nunzi');
+  });
+});
+
 describe('importManfredMac: lo que rechaza y lo que aguanta', () => {
   it('rechaza lo que no es JSON, lo que no es un objeto y lo que no parece un MAC', () => {
     expect(importManfredMac('esto no es json')).toMatchObject({ ok: false, message: expect.stringContaining('no es JSON válido') as string });

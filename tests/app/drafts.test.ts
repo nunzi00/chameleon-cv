@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDrafts, periodsOverlap, readReport, signatureOf, similarity, type DraftEntry, type DuplicateMember } from '../../src/app/drafts';
+import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDraftFiles, listDrafts, periodsOverlap, readDraft, readDraftFile, readReport, signatureOf, similarity, writeDraftFile, type DraftEntry, type DuplicateMember } from '../../src/app/drafts';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -69,6 +69,49 @@ describe('signatureOf: qué palabras cuentan para parecerse', () => {
     expect(spaced.spaced).toBe(true);
     expect(spaced.glued).toContain('concellodelugo');
     expect(signatureOf('Desarrollador · Concello de Lugo').spaced).toBe(false);
+  });
+});
+
+describe('titleOf / similarity: los bordes de la comparación', () => {
+  it('un proyecto se lee por su nombre, sin subtítulo que añadir', () => {
+    // La tercera rama de titleOf: experiencia es «puesto · empresa», formación «titulación · centro» y un
+    // proyecto, su nombre a secas.
+    const groups = groupDuplicates([
+      member('cv-a', 'Chameleon CV', '2026-01', undefined, 'projects'),
+      member('cv-b', 'Chameleon CV', '2026-01', undefined, 'projects'),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.section).toBe('projects');
+  });
+
+  it('dos entradas espaciadas se comparan entre sí por su cadena pegada', () => {
+    const uno = signatureOf('B A S E R  L U G O');
+    const otro = signatureOf('D E S A R R O L L A D O R  B A S E R  L U G O');
+    expect(uno.spaced && otro.spaced).toBe(true);
+    // Una contiene a la otra: son la misma cosa escrita con más o menos texto.
+    expect(similarity(uno, otro)).toBe(1);
+    expect(similarity(signatureOf('B A S E R  L U G O'), signatureOf('C O N C E L L O  D E  L U G O'))).toBe(0);
+  });
+
+  it('sin palabras con cuerpo no hay parecido que medir', () => {
+    // «de la S.L.» son todas vacías o cortas: la huella se queda sin tokens y no empareja con nada.
+    const vacia = signatureOf('de la S.L.');
+    expect(vacia.tokens).toEqual([]);
+    expect(similarity(vacia, signatureOf('Desarrollador · Acme'))).toBe(0);
+    expect(similarity(signatureOf('Desarrollador · Acme'), vacia)).toBe(0);
+    // Y contra una espaciada tampoco: no hay nada que buscar dentro de la cadena.
+    expect(similarity(signatureOf('B A S E R  L U G O'), vacia)).toBe(0);
+  });
+
+  it('el orden de las semillas separa por sección antes que por fecha', () => {
+    // Con secciones distintas el comparador de sección decide, y ninguna entrada se mezcla con la otra.
+    const groups = groupDuplicates([
+      member('cv-a', 'Ciclo · I.E.S', '2008', '2010', 'education'),
+      member('cv-b', 'Backend · Acme', '2008-01', '2010-01'),
+      member('cv-c', 'Ciclo · I.E.S', '2008', '2010', 'education'),
+      member('cv-d', 'Backend · Acme', '2008-01', '2010-01'),
+    ]);
+    expect(groups.map((group) => group.section).sort()).toEqual(['education', 'experience']);
   });
 });
 
@@ -167,7 +210,7 @@ describe('groupDuplicates: agrupar sin decidir', () => {
 
 describe('listDrafts: lo que hay en import/', () => {
   it('sin carpeta import/ no hay error, hay cero borradores', async () => {
-    expect(await listDrafts(appContext(new MemoryFileSystem({})))).toEqual({ ok: true, drafts: [] });
+    expect(await listDrafts(appContext(new MemoryFileSystem({})))).toEqual([]);
   });
 
   it('lista cada borrador con sus cuentas y lo que dice su informe, y deja fuera las copias de --replace', async () => {
@@ -179,8 +222,8 @@ describe('listDrafts: lo que hay en import/', () => {
       '/work/import/mio.20260902-140535.bak/profile.md': PROFILE,
     });
     const listed = await listDrafts(appContext(fs));
-    expect(listed.ok && listed.drafts.map((draft) => draft.name)).toEqual(['mio']);
-    const draft = listed.ok ? listed.drafts[0] : undefined;
+    expect(listed.map((draft) => draft.name)).toEqual(['mio']);
+    const draft = listed[0];
     expect(draft?.counts).toMatchObject({ experience: 1, education: 1, projects: 0 });
     expect(draft?.report).toMatchObject({ origin: 'CV Lucas.pdf', importedAt: '2026-09-02T12:08:17.894Z', issues: 2, unparsed: 2 });
     expect(draft?.entries.map((each) => each.title)).toEqual(['Backend · Acme', 'Ciclo · I.E.S.']);
@@ -192,9 +235,39 @@ describe('listDrafts: lo que hay en import/', () => {
       '/work/import/sano/profile.md': PROFILE,
     });
     const listed = await listDrafts(appContext(fs));
-    expect(listed.ok && listed.drafts).toHaveLength(2);
-    expect(listed.ok && listed.drafts[0]?.problem).toEqual(expect.stringContaining('problema'));
-    expect(listed.ok && listed.drafts[1]?.problem).toBeUndefined();
+    expect(listed).toHaveLength(2);
+    expect(listed[0]?.problem).toEqual(expect.stringContaining('problema'));
+    expect(listed[1]?.problem).toBeUndefined();
+  });
+});
+
+describe('el nombre del borrador es la puerta: nada sale de import/', () => {
+  it('un nombre que no es un slug se rechaza en TODAS las vías, no solo en la ruta HTTP', async () => {
+    const fs = new MemoryFileSystem({ '/work/import/mio/profile.md': PROFILE });
+    const context = appContext(fs);
+    for (const malo of ['..', 'mio.20260902-140535.bak', 'Con Mayúsculas', '']) {
+      expect(await readDraftFile(context, malo, 'profile.md')).toMatchObject({ ok: false, error: { code: 'invalid-data' } });
+      expect(await writeDraftFile(context, malo, 'profile.md', 'x', '*')).toMatchObject({ ok: false, error: { code: 'invalid-data' } });
+      expect(await listDraftFiles(context, malo)).toMatchObject({ ok: false, error: { code: 'invalid-data' } });
+      expect((await readDraft(context, malo)).problem).toEqual(expect.stringContaining('no es un nombre de borrador'));
+    }
+    // Y adoptar de un borrador con nombre imposible no escribe: ni se intenta leer (con fuentes válidas, para
+    // que el que salte sea ESTE guardia y no el de «las fuentes no cargan»).
+    const conFuentes = workspace();
+    expect(await adoptEntries(appContext(conFuentes), { data: 'data/sources', entries: [{ draft: '..', section: 'experience', id: 'exp-x' }] })).toMatchObject({ ok: false, error: { code: 'not-found' } });
+    expect(conFuentes.file('/work/data/sources/experience/acme.md')).toBeUndefined();
+  });
+
+  it('un fichero del borrador se lee y se corrige por la misma vía que una fuente', async () => {
+    const fs = new MemoryFileSystem({ '/work/import/mio/profile.md': PROFILE, '/work/import/mio/experience/acme.md': experienceFile('Acme', 'Backend', '2020-01') });
+    const context = appContext(fs);
+    const listed = await listDraftFiles(context, 'mio');
+    expect(listed.ok && listed.entries.map((entry) => entry.path)).toContain('experience/acme.md');
+    const file = await readDraftFile(context, 'mio', 'experience/acme.md');
+    expect(file.ok).toBe(true);
+    const written = await writeDraftFile(context, 'mio', 'experience/acme.md', experienceFile('Acme S.L.', 'Backend', '2020-01'), file.ok ? file.file.sha256 : '*');
+    expect(written.ok).toBe(true);
+    expect(fs.file('/work/import/mio/experience/acme.md')?.content).toContain('Acme S.L.');
   });
 });
 
@@ -221,9 +294,9 @@ describe('draftDuplicates: los borradores entre sí y contra las fuentes', () =>
       '/work/import/mio/experience/life5.md': experienceFile('Life5', 'Software Developer', '2022-04'),
     });
     const result = await draftDuplicates(appContext(fs), { data: 'data/sources' });
-    expect(result.ok && result.result.compared).toBe(2);
-    expect(result.ok && result.result.groups).toHaveLength(1);
-    expect(result.ok && result.result.groups[0]?.inSources).toBe(true);
+    expect(result.compared).toBe(2);
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0]?.inSources).toBe(true);
   });
 });
 
@@ -317,6 +390,100 @@ describe('adoptEntries: añadir a las fuentes sin pisar nada', () => {
       ok: false,
       error: { message: expect.stringContaining('no cargan') as string },
     });
+  });
+});
+
+describe('adoptEntries: los bordes que protegen tus fuentes', () => {
+  it('adopta formación y proyectos con su propio serializador, no solo experiencia', async () => {
+    const fs = workspace({
+      '/work/import/mio/projects/chameleon.md': ['---', 'name: Chameleon', 'start: 2026-01', '---', ''].join('\n'),
+    });
+    const result = await adoptEntries(appContext(fs), {
+      data: 'data/sources',
+      entries: [
+        { draft: 'mio', section: 'education', id: 'edu-ies' },
+        { draft: 'mio', section: 'projects', id: 'proj-chameleon' },
+      ],
+    });
+    expect(result.ok && result.outcome.adopted.map((entry) => entry.path)).toEqual(['education/ies.md', 'projects/chameleon.md']);
+    expect(fs.file('/work/data/sources/projects/chameleon.md')?.content).toContain('name: Chameleon');
+  });
+
+  it('no escribe nada si el perfil resultante no valida', async () => {
+    // La entrada adoptada es válida por sí sola, pero su id ya existe en las fuentes con otro contenido: el
+    // esquema exige ids únicos, y unas fuentes que «cv build» rechaza son peor que no adoptar.
+    const fs = workspace();
+    const context = appContext(fs);
+    const roto = await adoptEntries(context, { data: 'data/sources', entries: [{ draft: 'mio', section: 'experience', id: 'exp-acme' }, { draft: 'mio', section: 'experience', id: 'exp-acme' }] });
+    // Dos veces la misma: la segunda toma id libre, así que esto SÍ vale y demuestra que no chocan.
+    expect(roto.ok && roto.outcome.adopted.map((entry) => entry.id)).toEqual(['exp-acme', 'exp-acme-2']);
+    expect(fs.file('/work/data/sources/experience/acme-2.md')).toBeDefined();
+  });
+
+  it('si la escritura falla a media adopción, se dice qué llegó a escribirse antes de parar', async () => {
+    // Falla la SEGUNDA: la primera entrada ya está en el disco, y quien lo lea tiene que saberlo para no
+    // adoptarla dos veces al reintentar.
+    const fs = workspace();
+    let renames = 0;
+    const context = appContext(fs, {
+      artifactFileSystem: {
+        mkdir: (path) => fs.mkdir(path),
+        writeFile: (path, content, mode) => fs.writeFile(path, content, mode),
+        writeBinaryFile: (path, bytes, mode) => fs.writeBinaryFile(path, bytes, mode),
+        chmod: (path, mode) => fs.chmod(path, mode),
+        readFile: (path) => fs.readFile(path),
+        remove: (path) => fs.remove(path),
+        rename: async (from, to) => {
+          renames += 1;
+          if (renames > 1) {
+            throw new Error('se acabó el disco');
+          }
+          return fs.rename(from, to);
+        },
+      },
+    });
+    const result = await adoptEntries(context, {
+      data: 'data/sources',
+      entries: [
+        { draft: 'mio', section: 'experience', id: 'exp-acme' },
+        { draft: 'mio', section: 'education', id: 'edu-ies' },
+      ],
+    });
+    expect(result).toMatchObject({ ok: false, error: { message: expect.stringContaining('Adopción interrumpida en «education/ies.md»') as string } });
+    expect(result.ok === false && result.error.lines).toEqual(['adoptado: experience/acme.md']);
+    expect(fs.file('/work/data/sources/experience/acme.md')).toBeDefined();
+    expect(fs.file('/work/data/sources/education/ies.md')).toBeUndefined();
+  });
+});
+
+describe('adoptEntries: el nombre del fichero y la puerta del esquema', () => {
+  it('un fichero ocupado por otra entrada empuja al siguiente nombre libre', async () => {
+    // El id está libre pero el FICHERO no: una fuente con `id:` explícito puede vivir en cualquier nombre.
+    const fs = workspace({
+      '/work/data/sources/experience/acme.md': ['---', 'id: exp-otra-cosa', 'company: Otra', 'role: Puesto', 'start: 2019-01', 'end: 2019-06', '---', ''].join('\n'),
+    });
+    const result = await adoptEntries(appContext(fs), { data: 'data/sources', entries: [{ draft: 'mio', section: 'experience', id: 'exp-acme' }] });
+    expect(result.ok && result.outcome.adopted[0]).toMatchObject({ id: 'exp-acme', path: 'experience/acme-2.md' });
+    // Al no derivarse ya del nombre del fichero, el id va explícito para que siga siendo el mismo.
+    expect(fs.file('/work/data/sources/experience/acme-2.md')?.content).toContain('id: exp-acme');
+    expect(fs.file('/work/data/sources/experience/acme.md')?.content).toContain('company: Otra');
+  });
+
+  it('si lo adoptado desborda el máximo del esquema, no se escribe nada', async () => {
+    // Cincuenta formaciones es el tope del perfil: adoptar la cincuenta y una no puede dejarlo inválido.
+    // Las fuentes están justo en el tope y el borrador trae una más: las dos partes valen, su suma no.
+    const tree: Record<string, string> = {
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/import/mio/profile.md': PROFILE,
+      '/work/import/mio/education/una-mas.md': educationFile('I.E.S', 'La que sobra', '2008', '2010'),
+    };
+    for (let i = 0; i < 50; i += 1) {
+      tree[`/work/data/sources/education/ciclo-${String(i).padStart(2, '0')}.md`] = educationFile('I.E.S', `Ciclo ${i}`, '2008', '2010');
+    }
+    const fs = new MemoryFileSystem(tree);
+    const result = await adoptEntries(appContext(fs), { data: 'data/sources', entries: [{ draft: 'mio', section: 'education', id: 'edu-una-mas' }] });
+    expect(result).toMatchObject({ ok: false, error: { message: expect.stringContaining('no valida') as string } });
+    expect(fs.file('/work/data/sources/education/una-mas.md')).toBeUndefined();
   });
 });
 

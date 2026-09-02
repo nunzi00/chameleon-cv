@@ -11,6 +11,7 @@
  * Lo que el MAC trae y el perfil no sabe guardar (preferencias de búsqueda, salario, recomendaciones…) no se
  * inventa un sitio: se anota en el informe como no importado, que es lo honesto.
  */
+import { describeError } from '../shared/errors';
 import type { DraftAchievement, DraftEntry, DraftLanguage, DraftProfile, DraftSkillGroup, Provenance } from './structure';
 
 /** Un MAC es un JSON de perfil, no un archivo: más de esto es otra cosa. */
@@ -265,7 +266,8 @@ function notesOf(mac: Json, studies: readonly unknown[]): string[] {
   };
   mention(arrayAt(mac, 'careerPreferences', 'preferences', 'preferredRoles').length, 'los puestos que buscas');
   mention(arrayAt(mac, 'careerPreferences', 'requirements', 'contractTypes').length, 'el tipo de contrato que buscas');
-  mention(objectAt(mac, 'careerPreferences', 'currentSalary') === undefined ? 0 : 1, 'tu salario actual');
+  // El salario vive en `aboutMe` según el esquema, pero hay MAC que lo escriben bajo las preferencias: valen los dos.
+  mention(objectAt(mac, 'aboutMe', 'currentSalary') ?? objectAt(mac, 'careerPreferences', 'currentSalary') ? 1 : 0, 'tu salario actual');
   mention(arrayAt(mac, 'aboutMe', 'recommendations').length, 'las recomendaciones');
   mention(arrayAt(mac, 'aboutMe', 'interestingFacts').length, 'los «interesting facts»');
   mention(arrayAt(mac, 'experience', 'publicArtifacts').length, 'los artefactos públicos (charlas, posts, vídeos)');
@@ -307,7 +309,7 @@ export function importManfredMac(input: Uint8Array | string): ManfredResult {
     const raw = typeof input === 'string' ? input : new TextDecoder('utf-8').decode(input);
     parsed = JSON.parse(raw.startsWith('﻿') ? raw.slice(1) : raw);
   } catch (error) {
-    return { ok: false, message: `El fichero no es JSON válido: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, message: `El fichero no es JSON válido: ${describeError(error)}` };
   }
   if (!isObject(parsed)) {
     return { ok: false, message: 'El fichero no es un objeto JSON: un MAC empieza por «{»' };

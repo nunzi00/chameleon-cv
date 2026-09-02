@@ -427,7 +427,7 @@
   "typst": {
     "usable": false
   },
-  "version": "1.18.0",
+  "version": "1.19.0",
   "workspace": "<WS>"
 }
 
@@ -3442,7 +3442,7 @@
 }
 
 ### GET /output/cv-lucia-ferrer-montalban-backend-nexo-senior-backend.pdf → 200
-<pdf · sha256 canónico 087a216befe31cd4f20727e4f0ade3c2325aea284bbd9f19a99e7f6ac394f9af>
+<pdf · sha256 canónico 8bfe8df91811253e98ff4e191112732e6b753060952917fa5076059af3004a1f>
 
 ### POST /analyze-offer → 200
 {
@@ -5554,7 +5554,7 @@
       "installedAt": "<ISO>",
       "kind": "archive",
       "source": "<WS>/themes/comunidad.zip",
-      "tool": "chameleon-cv 1.18.0"
+      "tool": "chameleon-cv 1.19.0"
     },
     "state": "intact"
   }

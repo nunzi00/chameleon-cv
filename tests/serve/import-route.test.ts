@@ -71,6 +71,8 @@ describe('cv serve: POST /import', () => {
     expect(((await conflict.json()) as { error: { code: string } }).error.code).toBe('conflict');
     const replaced = await post(stubbed, '%PDF-1.4 finto', { 'x-cv-import-replace': '1' });
     expect(replaced.status).toBe(201);
+    // Sustituir aparta el borrador anterior entero, y la respuesta dice dónde quedó (B-15).
+    expect(((await replaced.json()) as { backup?: string }).backup).toMatch(/^ada-ejemplo\.\d{8}-\d{6}\.bak$/);
   });
 
   it('POST /import-manfred entra por su propia ruta y no deja nada sin situar (T-9.22)', async () => {
@@ -94,6 +96,14 @@ describe('cv serve: POST /import', () => {
     expect(body.readme).toContain('los puestos que buscas');
     const invalido = await fetch(`${stubbed.url}api/v1/import-manfred`, { method: 'POST', body: Buffer.from('{"cualquier":"cosa"}', 'utf8'), headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/pdf' } });
     expect(invalido.status).toBe(422);
+    // Reimportar sustituyendo aparta el anterior y lo dice, igual que las demás vías.
+    const sustituido = await fetch(`${stubbed.url}api/v1/import-manfred`, {
+      method: 'POST',
+      body: Buffer.from(mac, 'utf8'),
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/pdf', 'x-cv-import-name': 'mac-de-ada', 'x-cv-import-replace': '1' },
+    });
+    expect(sustituido.status).toBe(201);
+    expect(((await sustituido.json()) as { backup?: string }).backup).toMatch(/^mac-de-ada\.\d{8}-\d{6}\.bak$/);
   });
 
   it('GET /import-cv/folders ofrece las carpetas con CV, para elegir una sin escribir la ruta (T-9.21)', async () => {

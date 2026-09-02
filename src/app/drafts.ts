@@ -49,8 +49,6 @@ export interface DraftSummary {
   readonly problem?: string | undefined;
 }
 
-export type DraftListResult = { readonly ok: true; readonly drafts: readonly DraftSummary[] } | { readonly ok: false; readonly error: AppError };
-
 
 const ORIGIN_LINE = /^- Origen: (.+)$/m;
 const IMPORTED_LINE = /^- Importado: (.+)$/m;
@@ -126,7 +124,7 @@ export function isBackupName(name: string): boolean {
  * Todos los borradores de `import/`, cada uno con lo que reconoció. Un borrador que no carga NO tumba la
  * lista: se devuelve con su motivo, porque justo ese es el que hay que ir a editar.
  */
-export async function listDrafts(context: AppContext): Promise<DraftListResult> {
+export async function listDrafts(context: AppContext): Promise<readonly DraftSummary[]> {
   const root = resolve(context.cwd, DRAFTS_DIR);
   let names: readonly string[];
   try {
@@ -136,11 +134,11 @@ export async function listDrafts(context: AppContext): Promise<DraftListResult> 
       .map((entry) => entry.name)
       .sort((a, b) => a.localeCompare(b, 'es'));
   } catch {
-    // Sin carpeta `import/` no hay error que dar: es que todavía no se ha importado nada.
-    return { ok: true, drafts: [] };
+    // Sin carpeta `import/` no hay error que dar: es que todavía no se ha importado nada. Por eso esto NO
+    // devuelve un resultado con error: no hay ninguno posible, y fingirlo obligaría a comprobar lo imposible.
+    return [];
   }
-  const drafts = await Promise.all(names.map((name) => readDraft(context, name)));
-  return { ok: true, drafts };
+  return Promise.all(names.map((name) => readDraft(context, name)));
 }
 
 /** Un borrador por su nombre; el mismo resumen que da la lista. */
@@ -181,11 +179,8 @@ export async function readDraft(context: AppContext, name: string): Promise<Draf
 /* ───────────────────────────── duplicados ───────────────────────────── */
 
 /** Los duplicados de todos los borradores entre sí y contra las fuentes de `data`. */
-export async function draftDuplicates(context: AppContext, options: { readonly data: string }): Promise<{ readonly ok: true; readonly result: DuplicatesResult } | { readonly ok: false; readonly error: AppError }> {
-  const listed = await listDrafts(context);
-  if (!listed.ok) {
-    return listed;
-  }
+export async function draftDuplicates(context: AppContext, options: { readonly data: string }): Promise<DuplicatesResult> {
+  const drafts = await listDrafts(context);
   const members: DuplicateMember[] = [];
   const sources = await loadSources(context, { data: options.data });
   if (sources.ok) {
@@ -193,12 +188,12 @@ export async function draftDuplicates(context: AppContext, options: { readonly d
       members.push({ entry });
     }
   }
-  for (const draft of listed.drafts) {
+  for (const draft of drafts) {
     for (const entry of draft.entries) {
       members.push({ draft: draft.name, entry });
     }
   }
-  return { ok: true, result: { groups: groupDuplicates(members), compared: members.length } };
+  return { groups: groupDuplicates(members), compared: members.length };
 }
 
 
@@ -302,8 +297,9 @@ export async function adoptEntries(context: AppContext, request: AdoptRequest): 
       group.map((item) => item.id),
     ),
   );
-  const listed = await listSources(context, root);
-  const taken = new Set<string>(listed.ok ? listed.entries.map((entry) => entry.path) : []);
+  // Los ficheros que YA hay: los da el propio cargador, que acaba de leerlos con éxito. Volver a listarlos sería
+  // preguntar dos veces y obligar a contemplar un fallo que aquí ya no puede darse.
+  const taken = new Set<string>(sources.dataset.files);
 
   const additions: Partial<Record<AdoptableSection, Array<Experience | Education | Project>>> = {};
   const planned: Array<{ readonly entry: AdoptedEntry; readonly content: string }> = [];
