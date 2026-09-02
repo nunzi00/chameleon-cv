@@ -2,6 +2,12 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Corregido
+
+- **`--replace` sustituía el borrador escribiendo encima, y lo que sobraba seguía ahí** (B-15, encontrado el 2-sep revisando el corpus del PO). `import/<nombre>/` se rellenaba fichero a fichero sin apartar el anterior, así que reimportar un CV que reconoce **menos** entradas dejaba vivas las de la pasada previa: `import/lucas-nunzi-lopez/` acumulaba **30 ficheros de experiencia** con un informe que decía «7», y `cv build --data import/lucas-nunzi-lopez` cargaba la suma de cuatro importaciones, no el borrador. Ahora sustituir es **apartar y escribir de cero**, por el mismo procedimiento que `cv import --replace`: el borrador anterior se renombra entero a `import/<nombre>.<AAAAMMDD-HHMMSS>.bak` —no se borra nada, y un borrador ya se puede haber editado a mano (C9)— y la carpeta queda solo con lo que produce la importación nueva. La CLI dice dónde quedó la copia y `POST /import-cv` la devuelve en `backup`.
+
 ## [1.18.0] - 2026-09-01
 
 ### Añadido

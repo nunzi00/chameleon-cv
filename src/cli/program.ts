@@ -130,7 +130,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .description('importa un CV ya maquetado (PDF o DOCX) como borrador de fuentes en import/<nombre>/, con informe de lo reconocido; nunca escribe en data/sources/')
     .argument('<fichero>', 'el CV a importar (.pdf o .docx); con --all, la carpeta que los contiene')
     .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
-    .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
     .option('--all', 'el argumento es una carpeta: importa todos los CV que haya en ella (primer nivel) y compara el resultado en una tabla', false)
     .option('--copilot', 'pide al co-piloto que PROPONGA sección para las líneas sin situar (van al README, no se aplican)', false)
     .option('--provider <id>', 'proveedor del co-piloto para --copilot (por defecto, el configurado)')
@@ -145,7 +145,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .description('importa la exportación oficial de datos de LinkedIn (el zip de «Obtener una copia de tus datos») como borrador en import/<nombre>/; datos estructurados, sin red y sin adivinar maquetación')
     .argument('<archivo>', 'el zip de la exportación de LinkedIn')
     .option('-n, --name <nombre>', 'carpeta destino dentro de import/ (por defecto, el nombre del perfil o del fichero)')
-    .option('--replace', 'sustituye un borrador existente con el mismo nombre', false)
+    .option('--replace', 'sustituye un borrador existente con el mismo nombre, apartándolo entero como copia (import/<nombre>.<marca>.bak)', false)
     .action(async (file: string, options: ImportLinkedInOptions) => {
       onExit(await runImportLinkedIn(context, file, options));
     });

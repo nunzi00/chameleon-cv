@@ -14,6 +14,7 @@ import type { MasterProfile } from '../core/schema';
 import { describeError } from '../shared/errors';
 import type { AppContext } from './context';
 import { conflictError, dataError, environmentError, notFoundError, type AppError } from './errors';
+import { backupDirectory } from './portability';
 import { slugify } from './slug';
 
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
@@ -52,6 +53,8 @@ export interface ImportedDraft {
   readonly readme: string;
   /** Propuestas del co-piloto verificadas por código; vacío sin `copilot`. */
   readonly proposals: readonly ImportMapProposal[];
+  /** Con `replace`, la carpeta a la que se apartó el borrador anterior; ausente si no había ninguno. */
+  readonly backup?: string | undefined;
 }
 
 export type ImportCvResult = { readonly ok: true; readonly draft: ImportedDraft } | { readonly ok: false; readonly error: AppError };
@@ -133,6 +136,20 @@ export async function writeDraft(
     return { ok: false, error: conflictError(`Ya existe import/${name}; usa --replace para sustituirlo o --name para otro destino`) };
   }
 
+  // Sustituir es APARTAR y escribir de cero, no escribir encima: un borrador con menos entradas que el anterior
+  // dejaba vivos los ficheros sobrantes y `cv build --data import/<nombre>` cargaba la suma de las dos pasadas.
+  // Se aparta con el mismo procedimiento que `cv import --replace` (C9: la herramienta no borra tu trabajo, y un
+  // borrador ya se puede editar a mano); las copias quedan como `import/<nombre>.<marca>.bak`.
+  let backup: string | undefined;
+  if (exists) {
+    backup = await backupDirectory(context, target);
+    try {
+      await context.artifactFileSystem.rename(target, backup);
+    } catch (error) {
+      return { ok: false, error: environmentError(`No se pudo apartar el borrador anterior «import/${name}» como «${basename(backup)}»: ${describeError(error)}`) };
+    }
+  }
+
   const readme = draftReport(result, basename(origin), importedAt, proposals);
   try {
     for (const planned of [...result.files, { path: 'README.md', content: readme }]) {
@@ -141,10 +158,10 @@ export async function writeDraft(
       await context.artifactFileSystem.writeFile(destination, planned.content, 0o600);
     }
   } catch (error) {
-    return { ok: false, error: environmentError(`No se pudo escribir el borrador en import/${name}: ${error instanceof Error ? error.message : String(error)}`) };
+    return { ok: false, error: environmentError(`No se pudo escribir el borrador en import/${name}: ${describeError(error)}`) };
   }
 
-  return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme, proposals } };
+  return { ok: true, draft: { name, files: result.files.length + 1, profile: result.profile, issues: result.issues, unparsed: result.unparsed, readme, proposals, backup } };
 }
 
 

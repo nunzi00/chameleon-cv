@@ -134,6 +134,9 @@ export async function runImportCv(context: CliContext, file: string, options: Im
   context.stderr(
     `Borrador escrito en import/${draft.name} (${draft.files} ficheros): ${profile.experience.length} experiencias · ${profile.projects.length} proyectos · ${profile.education.length} formaciones · ${profile.certifications.length} certificaciones · ${profile.skills.length} habilidades · ${profile.achievements.length} logros · ${profile.languages.length} idiomas\n`,
   );
+  if (draft.backup !== undefined) {
+    context.stderr(`El borrador anterior se apartó completo en ${basename(draft.backup)} (no se ha borrado nada)\n`);
+  }
   if (draft.proposals.length > 0) {
     context.stderr(`El co-piloto propuso sección para ${draft.proposals.length} línea(s) sin situar: están en el README, sin aplicar\n`);
   }

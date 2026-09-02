@@ -1066,6 +1066,7 @@ function addImportRoutes(router: Router<ServerState>): void {
         issues: draft.issues.map((issue) => ({ reason: issue.reason, line: issue.provenance?.line })),
         unparsed: draft.unparsed.map((item) => ({ line: item.line, text: item.text })),
         readme: draft.readme,
+        backup: draft.backup === undefined ? undefined : basename(draft.backup),
       } satisfies ImportCvResponse);
     },
   });

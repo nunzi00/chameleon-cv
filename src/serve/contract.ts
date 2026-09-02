@@ -475,6 +475,8 @@ export interface ImportCvResponse {
   readonly unparsed: ReadonlyArray<{ readonly line: number; readonly text: string }>;
   /** El informe (README.md del borrador), para mostrarlo tal cual. */
   readonly readme: string;
+  /** Con `replace`, la carpeta donde quedó completo el borrador anterior; ausente si no había ninguno. */
+  readonly backup?: string | undefined;
 }
 
 /** `POST /offers/history`: consulta de solo lectura del historial de una oferta. */

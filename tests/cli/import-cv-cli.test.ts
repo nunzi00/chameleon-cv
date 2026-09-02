@@ -79,13 +79,27 @@ describe('cv import-cv (T-8.4b)', () => {
   });
 
   it('--name elige la carpeta y --replace permite sustituir; sin él, el borrador existente se respeta', async () => {
-    const existing: Record<string, MemoryEntry> = { '/work/import/mio': { kind: 'directory' }, '/work/import/mio/README.md': { kind: 'file', content: 'anterior' } };
+    const existing: Record<string, MemoryEntry> = {
+      '/work/import/mio': { kind: 'directory' },
+      '/work/import/mio/README.md': { kind: 'file', content: 'anterior' },
+      '/work/import/mio/experience/sobrante.md': { kind: 'file', content: '---\ncompany: Vieja\nrole: Antigua\nstart: 2001\n---\n' },
+    };
     const denied = harness(existing);
     expect(await runCli(['import-cv', 'cv.pdf', '--name', 'mio'], denied.context)).toBe(EXIT_DATA_ERROR);
     expect(denied.stderr()).toContain('Ya existe import/mio');
     const replaced = harness(existing);
     expect(await runCli(['import-cv', 'cv.pdf', '--name', 'mio', '--replace'], replaced.context)).toBe(EXIT_OK);
     expect(replaced.fs.file('/work/import/mio/profile.md')?.content).toContain('Ada Ejemplo');
+    // Sustituir es apartar y escribir de cero: si el CV nuevo trae menos entradas, las del anterior NO sobreviven
+    // en la carpeta (antes se escribía encima fichero a fichero y `cv build --data` cargaba la suma de las pasadas).
+    expect(replaced.fs.file('/work/import/mio/experience/sobrante.md')).toBeUndefined();
+    // Y tampoco se pierden: el borrador anterior queda entero en su copia, que la CLI nombra (C9).
+    const entries = await replaced.fs.readDirectory('/work/import');
+    const backup = entries.map((entry) => entry.name).find((entry) => entry.startsWith('mio.') && entry.endsWith('.bak'));
+    expect(backup).toBeDefined();
+    expect(replaced.fs.file(`/work/import/${backup!}/experience/sobrante.md`)?.content).toContain('Vieja');
+    expect(replaced.fs.file(`/work/import/${backup!}/README.md`)?.content).toBe('anterior');
+    expect(replaced.stderr()).toContain(`se apartó completo en ${backup!}`);
   });
 
   it('los errores del extractor de PDF distinguen datos (invalid) de fallos (timeout…)', async () => {
