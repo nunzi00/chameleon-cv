@@ -25,7 +25,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { locateTypst } from '../../src/renderers/typst';
 import { generateOfferPdfs, generateReviews, generateThemeArchives } from './bench/generate';
 import { SCENARIOS, type Scenario, type Step, type StepOutput } from './cases';
-import { compareBytes, comparePdf, compareText, type Mismatch } from './compare';
+import { compareBytes, compareOdt, comparePdf, compareText, type Mismatch } from './compare';
 
 export const REPO_ROOT = resolve(__dirname, '..', '..');
 export const CLI_PATH = join(REPO_ROOT, 'dist', 'index.js');
@@ -126,6 +126,9 @@ async function compareFile(what: string, kind: StepOutput['kind'], expectedPath:
   }
   if (kind === 'pdf') {
     return comparePdf(what, await readFile(expectedPath), await readFile(actualPath));
+  }
+  if (kind === 'odt') {
+    return compareOdt(what, await readFile(expectedPath), await readFile(actualPath));
   }
   const [expected, actual] = await Promise.all([readFile(expectedPath), readFile(actualPath)]);
   return kind === 'text' || kind === 'json'

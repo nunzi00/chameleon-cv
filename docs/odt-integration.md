@@ -22,8 +22,11 @@ PO lo pide.
 
 `src/renderers/odt/zip.ts`. Lo que hace falta y nada más, con dos exigencias que no son caprichos:
 
-- **Determinista**: fecha fija (1980-01-01) en todas las entradas, así que el mismo perfil da el mismo fichero
-  byte a byte. Es lo que ya se exige del PDF y lo que permite compararlo con un golden en el arnés.
+- **Determinista**: fecha fija (1980-01-01) en todas las entradas, así que el mismo perfil da el mismo documento.
+  Con un matiz que **destapó CI**: los bytes *comprimidos* dependen de la implementación de zlib —la de Arch y la
+  del Node oficial no comprimen igual, y el golden salía 32 bytes más corto—, exactamente el mismo problema que
+  ya tenían los PDF. La cura es la misma: el arnés compara los ODT en **forma canónica**, por sus entradas ya
+  descomprimidas. Lo que importa del documento es su contenido, no cuánto ocupó al comprimirlo.
 - **`mimetype` primero y SIN comprimir**: un paquete ODF se reconoce leyendo los primeros bytes del zip
   (OpenDocument v1.3 §3.3). Comprimido, LibreOffice lo abre igual, pero `file(1)` y media herramienta del mundo
   lo ven como un zip cualquiera. Con la entrada en su sitio, `file` responde `OpenDocument Text`.
@@ -74,6 +77,6 @@ tipo (`application/vnd.oasis.opendocument.text`).
 
 **ENTREGADO el 2026-09-03.** Verificado con **LibreOffice de verdad**: la prueba convierte el ODT a texto con
 `soffice --headless` y comprueba que salen el nombre, las secciones y las viñetas (se omite sola donde no esté
-instalado). El arnés determinista genera un ODT **con el binario empaquetado** y lo compara byte a byte contra
-su golden. Y con el perfil real del PO: `file` responde `OpenDocument Text` y LibreOffice recupera el CV entero,
+instalado). El arnés determinista genera un ODT **con el binario empaquetado** y lo compara en forma canónica contra su
+golden (entradas descomprimidas, por la zlib). Y con el perfil real del PO: `file` responde `OpenDocument Text` y LibreOffice recupera el CV entero,
 las 6 experiencias con sus logros, impactos y tecnologías.

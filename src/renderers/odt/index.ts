@@ -4,8 +4,8 @@
  * Typst ya cubren la tipografía.
  *
  * Sin dependencias y sin red: el paquete se arma con `zlib` (`zip.ts`) y los XML se componen a partir del mismo
- * `StructuredView` que usan Typst y pdfkit, así que el CV es exactamente el mismo. Determinista: el mismo
- * perfil produce el mismo fichero byte a byte.
+ * `StructuredView` que usan Typst y pdfkit, así que el CV es exactamente el mismo. Determinista: el mismo perfil
+ * produce el mismo documento (los bytes comprimidos dependen de la zlib de cada máquina, como en los PDF).
  */
 import type { MasterProfile } from '../../core/schema';
 import { DEFAULT_LOCALE } from '../markdown/renderer';

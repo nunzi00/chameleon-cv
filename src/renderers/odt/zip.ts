@@ -5,8 +5,10 @@
  *
  * Dos exigencias que no son caprichos:
  *
- * - **Determinista**: fecha fija en todas las entradas, así que el mismo perfil produce el mismo fichero byte a
- *   byte. Es lo mismo que ya se exige del PDF, y es lo que permite comparar una salida con su golden.
+ * - **Determinista**: fecha fija en todas las entradas, así que el mismo perfil produce el mismo fichero. Con un
+ *   matiz medido en CI: los BYTES COMPRIMIDOS dependen de la zlib de cada máquina —la de Arch y la del Node
+ *   oficial no comprimen igual—, exactamente como pasa con los PDF. Lo estable es el contenido, y por eso el
+ *   arnés compara los ODT por sus entradas descomprimidas (`tests/acceptance/compare.ts`).
  * - **`mimetype` primero y SIN comprimir**: el paquete ODF se reconoce leyendo los primeros bytes del zip
  *   (OpenDocument v1.3 §3.3), así que esa entrada tiene que ir la primera y almacenada. Comprimida, LibreOffice
  *   abre el fichero igual pero `file(1)` y medio mundo lo ven como un zip cualquiera.

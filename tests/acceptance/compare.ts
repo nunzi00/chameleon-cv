@@ -5,10 +5,15 @@
  * forma canónica (flujos descomprimidos, sin longitudes ni tabla xref): dos implementaciones de zlib
  * (la zlib-ng de Arch frente a la del Node oficial) comprimen distinto el mismo contenido y el arnés no
  * debe confundir eso con un cambio. Si tampoco así coinciden, se extrae el texto para enseñar qué cambió.
+ *
+ * Los ODT tienen exactamente el mismo problema y la misma cura: su paquete es un zip con XML dentro, así que
+ * se comparan por sus entradas ya DESCOMPRIMIDAS. Lo que importa del documento es su contenido, no cuántos
+ * bytes ocupó al comprimirlo la zlib de turno.
  */
 import { inflateSync } from 'node:zlib';
 
 import { extractPdfText } from '../../src/pdf';
+import { readZipEntries } from '../../src/themes/archive';
 
 export interface Mismatch {
   readonly what: string;
@@ -163,4 +168,31 @@ export async function comparePdf(what: string, expected: Uint8Array, actual: Uin
     return { what, detail: before.text === after.text ? `${header}\n  (el texto extraído es idéntico: difieren solo los bytes)` : `${header}\n${lineDiff(before.text, after.text)}` };
   }
   return { what, detail: header };
+}
+
+/** Un ODT en forma canónica: cada entrada con su nombre y su contenido ya descomprimido, en orden. */
+function canonicalOdt(bytes: Uint8Array): string {
+  return readZipEntries(bytes)
+    .map((entry) => (entry.type === 'file' ? `${entry.path}\n${Buffer.from(entry.read(16 * 1024 * 1024)).toString('utf8')}` : `${entry.path} (${entry.type})`))
+    .join('\n\u0000\n');
+}
+
+/** ODT: bytes idénticos, o mismas entradas con el mismo contenido (solo cambia la compresión), o el diff del XML. */
+export function compareOdt(what: string, expected: Uint8Array, actual: Uint8Array): Mismatch | undefined {
+  const bytes = compareBytes(what, expected, actual);
+  if (bytes === undefined) {
+    return undefined;
+  }
+  let before: string;
+  let after: string;
+  try {
+    before = canonicalOdt(expected);
+    after = canonicalOdt(actual);
+  } catch (error) {
+    return { what, detail: `${bytes.detail}; el paquete no se pudo leer como zip: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  if (before === after) {
+    return undefined;
+  }
+  return { what, detail: `${bytes.detail}\n${lineDiff(before, after)}` };
 }
