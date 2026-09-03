@@ -1,0 +1,1 @@
+Sin un borrador de LinkedIn con el que comparar: el plan solo dice qué tienes tú. Exporta tu perfil e impórtalo con «cv import-cv <fichero>» para saber además qué corregir

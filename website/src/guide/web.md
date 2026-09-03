@@ -79,6 +79,23 @@ Cuando una revisión **ya no deja nada pendiente**, al aplicarla se archiva sola
 
 En cada fuente abierta, **Eliminar** la borra. Primero enseña qué entradas del perfil se lleva por delante —un fichero no siempre aporta lo que uno cree— y solo después pide confirmación; si sin ese fichero tus fuentes dejaran de cargar, se niega y dice por qué. La versión anterior completa queda en el histórico, así que se recupera desde «Historial de esta fuente» de cualquier fuente.
 
+## LinkedIn
+
+Tu perfil de LinkedIn envejece solo: el titular se queda, las aptitudes se quedan y las fuentes siguen creciendo.
+Esta pantalla dice **qué cambiar allí** para que diga lo que dicen tus fuentes, en tres bloques: qué **añadir**
+(está en tus fuentes y no allí, con el texto listo para copiar), qué **corregir** (está en los dos y no dice lo
+mismo; tus fuentes son la referencia) y qué **falta por actualizar** en tu propio perfil antes de subirlo
+—puestos sin logros, sin etiquetas, sin certificaciones—.
+
+Antes del botón están los pasos, porque sin ellos no hay nada que comparar: **exportar** de LinkedIn
+(*Configuración y privacidad → Privacidad de los datos → Obtener una copia de tus datos*, marcando «Quiero
+algunos datos» con *Positions*, *Education*, *Skills*, *Languages* y *Profile*; o *Más → Guardar como PDF* en tu
+perfil) e **importarlo aquí** (el `.zip` y el PDF entran por *Importar CV* y dejan un borrador, nunca escriben
+en tus fuentes). Sin borrador con el que comparar el plan sigue saliendo, pero solo puede decir qué tienes tú.
+
+No hay modelo ni red: es una comparación local entre dos perfiles, con la misma regla de «esto es el mismo
+empleo» que usa Duplicados.
+
 ## Qué escribe la interfaz y qué no
 
 Escribe **solo cuando pulsas un botón con nombre**: Guardar y Eliminar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema e Instalar tema (`themes/<nombre>/`), Lanzar (una revisión en `output/` al terminar un trabajo de mejorar o resumir), Guardar marcas (el fichero de la revisión), Escribir en las fuentes (tus fuentes, con la versión anterior en el histórico, tras confirmar), Archivar y Desarchivar (mueven el fichero de la revisión), Deshacer la aplicación (tus fuentes, tras confirmar) y Eliminar (una revisión). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.

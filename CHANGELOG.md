@@ -2,6 +2,13 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **El plan para poner LinkedIn al día** (T-9.27, encargo del PO del 3-sep: «me falta un botón en la web para generar las mejoras de linkedin en base al perfil»). El flujo con LinkedIn iba en **una sola dirección** —importar—, y faltaba la que se usa a diario: qué cambiar allí para que tu perfil diga lo que dicen tus fuentes. `cv linkedin`, `POST /api/v1/linkedin/plan` y la pantalla **LinkedIn** en la web dan el plan en **tres bloques**: qué **añadir** (está en tus fuentes y no allí, con el texto listo para copiar), qué **corregir** (está en los dos y no dice lo mismo; tus fuentes son la referencia) y qué **falta por actualizar** en tu propio perfil antes de subirlo —puestos sin logros, sin etiquetas, cero certificaciones—. **Sin modelo y sin red**: es un diff local entre dos perfiles, con la misma regla de «esto es el mismo empleo» que usa `cv duplicates`.
+- **Y los pasos van en la pantalla, no en la documentación.** Antes del botón se explica cómo **exportar** de LinkedIn —la exportación de datos con *Positions*, *Education*, *Skills*, *Languages* y *Profile*, que trae los datos estructurados, o «Guardar como PDF», inmediato pero con maquetación que adivinar— y cómo **importarlo aquí**, que deja un borrador y nunca escribe en tus fuentes. Un botón que falla porque falta un requisito que nadie explicó es peor que no tenerlo. Medido sobre el perfil real del PO: 16 apuntes para añadir, 11 para corregir y 7 pendientes.
+
 ## [1.21.0] - 2026-09-03
 
 ### Añadido

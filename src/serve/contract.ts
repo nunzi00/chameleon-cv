@@ -20,6 +20,7 @@ import type { GenerateReport } from '../app/generate';
 import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../app/review';
 import type { UndoOutcome } from '../app/review-undo';
 import type { DeleteSourceOutcome } from '../app/source-delete';
+import type { LinkedinPlan } from '../app/linkedin';
 import type { SourceEntry, SourceFile } from '../app/sources';
 import type { OfferListEntry } from '../app/offer';
 import type { CreatedTheme, InstalledTheme, ThemeInventory, ThemeVerification } from '../app/themes';
@@ -305,6 +306,14 @@ export const ApplySchema = z.object({
   /** Por defecto la revisión que ya no deja nada pendiente se aparta a revisiones-archivadas/; `false` la deja donde está. */
   archive: z.boolean().optional(),
 });
+
+/** `POST /linkedin/plan`: el plan para poner LinkedIn al día, comparando con un borrador si se indica (T-9.27). */
+export const LinkedinPlanSchema = z.object({
+  /** Borrador de import/ con lo exportado de LinkedIn; sin él, el plan solo dice qué tienes tú. */
+  draft: z.string().trim().min(1).max(120).optional(),
+});
+export type LinkedinPlanRequestBody = z.infer<typeof LinkedinPlanSchema>;
+export type LinkedinPlanResponse = LinkedinPlan;
 
 /** `POST /reviews/{name}/archive`: apartar la revisión a revisiones-archivadas/ o devolverla a la vista. */
 export const ReviewArchiveSchema = z.object({

@@ -38,6 +38,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: 'Producir',
     items: [
       { page: 'generar', label: 'Generar', icon: 'play' },
+      { page: 'linkedin', label: 'LinkedIn', icon: 'globe' },
       { page: 'salidas', label: 'Salidas', icon: 'file-down' },
     ],
   },

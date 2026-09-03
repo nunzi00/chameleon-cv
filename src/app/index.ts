@@ -17,6 +17,7 @@ export * from './format';
 export * from './freshness';
 export * from './generate';
 export * from './limits';
+export * from './linkedin';
 export * from './offer';
 export * from './paths';
 export * from './portability';

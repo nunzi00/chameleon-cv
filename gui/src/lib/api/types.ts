@@ -17,6 +17,8 @@ export type {
   TagsApplyResponse,
   RankRequest,
   RankResponse,
+  LinkedinPlanRequestBody,
+  LinkedinPlanResponse,
   ImportFolderRequest,
   ImportFolderResponse,
   AnalyzeRequest,

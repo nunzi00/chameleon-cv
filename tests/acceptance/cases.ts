@@ -85,6 +85,8 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'generate-backend-stdout', args: ['generate-cv', '-s', 'backend', '--stdout'], exitCode: 0 },
       // ODT (T-9.23): se compara por sus entradas descomprimidas, no por bytes: la compresión depende de la
       // zlib de cada máquina, igual que en los PDF.
+      // El plan de LinkedIn (T-9.27): sin borrador con el que comparar, todo lo del perfil es «añadir».
+      { id: 'linkedin-plan', args: ['linkedin'], exitCode: 0 },
       { id: 'generate-backend-odt', args: ['generate-cv', '-s', 'backend', '--format', 'odt', '-o', 'output/cv-backend.odt'], exitCode: 0, outputs: [{ path: 'output/cv-backend.odt', kind: 'odt' }] },
       // El ODT hereda el tema (T-9.26): «functional» cambia el orden de las secciones, consolida los logros con
       // su origen y deja la experiencia en una línea por puesto, todo dentro de un documento editable.

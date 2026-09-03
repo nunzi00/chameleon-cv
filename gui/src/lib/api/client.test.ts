@@ -172,6 +172,16 @@ describe('cliente de la API', () => {
     expect(calls[6]?.body).toBe('{}');
   });
 
+  it('linkedin: el plan se pide por POST y sin borrador va con el cuerpo vacío (T-9.27)', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.linkedinPlan({});
+    await api.linkedinPlan({ draft: 'perfil' });
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/linkedin/plan', 'POST /api/v1/linkedin/plan']);
+    expect(calls[0]?.body).toBe('{}');
+    expect(calls[1]?.body).toBe('{"draft":"perfil"}');
+  });
+
   it('fuentes: el plan de borrado no borra y el borrado exige la huella (T-9.25)', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
     const api = createApiClient({ fetch: f, token: () => 't' });

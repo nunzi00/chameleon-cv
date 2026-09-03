@@ -314,6 +314,51 @@ fuentes y `output/` son los CV que este programa acaba de generar—.
 Con una sola candidata queda puesta y solo hay que pulsar. **La lista no es una jaula**: el campo de ruta sigue
 ahí para una carpeta que no esté, y si el recorrido falla la pantalla cae a él sola.
 
+## §13 El plan de LinkedIn (T-9.27)
+
+**Encargo del PO (2026-09-03)**: «me falta un botón en la web para generar las mejoras de linkedin en base al
+perfil (es necesario indicar los pasos para exportar de linkedin y como importar aqui)».
+
+Hasta aquí, el flujo con LinkedIn iba en una sola dirección: **importar**. Pero el perfil del PO llevaba años
+sin tocarse —un titular de «Senior Developer, devops» y un bloque de especialidades con COBOL— mientras sus
+fuentes decían «Arquitecto de software» con 13.032 commits. Lo que faltaba era la dirección contraria: **qué
+cambiar allí para que diga lo que dicen tus fuentes**.
+
+### §13.1 Es un diff, no un modelo
+
+`src/app/linkedin.ts`. No hay LLM ni red: se comparan **dos perfiles** —el tuyo y el que LinkedIn exportó,
+importado como borrador— con la **misma regla de identidad** que el detector de duplicados (§11): si dos
+entradas son de la misma organización y sus periodos coinciden, son la misma cosa (`sameOrganization` +
+`periodsOverlap`, B-20). Reutilizarla no es ahorro: es que «el mismo empleo» tiene que significar lo mismo en
+las dos pantallas.
+
+Tres acciones, y la tercera mira al revés que las otras dos:
+
+| Acción | Qué es |
+| --- | --- |
+| `add` | Está en tus fuentes y no en LinkedIn. Trae el **cuerpo listo para copiar**: el resumen de la entrada y sus logros como viñetas. |
+| `fix` | Está en los dos y no dice lo mismo. **Tus fuentes son la referencia**, porque son las que compilas, versionas y de las que salen tus CV. |
+| `pending` | Le falta a **tu perfil**, no a LinkedIn: puestos sin logros, sin etiquetas, cero certificaciones, y lo que LinkedIn trae y tus fuentes no. Subir un puesto vacío no mejora nada, así que se dice aparte en vez de mezclarlo con lo que ya se puede copiar. |
+
+### §13.2 Dos decisiones que solo se ven con datos reales
+
+- **El emparejado es uno a uno y por la mejor candidata.** Con `.find()` a la primera, la única «desarrollo de
+  aplicaciones web · ies muralla romana» que exportó LinkedIn —sin fechas, así que casa con cualquier periodo—
+  salía como contrapartida de las **tres** titulaciones del mismo instituto. Y la única entrada «Software
+  Developer · Life5», abierta desde 2022, competía con las cuatro etapas del PO en esa empresa: ahora se lleva
+  la que más se le parece por título y las otras tres quedan como «añadir», que es justo lo que hay que hacer.
+- **Las aptitudes se comparan por nombre y por alias.** LinkedIn dice «GCP» y las fuentes «Google Cloud»: sin
+  mirar los alias, esa habilidad salía como si faltara.
+
+### §13.3 Los pasos, en la propia pantalla
+
+La pantalla **LinkedIn** de la web no es solo el botón: lleva delante cómo exportar (la **exportación de datos**
+con *Positions*, *Education*, *Skills*, *Languages* y *Profile*, que trae los datos estructurados; o *Guardar
+como PDF*, inmediato pero con maquetación que adivinar) y cómo importarlo aquí (el `.zip` por
+`cv import-linkedin`, el PDF por `cv import-cv`; los dos dejan un **borrador**, nunca escriben en tus fuentes).
+Sin ese paso no hay nada que comparar, y un botón que falla porque falta un requisito que nadie explicó es peor
+que no tenerlo.
+
 ## §11 Duplicados en las propias fuentes (T-9.20)
 
 **El encargo del PO (2-sep, tras adoptar de varios borradores)**: «necesito una herramienta para detectar
