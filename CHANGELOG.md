@@ -2,6 +2,13 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **Qué hacer con una revisión después de aplicarla** (T-9.24, encargo del PO del 3-sep: «en el apartado revisiones quiero poder eliminar una revisión, archivar (de hecho las aplicadas deberían archivarse) y restaurar los cambios aplicados»). Eliminar ya estaba; lo que faltaba era todo lo demás, porque hasta hoy una revisión aplicada se quedaba en la lista para siempre o se borraba, y ninguna de las dos cosas es lo que quiere nadie. **Archivar es mover, no borrar**: la revisión pasa a `revisiones-archivadas/`, junto al directorio en el que estaba, deja de salir en la lista y **sigue estando** —se abre, se aplica y se desarchiva igual, y su nombre no cambia—. **La que ya no deja nada pendiente se archiva sola** al aplicarla, que era la mitad del encargo. La regla se mide contra las fuentes recién escritas: una revisión con ítems que nadie marcó se queda donde está —todavía tiene trabajo dentro— y una que no se pudo aplicar tampoco se esconde. `cv improve archive|unarchive`, `--no-archive` y, en la web, la sección **Archivadas** plegada al final del árbol.
+- **Y los cambios aplicados se pueden deshacer, de una vez.** `cv improve undo <revisión>` y **«Deshacer la aplicación»** devuelven **todas** las fuentes que esa revisión escribió a como estaban antes. No hay estado nuevo que inventar: `cv improve apply` ya guardaba en el histórico (T-8.10) el fichero entero de cada fuente y el nombre de la revisión que lo cambió, así que deshacer es encontrar esa entrada y devolverla. Lo que hubiera ahora se guarda a su vez como una entrada `restore`: **deshacer el deshacer también es posible** y no se pierde nada. Deshacer dos veces no cambia nada y lo dice, en vez de llenar el histórico de entradas idénticas. Y **deshacer desarchiva**: si los cambios de una revisión ya no están en las fuentes, vuelve a estar pendiente, y esconderla afirmaría lo contrario. En la API, `POST /api/v1/reviews/{name}/archive` y `/undo`; `GET /reviews` devuelve ahora los dos grupos, `reviews` y `archived`.
+
 ## [1.20.0] - 2026-09-03
 
 ### Corregido

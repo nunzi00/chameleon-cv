@@ -1,0 +1,1 @@
+1 fuente restaurada · la versión que había queda en el histórico como <STAMP>-revision-summarize-backend-marcada · recompila el artefacto con «cv build»

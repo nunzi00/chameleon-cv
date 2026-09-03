@@ -22,6 +22,8 @@ export * from './paths';
 export * from './portability';
 export * from './provenance';
 export * from './review';
+export * from './review-undo';
+export * from './source-history';
 export * from './settings';
 export * from './slug';
 export * from './sources';

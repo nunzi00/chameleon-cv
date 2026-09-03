@@ -171,6 +171,11 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'apply-improve', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 0, outputs: [{ path: 'data/sources/experience/nexo-pagos.md', kind: 'text' }, { path: 'output/historial-fuentes/index.json', kind: 'json' }] },
       { id: 'apply-summarize', args: ['improve', 'apply', 'reviews/revision-summarize-backend-marcada.md'], exitCode: 0, outputs: [{ path: 'data/sources/specialties/backend.md', kind: 'text' }] },
       { id: 'apply-improve-again', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 0 },
+      // Archivar es mover, no borrar (T-9.24): la revisión de improve sigue teniendo un ítem sin marcar, así que
+      // no se archivó sola; se archiva y se devuelve a mano, y pedir lo que ya es no falla.
+      { id: 'apply-archive', args: ['improve', 'archive', 'reviews/revision-improve-marcada.md'], exitCode: 0 },
+      { id: 'apply-archive-otra-vez', args: ['improve', 'archive', 'reviews/revisiones-archivadas/revision-improve-marcada.md'], exitCode: 0 },
+      { id: 'apply-unarchive', args: ['improve', 'unarchive', 'reviews/revisiones-archivadas/revision-improve-marcada.md'], exitCode: 0 },
       { id: 'build-after', args: ['build', '-v'], exitCode: 0 },
       { id: 'generate-backend-after', args: ['generate-cv', '-s', 'backend', '-o', 'output/cv-backend-aplicado.md'], exitCode: 0, outputs: [{ path: 'output/cv-backend-aplicado.md', kind: 'text' }] },
       { id: 'history', args: ['history'], exitCode: 0 },
@@ -178,6 +183,11 @@ export const SCENARIOS: readonly Scenario[] = [
       // Sin `outputs`: la ruta restaurada ya la captura apply-improve y los ficheros esperados se comparten por ruta.
       { id: 'history-restore', args: ['history', 'restore', 'latest', 'experience/nexo-pagos.md'], exitCode: 0 },
       { id: 'history-after-restore', args: ['history', '--json'], exitCode: 0 },
+      // Deshacer la aplicación de la revisión de summarize (que sí se archivó sola, porque no dejó nada
+      // pendiente): la especialidad vuelve a su resumen de antes y la revisión sale del archivo.
+      { id: 'apply-undo-summarize', args: ['improve', 'undo', 'reviews/revisiones-archivadas/revision-summarize-backend-marcada.md'], exitCode: 0 },
+      { id: 'apply-undo-otra-vez', args: ['improve', 'undo', 'reviews/revision-summarize-backend-marcada.md'], exitCode: 0 },
+      { id: 'history-after-undo', args: ['history'], exitCode: 0 },
     ],
   },
   {

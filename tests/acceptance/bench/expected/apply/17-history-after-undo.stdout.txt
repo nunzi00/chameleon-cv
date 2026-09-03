@@ -1,0 +1,4 @@
+<ISO> · restore <STAMP>-revision-summarize-backend-marcada · specialties/backend.md (<STAMP>-revision-summarize-backend-marcada) · <STAMP>-revision-summarize-backend-marcada
+<ISO> · restore <STAMP>-revision-improve-marcada · experience/nexo-pagos.md (<STAMP>-revision-improve-marcada) · <STAMP>-revision-improve-marcada
+<ISO> · apply revision-summarize-backend-marcada.md · specialties/backend.md (summary) · <STAMP>-revision-summarize-backend-marcada
+<ISO> · apply revision-improve-marcada.md · experience/nexo-pagos.md (exp-nexo-pagos-2) · <STAMP>-revision-improve-marcada

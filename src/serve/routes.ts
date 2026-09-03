@@ -22,7 +22,8 @@ import { generateCv, writeCvFile } from '../app/generate';
 import type { AppWarning } from '../app/freshness';
 import { readOffer, type OfferInput } from '../app/offer';
 import { isSafeSourcePath } from '../app/paths';
-import { REVIEW_NAME, applyReview, listReviews, readReview } from '../app/review';
+import { REVIEW_NAME, applyReview, listReviews, locateReview, readReview, removeReview, setReviewArchived } from '../app/review';
+import { undoReviewApply } from '../app/review-undo';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { applyImportProposal } from '../app/import-apply';
@@ -47,7 +48,7 @@ import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarnin
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { ODT_MIMETYPE } from '../renderers';
 import { describeError } from '../shared/errors';
-import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, ReviewArchiveSchema, type ReviewArchiveResponse, type ReviewUndoResponse, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -1645,9 +1646,9 @@ function addCopilotRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'GET',
     path: `${API_PREFIX}/reviews`,
-    summary: 'Revisiones del co-piloto en output/ (revision-*.md): tarea, ítems, propuestas marcadas y huella.',
+    summary: 'Revisiones del co-piloto en output/ (revision-*.md): tarea, ítems, propuestas marcadas y huella; «archived», las apartadas en output/revisiones-archivadas/.',
     writes: false,
-    handler: async (_request, state) => json(200, { reviews: await listReviews(state.context, OUTPUT_DIR) } satisfies ReviewsResponse),
+    handler: async (_request, state) => json(200, (await listReviews(state.context, OUTPUT_DIR)) satisfies ReviewsResponse),
   });
 
   router.add({
@@ -1689,22 +1690,39 @@ function addCopilotRoutes(router: Router<ServerState>): void {
   router.add({
     method: 'DELETE',
     path: `${API_PREFIX}/reviews/{name}`,
-    summary: 'Elimina una revisión de output/.',
+    summary: 'Elimina una revisión, esté a la vista o archivada. Las fuentes no se tocan.',
     writes: true,
     handler: async (request, state) => {
       const name = String(request.params['name']);
-      const invalid = reviewName(name);
-      if (invalid !== undefined) {
-        return appErrorResponse(invalid);
+      const result = await removeReview(state.context, OUTPUT_DIR, name);
+      return result.ok ? json(200, { deleted: result.name } satisfies ReviewDeleteResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/reviews/{name}/archive`,
+    summary: 'Aparta la revisión a output/revisiones-archivadas/ («archived»: true) o la devuelve a la vista (false). Idempotente; nunca sobrescribe.',
+    writes: true,
+    body: ReviewArchiveSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, ReviewArchiveSchema);
+      if (!parsed.ok) {
+        return parsed.response;
       }
-      const path = resolve(state.context.cwd, OUTPUT_DIR, name);
-      try {
-        await state.context.datasetFileSystem.stat(path);
-        await state.context.artifactFileSystem.remove(path);
-      } catch (error) {
-        return appErrorResponse(isMissingFile(error) ? notFoundError(`No existe la revisión «${name}»`) : environmentError(`No se pudo eliminar la revisión «${name}»: ${describeError(error)}`));
-      }
-      return json(200, { deleted: name } satisfies ReviewDeleteResponse);
+      const result = await setReviewArchived(state.context, OUTPUT_DIR, String(request.params['name']), parsed.value.archived);
+      return result.ok ? json(200, { name: result.name, archived: result.archived, moved: result.moved } satisfies ReviewArchiveResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/reviews/{name}/undo`,
+    summary: 'Deshace la última aplicación de esa revisión: devuelve cada fuente a como estaba (la versión de ahora queda en el histórico) y saca la revisión del archivo.',
+    writes: true,
+    handler: async (request, state) => {
+      const result = await undoReviewApply(state.context, { directory: OUTPUT_DIR, name: String(request.params['name']) });
+      return result.ok ? json(200, result.outcome satisfies ReviewUndoResponse) : appErrorResponse(result.error);
     },
   });
 
@@ -1724,7 +1742,9 @@ function addCopilotRoutes(router: Router<ServerState>): void {
       if (!parsed.ok) {
         return parsed.response;
       }
-      const result = await applyReview(state.context, { review: `${OUTPUT_DIR}/${name}`, data: state.data, dryRun: parsed.value.dryRun ?? true, deleteReview: parsed.value.deleteReview ?? false });
+      // Una revisión archivada se puede volver a aplicar sin desarchivarla antes: se busca donde esté.
+      const located = await locateReview(state.context, OUTPUT_DIR, name);
+      const result = await applyReview(state.context, { review: located?.path ?? `${OUTPUT_DIR}/${name}`, data: state.data, dryRun: parsed.value.dryRun ?? true, deleteReview: parsed.value.deleteReview ?? false, archive: parsed.value.archive });
       return result.ok ? json(200, result.outcome satisfies ApplyResponse) : appErrorResponse(result.error, { written: result.written });
     },
   });

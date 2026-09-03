@@ -130,16 +130,25 @@ its `file:line`) and the **after**: the model's proposals, with a checkbox on th
 (C2) and struck through on the rejected ones. You tick the one you want for each item and **Guardar marcas**
 writes only `[ ]`→`[x]` into the review file (the rest stays intact: `cv improve apply` reads exactly the same).
 **Plan de aplicación** shows which files and ids would change, touching nothing; **Escribir en las fuentes**
-—after confirmation— applies the ticked ones leaving a `.bak` copy of each file, and if an original is no longer
-exactly that in the source it writes nothing and explains why. Afterwards, rebuild the artifact from Estado.
-**Eliminar** deletes only the review file.
+—after confirmation— applies the ticked ones, saving the complete previous version of each file to the history,
+and if an original is no longer exactly that in the source it writes nothing and explains why. Afterwards,
+rebuild the artifact from Estado.
+
+When a review **leaves nothing pending**, applying it archives it on its own: it leaves the list and moves to the
+**Archivadas** section of the tree, folded at the bottom. It is not deleted: you open, apply and restore it just
+the same, with **Desarchivar**. **Archivar** does that by hand for any review. **Deshacer la aplicación** —only
+shown if that review actually wrote something— returns every source to how it was before applying it; whatever
+was there now goes into the history in turn, so undoing can itself be undone, and the review leaves the archive
+because it is pending again. **Eliminar** deletes the review file (your sources do not change): if you only want
+it out of the way, archive it.
 
 ## What the interface writes, and what it doesn't
 
 It writes **only when you press a named button**: Guardar (a source), Compilar (the artifact), Generar CV (a file
 in `output/`), Crear tema and Instalar tema (`themes/<name>/`), Lanzar (a review in `output/` when an improve or
-summarize job finishes), Guardar marcas (the review file), Escribir en las fuentes (your sources, with a `.bak`
-copy, after confirmation) and Eliminar (a review). It never writes on its own or on closing. Everything else is
+summarize job finishes), Guardar marcas (the review file), Escribir en las fuentes (your sources, with the
+previous version in the history, after confirmation), Archivar and Desarchivar (they move the review file),
+Deshacer la aplicación (your sources, after confirmation) and Eliminar (a review). It never writes on its own or on closing. Everything else is
 reading. The server checks every source write against the file's fingerprint, exactly like the API.
 
 ## Security

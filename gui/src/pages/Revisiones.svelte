@@ -5,7 +5,7 @@
   import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
   import type { ApiClient } from '../lib/api/client';
-  import type { ApplyResponse, ReviewResponse, ReviewsResponse } from '../lib/api/types';
+  import type { ApplyResponse, ReviewResponse, ReviewUndoResponse, ReviewsResponse } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { plural } from '../lib/format';
   import { diffSummary, lineDiff } from '../lib/reviews/diff';
@@ -25,6 +25,8 @@
   let { api, item, onsession, navigate }: Props = $props();
 
   let list = $state<readonly ReviewSummary[]>([]);
+  /** Las apartadas: fuera de la lista principal, pero a un clic (T-9.24). */
+  let archived = $state<readonly ReviewSummary[]>([]);
   let loaded = $state(false);
   let file = $state<ReviewFile | undefined>(undefined);
   let text = $state('');
@@ -35,9 +37,11 @@
   let message = $state<string | undefined>(undefined);
   let plan = $state<ApplyResponse | undefined>(undefined);
   let applied = $state<ApplyResponse | undefined>(undefined);
+  let undone = $state<ReviewUndoResponse | undefined>(undefined);
   let busy = $state(false);
   let confirmWrite = $state(false);
   let confirmDelete = $state(false);
+  let confirmUndo = $state(false);
   const dirty = $derived(file !== undefined && text !== file.text);
   const markedCount = $derived(countMarks(text));
   const TASKS: Readonly<Record<string, string>> = { improve: 'mejorar logros', summarize: 'resumen profesional' };
@@ -49,6 +53,8 @@
     unknown: { label: 'sin fuente registrada', badge: 'warn' },
   };
   const stateOf = $derived((itemId: string): string | undefined => file?.statuses.find((status) => status.id === itemId)?.state);
+  /** Deshacer solo se ofrece si esta revisión llegó a escribir algo: si no, no hay nada que devolver. */
+  const appliedCount = $derived(file?.progress?.applied ?? 0);
 
   /** Lo que se dice al lado del nombre en la lista: «3 de 5 ya aplicadas» solo cuando hay algo aplicado. */
   function progressOf(entry: { readonly progress?: { readonly applied: number } | undefined; readonly items: number }): string {
@@ -76,7 +82,9 @@
 
   async function loadList(): Promise<void> {
     try {
-      list = (await api.reviews()).reviews;
+      const listing = await api.reviews();
+      list = listing.reviews;
+      archived = listing.archived;
       loaded = true;
     } catch (caught) {
       fail(caught);
@@ -88,6 +96,7 @@
     message = undefined;
     plan = undefined;
     applied = undefined;
+    undone = undefined;
     try {
       const loadedFile = (await api.review(name)).review;
       file = loadedFile;
@@ -159,7 +168,55 @@
     try {
       applied = await api.applyReview(file.name, { dryRun: false });
       plan = undefined;
-      message = `${plural(applied.changes, 'cambio aplicado', 'cambios aplicados')} en ${plural(applied.written.length, 'fichero', 'ficheros')}: recompila el artefacto en Estado.`;
+      // Tras escribir, el estado de cada ítem y el sitio del fichero cambian: se relee la revisión y la lista.
+      const outcome = applied;
+      await open(file.name);
+      applied = outcome;
+      message = `${plural(outcome.changes, 'cambio aplicado', 'cambios aplicados')} en ${plural(outcome.written.length, 'fichero', 'ficheros')}: recompila el artefacto en Estado.${outcome.archived === undefined ? '' : ' La revisión se ha archivado: ya no deja nada pendiente.'}`;
+      await loadList();
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function setArchived(value: boolean): Promise<void> {
+    if (file === undefined) {
+      return;
+    }
+    busy = true;
+    error = undefined;
+    try {
+      const result = await api.archiveReview(file.name, value);
+      file = { ...file, archived: result.archived };
+      message = result.archived ? 'Archivada: sale de la lista, pero sigue en output/revisiones-archivadas/.' : 'Devuelta a la lista de revisiones.';
+      await loadList();
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      busy = false;
+    }
+  }
+
+  /** Deshacer la aplicación: las fuentes vuelven a como estaban y lo que había ahora queda en el histórico. */
+  async function undo(): Promise<void> {
+    confirmUndo = false;
+    if (file === undefined) {
+      return;
+    }
+    const name = file.name;
+    busy = true;
+    error = undefined;
+    try {
+      const result = await api.undoReview(name);
+      await open(name);
+      undone = result;
+      message =
+        result.entry === undefined
+          ? 'Las fuentes ya estaban como antes de aplicar esta revisión: no se ha cambiado nada.'
+          : `${plural(result.restored.length, 'fuente devuelta', 'fuentes devueltas')} a como estaban antes de aplicar: recompila el artefacto en Estado.`;
+      await loadList();
     } catch (caught) {
       fail(caught);
     } finally {
@@ -214,12 +271,26 @@
           {/each}
         </div>
       {/if}
+      <!-- Las archivadas no se pierden ni estorban: plegadas al final, con el mismo clic para abrirlas. -->
+      {#if archived.length > 0}
+        <details class="cv-collapse cv-review-archived">
+          <summary><strong>Archivadas</strong><span class="cv-muted">· {plural(archived.length, 'revisión', 'revisiones')}</span></summary>
+          <div class="cv-tree-children">
+            {#each archived as entry (entry.name)}
+              <button class="cv-tree-file cv-review-entry" type="button" aria-current={item === entry.name ? 'true' : undefined} onclick={() => navigate({ page: 'revisiones', item: entry.name })}>
+                <span>{entry.name}</span>
+                <small class="cv-muted">{entry.error !== undefined ? 'no interpretable' : `${TASKS[entry.task ?? ''] ?? entry.task} · ${plural(entry.items, 'ítem', 'ítems')}${progressOf(entry)}`}</small>
+              </button>
+            {/each}
+          </div>
+        </details>
+      {/if}
     </div>
     <div class="cv-tree-foot"><button class="cv-button small" type="button" onclick={loadList}>Actualizar</button></div>
   </aside>
   <div class="cv-editor-pane cv-review-pane">
     {#if file === undefined}
-      {#if loaded && list.length === 0}
+      {#if loaded && list.length === 0 && archived.length === 0}
         <div class="cv-empty">
           <div class="cv-empty-inner">
             <div class="cv-empty-icon"><Icon name="checklist" size={26} /></div>
@@ -245,9 +316,14 @@
           <span class="cv-muted cv-review-meta">{TASKS[file.review.task] ?? file.review.task}{file.review.specialty === undefined ? '' : ` · especialidad ${file.review.specialty}`}{file.review.offer === undefined ? '' : ` · oferta ${file.review.offer}`}</span>
         {/if}
         <span class="cv-header-spacer"></span>
+        {#if file.archived}<span class="cv-badge">archivada</span>{/if}
         <span class={dirty ? 'cv-editor-dirty' : 'cv-muted'}>{dirty ? 'marcas sin guardar' : plural(markedCount, 'propuesta marcada', 'propuestas marcadas')}</span>
         <button class="cv-button small" type="button" disabled={!dirty || busy} onclick={save}>Guardar marcas</button>
         <button class="cv-button primary small" type="button" disabled={dirty || busy} title={dirty ? 'Guarda las marcas antes de aplicar' : undefined} onclick={preview}>Plan de aplicación</button>
+        {#if appliedCount > 0}
+          <button class="cv-button danger-quiet small" type="button" disabled={busy} title="Devuelve las fuentes a como estaban antes de aplicar esta revisión" onclick={() => (confirmUndo = true)}>Deshacer la aplicación</button>
+        {/if}
+        <button class="cv-button small" type="button" disabled={busy} onclick={() => setArchived(file?.archived !== true)}>{file.archived ? 'Desarchivar' : 'Archivar'}</button>
         <button class="cv-button danger-quiet small" type="button" disabled={busy} onclick={() => (confirmDelete = true)}>Eliminar</button>
       </div>
       <div class="cv-review-scroll">
@@ -344,6 +420,21 @@
             {/if}
           </div>
         {/if}
+        {#if undone !== undefined}
+          <div class="cv-card cv-card-tight">
+            <h2>Cambios deshechos</h2>
+            {#if undone.entry === undefined}
+              <p class="cv-muted">Las fuentes ya estaban como antes de aplicar esta revisión (entrada <code>{undone.applied.id}</code>): no se ha tocado nada.</p>
+            {:else}
+              <ul>
+                {#each undone.restored as path (path)}
+                  <li><code>{path}</code> vuelve a como estaba antes de aplicar.</li>
+                {/each}
+              </ul>
+              <p class="cv-muted">La versión que había queda en el histórico de fuentes (entrada <code>{undone.entry.id}</code>): deshacer esto también tiene vuelta. Recompila el artefacto en Estado.</p>
+            {/if}
+          </div>
+        {/if}
         {#if applied !== undefined}
           <div class="cv-card cv-card-tight">
             <h2>Aplicado</h2>
@@ -365,8 +456,18 @@
       <button class="cv-button danger" type="button" onclick={write}>Escribir</button>
     </div>
   </Dialog>
+  <Dialog open={confirmUndo} title="¿Deshacer los cambios aplicados?" onclose={() => (confirmUndo = false)}>
+    <p>
+      Cada fuente que escribió esta revisión vuelve a como estaba <strong>antes</strong> de aplicarla. Lo que haya ahora se guarda a su vez en el histórico de fuentes, así
+      que esto también se puede deshacer. Si editaste esas fuentes a mano después de aplicar, ese trabajo se va (queda en el histórico).
+    </p>
+    <div class="cv-dialog-actions">
+      <button class="cv-button" type="button" onclick={() => (confirmUndo = false)}>Cancelar</button>
+      <button class="cv-button danger" type="button" onclick={undo}>Deshacer</button>
+    </div>
+  </Dialog>
   <Dialog open={confirmDelete} title="¿Eliminar la revisión?" onclose={() => (confirmDelete = false)}>
-    <p>Se borra el fichero de <code>output/</code>; las fuentes no cambian.</p>
+    <p>Se borra el fichero; las fuentes no cambian. Si solo quieres que deje de estorbar en la lista, archívala: sigue ahí y se puede recuperar.</p>
     <div class="cv-dialog-actions">
       <button class="cv-button" type="button" onclick={() => (confirmDelete = false)}>Cancelar</button>
       <button class="cv-button danger" type="button" onclick={remove}>Eliminar</button>

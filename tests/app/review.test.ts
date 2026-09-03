@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { contentHash, listReviews, readReview } from '../../src/app';
+import { contentHash, listReviews, locateReview, readReview, removeReview, reviewDirectoryOf, setReviewArchived } from '../../src/app';
 import { fingerprint, formatReview, type ReviewHeader, type ReviewItem } from '../../src/llm';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
@@ -13,15 +13,15 @@ const NAME = 'revision-improve-2026-08-29.md';
 
 describe('listReviews', () => {
   it('sin directorio de salida devuelve una lista vacía', async () => {
-    expect(await listReviews(appContext(new MemoryFileSystem({})), 'output')).toEqual([]);
+    expect(await listReviews(appContext(new MemoryFileSystem({})), 'output')).toEqual({ reviews: [], archived: [] });
   });
 
   it('lista solo revision-*.md con huella, tarea, ítems y marcadas, y anota las que no se pueden interpretar', async () => {
     const context = appContext(new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, '/work/output/revision-rota.md': 'sin cabecera', '/work/output/cv.md': 'x', '/work/output/notas.txt': 'y' }));
-    const reviews = await listReviews(context, 'output');
+    const { reviews } = await listReviews(context, 'output');
     expect(reviews.map((review) => review.name)).toEqual([NAME, 'revision-rota.md']);
     // Sin las fuentes delante no se puede saber si algo se aplicó ya: se dice «unknown», no se supone.
-    expect(reviews[0]).toEqual({ name: NAME, path: `/work/output/${NAME}`, sha256: contentHash(REVIEW), task: 'improve', items: 2, marked: 1, error: undefined, progress: { applied: 0, pending: 0, changed: 0, unknown: 2 } });
+    expect(reviews[0]).toEqual({ name: NAME, path: `/work/output/${NAME}`, sha256: contentHash(REVIEW), task: 'improve', items: 2, marked: 1, error: undefined, progress: { applied: 0, pending: 0, changed: 0, unknown: 2 }, archived: false });
     expect(reviews[1]).toMatchObject({ name: 'revision-rota.md', task: undefined, items: 0, marked: 0 });
     expect(reviews[1]?.error).toEqual(expect.any(String));
   });
@@ -78,7 +78,7 @@ describe('reviewStatus: qué queda por aplicar de una revisión (encargo del PO 
     ]);
     expect(result.ok && result.file.progress).toEqual({ applied: 1, pending: 1, changed: 0, unknown: 0 });
     // Y en la lista, lo mismo resumido: es lo que cabe al lado del nombre.
-    expect((await listReviews(context, 'output'))[0]?.progress).toEqual({ applied: 1, pending: 1, changed: 0, unknown: 0 });
+    expect((await listReviews(context, 'output')).reviews[0]?.progress).toEqual({ applied: 1, pending: 1, changed: 0, unknown: 0 });
   });
 
   it('al listar, la misma fuente se lee UNA vez para todas las revisiones', async () => {
@@ -94,7 +94,7 @@ describe('reviewStatus: qué queda por aplicar de una revisión (encargo del PO 
             }
           : Reflect.get(target, key, target),
     });
-    const reviews = await listReviews(appContext(contando), 'output');
+    const { reviews } = await listReviews(appContext(contando), 'output');
     expect(reviews).toHaveLength(2);
     expect(lecturas).toBe(1);
   });
@@ -135,5 +135,69 @@ describe('reviewStatus: qué queda por aplicar de una revisión (encargo del PO 
     const name = 'revision-improve-2026-08-30.md';
     const context = appContext(new MemoryFileSystem({ [`/work/output/${name}`]: review }));
     expect((await readReview(context, 'output', name)) as { file: { progress: unknown } }).toMatchObject({ file: { progress: { unknown: 2 } } });
+  });
+});
+
+describe('archivar, desarchivar y eliminar revisiones (T-9.24)', () => {
+  const ARCHIVED = '/work/output/revisiones-archivadas';
+
+  it('archivar mueve el fichero fuera de la lista sin borrarlo, y desarchivar lo devuelve', async () => {
+    const fs = new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW });
+    const context = appContext(fs);
+    const archivada = await setReviewArchived(context, 'output', NAME, true);
+    expect(archivada).toEqual({ ok: true, name: NAME, path: `${ARCHIVED}/${NAME}`, archived: true, moved: true });
+    expect(fs.file(`/work/output/${NAME}`)).toBeUndefined();
+    expect(fs.file(`${ARCHIVED}/${NAME}`)?.content).toBe(REVIEW);
+
+    // Sale de la lista principal, pero no desaparece: el listado la devuelve aparte, marcada.
+    const listado = await listReviews(context, 'output');
+    expect(listado.reviews).toEqual([]);
+    expect(listado.archived.map((entry) => [entry.name, entry.archived])).toEqual([[NAME, true]]);
+    // Y se sigue pudiendo abrir por su nombre de siempre: archivar no cambia la URL.
+    expect(await readReview(context, 'output', NAME)).toMatchObject({ ok: true, file: { archived: true, text: REVIEW } });
+
+    expect(await setReviewArchived(context, 'output', NAME, false)).toMatchObject({ ok: true, path: `/work/output/${NAME}`, archived: false, moved: true });
+    expect(fs.file(`/work/output/${NAME}`)?.content).toBe(REVIEW);
+  });
+
+  it('pedir lo que ya es no mueve nada; y en el destino nunca se sobrescribe: la que llega toma -2', async () => {
+    const fs = new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW, [`${ARCHIVED}/${NAME}`]: 'una archivada anterior con el mismo nombre' });
+    const context = appContext(fs);
+    expect(await setReviewArchived(context, 'output', NAME, true)).toMatchObject({ ok: true, name: 'revision-improve-2026-08-29-2.md', moved: true });
+    expect(fs.file(`${ARCHIVED}/${NAME}`)?.content).toBe('una archivada anterior con el mismo nombre');
+    expect(fs.file(`${ARCHIVED}/revision-improve-2026-08-29-2.md`)?.content).toBe(REVIEW);
+    // La primera ya estaba archivada: pedirlo otra vez no la mueve ni falla.
+    expect(await setReviewArchived(context, 'output', NAME, true)).toMatchObject({ ok: true, moved: false, archived: true });
+  });
+
+  it('se niega a nombres que no son revisiones, avisa si no existe y explica un fallo al mover', async () => {
+    const fs = new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW });
+    const context = appContext(fs);
+    expect(await setReviewArchived(context, 'output', '../fuera.md', true)).toMatchObject({ ok: false, error: { code: 'unsafe-path' } });
+    expect(await setReviewArchived(context, 'output', 'revision-no.md', true)).toMatchObject({ ok: false, error: { code: 'not-found' } });
+    fs.failures.add('rename');
+    expect(await setReviewArchived(context, 'output', NAME, true)).toMatchObject({ ok: false, error: { code: 'environment', message: expect.stringContaining('No se pudo archivar') as string } });
+    fs.failures.delete('rename');
+    await setReviewArchived(context, 'output', NAME, true);
+    fs.failures.add('rename');
+    expect(await setReviewArchived(context, 'output', NAME, false)).toMatchObject({ ok: false, error: { code: 'environment', message: expect.stringContaining('No se pudo desarchivar') as string } });
+  });
+
+  it('eliminar encuentra la revisión esté donde esté, y no confunde un directorio con ella', async () => {
+    const fs = new MemoryFileSystem({ [`${ARCHIVED}/${NAME}`]: REVIEW, '/work/output/revision-dir.md/x': 'y' });
+    const context = appContext(fs);
+    expect(await locateReview(context, 'output', 'revision-dir.md')).toBeUndefined();
+    expect(await removeReview(context, 'output', '../fuera.md')).toMatchObject({ ok: false, error: { code: 'unsafe-path' } });
+    expect(await removeReview(context, 'output', 'revision-no.md')).toMatchObject({ ok: false, error: { code: 'not-found' } });
+    expect(await removeReview(context, 'output', NAME)).toEqual({ ok: true, name: NAME, path: `${ARCHIVED}/${NAME}` });
+    expect(fs.file(`${ARCHIVED}/${NAME}`)).toBeUndefined();
+    const roto = new MemoryFileSystem({ [`/work/output/${NAME}`]: REVIEW });
+    roto.failures.add('remove');
+    expect(await removeReview(appContext(roto), 'output', NAME)).toMatchObject({ ok: false, error: { code: 'environment' } });
+  });
+
+  it('una revisión archivada pertenece al directorio de arriba, no a la carpeta del archivo', () => {
+    expect(reviewDirectoryOf(`/work/output/${NAME}`)).toEqual({ directory: '/work/output', name: NAME });
+    expect(reviewDirectoryOf(`${ARCHIVED}/${NAME}`)).toEqual({ directory: '/work/output', name: NAME });
   });
 });

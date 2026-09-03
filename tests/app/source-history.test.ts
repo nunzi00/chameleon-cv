@@ -10,6 +10,7 @@ import {
   readSourceHistory,
   readSourceVersion,
   recordSourceVersions,
+  restoreSourceEntry,
   restoreSourceVersion,
 } from '../../src/app/source-history';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
@@ -203,5 +204,106 @@ describe('latest y los últimos errores', () => {
     const unwritable = { cwd: '/work', artifactFileSystem: { ...fs, mkdir: fs.mkdir.bind(fs), readFile: fs.readFile.bind(fs), writeFile: async (path: string, content: string, mode: number) => { if (path === `${ROOT}/a.md`) { throw new Error('solo lectura'); } await fs.writeFile(path, content, mode); } } as unknown as MemoryFileSystem };
     const failedWrite = await restoreSourceVersion(unwritable, id, 'a.md');
     expect(failedWrite.ok || failedWrite.error.message).toContain('solo lectura');
+  });
+});
+
+describe('restoreSourceEntry: deshacer una entrada entera (T-9.24)', () => {
+  const RESTORED_AT = new Date('2026-08-31T10:00:00.000Z');
+
+  it('devuelve TODOS los ficheros de la entrada en una sola entrada nueva y no toca los que ya coinciden', async () => {
+    const fs = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v2', [`${ROOT}/profile.md`]: 'p1' });
+    const recorded = await recordSourceVersions(context(fs), {
+      action: 'apply',
+      origin: 'revision-improve.md',
+      root: ROOT,
+      versions: [
+        { path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['exp-1'] },
+        // Este ya está como estaba: nadie llegó a cambiarlo, así que deshacer no debe tocarlo.
+        { path: `${ROOT}/profile.md`, before: 'p1', after: 'p2', ids: ['summary'] },
+      ],
+      at: AT,
+    });
+    const id = recorded.ok ? recorded.entry.id : '';
+    const undone = await restoreSourceEntry(context(fs), id, RESTORED_AT);
+    expect(undone.ok && { restored: undone.restored, unchanged: undone.unchanged }).toEqual({ restored: ['experience/acme.md'], unchanged: ['profile.md'] });
+    expect(fs.file(`${ROOT}/experience/acme.md`)?.content).toBe('v1');
+    expect(fs.file(`${ROOT}/experience/acme.md`)?.mode).toBe(0o600);
+    // Y lo que había queda guardado: deshacer el deshacer es posible.
+    const entry = undone.ok ? undone.entry : undefined;
+    expect(entry).toMatchObject({ action: 'restore', origin: id });
+    expect(entry?.files.map((file) => file.path)).toEqual(['experience/acme.md']);
+    expect(fs.file(historyVersionPath('/work', entry?.id ?? '', 'experience/acme.md'))?.content).toBe('v2');
+  });
+
+  it('deshacer dos veces no cambia nada ni añade una entrada vacía al histórico', async () => {
+    const fs = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v2' });
+    const recorded = await recordSourceVersions(context(fs), { action: 'apply', origin: 'r.md', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['a'] }], at: AT });
+    const id = recorded.ok ? recorded.entry.id : '';
+    await restoreSourceEntry(context(fs), id, RESTORED_AT);
+    const entradas = (await readSourceHistory(context(fs))).length;
+    const otra = await restoreSourceEntry(context(fs), id, new Date('2026-09-01T10:00:00.000Z'));
+    expect(otra.ok && { restored: otra.restored, unchanged: otra.unchanged, entry: otra.entry }).toEqual({ restored: [], unchanged: ['experience/acme.md'], entry: undefined });
+    expect(await readSourceHistory(context(fs))).toHaveLength(entradas);
+  });
+
+  it('una fuente borrada vuelve; una entrada inexistente, una versión ilegible y un fallo de escritura se explican', async () => {
+    const fs = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v2' });
+    const recorded = await recordSourceVersions(context(fs), { action: 'apply', origin: 'r.md', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['a'] }], at: AT });
+    const id = recorded.ok ? recorded.entry.id : '';
+    expect(await restoreSourceEntry(context(fs), 'no-existe', RESTORED_AT)).toMatchObject({ ok: false, error: { code: 'invalid-data' } });
+
+    await fs.remove(`${ROOT}/experience/acme.md`);
+    expect(await restoreSourceEntry(context(fs), id, RESTORED_AT)).toMatchObject({ ok: true });
+    expect(fs.file(`${ROOT}/experience/acme.md`)?.content).toBe('v1');
+
+    // Un fallo de lectura de la fuente actual que NO es «no existe» sí detiene la restauración.
+    const ilegible = new Proxy(fs, {
+      get: (target, key) =>
+        key === 'readFile'
+          ? async (path: string) => {
+              if (path === `${ROOT}/experience/acme.md`) {
+                throw new Error('permiso denegado');
+              }
+              return target.readFile(path);
+            }
+          : Reflect.get(target, key, target),
+    });
+    expect(await restoreSourceEntry(context(ilegible), id, RESTORED_AT)).toMatchObject({ ok: false, error: { code: 'environment', message: expect.stringContaining('permiso denegado') as string } });
+
+    const roto = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v2' });
+    const otra = await recordSourceVersions(context(roto), { action: 'apply', origin: 'r.md', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['a'] }], at: AT });
+    const otroId = otra.ok ? otra.entry.id : '';
+    await roto.remove(historyVersionPath('/work', otroId, 'experience/acme.md'));
+    expect(await restoreSourceEntry(context(roto), otroId, RESTORED_AT)).toMatchObject({ ok: false, error: { code: 'environment' } });
+  });
+
+  it('no se escribe nada si el histórico no se puede guardar, y un fallo al escribir la fuente se dice', async () => {
+    const fs = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v2' });
+    const recorded = await recordSourceVersions(context(fs), { action: 'apply', origin: 'r.md', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['a'] }], at: AT });
+    const id = recorded.ok ? recorded.entry.id : '';
+    fs.failures.add('mkdir');
+    expect(await restoreSourceEntry(context(fs), id, RESTORED_AT)).toMatchObject({ ok: false, error: { code: 'environment' } });
+    expect(fs.file(`${ROOT}/experience/acme.md`)?.content).toBe('v2');
+    fs.failures.delete('mkdir');
+
+    // El histórico se guarda y falla justo la escritura de la fuente: se dice cuál.
+    const parcial = new MemoryFileSystem({ [`${ROOT}/experience/acme.md`]: 'v2' });
+    const suya = await recordSourceVersions(context(parcial), { action: 'apply', origin: 'r.md', root: ROOT, versions: [{ path: `${ROOT}/experience/acme.md`, before: 'v1', after: 'v2', ids: ['a'] }], at: AT });
+    const suyoId = suya.ok ? suya.entry.id : '';
+    let escrituras = 0;
+    const soloLectura = new Proxy(parcial, {
+      get: (target, key) =>
+        key === 'writeFile'
+          ? async (path: string, content: string, mode: number) => {
+              escrituras += 1;
+              if (path === `${ROOT}/experience/acme.md`) {
+                throw new Error('fuente de solo lectura');
+              }
+              return target.writeFile(path, content, mode);
+            }
+          : Reflect.get(target, key, target),
+    });
+    expect(await restoreSourceEntry(context(soloLectura), suyoId, RESTORED_AT)).toMatchObject({ ok: false, error: { code: 'environment', message: expect.stringContaining('fuente de solo lectura') as string } });
+    expect(escrituras).toBeGreaterThan(0);
   });
 });

@@ -18,6 +18,7 @@ import type { HistoryEntry } from '../app/history';
 export type { HistoryEntry } from '../app/history';
 import type { GenerateReport } from '../app/generate';
 import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../app/review';
+import type { UndoOutcome } from '../app/review-undo';
 import type { SourceEntry, SourceFile } from '../app/sources';
 import type { OfferListEntry } from '../app/offer';
 import type { CreatedTheme, InstalledTheme, ThemeInventory, ThemeVerification } from '../app/themes';
@@ -300,7 +301,15 @@ export const ApplySchema = z.object({
   /** Por defecto solo se muestra el plan; `false` escribe en las fuentes (C9). */
   dryRun: z.boolean().optional(),
   deleteReview: z.boolean().optional(),
+  /** Por defecto la revisión que ya no deja nada pendiente se aparta a revisiones-archivadas/; `false` la deja donde está. */
+  archive: z.boolean().optional(),
 });
+
+/** `POST /reviews/{name}/archive`: apartar la revisión a revisiones-archivadas/ o devolverla a la vista. */
+export const ReviewArchiveSchema = z.object({
+  archived: z.boolean(),
+});
+export type ReviewArchiveRequest = z.infer<typeof ReviewArchiveSchema>;
 
 export const ImportSchema = z.object({
   /** El perfil canónico (profile.json) tal cual. */
@@ -610,6 +619,8 @@ export interface JobResponse {
 }
 export interface ReviewsResponse {
   readonly reviews: readonly ReviewSummary[];
+  /** Las apartadas en output/revisiones-archivadas/ (T-9.24). */
+  readonly archived: readonly ReviewSummary[];
 }
 export interface ReviewResponse {
   readonly review: ReviewFile;
@@ -621,6 +632,13 @@ export interface ReviewWriteResponse {
 export interface ReviewDeleteResponse {
   readonly deleted: string;
 }
+export interface ReviewArchiveResponse {
+  readonly name: string;
+  readonly archived: boolean;
+  /** Si de verdad se movió el fichero: pedir lo que ya es no falla ni mueve nada. */
+  readonly moved: boolean;
+}
+export type ReviewUndoResponse = UndoOutcome;
 export type ApplyResponse = ApplyOutcome;
 /** Histórico de versiones de las fuentes (T-8.10). */
 export const HistoryVersionSchema = z.object({
