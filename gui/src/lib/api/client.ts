@@ -53,6 +53,7 @@ import type {
   LlmModelsResponse,
   HistoryVersionRequest,
   SourceHistoryResponse,
+  SourceDeleteResponse,
   SourceRestoreResponse,
   SourceVersionResponse,
   LlmCheckResponse,
@@ -137,6 +138,10 @@ export interface ApiClient {
   source(path: string): Promise<SourceResponse>;
   /** `ifMatch`: la huella leída, o «*» para crear. */
   writeSource(path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
+  /** Qué desaparecería del perfil al borrar esa fuente, sin borrar nada (T-9.25). */
+  deleteSourcePlan(path: string): Promise<SourceDeleteResponse>;
+  /** Borra la fuente; exige la huella que se vio. La versión anterior queda en el histórico. */
+  deleteSource(path: string, ifMatch: string): Promise<SourceDeleteResponse>;
   generate(body: GenerateRequest): Promise<GenerateResponse>;
   analyze(body: AnalyzeRequest): Promise<AnalyzeResponse>;
   /** Guarda como alias lo que el co-piloto tendió (T-9.12): escribe en skills.csv, por eso lo pide un botón. */
@@ -348,6 +353,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     sources: () => request('GET', '/sources'),
     source: (path) => request('GET', `/sources/${encodeId(path)}`),
     writeSource: (path, content, ifMatch) => requestWithHeaders('PUT', `/sources/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
+    deleteSourcePlan: (path) => request('POST', `/sources-delete-plan/${encodeId(path)}`, { body: {} }),
+    deleteSource: (path, ifMatch) => requestWithHeaders('DELETE', `/sources/${encodeId(path)}`, undefined, { 'If-Match': ifMatchHeader(ifMatch) }),
     generate: (body) => request('POST', '/generate', { body }),
     analyze: (body) => request('POST', '/analyze-offer', { body }),
     saveAliases: (body) => request('POST', '/aliases', { body }),

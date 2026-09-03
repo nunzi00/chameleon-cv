@@ -125,6 +125,21 @@ name,issuer,date,url,tags
 CKA,CNCF,2022-05-10,https://example.com/cert/cka,kubernetes|devops
 ```
 
+## Deleting a source
+
+```bash
+cv sources delete experience/acme.md --dry-run   # which profile entries would disappear
+cv sources delete experience/acme.md             # says so and asks before deleting
+cv history restore latest experience/acme.md     # and this brings it back
+```
+
+Deleting a source file is the least reversible write the product makes, so it carries three guarantees: it says
+**which profile entries disappear** before touching anything; it **checks that what remains still loads** —which
+is why `profile.md` cannot be deleted, and it explains why— and the whole file goes to
+`output/historial-fuentes/`, where `cv history restore latest <path>` brings it back. In the web interface, the
+**Eliminar** button on each source, with the same plan and the same confirmation. Afterwards, rebuild with
+`cv build`.
+
 ## Errors
 
 `cv validate` and `cv build` show **all** the problems at once, with file, line and key:

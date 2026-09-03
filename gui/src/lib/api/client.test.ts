@@ -172,6 +172,15 @@ describe('cliente de la API', () => {
     expect(calls[6]?.body).toBe('{}');
   });
 
+  it('fuentes: el plan de borrado no borra y el borrado exige la huella (T-9.25)', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.deleteSourcePlan('experience/acme.md');
+    await api.deleteSource('experience/acme.md', 'abc');
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/sources-delete-plan/experience/acme.md', 'DELETE /api/v1/sources/experience/acme.md']);
+    expect(calls[1]?.headers['If-Match']).toBe('"abc"');
+  });
+
   it('portabilidad: exportar e importar', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
     const api = createApiClient({ fetch: f, token: () => 't' });

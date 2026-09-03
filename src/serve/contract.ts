@@ -19,6 +19,7 @@ export type { HistoryEntry } from '../app/history';
 import type { GenerateReport } from '../app/generate';
 import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../app/review';
 import type { UndoOutcome } from '../app/review-undo';
+import type { DeleteSourceOutcome } from '../app/source-delete';
 import type { SourceEntry, SourceFile } from '../app/sources';
 import type { OfferListEntry } from '../app/offer';
 import type { CreatedTheme, InstalledTheme, ThemeInventory, ThemeVerification } from '../app/themes';
@@ -617,6 +618,8 @@ export interface JobsResponse {
 export interface JobResponse {
   readonly job: JobSnapshot;
 }
+/** `DELETE /sources/{path}` y su plan previo: qué desaparece del perfil al borrar ese fichero (T-9.25). */
+export type SourceDeleteResponse = DeleteSourceOutcome;
 export interface ReviewsResponse {
   readonly reviews: readonly ReviewSummary[];
   /** Las apartadas en output/revisiones-archivadas/ (T-9.24). */

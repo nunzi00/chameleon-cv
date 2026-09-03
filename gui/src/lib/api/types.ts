@@ -83,6 +83,7 @@ export type {
   ShutdownResponse,
   SourceResponse,
   SourceWriteResponse,
+  SourceDeleteResponse,
   SourcesResponse,
   StatusResponse,
   SuggestTagsJobRequest,

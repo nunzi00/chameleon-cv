@@ -1,0 +1,1 @@
+La versión anterior queda en el histórico: «cv history restore latest experience/nexo-pagos.md» la devuelve · recompila el artefacto con «cv build»

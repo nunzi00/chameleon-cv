@@ -188,6 +188,14 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'apply-undo-summarize', args: ['improve', 'undo', 'reviews/revisiones-archivadas/revision-summarize-backend-marcada.md'], exitCode: 0 },
       { id: 'apply-undo-otra-vez', args: ['improve', 'undo', 'reviews/revision-summarize-backend-marcada.md'], exitCode: 0 },
       { id: 'history-after-undo', args: ['history'], exitCode: 0 },
+      // Eliminar una fuente (T-9.25): primero qué se lleva, la negativa a dejar el dataset sin cargar y la vuelta
+      // por el histórico, que es lo que hace que borrar no sea una decisión definitiva.
+      { id: 'sources-delete-dry-run', args: ['sources', 'delete', 'experience/nexo-pagos.md', '--dry-run'], exitCode: 0 },
+      { id: 'sources-delete-profile', args: ['sources', 'delete', 'profile.md', '--yes'], exitCode: 1 },
+      { id: 'sources-delete-sin-terminal', args: ['sources', 'delete', 'experience/nexo-pagos.md'], exitCode: 1 },
+      { id: 'sources-delete', args: ['sources', 'delete', 'experience/nexo-pagos.md', '--yes'], exitCode: 0 },
+      { id: 'sources-delete-restore', args: ['history', 'restore', 'latest', 'experience/nexo-pagos.md'], exitCode: 0 },
+      { id: 'build-tras-restaurar', args: ['build'], exitCode: 0 },
     ],
   },
   {

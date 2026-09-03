@@ -1,0 +1,1 @@
+Sin terminal interactiva, borrar exige «--yes»: no se ha borrado «experience/nexo-pagos.md»

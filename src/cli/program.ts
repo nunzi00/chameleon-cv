@@ -12,6 +12,7 @@ import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, runArchiveCommand, runUndoCommand, type ApplyOptions } from './commands/apply';
+import { runSourceDelete, type DeleteSourceOptions } from './commands/source-delete';
 import { runHistoryList, runHistoryRestore, runHistoryShow, type HistoryOptions } from './commands/history';
 import { type LlmRuntimeCommandOptions, type LlmStatusCommandOptions, runLlmDown, runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmModels, runLlmStatus, runLlmUp } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
@@ -235,6 +236,17 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--dry-run', 'enseña lo que haría sin escribir ni borrar nada', false)
     .action(async (keep: string, options: DuplicatesResolveOptions) => {
       onExit(await runDuplicatesResolve(context, keep, options));
+    });
+
+  const sources = program.command('sources').description('tus fuentes de data/sources: por ahora, eliminar una (T-9.25); verlas y editarlas es «cv validate», «cv build» y la pantalla Fuentes');
+  sources
+    .command('delete <ruta>')
+    .description('borra un fichero de fuentes diciendo antes qué entradas del perfil desaparecen; se niega si lo que queda no carga y deja el fichero entero en el histórico, así que «cv history restore» lo devuelve')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'solo enseña qué desaparecería', false)
+    .option('--yes', 'acepta por adelantado (obligatorio sin terminal interactiva)', false)
+    .action(async (path: string, options: DeleteSourceOptions) => {
+      onExit(await runSourceDelete(context, path, options));
     });
 
   const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');

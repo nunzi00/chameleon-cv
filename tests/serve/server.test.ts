@@ -117,6 +117,27 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(stale.status).toBe(409);
     const replaced = await api('/sources/projects/nuevo.md', { method: 'PUT', body: JSON.stringify({ content: '---\nname: Nuevo 2\nstart: 2024\n---\n' }), headers: { 'Content-Type': 'application/json', 'If-Match': `"${sha256}"` } });
     expect(replaced.status).toBe(200);
+
+    // Borrar (T-9.25): primero el plan —qué desaparece del perfil— y después el DELETE, con la huella que se vio.
+    const plan = await post('/sources-delete-plan/projects/nuevo.md', {});
+    expect(plan.status).toBe(200);
+    const planned = (await plan.json()) as { path: string; dryRun: boolean; removed: Array<{ id: string; section: string }> };
+    expect(planned).toMatchObject({ path: 'projects/nuevo.md', dryRun: true });
+    expect(planned.removed).toEqual([{ section: 'projects', id: expect.any(String) as string, title: expect.any(String) as string }]);
+    expect(fs.file('/work/data/sources/projects/nuevo.md')).toBeDefined();
+    expect((await post('/sources-delete-plan/projects/no-esta.md', {})).status).toBe(404);
+
+    expect((await api('/sources/projects/nuevo.md', { method: 'DELETE' })).status).toBe(428);
+    expect((await api('/sources/projects/nuevo.md', { method: 'DELETE', headers: { 'If-Match': '"huella-vieja"' } })).status).toBe(409);
+    const nueva = ((await (await api('/sources/projects/nuevo.md')).json()) as { sha256: string }).sha256;
+    const deleted = await api('/sources/projects/nuevo.md', { method: 'DELETE', headers: { 'If-Match': `"${nueva}"` } });
+    expect(deleted.status).toBe(200);
+    expect((await deleted.json()) as object).toMatchObject({ path: 'projects/nuevo.md', dryRun: false, historyId: expect.any(String) as string });
+    expect(fs.file('/work/data/sources/projects/nuevo.md')).toBeUndefined();
+    // Y lo que dejaría el espacio de trabajo sin cargar no se borra.
+    const profileSha = ((await (await api('/sources/profile.md')).json()) as { sha256: string }).sha256;
+    expect((await api('/sources/profile.md', { method: 'DELETE', headers: { 'If-Match': `"${profileSha}"` } })).status).toBe(422);
+    expect(fs.file('/work/data/sources/profile.md')).toBeDefined();
   });
 
   it('validar, compilar, leer el perfil, generar (Markdown, plantilla propia, PDF), listar y servir la salida', async () => {

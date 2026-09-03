@@ -26,6 +26,7 @@ export * from './review-undo';
 export * from './source-history';
 export * from './settings';
 export * from './slug';
+export * from './source-delete';
 export * from './sources';
 export * from './tailor';
 export * from './text';

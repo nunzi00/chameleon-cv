@@ -142,9 +142,14 @@ was there now goes into the history in turn, so undoing can itself be undone, an
 because it is pending again. **Eliminar** deletes the review file (your sources do not change): if you only want
 it out of the way, archive it.
 
+In any open source, **Eliminar** deletes it. It first shows which profile entries it takes with it —a file does
+not always contribute what you think— and only then asks for confirmation; if your sources would stop loading
+without that file, it refuses and says why. The complete previous version goes to the history, so you get it
+back from «Historial de esta fuente» on any source.
+
 ## What the interface writes, and what it doesn't
 
-It writes **only when you press a named button**: Guardar (a source), Compilar (the artifact), Generar CV (a file
+It writes **only when you press a named button**: Guardar and Eliminar (a source), Compilar (the artifact), Generar CV (a file
 in `output/`), Crear tema and Instalar tema (`themes/<name>/`), Lanzar (a review in `output/` when an improve or
 summarize job finishes), Guardar marcas (the review file), Escribir en las fuentes (your sources, with the
 previous version in the history, after confirmation), Archivar and Desarchivar (they move the review file),
