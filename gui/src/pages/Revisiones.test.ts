@@ -17,17 +17,33 @@ const PARSED: ReviewResponse['review'] = {
   text: TEXT,
   statuses: [{ id: 'ach-1', state: 'pending' as const }],
   progress: { applied: 0, pending: 1, changed: 0, unknown: 0 },
+  archived: false,
   review: { task: 'improve', specialty: 'backend', dataDir: 'data/sources', items: [{ id: 'ach-1', location: 'Dev · ACME', original: 'Reduje la latencia.', source: { file: 'experience/acme.md', line: 15, hash: 'abc' }, proposals: [{ number: 1, text: 'Reduje la latencia un 40 %.', accepted: true, checked: false }, { number: 2, text: 'Bajé la latencia.', accepted: false, checked: false }] }] },
 };
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
-    reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined, progress: { applied: 0, pending: 1, changed: 0, unknown: 0 } }, { name: 'revision-rota.md', path: '/work/output/revision-rota.md', sha256: 'x', task: undefined, items: 0, marked: 0, error: 'sin cabecera', progress: undefined }] })),
+    reviews: vi.fn(async () => ({
+      reviews: [
+        { name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined, progress: { applied: 0, pending: 1, changed: 0, unknown: 0 }, archived: false },
+        { name: 'revision-rota.md', path: '/work/output/revision-rota.md', sha256: 'x', task: undefined, items: 0, marked: 0, error: 'sin cabecera', progress: undefined, archived: false },
+      ],
+      archived: [{ name: 'revision-vieja.md', path: '/work/output/revisiones-archivadas/revision-vieja.md', sha256: 'y', task: 'improve' as const, items: 2, marked: 0, error: undefined, progress: { applied: 2, pending: 0, changed: 0, unknown: 0 }, archived: true }],
+    })),
     review: vi.fn(async (name: string) => ({ review: name === 'revision-rota.md' ? { ...PARSED, name, text: 'sin cabecera', review: undefined, error: 'sin cabecera' } : PARSED })),
     writeReview: vi.fn(async (name: string) => ({ name, sha256: 'sha-2' })),
-    applyReview: vi.fn(async (_name: string, body: { dryRun?: boolean }) => (body.dryRun === false ? { reviewPath: '/work/output/r.md', plan: [], written: [{ path: '/work/data/sources/experience/acme.md', backup: '/work/data/sources/experience/acme.md.bak', ids: ['ach-1'] }], already: [], deleted: false, changes: 1, history: undefined } : { reviewPath: '/work/output/r.md', plan: [{ path: '/work/data/sources/experience/acme.md', edits: [{ id: 'ach-1', text: 'Reduje la latencia un 40 %.' }], before: '---\nrole: Dev\n---\n- Reduje la latencia.\n- Otro logro.\n', after: '---\nrole: Dev\n---\n- Reduje la latencia un 40 %.\n- Otro logro.\n' }], written: [], already: [], deleted: false, changes: 0, history: undefined })),
+    applyReview: vi.fn(async (_name: string, body: { dryRun?: boolean }) => (body.dryRun === false ? { reviewPath: '/work/output/r.md', plan: [], written: [{ path: '/work/data/sources/experience/acme.md', backup: '/work/data/sources/experience/acme.md.bak', ids: ['ach-1'] }], already: [], deleted: false, changes: 1, history: undefined, archived: undefined } : { reviewPath: '/work/output/r.md', plan: [{ path: '/work/data/sources/experience/acme.md', edits: [{ id: 'ach-1', text: 'Reduje la latencia un 40 %.' }], before: '---\nrole: Dev\n---\n- Reduje la latencia.\n- Otro logro.\n', after: '---\nrole: Dev\n---\n- Reduje la latencia un 40 %.\n- Otro logro.\n' }], written: [], already: [], deleted: false, changes: 0, history: undefined, archived: undefined })),
     deleteReview: vi.fn(async (name: string) => ({ deleted: name })),
-    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), cvFolders: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(), importManfred: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
+    archiveReview: vi.fn(async (name: string, archived: boolean) => ({ name, archived, moved: true })),
+    undoReview: vi.fn(async (name: string) => ({
+      name,
+      applied: { id: '20260830T101010000Z-revision-improve', at: '2026-08-30T10:10:10.000Z', action: 'apply' as const, origin: name, root: '/work/data/sources', files: [{ path: 'experience/acme.md', sha256Before: 'a', sha256After: 'b', ids: ['ach-1'] }] },
+      restored: ['experience/acme.md'],
+      unchanged: [],
+      entry: { id: '20260831T101010000Z-20260830t101010000z-revision-improve', at: '2026-08-31T10:10:10.000Z', action: 'restore' as const, origin: '20260830T101010000Z-revision-improve', root: '/work/data/sources', files: [{ path: 'experience/acme.md', sha256Before: 'b', sha256After: 'a', ids: ['x'] }] },
+      unarchived: '/work/output/revision-improve-2026-08-30.md',
+    })),
+    status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), deleteSourcePlan: vi.fn(), deleteSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), cvFolders: vi.fn(), extractOffer: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(), importManfred: vi.fn(), importCv: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), outputs: vi.fn(), output: vi.fn(), jobs: vi.fn(), job: vi.fn(), startJob: vi.fn(), cancelJob: vi.fn(), jobEvents: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(),
     ...overrides,
   };
 }
@@ -83,6 +99,41 @@ describe('Revisiones', () => {
     await waitFor(() => expect(onsession).toHaveBeenCalled());
   });
 
+  it('archiva y desarchiva sin borrar, y las archivadas siguen a la vista en su propia sección (T-9.24)', async () => {
+    const api = fakeApi();
+    render(Revisiones, { props: { api, item: PARSED.name, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Archivar' })).toBeTruthy());
+    // Las que ya se archivaron no desaparecen: están plegadas al final del árbol.
+    expect(screen.getByText('revision-vieja.md')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Archivar' }));
+    await waitFor(() => expect(screen.getByText(/sigue en output\/revisiones-archivadas/)).toBeTruthy());
+    expect(api.archiveReview).toHaveBeenCalledWith(PARSED.name, true);
+    // Y el botón cambia de sentido: la misma revisión se devuelve a la lista.
+    await fireEvent.click(screen.getByRole('button', { name: 'Desarchivar' }));
+    await waitFor(() => expect(api.archiveReview).toHaveBeenLastCalledWith(PARSED.name, false));
+  });
+
+  it('deshacer los cambios aplicados solo se ofrece si hay algo aplicado, y exige confirmación', async () => {
+    const yaAplicada = { ...PARSED, statuses: [{ id: 'ach-1', state: 'applied' as const }], progress: { applied: 1, pending: 0, changed: 0, unknown: 0 } };
+    // Sin nada aplicado no hay nada que devolver: el botón no está.
+    const limpia = fakeApi();
+    const { unmount } = render(Revisiones, { props: { api: limpia, item: PARSED.name, onsession: vi.fn(), navigate: vi.fn() } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Archivar' })).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Deshacer la aplicación' })).toBeNull();
+    unmount();
+
+    const api = fakeApi({ review: vi.fn(async () => ({ review: yaAplicada })) as never });
+    render(Revisiones, { props: { api, item: PARSED.name, onsession: vi.fn(), navigate: vi.fn() } });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Deshacer la aplicación' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(api.undoReview).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Deshacer la aplicación' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
+    await waitFor(() => expect(api.undoReview).toHaveBeenCalledWith(PARSED.name));
+    expect(await screen.findByText('1 fuente devuelta a como estaban antes de aplicar: recompila el artefacto en Estado.')).toBeTruthy();
+    expect(screen.getByText(/vuelve a como estaba antes de aplicar/)).toBeTruthy();
+  });
+
   it('dice qué ítems ya están en las fuentes y cuáles no, antes de aplicar nada (encargo del PO del 1-sep)', async () => {
     const yaAplicada = {
       ...PARSED,
@@ -90,7 +141,7 @@ describe('Revisiones', () => {
       progress: { applied: 1, pending: 0, changed: 0, unknown: 0 },
     };
     const api = fakeApi({
-      reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined, progress: { applied: 1, pending: 0, changed: 0, unknown: 0 } }] })) as never,
+      reviews: vi.fn(async () => ({ reviews: [{ name: PARSED.name, path: PARSED.path, sha256: 'sha-1', task: 'improve' as const, items: 1, marked: 0, error: undefined, progress: { applied: 1, pending: 0, changed: 0, unknown: 0 }, archived: false }], archived: [] })) as never,
       review: vi.fn(async () => ({ review: yaAplicada })) as never,
     });
     render(Revisiones, { props: { api, onsession: vi.fn(), navigate: vi.fn(), item: PARSED.name } });

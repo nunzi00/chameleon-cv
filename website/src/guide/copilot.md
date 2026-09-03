@@ -13,6 +13,7 @@ cv improve --only exp-acme-1 --show-payload --dry-run   # muestra exactamente qu
 cv summarize -s backend                         # propone el resumen profesional a partir del perfil filtrado
 cv suggest tags "Migré la plataforma a Kubernetes sin parada"   # etiquetas para un texto, solo del diccionario cerrado
 cv improve apply output/revision-improve-2026-08-29.md   # aplica lo marcado [x]: versión anterior al histórico y huella comprobada
+cv improve undo output/revision-improve-2026-08-29.md    # deshace esa aplicación: las fuentes vuelven a como estaban
 cv history                                               # el histórico de versiones de las fuentes (output/historial-fuentes/)
 cv history show latest experience/acme.md                # la última versión guardada de una fuente
 cv history restore latest experience/acme.md             # la vuelve a escribir (la actual también queda en el histórico)
@@ -57,16 +58,24 @@ que no se escribió y por qué.
 
 Marca con `[x]` en el fichero de revisión (de `improve` o de `summarize`) las propuestas que quieras adoptar —puedes retocar su texto— y aplícalas. Es la única orden que escribe en `data/sources/`, con cuatro garantías: **solo lo marcado** (una propuesta por ítem); **cambio mínimo** (solo el texto del logro o el resumen; `#hashtags`, metadatos y el resto del fichero quedan byte a byte iguales); **copia de seguridad previa** (`<fichero>.bak`, y `.bak.1`, `.bak.2`… si ya existía); y **comprobación por huella**: la revisión registra fichero, línea y `sha256` de cada original, y si el original ya no está tal cual no se escribe nada. `--dry-run` muestra el plan, `--delete-review` elimina la revisión aplicada, y después recompila con `cv build`.
 
+**Lo aplicado se archiva solo.** Cuando una revisión ya no deja **nada pendiente**, al aplicarla se aparta a
+`revisiones-archivadas/`, junto al directorio en el que estaba: deja de salir en la lista (y en la pantalla web)
+sin borrarse, y se abre, se aplica y se desarchiva igual. `--no-archive` la deja donde está, y
+`cv improve archive` / `cv improve unarchive` lo hacen a mano con cualquier revisión.
+
 **Aplicar dos veces la misma revisión no es un error.** Si la fuente ya tiene el texto de la propuesta, se dice
-—«2 propuestas ya aplicadas (…)»—, no se reescribe nada y se sale con código 0. Para deshacerlo está el histórico
-de fuentes, que la propia orden te recuerda: `cv history` lista las versiones anteriores y
-`cv history restore latest <fuente>` devuelve la de antes (la actual queda a su vez en el histórico). En la web,
-lo mismo desde **Fuentes → Historial de esta fuente**, con «Ver diferencias» y «Restaurar esta versión».
+—«2 propuestas ya aplicadas (…)»—, no se reescribe nada y se sale con código 0. Para deshacerlo,
+`cv improve undo <revisión>` devuelve **todas** las fuentes que esa revisión escribió a como estaban antes de
+aplicarla; lo que hubiera ahora queda a su vez en el histórico, así que deshacer también tiene vuelta, y la
+revisión sale del archivo porque vuelve a estar pendiente. Para una sola fuente, `cv history` lista las versiones
+anteriores y `cv history restore latest <fuente>` devuelve la de antes. En la web, «Deshacer la aplicación» en
+**Revisiones**, y lo mismo fichero a fichero desde **Fuentes → Historial de esta fuente**, con «Ver diferencias»
+y «Restaurar esta versión».
 
 Y no hace falta aplicar para saberlo: en la web, **Revisiones** compara cada ítem con lo que hay **hoy** en tus
 fuentes y lo dice al lado —«ya aplicada», «sin aplicar», «la fuente cambió» o «sin fuente registrada»—, con el
 recuento junto al nombre en la lista («1 de 3 ya aplicadas»). Se mira el texto, no una marca guardada: una
-revisión que apliques y luego deshagas con `cv history restore` vuelve a salir como pendiente, que es lo cierto.
+revisión que apliques y luego deshagas con `cv improve undo` vuelve a salir como pendiente, que es lo cierto.
 
 ## Proveedores remotos (opcional)
 

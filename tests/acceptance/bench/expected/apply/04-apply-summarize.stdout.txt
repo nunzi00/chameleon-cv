@@ -1,1 +1,2 @@
 Aplicado en <WS>/data/sources/specialties/backend.md (versión anterior guardada en <WS>/output/historial-fuentes/<STAMP>-revision-summarize-backend-marcada/specialties/backend.md): summary
+Revisión archivada (ya no deja nada pendiente): <WS>/reviews/revisiones-archivadas/revision-summarize-backend-marcada.md

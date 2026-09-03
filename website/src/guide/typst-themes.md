@@ -60,6 +60,21 @@ top = 17
 
 Una clave desconocida, un color que no sea `#rrggbb` o un tamaño fuera de rango se rechazan con la ruta del error (`colors.primary: …`) antes de arrancar Typst.
 
+### `[layout]`: la organización, para las salidas que no ejecutan Typst
+
+Lo que un tema hace con las secciones vive en su `template.typ`, que es **código Typst**: perfecto para el PDF e invisible para cualquier otra salida. Por eso el ODT tenía una sola forma posible. `[layout]` (T-9.26) **describe** esa organización en lo que sí es común a todas las salidas, y es lo que hereda `cv generate-cv --format odt --theme <tema>`:
+
+```toml
+[layout]
+sections = ["skills", "achievements", "projects", "experience", "education", "certifications", "languages"]
+achievements = "consolidated"   # los logros salen de su entrada y van juntos, con la empresa de origen
+experience = "compact"          # una línea por puesto: sin resumen ni logros
+```
+
+Las tres claves son opcionales: las secciones que no nombres van detrás en su orden natural (**nunca se pierde ninguna**), y lo que no declares es lo de siempre. La portada —nombre, titular, contacto y resumen— no se mueve.
+
+Lo declaran los ocho temas cuya organización cabe ahí: `functional`, `achievements-first`, `skills-first`, `hybrid`, `education-first`, `project-portfolio`, `ats-plain` y `chronological`. Los demás aportan al ODT su tipografía y su color pero mantienen el orden por defecto: **su** organización son columnas laterales, tablas a dos columnas o ejes temporales fusionados, y eso no se reproduce en un documento pensado para editarse a mano.
+
 ## Temas de la comunidad: `cv theme install` y `cv theme verify`
 
 Un tema se comparte como un archivo `.zip` o `.tar.gz` con `theme.toml`, `template.typ` y, si hace falta, `fonts/`, `README.md` y `LICENSE` (opcionalmente dentro de un único directorio raíz con el nombre del tema). Se instala en `themes/<nombre>/` de tu proyecto desde una URL `https://` o desde un archivo o directorio local:

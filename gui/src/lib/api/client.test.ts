@@ -144,7 +144,7 @@ describe('cliente de la API', () => {
     expect(calls[5]?.headers['Accept']).toBe('text/event-stream');
   });
 
-  it('revisiones: listar, leer, guardar con If-Match, aplicar (plan y escritura) y borrar', async () => {
+  it('revisiones: listar, leer, guardar con If-Match, aplicar (plan y escritura), archivar, deshacer y borrar', async () => {
     const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
     const api = createApiClient({ fetch: f, token: () => 't' });
     await api.reviews();
@@ -152,11 +152,33 @@ describe('cliente de la API', () => {
     await api.writeReview('revision-improve-2026-08-30.md', '# x', 'abc');
     await api.applyReview('revision-improve-2026-08-30.md', {});
     await api.applyReview('revision-improve-2026-08-30.md', { dryRun: false, deleteReview: true });
+    await api.archiveReview('revision-improve-2026-08-30.md', true);
+    await api.undoReview('revision-improve-2026-08-30.md');
     await api.deleteReview('revision-improve-2026-08-30.md');
-    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['GET /api/v1/reviews', 'GET /api/v1/reviews/revision-improve-2026-08-30.md', 'PUT /api/v1/reviews/revision-improve-2026-08-30.md', 'POST /api/v1/reviews/revision-improve-2026-08-30.md/apply', 'POST /api/v1/reviews/revision-improve-2026-08-30.md/apply', 'DELETE /api/v1/reviews/revision-improve-2026-08-30.md']);
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
+      'GET /api/v1/reviews',
+      'GET /api/v1/reviews/revision-improve-2026-08-30.md',
+      'PUT /api/v1/reviews/revision-improve-2026-08-30.md',
+      'POST /api/v1/reviews/revision-improve-2026-08-30.md/apply',
+      'POST /api/v1/reviews/revision-improve-2026-08-30.md/apply',
+      'POST /api/v1/reviews/revision-improve-2026-08-30.md/archive',
+      'POST /api/v1/reviews/revision-improve-2026-08-30.md/undo',
+      'DELETE /api/v1/reviews/revision-improve-2026-08-30.md',
+    ]);
     expect(calls[2]).toMatchObject({ headers: { 'If-Match': '"abc"' }, body: '{"content":"# x"}' });
     expect(calls[3]?.body).toBe('{}');
     expect(calls[4]?.body).toBe('{"dryRun":false,"deleteReview":true}');
+    expect(calls[5]?.body).toBe('{"archived":true}');
+    expect(calls[6]?.body).toBe('{}');
+  });
+
+  it('fuentes: el plan de borrado no borra y el borrado exige la huella (T-9.25)', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { ok: true }));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.deleteSourcePlan('experience/acme.md');
+    await api.deleteSource('experience/acme.md', 'abc');
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual(['POST /api/v1/sources-delete-plan/experience/acme.md', 'DELETE /api/v1/sources/experience/acme.md']);
+    expect(calls[1]?.headers['If-Match']).toBe('"abc"');
   });
 
   it('portabilidad: exportar e importar', async () => {

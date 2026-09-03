@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDraftFiles, listDrafts, periodsOverlap, readDraft, readDraftFile, readReport, signatureOf, similarity, writeDraftFile, type DuplicateMember, type ProfileEntry } from '../../src/app/drafts';
+import { organizationSignatureOf, sameOrganization, signaturesOf } from '../../src/app/duplicates';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
@@ -40,9 +41,13 @@ const REPORT = [
   '',
 ].join('\n');
 
-/** Una entrada suelta para las reglas puras (sin disco). */
+/**
+ * Una entrada suelta para las reglas puras (sin disco). La organización se deduce del título como la deduce
+ * `entriesOf` del perfil: lo que va tras el « · » es la empresa o el centro, y un proyecto es su propio nombre.
+ */
 function entry(title: string, start?: string, end?: string, section: ProfileEntry['section'] = 'experience'): ProfileEntry {
-  return { section, id: `x-${title.length}-${start ?? ''}`, title, start, end, path: `${section}/x.md` };
+  const [role, organization] = title.split(' · ');
+  return { section, id: `x-${title.length}-${start ?? ''}`, title, organization: section === 'projects' ? title : (organization ?? role), start, end, path: `${section}/x.md` };
 }
 
 function member(draft: string | undefined, title: string, start?: string, end?: string, section: ProfileEntry['section'] = 'experience'): DuplicateMember {
@@ -69,6 +74,28 @@ describe('signatureOf: qué palabras cuentan para parecerse', () => {
     expect(spaced.spaced).toBe(true);
     expect(spaced.glued).toContain('concellodelugo');
     expect(signatureOf('Desarrollador · Concello de Lugo').spaced).toBe(false);
+  });
+});
+
+describe('la huella de la organización, que es la identidad de una entrada (B-20)', () => {
+  it('en un nombre propio cuenta hasta una palabra de tres letras: «IBM» y «SAP» son el nombre entero', () => {
+    expect(organizationSignatureOf('IBM').tokens).toEqual(['ibm']);
+    // Con la tokenización del texto corrido las dos se quedarían sin palabras y emparejarían con cualquiera.
+    expect(signatureOf('IBM').tokens).toEqual([]);
+    expect(similarity(organizationSignatureOf('IBM'), organizationSignatureOf('SAP'))).toBe(0);
+  });
+
+  it('las iniciales sueltas se caen cuando hay palabras de verdad, y se quedan cuando son el nombre', () => {
+    // «I.E.S Muralla Romana» se busca por «muralla romana»: el otro CV escribe «ies muralla romana» de una
+    // pieza, y las tres letras sueltas solo diluirían la proporción.
+    expect(organizationSignatureOf('I.E.S Muralla Romana').tokens).toEqual(['muralla', 'romana']);
+    expect(organizationSignatureOf('I.E.S').tokens).toEqual(['i', 'e', 's']);
+  });
+
+  it('una entrada sin organización no tiene identidad que comparar', () => {
+    // El modelo la trae opcional: una entrada construida sin ella cae en el camino de «no se descarta nada».
+    expect(organizationSignatureOf(undefined).tokens).toEqual([]);
+    expect(sameOrganization(signaturesOf(entry('Desarrollador · Acme')), { ...signaturesOf(entry('Desarrollador · Otra')), organization: organizationSignatureOf(undefined) })).toBe(true);
   });
 });
 
@@ -187,6 +214,49 @@ describe('groupDuplicates: agrupar sin decidir', () => {
     expect(groups).toHaveLength(2);
     const titles = groups.map((group) => group.members.map((each) => each.entry.title));
     expect(titles.some((group) => group.some((title) => title.includes('Administrador')) && group.some((title) => title.toLowerCase().includes('desarrollo')))).toBe(false);
+  });
+
+  it('dos puestos parecidos en EMPRESAS DISTINTAS no son el mismo empleo (B-20)', () => {
+    // El fallo salió del corpus real del PO: los dos títulos comparten «desarrollador» y «administrador» —la
+    // mitad de las palabras de la más corta— y sus periodos solapan, así que se agrupaban. La empresa no
+    // pintaba nada, y es justo lo que identifica un empleo.
+    const groups = groupDuplicates([
+      member('cv-a', 'Desarrollador / Administrador · Servigasa Special Jobs, S.L.', '2012-09', '2014-12'),
+      member('cv-b', 'Desarrollador/Administrador · Picas Rojas', '2013-01', '2016-09'),
+    ]);
+    expect(groups).toEqual([]);
+  });
+
+  it('y ese falso positivo además ROBABA el miembro al grupo verdadero (B-20)', () => {
+    // Un grupo se forma contra su semilla: emparejada en falso con Servigasa, la entrada de Picas Rojas quedaba
+    // marcada y la OTRA de Picas Rojas —que sí era la misma— se quedaba sola. Salían dos empleos donde había
+    // uno repetido y dos empresas mezcladas donde no había nada.
+    const groups = groupDuplicates([
+      member('cv-a', 'Desarrollador / Administrador · Servigasa Special Jobs, S.L.', '2012-09', '2014-12'),
+      member('cv-b', 'Desarrollador web · servigasa special jobs', '2012-09', '2014-12'),
+      member('cv-c', 'Desarrollador/Administrador · Picas Rojas', '2013-01', '2016-09'),
+      member('cv-d', 'Software Developr · Picas Rojas', '2013-01', '2016-09'),
+    ]);
+    expect(groups).toHaveLength(2);
+    const porGrupo = groups.map((group) => [...group.members.map((each) => each.entry.organization ?? '')].sort((a, b) => a.localeCompare(b, 'es')));
+    expect([...porGrupo].sort((a, b) => (a[0] ?? '').localeCompare(b[0] ?? '', 'es'))).toEqual([
+      ['Picas Rojas', 'Picas Rojas'],
+      ['servigasa special jobs', 'Servigasa Special Jobs, S.L.'],
+    ]);
+  });
+
+  it('la empresa se busca en TODO el título de la otra: medio corpus la trae intercambiada con el puesto', () => {
+    // T-9.19 dejó dicho que hay CV con company y role al revés. Comparar campo con campo lo rompería; buscar la
+    // empresa dentro de lo que dice la otra entrada, no.
+    const groups = groupDuplicates([member('cv-a', 'Backend Developer · Life5', '2022-05', '2022-12'), member('cv-b', 'Life5 · Software Developer', '2022-04')]);
+    expect(groups).toHaveLength(1);
+  });
+
+  it('sin empresa reconocida no se descarta nada: deciden las palabras (el caso de T-9.20)', () => {
+    // «Empresa pendiente» es la marca de que el importador NO la reconoció: exigirla dejaría sin agrupar justo
+    // las mitades que se completan entre sí.
+    const groups = groupDuplicates([member('cv-a', 'Desarrollador · Empresa pendiente', '2016-09', '2017-05'), member('cv-b', 'Desarrollador · Concello de Lugo', '2016-11', '2017-04')]);
+    expect(groups).toHaveLength(1);
   });
 
   it('LÍMITE CONOCIDO: una entrada sin fechas puede caer en un grupo con el que solo comparte el centro', () => {

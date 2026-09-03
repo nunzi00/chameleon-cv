@@ -6,6 +6,8 @@ describe('formulario de Generar', () => {
   it('construye el cuerpo mínimo y el completo, sin campos vacíos ni opciones que no aplican', () => {
     expect(buildGenerateRequest(EMPTY_FORM)).toEqual({ ok: true, body: { format: 'pdf', engine: 'pdfkit' } });
     expect(buildGenerateRequest({ ...EMPTY_FORM, format: 'md', engine: 'typst', theme: 'classic' })).toEqual({ ok: true, body: { format: 'md' } });
+    // El ODT sí lleva tema (T-9.26): hereda colores, tipografías, página y organización; el motor no aplica.
+    expect(buildGenerateRequest({ ...EMPTY_FORM, format: 'odt', engine: 'typst', theme: 'functional' })).toEqual({ ok: true, body: { format: 'odt', theme: 'functional' } });
     expect(buildGenerateRequest({ ...EMPTY_FORM, engine: 'typst', theme: '' })).toEqual({ ok: true, body: { format: 'pdf', engine: 'typst' } });
     const full = buildGenerateRequest({
       specialty: 'backend',

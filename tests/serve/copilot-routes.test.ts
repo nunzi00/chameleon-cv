@@ -363,6 +363,36 @@ describe('cv serve: trabajos del co-piloto y revisiones', () => {
     expect(again.status).toBe(200);
     expect((await again.json()) as object).toMatchObject({ changes: 0, written: [], already: ['exp-acme-1'] });
 
+    // Archivar (T-9.24) mueve, no borra: sale de la lista, se sigue leyendo por su nombre y vuelve cuando se pide.
+    const archived = await post(`/reviews/${reviewName}/archive`, { archived: true });
+    expect(archived.status).toBe(200);
+    expect((await archived.json()) as object).toMatchObject({ name: reviewName, archived: true, moved: true });
+    expect(fs.file(`/work/output/revisiones-archivadas/${reviewName}`)).toBeDefined();
+    const conArchivadas = (await (await api('/reviews')).json()) as { reviews: unknown[]; archived: Array<{ name: string; archived: boolean }> };
+    expect(conArchivadas.reviews).toEqual([]);
+    expect(conArchivadas.archived).toEqual([expect.objectContaining({ name: reviewName, archived: true })]);
+    expect((await api(`/reviews/${reviewName}`)).status).toBe(200);
+    // Pedir lo que ya es no falla ni mueve nada.
+    expect((await (await post(`/reviews/${reviewName}/archive`, { archived: true })).json()) as object).toMatchObject({ moved: false });
+
+    // Deshacer devuelve la fuente a como estaba antes de aplicar y saca la revisión del archivo.
+    const undone = await post(`/reviews/${reviewName}/undo`, {});
+    expect(undone.status).toBe(200);
+    const undo = (await undone.json()) as { restored: string[]; unchanged: string[]; unarchived: string; entry: { action: string } };
+    expect(undo.restored).toEqual(['experience/acme.md']);
+    expect(undo.entry.action).toBe('restore');
+    expect(undo.unarchived).toBe(`/work/output/${reviewName}`);
+    expect(fs.file(planned.plan[0]?.path ?? '')?.content).toBe(before);
+    // Y se vuelve a aplicar: el resto de la suite parte de la fuente ya cambiada.
+    expect((await post(`/reviews/${reviewName}/apply`, { dryRun: false })).status).toBe(200);
+    expect(fs.file(planned.plan[0]?.path ?? '')?.content).toContain('Logré: ');
+
+    expect((await post('/reviews/otro.md/archive', { archived: true })).status).toBe(400);
+    expect((await post(`/reviews/${reviewName}/archive`, {})).status).toBe(400);
+    expect((await post('/reviews/revision-que-no-esta.md/archive', { archived: true })).status).toBe(404);
+    expect((await post('/reviews/otro.md/undo', {})).status).toBe(400);
+    expect((await post('/reviews/revision-que-no-esta.md/undo', {})).status).toBe(422);
+
     expect((await api(`/reviews/${reviewName}`, { method: 'DELETE' })).status).toBe(200);
     expect((await api(`/reviews/${reviewName}`)).status).toBe(404);
     expect((await api(`/reviews/${reviewName}`, { method: 'DELETE' })).status).toBe(404);

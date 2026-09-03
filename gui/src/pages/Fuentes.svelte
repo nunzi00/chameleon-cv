@@ -9,7 +9,7 @@
   import Notice from '../components/Notice.svelte';
   import Tree from '../components/Tree.svelte';
   import type { ApiClient } from '../lib/api/client';
-  import type { SourceHistoryEntry } from '../lib/api/types';
+  import type { SourceDeleteResponse, SourceHistoryEntry } from '../lib/api/types';
   import { explainError, type ExplainedError } from '../lib/errors';
   import { formatBytes, plural } from '../lib/format';
   import { diffSummary, lineDiff } from '../lib/reviews/diff';
@@ -49,6 +49,8 @@
   let history = $state<readonly SourceHistoryEntry[]>([]);
   let comparing = $state<{ readonly entry: SourceHistoryEntry; readonly content: string } | undefined>(undefined);
   let restoring = $state<SourceHistoryEntry | undefined>(undefined);
+  /** El plan de borrado (qué entradas del perfil desaparecen); abre el diálogo de confirmación (T-9.25). */
+  let deleting = $state<SourceDeleteResponse | undefined>(undefined);
   const dirty = $derived(sha !== undefined && content !== saved);
   const visible = $derived(filterTree(tree, query));
   const counts = $derived(issueCounts(issues));
@@ -230,6 +232,43 @@
     navigate({ page: 'fuentes', item: file });
   }
 
+  /** Primero qué desaparece, después el botón: borrar una fuente no es obvio hasta que se dice qué se lleva. */
+  async function planDelete(): Promise<void> {
+    if (item === undefined) {
+      return;
+    }
+    error = undefined;
+    message = undefined;
+    try {
+      deleting = await api.deleteSourcePlan(item);
+    } catch (caught) {
+      deleting = undefined;
+      fail(caught);
+    }
+  }
+
+  async function confirmDelete(): Promise<void> {
+    const path = item;
+    const expected = sha;
+    deleting = undefined;
+    if (path === undefined || expected === undefined) {
+      return;
+    }
+    saving = true;
+    error = undefined;
+    try {
+      const outcome = await api.deleteSource(path, expected);
+      await loadTree();
+      await refreshIssues();
+      message = `Borrada ${path}. La versión anterior queda en el histórico (entrada ${outcome.historyId ?? ''}): en cualquier fuente, «Historial de esta fuente». Recompila el artefacto en Estado.`;
+      navigate({ page: 'fuentes' });
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      saving = false;
+    }
+  }
+
   onMount(() => {
     void loadTree();
   });
@@ -283,6 +322,7 @@
         {#if dirty}<span class="cv-editor-dirty">cambios sin guardar</span>{/if}
         <button class="cv-button primary small" type="button" disabled={!dirty || saving} onclick={save}>{saving ? 'Guardando…' : 'Guardar'}</button>
         <button class="cv-button small" type="button" disabled={!dirty || saving} onclick={() => (content = saved)}>Descartar</button>
+        <button class="cv-button danger-quiet small" type="button" disabled={saving} onclick={planDelete}>Eliminar</button>
       </div>
       {#key editorKey}
         <Editor value={content} path={item} onchange={(value) => (content = value)} oncursor={(line, column) => (cursor = { line, column })} plain={plainEditor} />
@@ -340,6 +380,23 @@
     <div class="cv-dialog-actions">
       <button class="cv-button" type="button" onclick={reloadDiscarding}>Recargar del disco (descarta mis cambios)</button>
       <button class="cv-button danger" type="button" onclick={overwrite}>Sobrescribir con mi versión</button>
+    </div>
+  </Dialog>
+  <Dialog open={deleting !== undefined} title="¿Eliminar esta fuente?" onclose={() => (deleting = undefined)}>
+    <p>Se borra <code>{deleting?.path ?? ''}</code> de tus fuentes. La versión anterior completa queda en el histórico, así que se puede recuperar desde «Historial de esta fuente».</p>
+    {#if deleting !== undefined && deleting.removed.length > 0}
+      <p>Del perfil desaparecen {plural(deleting.removed.length, 'entrada', 'entradas')}:</p>
+      <ul class="cv-delete-list">
+        {#each deleting.removed as entry (entry.id)}
+          <li><code>{entry.id}</code> · {entry.title} <span class="cv-muted">({entry.section})</span></li>
+        {/each}
+      </ul>
+    {:else}
+      <p class="cv-muted">No aporta ninguna entrada al perfil.</p>
+    {/if}
+    <div class="cv-dialog-actions">
+      <button class="cv-button" type="button" onclick={() => (deleting = undefined)}>Cancelar</button>
+      <button class="cv-button danger" type="button" onclick={confirmDelete}>Eliminar</button>
     </div>
   </Dialog>
   <Dialog open={restoring !== undefined} title="¿Restaurar esta versión?" onclose={() => (restoring = undefined)}>

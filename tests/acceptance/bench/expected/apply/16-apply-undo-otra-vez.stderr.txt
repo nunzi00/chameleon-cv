@@ -1,0 +1,1 @@
+Las fuentes ya estaban como antes de aplicar «revision-summarize-backend-marcada.md» (entrada <STAMP>-revision-summarize-backend-marcada): no se ha cambiado nada

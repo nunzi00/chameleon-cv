@@ -20,6 +20,8 @@ interface Harness {
   readonly stdout: () => string;
   readonly stderr: () => string;
   readonly reset: () => void;
+  /** Mueve el reloj del contexto: el histórico de fuentes fecha (y nombra) sus entradas con él. */
+  readonly setNow: (at: Date) => void;
 }
 
 const NOW = new Date('2026-08-29T10:00:00.000Z');
@@ -77,6 +79,7 @@ function fakeProvider(task: 'improve' | 'summarize'): LlmProvider {
 async function harness(task: 'improve' | 'summarize' = 'improve', extra: Record<string, string | MemoryEntry> = {}): Promise<Harness> {
   const out: string[] = [];
   const err: string[] = [];
+  let clock = NOW;
   const fs = new MemoryFileSystem({ ...(await workspace()), ...extra });
   const context: CliContext = {
     cwd: '/work',
@@ -98,7 +101,7 @@ async function harness(task: 'improve' | 'summarize' = 'improve', extra: Record<
     llmProvider: () => Promise.resolve({ ok: true as const, provider: fakeProvider(task) }),
     llmCache: new MemoryLlmCache(),
     assets: defaultAssets(),
-    now: () => NOW,
+    now: () => clock,
   };
   return {
     context,
@@ -108,6 +111,9 @@ async function harness(task: 'improve' | 'summarize' = 'improve', extra: Record<
     reset: () => {
       out.length = 0;
       err.length = 0;
+    },
+    setNow: (at: Date) => {
+      clock = at;
     },
   };
 }
@@ -148,7 +154,8 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
     h.reset();
 
     const before = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
-    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    // `--no-archive` para poder seguir aplicándola por su ruta: el archivado automático tiene su propia prueba.
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md', '--no-archive'], h.context)).toBe(EXIT_OK);
     expect(h.stdout()).toBe(`Aplicado en ${SOURCES}/experience/acme.md (versión anterior guardada en /work/output/historial-fuentes/20260829T100000000Z-revision-improve-2026-08-29/experience/acme.md): exp-acme-1, exp-acme-k8s\n`);
     expect(h.stderr()).toBe('2 cambios aplicados en 1 fichero · recompila el artefacto con «cv build»\n');
     const after = h.fs.file(`${SOURCES}/experience/acme.md`);
@@ -176,9 +183,9 @@ describe('cv improve apply (T-4.7): ciclo completo improve → marcar → aplica
     // encontrárselo el PO— lo dice como lo que es: YA APLICADA. Antes se trataba como un error de datos y el
     // mensaje culpaba al usuario («¿editado a mano?») del caso más probable, que es haberla aplicado ya.
     h.reset();
-    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md', '--no-archive'], h.context)).toBe(EXIT_OK);
     expect(h.stderr()).toContain('2 propuestas ya aplicadas (exp-acme-1, exp-acme-k8s)');
-    expect(h.stderr()).toContain('cv history restore latest');
+    expect(h.stderr()).toContain('cv improve undo output/revision-improve-2026-08-29.md');
     // Y no se toca el fichero: ni copia, ni reescritura idéntica, ni entrada nueva en el histórico.
     expect(h.fs.file(`${SOURCES}/experience/acme.md.bak`)).toBeUndefined();
     expect(h.stderr()).not.toContain('cambios aplicados');
@@ -321,7 +328,10 @@ describe('cv improve apply con revisiones de cv summarize', () => {
     await mark(h, path, 'summary', 1);
     h.reset();
     expect(await runCli(['improve', 'apply', path], h.context)).toBe(EXIT_OK);
-    expect(h.stdout()).toMatch(/^Aplicado en \/work\/data\/sources\/specialties\/backend\.md \(versión anterior guardada en \/work\/output\/historial-fuentes\/20260829T100000000Z-revision-summarize[^)]*\/specialties\/backend\.md\): summary\n$/);
+    // Un resumen es un solo ítem: aplicarlo no deja nada pendiente y la revisión se archiva sola (T-9.24).
+    expect(h.stdout()).toMatch(
+      /^Aplicado en \/work\/data\/sources\/specialties\/backend\.md \(versión anterior guardada en \/work\/output\/historial-fuentes\/20260829T100000000Z-revision-summarize[^)]*\/specialties\/backend\.md\): summary\nRevisión archivada \(ya no deja nada pendiente\): \/work\/output\/revisiones-archivadas\/revision-summarize-2026-08-29-backend\.md\n$/,
+    );
     expect(h.fs.file(`${SOURCES}/specialties/backend.md`)?.content).toBe(`---\ntitle: Senior Backend Engineer\ntags: [php, symfony, kubernetes, kafka]\n---\n\n${FAITHFUL_SUMMARY}\n`);
     expect(h.fs.file('/work/output/historial-fuentes/20260829T100000000Z-revision-summarize-2026-08-29-backend/specialties/backend.md')?.content).toBe(fixtureText.get(`${SOURCES}/specialties/backend.md`));
 
@@ -448,3 +458,86 @@ describe('cv history (T-8.10)', () => {
   });
 });
 
+
+describe('cv improve archive | unarchive | undo (T-9.24)', () => {
+  const ARCHIVED = '/work/output/revisiones-archivadas/revision-improve-2026-08-29.md';
+
+  /** Una revisión de un solo logro, marcada: aplicarla no deja nada pendiente. */
+  async function marcada(): Promise<Harness> {
+    const h = await harness('improve', {});
+    expect(await runCli(['improve', '--only', 'exp-acme-1'], h.context)).toBe(EXIT_OK);
+    await mark(h, REVIEW, 'exp-acme-1', 1);
+    h.reset();
+    return h;
+  }
+
+  it('aplicar una revisión que ya no deja nada pendiente la archiva sola; --no-archive la deja donde está', async () => {
+    const h = await marcada();
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain(`Revisión archivada (ya no deja nada pendiente): ${ARCHIVED}`);
+    expect(h.fs.file(REVIEW)).toBeUndefined();
+    expect(h.fs.file(ARCHIVED)).toBeDefined();
+
+    // Con --no-archive, la misma aplicación deja la revisión en su sitio.
+    const otra = await marcada();
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md', '--no-archive'], otra.context)).toBe(EXIT_OK);
+    expect(otra.stdout()).not.toContain('archivada');
+    expect(otra.fs.file(REVIEW)).toBeDefined();
+  });
+
+  it('una revisión con ítems sin marcar NO se archiva: todavía tiene trabajo dentro', async () => {
+    const h = await harness();
+    expect(await runCli(['improve', '--only', 'exp-acme-1,exp-acme-k8s'], h.context)).toBe(EXIT_OK);
+    await mark(h, REVIEW, 'exp-acme-1', 1);
+    h.reset();
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).not.toContain('archivada');
+    expect(h.fs.file(REVIEW)).toBeDefined();
+  });
+
+  it('archive y unarchive mueven el fichero; repetirlo lo dice sin mover nada y lo que no existe da error', async () => {
+    const h = await marcada();
+    expect(await runCli(['improve', 'archive', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe(`Archivada: ${ARCHIVED}\n`);
+    expect(h.fs.file(ARCHIVED)).toBeDefined();
+    h.reset();
+    // Se acepta la ruta que se tenga a mano: la de dentro del archivo también.
+    expect(await runCli(['improve', 'archive', 'output/revisiones-archivadas/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('ya estaba archivada');
+    h.reset();
+    expect(await runCli(['improve', 'unarchive', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toBe(`Desarchivada: ${REVIEW}\n`);
+    h.reset();
+    expect(await runCli(['improve', 'unarchive', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('ya estaba a la vista');
+    h.reset();
+    expect(await runCli(['improve', 'archive', 'output/revision-que-no-esta.md'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('No existe la revisión');
+  });
+
+  it('undo devuelve la fuente a como estaba, saca la revisión del archivo y sin aplicación previa lo dice', async () => {
+    const h = await marcada();
+    const antes = h.fs.file(`${SOURCES}/experience/acme.md`)?.content ?? '';
+    expect(await runCli(['improve', 'apply', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.fs.file(`${SOURCES}/experience/acme.md`)?.content).toContain('Logré: ');
+    h.reset();
+    // El histórico fecha sus entradas con el reloj del contexto: deshacer ocurre después de aplicar.
+    h.setNow(new Date('2026-08-30T10:00:00.000Z'));
+    expect(await runCli(['improve', 'undo', 'output/revisiones-archivadas/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('Restaurado experience/acme.md a como estaba antes de aplicar «revision-improve-2026-08-29.md»');
+    expect(h.stdout()).toContain(`Revisión desarchivada: ${REVIEW}`);
+    expect(h.stderr()).toContain('1 fuente restaurada');
+    expect(h.fs.file(`${SOURCES}/experience/acme.md`)?.content).toBe(antes);
+
+    // Deshacerlo otra vez no cambia nada y se dice.
+    h.reset();
+    h.setNow(new Date('2026-08-31T10:00:00.000Z'));
+    expect(await runCli(['improve', 'undo', 'output/revision-improve-2026-08-29.md'], h.context)).toBe(EXIT_OK);
+    expect(h.stderr()).toContain('no se ha cambiado nada');
+
+    // Y una revisión que nunca se aplicó no tiene nada que deshacer.
+    const nueva = await marcada();
+    expect(await runCli(['improve', 'undo', 'output/revision-improve-2026-08-29.md'], nueva.context)).toBe(EXIT_DATA_ERROR);
+    expect(nueva.stderr()).toContain('no hay nada que deshacer');
+  });
+});

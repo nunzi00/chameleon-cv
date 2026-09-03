@@ -9,8 +9,10 @@
  * - La estructura es plana y previsible —título, secciones, entradas—, sin cajas ni columnas: lo que se pega y
  *   se reordena sin pelearse con el maquetado.
  */
+import { PAPER_SIZES, type ThemeConfig } from '../../themes/schema';
+import { DEFAULT_LAYOUT, type CvLayout } from '../structured/layout';
 import type { Block, Run } from '../structured/inline';
-import type { StructuredContainer, StructuredView } from '../structured/view';
+import type { StructuredAchievement, StructuredContainer, StructuredView } from '../structured/view';
 
 export const ODT_MIMETYPE = 'application/vnd.oasis.opendocument.text';
 
@@ -78,70 +80,67 @@ function meta(parts: ReadonlyArray<string | undefined>): string {
   return line === '' ? '' : paragraph('Meta', textXml(line));
 }
 
-function container(item: StructuredContainer, labels: StructuredView['labels']): string {
-  const achievements = item.achievements
-    .map((achievement) => {
-      const impact = achievement.impact === undefined ? '' : ` <text:span text:style-name="Italic">(${textXml(achievement.impact)})</text:span>`;
-      return `<text:list-item>${paragraph('List_20_Paragraph', `${runsXml(achievement.runs)}${impact}`)}</text:list-item>`;
-    })
-    .join('');
-  return [
-    blocksXml(item.summary),
-    achievements === '' ? '' : `<text:list text:style-name="Vinetas">${achievements}</text:list>`,
-    item.technologies === '' ? '' : meta([`${labels.technologies}: ${item.technologies}`]),
-  ].join('');
+/** Una viñeta de logro: su texto, el impacto en cursiva y, si viene consolidado, de dónde sale. */
+function achievementItem(achievement: StructuredAchievement): string {
+  const source = achievement.source === undefined ? '' : `<text:span text:style-name="Bold">${textXml(achievement.source)}:</text:span> `;
+  const impact = achievement.impact === undefined ? '' : ` <text:span text:style-name="Italic">(${textXml(achievement.impact)})</text:span>`;
+  return `<text:list-item>${paragraph('List_20_Paragraph', `${source}${runsXml(achievement.runs)}${impact}`)}</text:list-item>`;
 }
 
-function sections(view: StructuredView): string {
-  const { labels } = view;
-  const out: string[] = [];
+function achievementList(achievements: readonly StructuredAchievement[]): string {
+  return achievements.length === 0 ? '' : `<text:list text:style-name="Vinetas">${achievements.map(achievementItem).join('')}</text:list>`;
+}
 
-  if (view.experience.length > 0) {
-    out.push(heading(1, labels.experience));
-    for (const item of view.experience) {
-      out.push(heading(2, `${item.role} · ${item.company}`), meta([item.period, item.location]), container(item, labels));
-    }
-  }
-  if (view.projects.length > 0) {
-    out.push(heading(1, labels.projects));
-    for (const item of view.projects) {
-      out.push(heading(2, item.role === undefined ? item.name : `${item.name} · ${item.role}`), meta([item.meta]), container(item, labels));
-    }
-  }
-  if (view.skillGroups.length > 0) {
-    out.push(heading(1, labels.skills));
-    for (const group of view.skillGroups) {
-      out.push(paragraph('Standard', `<text:span text:style-name="Bold">${textXml(group.label)}:</text:span> ${textXml(group.names)}`));
-    }
-  }
-  if (view.achievements.length > 0) {
-    out.push(heading(1, labels.achievements));
-    const items = view.achievements
-      .map((achievement) => {
-        const impact = achievement.impact === undefined ? '' : ` <text:span text:style-name="Italic">(${textXml(achievement.impact)})</text:span>`;
-        return `<text:list-item>${paragraph('List_20_Paragraph', `${runsXml(achievement.runs)}${impact}`)}</text:list-item>`;
-      })
-      .join('');
-    out.push(`<text:list text:style-name="Vinetas">${items}</text:list>`);
-  }
-  if (view.education.length > 0) {
-    out.push(heading(1, labels.education));
-    for (const item of view.education) {
-      out.push(paragraph('Standard', `<text:span text:style-name="Bold">${textXml(item.degree)}</text:span> · ${textXml(item.institution)}`), meta([item.field, item.period]));
-    }
-  }
-  if (view.certifications.length > 0) {
-    out.push(heading(1, labels.certifications));
-    for (const item of view.certifications) {
-      const link = item.url === undefined ? '' : ` · <text:a xlink:type="simple" xlink:href="${escapeXml(item.url)}">${textXml(labels.link)}</text:a>`;
-      out.push(paragraph('Standard', `<text:span text:style-name="Bold">${textXml(item.name)}</text:span>${item.issuer === undefined ? '' : ` · ${textXml(item.issuer)}`}${item.date === '' ? '' : ` · ${textXml(item.date)}`}${link}`));
-    }
-  }
-  if (view.languages.length > 0) {
-    out.push(heading(1, labels.languages));
-    out.push(paragraph('Standard', view.languages.map((language) => `<text:span text:style-name="Bold">${textXml(language.name)}:</text:span> ${textXml(language.level)}`).join(' · ')));
-  }
-  return out.join('');
+function container(item: StructuredContainer, labels: StructuredView['labels']): string {
+  return [blocksXml(item.summary), achievementList(item.achievements), item.technologies === '' ? '' : meta([`${labels.technologies}: ${item.technologies}`])].join('');
+}
+
+/** Cada sección sabe pintarse sola; el orden lo pone el tema, no este fichero. */
+const SECTION_XML: Readonly<Record<CvLayout['sections'][number], (view: StructuredView) => string>> = {
+  experience: (view) =>
+    view.experience.length === 0
+      ? ''
+      : [heading(1, view.labels.experience), ...view.experience.map((item) => `${heading(2, `${item.role} · ${item.company}`)}${meta([item.period, item.location])}${container(item, view.labels)}`)].join(''),
+  projects: (view) =>
+    view.projects.length === 0
+      ? ''
+      : [
+          heading(1, view.labels.projects),
+          ...view.projects.map((item) => `${heading(2, item.role === undefined ? item.name : `${item.name} · ${item.role}`)}${meta([item.meta])}${container(item, view.labels)}`),
+        ].join(''),
+  skills: (view) =>
+    view.skillGroups.length === 0
+      ? ''
+      : [heading(1, view.labels.skills), ...view.skillGroups.map((group) => paragraph('Standard', `<text:span text:style-name="Bold">${textXml(group.label)}:</text:span> ${textXml(group.names)}`))].join(''),
+  achievements: (view) => (view.achievements.length === 0 ? '' : `${heading(1, view.labels.achievements)}${achievementList(view.achievements)}`),
+  education: (view) =>
+    view.education.length === 0
+      ? ''
+      : [
+          heading(1, view.labels.education),
+          ...view.education.map((item) => `${paragraph('Standard', `<text:span text:style-name="Bold">${textXml(item.degree)}</text:span> · ${textXml(item.institution)}`)}${meta([item.field, item.period])}`),
+        ].join(''),
+  certifications: (view) =>
+    view.certifications.length === 0
+      ? ''
+      : [
+          heading(1, view.labels.certifications),
+          ...view.certifications.map((item) => {
+            const link = item.url === undefined ? '' : ` · <text:a xlink:type="simple" xlink:href="${escapeXml(item.url)}">${textXml(view.labels.link)}</text:a>`;
+            return paragraph(
+              'Standard',
+              `<text:span text:style-name="Bold">${textXml(item.name)}</text:span>${item.issuer === undefined ? '' : ` · ${textXml(item.issuer)}`}${item.date === '' ? '' : ` · ${textXml(item.date)}`}${link}`,
+            );
+          }),
+        ].join(''),
+  languages: (view) =>
+    view.languages.length === 0
+      ? ''
+      : `${heading(1, view.labels.languages)}${paragraph('Standard', view.languages.map((language) => `<text:span text:style-name="Bold">${textXml(language.name)}:</text:span> ${textXml(language.level)}`).join(' · '))}`,
+};
+
+function sections(view: StructuredView, layout: CvLayout): string {
+  return layout.sections.map((section) => SECTION_XML[section](view)).join('');
 }
 
 const CONTENT_NS = [
@@ -153,22 +152,25 @@ const CONTENT_NS = [
 ].join(' ');
 
 /** Los estilos automáticos: los adornos de texto y la lista de viñetas que usan los párrafos. */
-const AUTOMATIC_STYLES = [
-  '<style:style style:name="Bold" style:family="text"><style:text-properties fo:font-weight="bold"/></style:style>',
-  '<style:style style:name="Italic" style:family="text"><style:text-properties fo:font-style="italic"/></style:style>',
-  '<style:style style:name="BoldItalic" style:family="text"><style:text-properties fo:font-weight="bold" fo:font-style="italic"/></style:style>',
-  '<style:style style:name="Mono" style:family="text"><style:text-properties style:font-name-complex="Liberation Mono" fo:font-family="&apos;Liberation Mono&apos;"/></style:style>',
-  '<text:list-style style:name="Vinetas"><text:list-level-style-bullet text:level="1" text:bullet-char="•"><style:list-level-properties text:space-before="0.25cm" text:min-label-width="0.4cm"/></text:list-level-style-bullet></text:list-style>',
-].join('');
+function automaticStyles(mono: string): string {
+  return [
+    '<style:style style:name="Bold" style:family="text"><style:text-properties fo:font-weight="bold"/></style:style>',
+    '<style:style style:name="Italic" style:family="text"><style:text-properties fo:font-style="italic"/></style:style>',
+    '<style:style style:name="BoldItalic" style:family="text"><style:text-properties fo:font-weight="bold" fo:font-style="italic"/></style:style>',
+    `<style:style style:name="Mono" style:family="text"><style:text-properties fo:font-family="${family(mono)}"/></style:style>`,
+    `<text:list-style style:name="Vinetas"><text:list-level-style-bullet text:level="1" text:bullet-char="•"><style:list-level-properties text:space-before="0.25cm" text:min-label-width="0.4cm"/></text:list-level-style-bullet></text:list-style>`,
+  ].join('');
+}
 
-export function contentXml(view: StructuredView): string {
+export function contentXml(view: StructuredView, layout: CvLayout = DEFAULT_LAYOUT, theme?: ThemeConfig): string {
+  const mono = odtStyleOf(theme).fonts.mono;
   const header = [
     `<text:h text:style-name="Title" text:outline-level="0">${textXml(view.fullName)}</text:h>`,
     view.headline === undefined ? '' : paragraph('Subtitle', textXml(view.headline)),
     view.contact.length === 0 ? '' : paragraph('Meta', runsXml(view.contact)),
     blocksXml(view.summary),
   ].join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${CONTENT_NS} office:version="1.3"><office:automatic-styles>${AUTOMATIC_STYLES}</office:automatic-styles><office:body><office:text>${header}${sections(view)}</office:text></office:body></office:document-content>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${CONTENT_NS} office:version="1.3"><office:automatic-styles>${automaticStyles(mono)}</office:automatic-styles><office:body><office:text>${header}${sections(view, layout)}</office:text></office:body></office:document-content>`;
 }
 
 const STYLES_NS = [
@@ -190,20 +192,94 @@ function namedStyle(name: string, parent: string | undefined, paragraphProps: st
   return `<style:style style:name="${name}" style:family="paragraph"${parentAttr}><style:paragraph-properties ${paragraphProps}/>${text}</style:style>`;
 }
 
-export function stylesXml(view: StructuredView): string {
+/** El aspecto por defecto del ODT, el de T-9.23: el que se usa cuando no hay tema que heredar. */
+export interface OdtStyle {
+  readonly colors: ThemeConfig['colors'];
+  readonly fonts: ThemeConfig['fonts'];
+  readonly sizes: ThemeConfig['sizes'];
+  readonly spacing: ThemeConfig['spacing'];
+  readonly page: ThemeConfig['page'];
+}
+
+export const DEFAULT_ODT_STYLE: OdtStyle = {
+  colors: { text: '#1f2933', primary: '#1f2933', secondary: '#59636f', accent: '#2a6f97', rule: '#c9d1d9' },
+  fonts: { body: 'Liberation Sans', heading: 'Liberation Sans', mono: 'Liberation Mono' },
+  sizes: { name: 22, headline: 12, contact: 9.5, section: 14, title: 11.5, meta: 9.5, body: 10.5, footer: 8.5, code: 9.5 },
+  spacing: { leading: 0.5, paragraph: 0.7, list: 0.25 },
+  page: { paper: 'a4', margins: { top: 20, right: 20, bottom: 20, left: 20 } },
+};
+
+/** El tema, si lo hay, en la forma que necesitan los estilos ODF; sin tema, el aspecto de siempre. */
+export function odtStyleOf(theme: ThemeConfig | undefined): OdtStyle {
+  return theme === undefined ? DEFAULT_ODT_STYLE : { colors: theme.colors, fonts: theme.fonts, sizes: theme.sizes, spacing: theme.spacing, page: theme.page };
+}
+
+/** Tamaños de papel en centímetros, con los nombres que usa Typst (`page.paper`). */
+const PAPER: Readonly<Record<(typeof PAPER_SIZES)[number], { readonly width: number; readonly height: number }>> = {
+  a4: { width: 21, height: 29.7 },
+  a5: { width: 14.8, height: 21 },
+  a3: { width: 29.7, height: 42 },
+  'us-letter': { width: 21.59, height: 27.94 },
+  'us-legal': { width: 21.59, height: 35.56 },
+};
+
+/** Dos decimales bastan para un centímetro y evitan que un `0.30000000000000004` acabe en el XML. */
+function cm(value: number): string {
+  return `${(Math.round(value * 100) / 100).toString()}cm`;
+}
+
+/** Los «em» de espaciado del tema, en centímetros sobre el cuerpo (1 pt = 0,03528 cm). */
+function emToCm(ems: number, bodyPoints: number): string {
+  return cm(ems * bodyPoints * 0.03528);
+}
+
+function pt(value: number): string {
+  return `${value.toString()}pt`;
+}
+
+/** Una familia tipográfica citada como espera ODF, con el apóstrofo escapado dentro de un atributo XML. */
+function family(name: string): string {
+  return `&apos;${escapeXml(name)}&apos;`;
+}
+
+export function stylesXml(view: StructuredView, theme?: ThemeConfig): string {
+  const style = odtStyleOf(theme);
+  const { colors, fonts, sizes, spacing } = style;
+  // El interlineado de Typst es el hueco ENTRE líneas; ODF quiere la altura total, así que se suma el cuerpo.
+  const lineHeight = `${Math.round((1 + spacing.leading) * 100).toString()}%`;
   const styles = [
-    namedStyle('Standard', undefined, 'fo:margin-bottom="0.18cm" fo:text-align="justify"', `fo:font-size="10.5pt" fo:language="${escapeXml(view.lang)}" fo:font-family="&apos;Liberation Sans&apos;"`),
-    namedStyle('Title', 'Standard', 'fo:margin-bottom="0.1cm" fo:keep-with-next="always"', 'fo:font-size="22pt" fo:font-weight="bold"'),
-    namedStyle('Subtitle', 'Standard', 'fo:margin-bottom="0.15cm"', 'fo:font-size="12pt" fo:color="#59636f"'),
-    namedStyle('Meta', 'Standard', 'fo:margin-bottom="0.15cm" fo:text-align="start"', 'fo:font-size="9.5pt" fo:color="#59636f"'),
-    namedStyle('Heading_20_1', 'Standard', 'fo:margin-top="0.5cm" fo:margin-bottom="0.15cm" fo:keep-with-next="always" fo:border-bottom="0.5pt solid #c9d1d9" fo:padding-bottom="0.08cm"', 'fo:font-size="14pt" fo:font-weight="bold"'),
-    namedStyle('Heading_20_2', 'Standard', 'fo:margin-top="0.3cm" fo:margin-bottom="0.05cm" fo:keep-with-next="always"', 'fo:font-size="11.5pt" fo:font-weight="bold"'),
-    namedStyle('List_20_Paragraph', 'Standard', 'fo:margin-bottom="0.06cm" fo:text-align="start"', ''),
-    namedStyle('Preformatted_20_Text', 'Standard', 'fo:margin-bottom="0.15cm" fo:text-align="start"', 'fo:font-family="&apos;Liberation Mono&apos;" fo:font-size="9.5pt"'),
+    namedStyle(
+      'Standard',
+      undefined,
+      `fo:margin-bottom="${emToCm(spacing.paragraph, sizes.body)}" fo:text-align="justify" fo:line-height="${lineHeight}"`,
+      `fo:font-size="${pt(sizes.body)}" fo:language="${escapeXml(view.lang)}" fo:color="${colors.text}" fo:font-family="${family(fonts.body)}"`,
+    ),
+    namedStyle('Title', 'Standard', 'fo:margin-bottom="0.1cm" fo:keep-with-next="always"', `fo:font-size="${pt(sizes.name)}" fo:font-weight="bold" fo:color="${colors.primary}" fo:font-family="${family(fonts.heading)}"`),
+    namedStyle('Subtitle', 'Standard', 'fo:margin-bottom="0.15cm"', `fo:font-size="${pt(sizes.headline)}" fo:color="${colors.secondary}"`),
+    namedStyle('Meta', 'Standard', 'fo:margin-bottom="0.15cm" fo:text-align="start"', `fo:font-size="${pt(sizes.meta)}" fo:color="${colors.secondary}"`),
+    namedStyle(
+      'Heading_20_1',
+      'Standard',
+      `fo:margin-top="0.5cm" fo:margin-bottom="0.15cm" fo:keep-with-next="always" fo:border-bottom="0.5pt solid ${colors.rule}" fo:padding-bottom="0.08cm"`,
+      // `sizes.section` es la ETIQUETA de sección, que casi todas las plantillas Typst maquetan pequeña y en
+      // versalitas: copiada tal cual dejaría los títulos más pequeños que el cuerpo, que en un documento se lee
+      // como un error. Se respeta la escala del tema, pero nunca por debajo del texto que encabeza.
+      `fo:font-size="${pt(Math.max(sizes.section, sizes.body))}" fo:font-weight="bold" fo:color="${colors.primary}" fo:font-family="${family(fonts.heading)}"`,
+    ),
+    namedStyle(
+      'Heading_20_2',
+      'Standard',
+      'fo:margin-top="0.3cm" fo:margin-bottom="0.05cm" fo:keep-with-next="always"',
+      `fo:font-size="${pt(sizes.title)}" fo:font-weight="bold" fo:color="${colors.primary}" fo:font-family="${family(fonts.heading)}"`,
+    ),
+    namedStyle('List_20_Paragraph', 'Standard', `fo:margin-bottom="${emToCm(spacing.list, sizes.body)}" fo:text-align="start"`, ''),
+    namedStyle('Preformatted_20_Text', 'Standard', 'fo:margin-bottom="0.15cm" fo:text-align="start"', `fo:font-family="${family(fonts.mono)}" fo:font-size="${pt(sizes.code)}"`),
+    // El estilo con el que LibreOffice pinta los enlaces: sin esto, el color de enlace del tema no se vería.
+    `<style:style style:name="Internet_20_link" style:display-name="Internet link" style:family="text"><style:text-properties fo:color="${colors.accent}" style:text-underline-style="solid" style:text-underline-width="auto"/></style:style>`,
   ].join('');
-  // A4 con márgenes de 2 cm: el mismo tamaño de papel que el resto de salidas.
-  const page =
-    '<office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" style:print-orientation="portrait" fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2cm" fo:margin-right="2cm"/></style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1"/></office:master-styles>';
+  const paper = PAPER[style.page.paper];
+  const { margins } = style.page;
+  const page = `<office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="${cm(paper.width)}" fo:page-height="${cm(paper.height)}" style:print-orientation="portrait" fo:margin-top="${cm(margins.top / 10)}" fo:margin-bottom="${cm(margins.bottom / 10)}" fo:margin-left="${cm(margins.left / 10)}" fo:margin-right="${cm(margins.right / 10)}"/></style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1"/></office:master-styles>`;
   return `<?xml version="1.0" encoding="UTF-8"?><office:document-styles ${STYLES_NS} office:version="1.3"><office:styles>${styles}</office:styles>${page}</office:document-styles>`;
 }
 

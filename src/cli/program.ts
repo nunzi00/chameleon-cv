@@ -11,7 +11,8 @@ import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
-import { runApplyCommand, type ApplyOptions } from './commands/apply';
+import { runApplyCommand, runArchiveCommand, runUndoCommand, type ApplyOptions } from './commands/apply';
+import { runSourceDelete, type DeleteSourceOptions } from './commands/source-delete';
 import { runHistoryList, runHistoryRestore, runHistoryShow, type HistoryOptions } from './commands/history';
 import { type LlmRuntimeCommandOptions, type LlmStatusCommandOptions, runLlmDown, runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmModels, runLlmStatus, runLlmUp } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
@@ -237,6 +238,17 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
       onExit(await runDuplicatesResolve(context, keep, options));
     });
 
+  const sources = program.command('sources').description('tus fuentes de data/sources: por ahora, eliminar una (T-9.25); verlas y editarlas es «cv validate», «cv build» y la pantalla Fuentes');
+  sources
+    .command('delete <ruta>')
+    .description('borra un fichero de fuentes diciendo antes qué entradas del perfil desaparecen; se niega si lo que queda no carga y deja el fichero entero en el histórico, así que «cv history restore» lo devuelve')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'solo enseña qué desaparecería', false)
+    .option('--yes', 'acepta por adelantado (obligatorio sin terminal interactiva)', false)
+    .action(async (path: string, options: DeleteSourceOptions) => {
+      onExit(await runSourceDelete(context, path, options));
+    });
+
   const typst = program.command('typst').description('gestiona el binario de Typst (motor PDF opcional): instalación verificada y estado');
   typst
     .command('install')
@@ -291,9 +303,28 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .description('aplica a tus fuentes las propuestas marcadas [x] en un fichero de revisión de improve o summarize: solo lo marcado, cambio mínimo, copia de seguridad previa (<fichero>.bak) y comprobación por huella (si el original cambió, no escribe nada)')
     .option('-d, --data <dir>', 'directorio de fuentes (por defecto, el registrado en la revisión o data/sources)')
     .option('--delete-review', 'elimina el fichero de revisión tras aplicarlo', false)
+    .option('--no-archive', 'deja la revisión donde está; por defecto, la que ya no deja nada pendiente se aparta a revisiones-archivadas/')
     .option('--dry-run', 'muestra qué cambiaría sin escribir nada', false)
     .action(async (review: string, options: Omit<ApplyOptions, 'review'>) => {
       onExit(await runApplyCommand(context, { ...options, review }));
+    });
+  improve
+    .command('archive <review>')
+    .description('aparta una revisión a revisiones-archivadas/, junto al directorio en el que está: deja de salir en la lista sin borrarse')
+    .action(async (review: string) => {
+      onExit(await runArchiveCommand(context, review, true));
+    });
+  improve
+    .command('unarchive <review>')
+    .description('devuelve a la vista una revisión archivada')
+    .action(async (review: string) => {
+      onExit(await runArchiveCommand(context, review, false));
+    });
+  improve
+    .command('undo <review>')
+    .description('deshace la última aplicación de esa revisión: devuelve cada fuente a como estaba (la versión de ahora queda en el histórico) y saca la revisión del archivo')
+    .action(async (review: string) => {
+      onExit(await runUndoCommand(context, review));
     });
 
   program

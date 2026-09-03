@@ -46,3 +46,7 @@ top = 17
 right = 19
 bottom = 16
 left = 19
+
+[layout]                # la organización, para las salidas que no ejecutan el template.typ (T-9.26)
+sections = ["projects", "experience", "skills", "achievements", "education", "certifications", "languages"]
+experience = "compact"      # una línea por puesto: sin resumen ni logros

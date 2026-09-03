@@ -19,6 +19,8 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     sources: vi.fn(async () => ({ root: '/work/data/sources', entries: ENTRIES })),
     source: vi.fn(async (path: string) => ({ path, content: `# ${path}\n`, sha256: 'sha-1' })),
     writeSource: vi.fn(async (path: string) => ({ path, sha256: 'sha-2' })),
+    deleteSourcePlan: vi.fn(async (path: string) => ({ root: '/work/data/sources', path, bytes: 42, removed: [{ section: 'experience' as const, id: 'exp-acme', title: 'Backend Engineer · ACME' }], dryRun: true, historyId: undefined })),
+    deleteSource: vi.fn(async (path: string) => ({ root: '/work/data/sources', path, bytes: 42, removed: [{ section: 'experience' as const, id: 'exp-acme', title: 'Backend Engineer · ACME' }], dryRun: false, historyId: '20260903T100000000Z-borrado' })),
     generate: vi.fn(),
     analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), cvFolders: vi.fn(),
     extractOffer: vi.fn(),
@@ -35,7 +37,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     startJob: vi.fn(),
     cancelJob: vi.fn(),
     jobEvents: vi.fn(),
-    exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), applyReview: vi.fn(),
+    exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), archiveReview: vi.fn(), undoReview: vi.fn(), applyReview: vi.fn(),
     ...overrides,
   };
 }
@@ -145,6 +147,34 @@ describe('Fuentes · historial de versiones (T-8.10)', () => {
     await waitFor(() => expect(screen.getByText(/queda en el histórico \(nueva\)/)).toBeTruthy());
     expect(api.restoreSourceVersion).toHaveBeenCalledWith({ entry: '20260830T100000000Z-r', path: 'experience/acme.md' });
     expect(api.source).toHaveBeenCalledTimes(2);
+  });
+
+  it('eliminar dice antes qué entradas del perfil se lleva, y solo borra tras confirmar (T-9.25)', async () => {
+    const navigate = vi.fn();
+    const api = fakeApi();
+    render(Fuentes, { props: { api, item: 'experience/acme.md', onsession: vi.fn(), navigate, plainEditor: true } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Eliminar' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    // Primero el plan: qué desaparece. Cancelar no borra.
+    await waitFor(() => expect(screen.getByText('Backend Engineer · ACME', { exact: false })).toBeTruthy());
+    expect(api.deleteSourcePlan).toHaveBeenCalledWith('experience/acme.md');
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(api.deleteSource).not.toHaveBeenCalled();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Eliminar' }).at(-1) as HTMLElement);
+    await waitFor(() => expect(api.deleteSource).toHaveBeenCalledWith('experience/acme.md', 'sha-1'));
+    // Borrada la fuente abierta, la pantalla vuelve al árbol: no tiene sentido quedarse en un fichero que ya no está.
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ page: 'fuentes' }));
+  });
+
+  it('un fallo al pedir el plan de borrado se explica y no abre el diálogo', async () => {
+    const api = fakeApi({ deleteSourcePlan: vi.fn(async () => { throw new ApiError(422, { code: 'invalid-data', message: 'Sin «profile.md» las fuentes dejarían de cargar' }); }) });
+    render(Fuentes, { props: { api, item: 'experience/acme.md', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Eliminar' })).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(screen.getByText(/dejarían de cargar/)).toBeTruthy());
+    expect(api.deleteSource).not.toHaveBeenCalled();
   });
 
   it('sin historial lo dice; un fallo al listarlo no rompe la pantalla', async () => {

@@ -53,6 +53,7 @@ import type {
   LlmModelsResponse,
   HistoryVersionRequest,
   SourceHistoryResponse,
+  SourceDeleteResponse,
   SourceRestoreResponse,
   SourceVersionResponse,
   LlmCheckResponse,
@@ -63,8 +64,10 @@ import type {
   ServeSettingsWriteRequest,
   OutputListResponse,
   ProfileResponse,
+  ReviewArchiveResponse,
   ReviewDeleteResponse,
   ReviewResponse,
+  ReviewUndoResponse,
   ReviewWriteResponse,
   ReviewsResponse,
   ShutdownResponse,
@@ -135,6 +138,10 @@ export interface ApiClient {
   source(path: string): Promise<SourceResponse>;
   /** `ifMatch`: la huella leída, o «*» para crear. */
   writeSource(path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
+  /** Qué desaparecería del perfil al borrar esa fuente, sin borrar nada (T-9.25). */
+  deleteSourcePlan(path: string): Promise<SourceDeleteResponse>;
+  /** Borra la fuente; exige la huella que se vio. La versión anterior queda en el histórico. */
+  deleteSource(path: string, ifMatch: string): Promise<SourceDeleteResponse>;
   generate(body: GenerateRequest): Promise<GenerateResponse>;
   analyze(body: AnalyzeRequest): Promise<AnalyzeResponse>;
   /** Guarda como alias lo que el co-piloto tendió (T-9.12): escribe en skills.csv, por eso lo pide un botón. */
@@ -202,6 +209,10 @@ export interface ApiClient {
   /** Guarda la revisión editada (marcas) con la huella leída en If-Match. */
   writeReview(name: string, content: string, ifMatch: string): Promise<ReviewWriteResponse>;
   deleteReview(name: string): Promise<ReviewDeleteResponse>;
+  /** Aparta la revisión a revisiones-archivadas/ o la devuelve a la vista (T-9.24). */
+  archiveReview(name: string, archived: boolean): Promise<ReviewArchiveResponse>;
+  /** Deshace la última aplicación de esa revisión: las fuentes vuelven a como estaban. */
+  undoReview(name: string): Promise<ReviewUndoResponse>;
   /** Sin `dryRun: false` solo devuelve el plan; con él escribe en las fuentes (C9). */
   applyReview(name: string, body: ApplyRequest): Promise<ApplyResponse>;
   /** El perfil canónico desde las fuentes (cv export). */
@@ -342,6 +353,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     sources: () => request('GET', '/sources'),
     source: (path) => request('GET', `/sources/${encodeId(path)}`),
     writeSource: (path, content, ifMatch) => requestWithHeaders('PUT', `/sources/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
+    deleteSourcePlan: (path) => request('POST', `/sources-delete-plan/${encodeId(path)}`, { body: {} }),
+    deleteSource: (path, ifMatch) => requestWithHeaders('DELETE', `/sources/${encodeId(path)}`, undefined, { 'If-Match': ifMatchHeader(ifMatch) }),
     generate: (body) => request('POST', '/generate', { body }),
     analyze: (body) => request('POST', '/analyze-offer', { body }),
     saveAliases: (body) => request('POST', '/aliases', { body }),
@@ -404,6 +417,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     review: (name) => request('GET', `/reviews/${encodeId(name)}`),
     writeReview: (name, content, ifMatch) => requestWithHeaders('PUT', `/reviews/${encodeId(name)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
     deleteReview: (name) => request('DELETE', `/reviews/${encodeId(name)}`),
+    archiveReview: (name, archived) => request('POST', `/reviews/${encodeId(name)}/archive`, { body: { archived } }),
+    undoReview: (name) => request('POST', `/reviews/${encodeId(name)}/undo`, { body: {} }),
     applyReview: (name, body) => request('POST', `/reviews/${encodeId(name)}/apply`, { body }),
     exportProfile: () => request('GET', '/export'),
     importProfile: (body) => request('POST', '/import', { body }),

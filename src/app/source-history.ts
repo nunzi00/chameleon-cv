@@ -10,6 +10,7 @@ import { isMissingFile } from '../artifact';
 import type { AppContext } from './context';
 import { dataError, environmentError, type AppError } from './errors';
 import { isSafeSourcePath } from './paths';
+import { describeError } from '../shared/errors';
 import { contentHash } from './sources';
 
 export const SOURCE_HISTORY_DIR = 'output/historial-fuentes';
@@ -153,7 +154,7 @@ export async function recordSourceVersions(
     await context.artifactFileSystem.writeFile(resolve(historyDirectory(context.cwd), SOURCE_HISTORY_INDEX), `${JSON.stringify(index, null, 2)}\n`, HISTORY_MODE);
     return { ok: true, entry, directory };
   } catch (error) {
-    return { ok: false, error: environmentError(`No se pudo guardar el histórico en ${directory}: ${error instanceof Error ? error.message : String(error)}`) };
+    return { ok: false, error: environmentError(`No se pudo guardar el histórico en ${directory}: ${describeError(error)}`) };
   }
 }
 
@@ -184,7 +185,7 @@ export async function readSourceVersion(context: HistoryContext, entryId: string
   try {
     return { ok: true, entry, file, content: await context.artifactFileSystem.readFile(historyVersionPath(context.cwd, entry.id, path)) };
   } catch (error) {
-    return { ok: false, error: environmentError(`No se pudo leer la versión guardada: ${error instanceof Error ? error.message : String(error)}`) };
+    return { ok: false, error: environmentError(`No se pudo leer la versión guardada: ${describeError(error)}`) };
   }
 }
 
@@ -204,7 +205,7 @@ export async function restoreSourceVersion(context: HistoryContext, entryId: str
     // Una fuente que YA NO EXISTE se restaura igual: su versión actual es «no existe», y eso es justo lo que hay
     // que guardar para poder deshacer la restauración. Sin esto, borrar una fuente (T-9.20) no tendría vuelta.
     if (!isMissingFile(error)) {
-      return { ok: false, error: environmentError(`No se pudo leer la fuente actual ${target}: ${error instanceof Error ? error.message : String(error)}`) };
+      return { ok: false, error: environmentError(`No se pudo leer la fuente actual ${target}: ${describeError(error)}`) };
     }
     current = '';
   }
@@ -215,9 +216,77 @@ export async function restoreSourceVersion(context: HistoryContext, entryId: str
   try {
     await context.artifactFileSystem.writeFile(target, version.content, 0o600);
   } catch (error) {
-    return { ok: false, error: environmentError(`No se pudo escribir ${target}: ${error instanceof Error ? error.message : String(error)}`) };
+    return { ok: false, error: environmentError(`No se pudo escribir ${target}: ${describeError(error)}`) };
   }
   return { ok: true, path: target, entry: recorded.entry };
+}
+
+export type RestoreEntryResult =
+  | {
+      readonly ok: true;
+      /** La entrada que se ha devuelto. */
+      readonly source: SourceHistoryEntry;
+      /** Rutas (relativas al directorio de fuentes) devueltas a como estaban en ella. */
+      readonly restored: readonly string[];
+      /** Rutas que ya coincidían con la versión guardada: no se han tocado. */
+      readonly unchanged: readonly string[];
+      /** La entrada nueva con lo que había justo antes; ausente si no hubo nada que devolver. */
+      readonly entry: SourceHistoryEntry | undefined;
+    }
+  | { readonly ok: false; readonly error: AppError };
+
+/**
+ * Devuelve **todas** las fuentes de una entrada a como estaban en ella, en una sola entrada nueva de tipo
+ * `restore` (T-9.24: deshacer una aplicación de revisión, que casi nunca toca un solo fichero). Lo que ya
+ * coincide con la versión guardada no se reescribe ni se apunta: deshacer dos veces no llena el histórico de
+ * entradas idénticas ni miente diciendo que ha cambiado algo.
+ */
+export async function restoreSourceEntry(context: HistoryContext, entryId: string, at?: Date): Promise<RestoreEntryResult> {
+  const source = (await readSourceHistory(context)).find((candidate) => candidate.id === entryId);
+  if (source === undefined) {
+    return { ok: false, error: dataError(`No hay ninguna entrada «${entryId}» en el histórico`) };
+  }
+  const versions: PendingVersion[] = [];
+  const unchanged: string[] = [];
+  for (const file of source.files) {
+    const target = resolve(source.root, file.path);
+    let saved: string;
+    try {
+      saved = await context.artifactFileSystem.readFile(historyVersionPath(context.cwd, source.id, file.path));
+    } catch (error) {
+      return { ok: false, error: environmentError(`No se pudo leer la versión guardada de ${file.path}: ${describeError(error)}`) };
+    }
+    let current: string;
+    try {
+      current = await context.artifactFileSystem.readFile(target);
+    } catch (error) {
+      // Una fuente borrada se restaura igual: su versión actual es «no existe» (como en restoreSourceVersion).
+      if (!isMissingFile(error)) {
+        return { ok: false, error: environmentError(`No se pudo leer la fuente actual ${target}: ${describeError(error)}`) };
+      }
+      current = '';
+    }
+    if (current === saved) {
+      unchanged.push(file.path);
+    } else {
+      versions.push({ path: target, before: current, after: saved, ids: [source.id] });
+    }
+  }
+  if (versions.length === 0) {
+    return { ok: true, source, restored: [], unchanged, entry: undefined };
+  }
+  const recorded = await recordSourceVersions(context, { action: 'restore', origin: source.id, root: source.root, versions, at });
+  if (!recorded.ok) {
+    return recorded;
+  }
+  for (const version of versions) {
+    try {
+      await context.artifactFileSystem.writeFile(version.path, version.after, HISTORY_MODE);
+    } catch (error) {
+      return { ok: false, error: environmentError(`No se pudo escribir ${version.path}: ${describeError(error)}`) };
+    }
+  }
+  return { ok: true, source, restored: versions.map((version) => relative(source.root, version.path).split('\\').join('/')), unchanged, entry: recorded.entry };
 }
 
 /** Una línea por entrada: «2026-08-30T18:12:05.123Z · apply revision-improve.md · experience/acme.md (exp-acme-1)». */

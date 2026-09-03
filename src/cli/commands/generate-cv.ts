@@ -50,17 +50,18 @@ export function formatConflict(options: ConflictOptions): string | undefined {
   if (options.engine !== 'typst' && (options.typstPath !== undefined || options.typstAnyVersion)) {
     return '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»';
   }
-  if (options.engine !== 'typst' && options.theme !== undefined) {
-    return '«--theme» solo aplica a «--engine typst» (con --format pdf)';
+  // El ODT también hereda el tema desde T-9.26, así que `--theme` es válido en sus dos destinos.
+  if (options.engine !== 'typst' && options.format !== 'odt' && options.theme !== undefined) {
+    return '«--theme» solo aplica a «--engine typst» (con --format pdf) y a «--format odt»';
   }
   if (options.format === 'odt') {
-    // ODT es un documento para editar: ni motor, ni plantilla, ni salida por pantalla (es binario). Su aspecto
-    // se cambia con los estilos del propio documento, que es de lo que sirve un formato abierto.
+    // ODT es un documento para editar: ni motor, ni plantilla (que es código Typst), ni salida por pantalla
+    // (es binario). Lo declarativo del tema —colores, tipografías, página y su [layout]— sí se hereda.
     if (options.stdout) {
       return '«--stdout» solo admite «--format md»: el ODT es binario y se escribe siempre en un fichero (--output)';
     }
     if (options.template !== undefined) {
-      return '«--template» no aplica a «--format odt»: su aspecto se ajusta con los estilos del propio documento';
+      return '«--template» no aplica a «--format odt»: es una plantilla de Typst; el aspecto del ODT sale de «--theme» y de sus propios estilos';
     }
     return options.engine === 'typst' ? '«--engine» solo aplica a «--format pdf»' : undefined;
   }

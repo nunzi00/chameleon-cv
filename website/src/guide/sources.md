@@ -116,6 +116,20 @@ name,issuer,date,url,tags
 CKA,CNCF,2022-05-10,https://example.com/cert/cka,kubernetes|devops
 ```
 
+## Eliminar una fuente
+
+```bash
+cv sources delete experience/acme.md --dry-run   # qué entradas del perfil desaparecerían
+cv sources delete experience/acme.md             # las dice y pregunta antes de borrar
+cv history restore latest experience/acme.md     # y así vuelve
+```
+
+Borrar un fichero de fuentes es la escritura menos reversible del producto, así que va con tres garantías: se
+dice **qué entradas del perfil desaparecen** antes de tocar nada; se **comprueba que lo que queda sigue
+cargando** —por eso `profile.md` no se puede borrar y se explica por qué— y el fichero entero queda en
+`output/historial-fuentes/`, de donde `cv history restore latest <ruta>` lo devuelve. En la web, el botón
+**Eliminar** de cada fuente, con el mismo plan y la misma confirmación. Después, recompila con `cv build`.
+
 ## Errores
 
 `cv validate` y `cv build` muestran **todos** los problemas a la vez, con fichero, línea y clave:

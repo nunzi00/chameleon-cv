@@ -10,7 +10,7 @@ import { type MatchReport, type RemovedItem, type SectionLimits, applyLimits, ev
 import type { SelectionReport } from '../core/selection';
 import { loadFonts, renderMarkdownCv, renderOdtCv, renderPdfCv, type TypstRenderErrorCode } from '../renderers';
 import { describeError } from '../shared/errors';
-import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys } from '../themes';
+import { DEFAULT_THEME, applyThemeOverrides, loadProjectConfig, loadTheme, overriddenKeys, type LoadedTheme } from '../themes';
 import { projectThemeRoots } from './assets';
 import type { AppContext } from './context';
 import { buildProfile, loadProfile } from './dataset';
@@ -90,8 +90,14 @@ export function typstExitCode(code: TypstRenderErrorCode): 1 | 2 {
 
 type PdfOutcome = { readonly ok: true; readonly pdf: Buffer } | { readonly ok: false; readonly error: AppError };
 
-async function renderWithTypst(context: AppContext, profile: MasterProfile, request: GenerateRequest, report: GenerateReport): Promise<PdfOutcome> {
-  // Tema (T-5.1) y anulaciones de cv.toml (T-5.2): --theme > cv.toml [theme].name > default; theme.toml + [theme] de cv.toml, revalidado.
+type ThemeOutcome = { readonly ok: true; readonly theme: LoadedTheme } | { readonly ok: false; readonly error: AppError };
+
+/**
+ * Tema (T-5.1) y anulaciones de cv.toml (T-5.2): `--theme` > `cv.toml [theme].name` > `default`; `theme.toml`
+ * más el `[theme]` de `cv.toml`, revalidado. Lo usan el PDF de Typst y —desde T-9.26— el ODT, que hereda de
+ * aquí sus estilos y su organización.
+ */
+async function resolveThemeFor(context: AppContext, request: GenerateRequest, report: GenerateReport): Promise<ThemeOutcome> {
   const project = await loadProjectConfig(context.cwd, context.datasetFileSystem);
   if (!project.ok) {
     return { ok: false, error: dataError(project.message) };
@@ -103,6 +109,15 @@ async function renderWithTypst(context: AppContext, profile: MasterProfile, requ
   }
   const theme = applyThemeOverrides(loaded.theme, overrides);
   report.theme = { name: theme.name, builtin: theme.builtin, overridden: overriddenKeys(overrides) };
+  return { ok: true, theme };
+}
+
+async function renderWithTypst(context: AppContext, profile: MasterProfile, request: GenerateRequest, report: GenerateReport): Promise<PdfOutcome> {
+  const resolved = await resolveThemeFor(context, request, report);
+  if (!resolved.ok) {
+    return { ok: false, error: resolved.error };
+  }
+  const { theme } = resolved;
   const result = await context.typstRenderer(profile, {
     locale: request.locale,
     template: request.templatePath === undefined ? undefined : resolve(context.cwd, request.templatePath),
@@ -170,8 +185,13 @@ export async function generateCv(context: AppContext, request: GenerateRequest):
   const history = await generateHistory(context, offer, request, outputPath);
 
   if (request.format === 'odt') {
-    // Sin motor ni tema: ODT es para editarlo, y su aspecto se cambia con los estilos del propio documento.
-    return { ok: true, cv: { kind: 'odt', outputPath, odt: renderOdtCv(trimmed.profile, { locale: request.locale }) }, report, history, warnings };
+    // Sin motor, pero CON tema (T-9.26): lo declarativo del tema —colores, tipografías, tamaños, página y su
+    // `[layout]`— va a los estilos con nombre del documento, que es justo lo que se edita después.
+    const resolved = await resolveThemeFor(context, request, report);
+    if (!resolved.ok) {
+      return { ok: false, error: resolved.error, report, warnings };
+    }
+    return { ok: true, cv: { kind: 'odt', outputPath, odt: renderOdtCv(trimmed.profile, { locale: request.locale, theme: resolved.theme.config }) }, report, history, warnings };
   }
 
   if (request.format === 'pdf') {

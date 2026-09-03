@@ -17,6 +17,7 @@ cv improve --only exp-acme-1 --show-payload --dry-run   # shows exactly what wou
 cv summarize -s backend                         # proposes the professional summary from the filtered profile
 cv suggest tags "Migrated the platform to Kubernetes with no downtime"   # tags for a text, only from the closed dictionary
 cv improve apply output/revision-improve-2026-08-29.md   # applies what is marked [x]: previous version to history, fingerprint checked
+cv improve undo output/revision-improve-2026-08-29.md    # undoes that application: the sources go back to how they were
 cv history                                               # the version history of your sources (output/historial-fuentes/)
 cv history show latest experience/acme.md                # the last saved version of a source
 cv history restore latest experience/acme.md             # writes it back (the current one also goes to the history)
@@ -100,17 +101,24 @@ and `.bak.1`, `.bak.2`… if one already existed); and a **fingerprint check**: 
 `sha256` of every original, and if the original is no longer exactly that, nothing is written. `--dry-run` shows
 the plan, `--delete-review` removes the applied review, and afterwards you rebuild with `cv build`.
 
+**What is applied gets archived on its own.** When a review leaves **nothing pending**, applying it moves it to
+`revisiones-archivadas/`, next to the directory it was in: it stops showing up in the list (and in the web
+screen) without being deleted, and you open, apply and restore it just the same. `--no-archive` leaves it where
+it is, and `cv improve archive` / `cv improve unarchive` do it by hand for any review.
+
 **Applying the same review twice is not an error.** If the source already holds the proposal's text, it is
-reported —«2 propuestas ya aplicadas (…)»—, nothing is rewritten and the command exits with 0. To undo it, the
-source history is there and the command reminds you: `cv history` lists the previous versions and
-`cv history restore latest <source>` brings the earlier one back (the current one goes to the history in turn).
-In the web interface, the same from **Fuentes → Historial de esta fuente**, with «Ver diferencias» and «Restaurar
-esta versión».
+reported —«2 propuestas ya aplicadas (…)»—, nothing is rewritten and the command exits with 0. To undo it,
+`cv improve undo <review>` returns **every** source that review wrote to how it was before applying it; whatever
+is there now goes to the history in turn, so undoing can itself be undone, and the review leaves the archive
+because it is pending again. For a single source, `cv history` lists the previous versions and
+`cv history restore latest <source>` brings the earlier one back. In the web interface, «Deshacer la aplicación»
+in **Revisiones**, and the same file by file from **Fuentes → Historial de esta fuente**, with «Ver diferencias»
+and «Restaurar esta versión».
 
 And you don't have to apply to find out: in the web interface, **Revisiones** compares every item with what is in
 your sources **today** and says so next to it —«ya aplicada», «sin aplicar», «la fuente cambió» or «sin fuente
 registrada»—, with the count beside the name in the list («1 de 3 ya aplicadas»). It looks at the text, not at a
-stored mark: a review you apply and then undo with `cv history restore` shows up as pending again, which is the
+stored mark: a review you apply and then undo with `cv improve undo` shows up as pending again, which is the
 truth.
 
 ## Remote providers (optional)

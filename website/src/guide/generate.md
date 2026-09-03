@@ -34,12 +34,30 @@ las secciones es tocar **un** estilo (Formato → Estilos en LibreOffice) en vez
 estructura es plana, sin cajas ni columnas, para poder reordenar sin pelearse con el maquetado; y las negritas,
 cursivas y enlaces llegan como estilos y enlaces de verdad.
 
-Es el **mismo CV** que las demás salidas: misma especialidad, misma oferta, mismos recortes. `--engine`,
-`--theme` y `--template` no aplican —su aspecto se ajusta dentro del propio documento— y `--stdout` tampoco,
-porque es binario.
+Es el **mismo CV** que las demás salidas: misma especialidad, misma oferta, mismos recortes. `--engine` y
+`--template` no aplican (la plantilla es código Typst) y `--stdout` tampoco, porque es binario.
 
-En la web, el selector «Formato» de **Generar** tiene la opción «ODT (documento editable)»; en **Salidas** se
-descarga (no se previsualiza: no es texto ni PDF).
+### Y hereda el tema
+
+```bash
+cv generate-cv --format odt --theme functional   # otra organización, en un documento editable
+cv generate-cv --format odt --theme elegant      # otra tipografía y otro color
+cv theme list                                    # los temas, con su clase
+```
+
+`--theme` **sí** vale con `--format odt`. El documento hereda del tema los **colores**, las **tipografías**, los
+**tamaños**, el **interlineado** y la **página** —todo en estilos con nombre, que es lo que después tocas— y,
+de su `[layout]`, la **organización**: qué sección va antes, si los logros se consolidan fuera de su puesto (con
+la empresa de origen) y si la experiencia se cuenta en una línea por puesto.
+
+Ocho temas del catálogo declaran su organización: `functional`, `achievements-first`, `skills-first`, `hybrid`,
+`education-first`, `project-portfolio`, `ats-plain` y `chronological`. El resto sí aporta su tipografía y su
+color al ODT, pero mantiene el orden por defecto, porque **su** organización vive en la maquetación —columnas
+laterales, tablas a dos columnas, ejes temporales fusionados— y eso no se reproduce en un documento pensado para
+editarse a mano. Se dice en vez de fingirlo.
+
+En la web, el selector «Formato» de **Generar** tiene la opción «ODT (documento editable)» y el selector «Tema»
+queda activo con ella; en **Salidas** se descarga (no se previsualiza: no es texto ni PDF).
 
 ## Markdown y plantillas propias
 

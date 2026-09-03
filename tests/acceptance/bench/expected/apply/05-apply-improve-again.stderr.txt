@@ -1,2 +1,2 @@
 1 propuesta ya aplicada (exp-nexo-pagos-2): la fuente ya tiene ese texto, no se ha vuelto a escribir
-Para deshacerlo: «cv history» lista las versiones anteriores y «cv history restore latest <fuente>» devuelve la de antes (la actual queda a su vez en el histórico)
+Para deshacerlo: «cv improve undo reviews/revision-improve-marcada.md» devuelve las fuentes a como estaban antes de aplicarla (y la versión de ahora queda a su vez en el histórico)

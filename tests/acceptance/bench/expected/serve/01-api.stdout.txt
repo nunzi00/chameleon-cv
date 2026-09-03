@@ -6100,6 +6100,7 @@
 
 ### GET /reviews → 200
 {
+  "archived": [],
   "reviews": []
 }
 

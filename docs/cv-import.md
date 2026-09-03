@@ -245,8 +245,8 @@ eso automáticamente produce basura, así que el producto **agrupa y pregunta**:
 miembros y su procedencia —incluida la entrada que ya esté en `data/sources/`— y eliges tú. Ninguna casilla
 viene marcada.
 
-Dos entradas de la misma sección van al mismo grupo si **sus periodos coinciden** y **sus palabras se parecen**.
-Cada regla salió de un fallo medido sobre el corpus real:
+Dos entradas de la misma sección van al mismo grupo si son de la **misma organización**, **sus periodos
+coinciden** y **sus palabras se parecen**. Cada regla salió de un fallo medido sobre el corpus real:
 
 | Regla | Por qué |
 | --- | --- |
@@ -257,8 +257,22 @@ Cada regla salió de un fallo medido sobre el corpus real:
 | Solaparse no basta: hace falta la mitad | «Graduado Escolar 1986–1993» y «Bachillerato 1993–1997» comparten un año y son dos cosas distintas. |
 | Un texto espaciado letra a letra se compara **buscando las palabras dentro de la cadena pegada** | El PDF perdió la frontera entre palabras (B-10, B-14): comparar palabra a palabra da 0. |
 | Empresa y puesto se comparan **juntos**, sin distinguir cuál es cuál | Medio corpus los trae intercambiados y no hay señal fiable para saberlo (B-13). |
+| Pero la **empresa de cada una tiene que reconocerse en la otra** | Dos puestos parecidos en empresas distintas no son el mismo empleo (B-20). Se busca en **todo el título** de la otra, no contra su campo `company`, porque medio corpus los trae intercambiados: lo que se exige es que la empresa esté, venga en el campo que venga. Si a alguna **no se le conoce** («Empresa pendiente»), no se descarta nada. |
+
+En el nombre de una organización cuentan hasta las palabras de tres letras —«IBM» y «SAP» son el nombre
+entero, y descartarlas por cortas dejaría a las dos entradas sin identidad—, y se caen las iniciales sueltas
+cuando el nombre trae además palabras de verdad: «I.E.S Muralla Romana» se busca por «muralla romana», porque
+otro CV lo escribe «ies muralla romana» de una pieza.
 
 **Medido sobre el corpus del PO** (8 borradores, 158 entradas): 27 grupos, uno por empleo o titulación real.
+
+**B-20 (arreglado el 3-sep, encontrado por el PO sobre sus propias fuentes)**: sin la condición de la empresa,
+«Desarrollador / Administrador · Servigasa Special Jobs» y «Desarrollador/Administrador · Picas Rojas»
+compartían la mitad de las palabras de la más corta —las del **puesto**— y solapaban fechas, así que caían en
+el mismo grupo. Y como un grupo se forma **contra su semilla**, ese emparejamiento falso además **robaba** el
+miembro al grupo verdadero: las dos entradas de Picas Rojas, que sí eran la misma, se quedaban sin agrupar.
+Salían dos empresas mezcladas donde no había nada y dos empleos donde había uno repetido. Sobre el corpus del
+PO: de 2 grupos (uno falso, uno bueno) a **3 grupos, uno por empresa**.
 
 **Límite conocido y aceptado**: una entrada **sin fechas** puede caer en un grupo con el que solo comparte el
 nombre del centro. Se prefiere así porque agrupar de menos esconde duplicados, y agrupar de más solo cuesta una

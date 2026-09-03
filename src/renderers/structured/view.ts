@@ -11,6 +11,8 @@ import { blocks, inlineRuns, type Block, type Run } from './inline';
 export interface StructuredAchievement {
   readonly runs: readonly Run[];
   readonly impact?: string;
+  /** De dónde sale, cuando la organización del tema los consolida fuera de su entrada (T-9.26). */
+  readonly source?: string;
 }
 
 export interface StructuredContainer {

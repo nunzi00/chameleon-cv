@@ -1,0 +1,3 @@
+Sin «profile.md» las fuentes dejarían de cargar, así que no se ha borrado nada:
+profile.md: Falta el fichero obligatorio
+Edita el fichero en vez de borrarlo, o borra antes lo que dependa de él

@@ -86,6 +86,14 @@ export const SCENARIOS: readonly Scenario[] = [
       // ODT (T-9.23): se compara por sus entradas descomprimidas, no por bytes: la compresión depende de la
       // zlib de cada máquina, igual que en los PDF.
       { id: 'generate-backend-odt', args: ['generate-cv', '-s', 'backend', '--format', 'odt', '-o', 'output/cv-backend.odt'], exitCode: 0, outputs: [{ path: 'output/cv-backend.odt', kind: 'odt' }] },
+      // El ODT hereda el tema (T-9.26): «functional» cambia el orden de las secciones, consolida los logros con
+      // su origen y deja la experiencia en una línea por puesto, todo dentro de un documento editable.
+      {
+        id: 'generate-backend-odt-functional',
+        args: ['generate-cv', '-s', 'backend', '--format', 'odt', '--theme', 'functional', '-o', 'output/cv-backend-functional.odt'],
+        exitCode: 0,
+        outputs: [{ path: 'output/cv-backend-functional.odt', kind: 'odt' }],
+      },
       { id: 'generate-full-pdfkit', args: ['generate-cv', '--format', 'pdf', '-o', 'output/cv-full.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.pdfkit.pdf', kind: 'pdf' }] },
       { id: 'generate-backend-pdfkit', args: ['generate-cv', '-s', 'backend', '--format', 'pdf', '-o', 'output/cv-backend.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-backend.pdfkit.pdf', kind: 'pdf' }] },
       { id: 'generate-nexo-pdf-compact-pdfkit', args: ['generate-cv', '-s', 'backend', '-f', 'offers/pdf/nexo-senior-backend.pdf', '--compact', '--format', 'pdf', '-o', 'output/cv-backend-nexo-compact.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-backend-nexo-compact.pdfkit.pdf', kind: 'pdf' }] },
@@ -171,6 +179,11 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'apply-improve', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 0, outputs: [{ path: 'data/sources/experience/nexo-pagos.md', kind: 'text' }, { path: 'output/historial-fuentes/index.json', kind: 'json' }] },
       { id: 'apply-summarize', args: ['improve', 'apply', 'reviews/revision-summarize-backend-marcada.md'], exitCode: 0, outputs: [{ path: 'data/sources/specialties/backend.md', kind: 'text' }] },
       { id: 'apply-improve-again', args: ['improve', 'apply', 'reviews/revision-improve-marcada.md'], exitCode: 0 },
+      // Archivar es mover, no borrar (T-9.24): la revisión de improve sigue teniendo un ítem sin marcar, así que
+      // no se archivó sola; se archiva y se devuelve a mano, y pedir lo que ya es no falla.
+      { id: 'apply-archive', args: ['improve', 'archive', 'reviews/revision-improve-marcada.md'], exitCode: 0 },
+      { id: 'apply-archive-otra-vez', args: ['improve', 'archive', 'reviews/revisiones-archivadas/revision-improve-marcada.md'], exitCode: 0 },
+      { id: 'apply-unarchive', args: ['improve', 'unarchive', 'reviews/revisiones-archivadas/revision-improve-marcada.md'], exitCode: 0 },
       { id: 'build-after', args: ['build', '-v'], exitCode: 0 },
       { id: 'generate-backend-after', args: ['generate-cv', '-s', 'backend', '-o', 'output/cv-backend-aplicado.md'], exitCode: 0, outputs: [{ path: 'output/cv-backend-aplicado.md', kind: 'text' }] },
       { id: 'history', args: ['history'], exitCode: 0 },
@@ -178,6 +191,19 @@ export const SCENARIOS: readonly Scenario[] = [
       // Sin `outputs`: la ruta restaurada ya la captura apply-improve y los ficheros esperados se comparten por ruta.
       { id: 'history-restore', args: ['history', 'restore', 'latest', 'experience/nexo-pagos.md'], exitCode: 0 },
       { id: 'history-after-restore', args: ['history', '--json'], exitCode: 0 },
+      // Deshacer la aplicación de la revisión de summarize (que sí se archivó sola, porque no dejó nada
+      // pendiente): la especialidad vuelve a su resumen de antes y la revisión sale del archivo.
+      { id: 'apply-undo-summarize', args: ['improve', 'undo', 'reviews/revisiones-archivadas/revision-summarize-backend-marcada.md'], exitCode: 0 },
+      { id: 'apply-undo-otra-vez', args: ['improve', 'undo', 'reviews/revision-summarize-backend-marcada.md'], exitCode: 0 },
+      { id: 'history-after-undo', args: ['history'], exitCode: 0 },
+      // Eliminar una fuente (T-9.25): primero qué se lleva, la negativa a dejar el dataset sin cargar y la vuelta
+      // por el histórico, que es lo que hace que borrar no sea una decisión definitiva.
+      { id: 'sources-delete-dry-run', args: ['sources', 'delete', 'experience/nexo-pagos.md', '--dry-run'], exitCode: 0 },
+      { id: 'sources-delete-profile', args: ['sources', 'delete', 'profile.md', '--yes'], exitCode: 1 },
+      { id: 'sources-delete-sin-terminal', args: ['sources', 'delete', 'experience/nexo-pagos.md'], exitCode: 1 },
+      { id: 'sources-delete', args: ['sources', 'delete', 'experience/nexo-pagos.md', '--yes'], exitCode: 0 },
+      { id: 'sources-delete-restore', args: ['history', 'restore', 'latest', 'experience/nexo-pagos.md'], exitCode: 0 },
+      { id: 'build-tras-restaurar', args: ['build'], exitCode: 0 },
     ],
   },
   {

@@ -42,7 +42,7 @@ El objetivo **no es la tipografía, es que puedas editarlo**, y eso decide el di
 | --- | --- |
 | **Estilos con nombre** (`Heading_20_1`, `Standard`, `Meta`, `List_20_Paragraph`…) | Cambiar el aspecto de todos los títulos es tocar **un** estilo en LibreOffice, no repasar el documento. Es la diferencia con un PDF. |
 | Estructura **plana**: título, secciones, entradas | Se pega y se reordena sin pelearse con cajas ni columnas. |
-| **Sin tema ni motor** | El aspecto se ajusta en el propio documento; los temas de Typst son para el PDF. |
+| **El tema, en la parte que se puede heredar** (T-9.26) | Colores, tipografías, tamaños, interlineado y página salen de `theme.toml` y aterrizan en los **estilos con nombre**; la organización sale de su `[layout]`. Lo que no se hereda es el `template.typ`: es código Typst. |
 | `<text:s/>` para los espacios seguidos | ODF los colapsa como HTML: sin esto, una sangría del resumen se perdería. |
 | Enlaces como `<text:a>` | Un enlace del contacto o de una certificación sigue siendo clicable, y editable. |
 | `meta.xml` **sin fecha** | Una fecha de creación haría distinto el mismo documento en cada ejecución. |
@@ -50,11 +50,53 @@ El objetivo **no es la tipografía, es que puedas editarlo**, y eso decide el di
 El Markdown en línea (negrita, cursiva, código, enlaces) se convierte en estilos de texto automáticos, y las
 viñetas de logros en listas de verdad, con su impacto en cursiva entre paréntesis.
 
+## §3.5 El tema, heredado (T-9.26)
+
+El encargo del PO fue «quiero más tipos de CV y algún formato más para el tipo ODT», y la medida previa dijo que
+**los tipos ya existían**: 13 de los 37 temas del catálogo son de organización (`kind = "organization"`). Lo que
+no existía era la vía: **esos temas solo llegaban al PDF de Typst**, porque su organización vive en el
+`template.typ`, que es código. El ODT tenía una sola forma posible.
+
+La cura es partir el tema en dos: lo que ya era declarativo y lo que había que declarar.
+
+| Del tema | Al documento |
+| --- | --- |
+| `colors.text` / `primary` / `secondary` / `accent` / `rule` | Color del cuerpo; de `Title` y encabezados; de `Subtitle` y `Meta`; del estilo `Internet link`; del filete bajo cada sección. |
+| `fonts.body` / `heading` / `mono` | `Standard`; `Title` y encabezados; `Mono` y `Preformatted Text`. |
+| `sizes.*` | Cada estilo con su tamaño. **Con una excepción**: `sizes.section` es la *etiqueta* que casi todas las plantillas maquetan pequeña y en versalitas, así que copiada tal cual dejaría los títulos **más pequeños que el cuerpo**; se respeta la escala del tema pero nunca por debajo del texto que encabeza. |
+| `spacing.leading` / `paragraph` / `list` | El interlineado de Typst es el hueco **entre** líneas y el de ODF la altura total: `line-height = (1 + leading)`. Los «em» de separación se pasan a centímetros sobre el cuerpo. |
+| `page.paper` + `page.margins` | Tamaño de papel (los cinco de Typst) y márgenes, de milímetros a centímetros. |
+
+Y la mitad nueva, `[layout]` en `theme.toml`, que **describe** la organización para las salidas que no ejecutan
+Typst. Son tres claves y son deliberadamente pocas:
+
+```toml
+[layout]
+sections = ["skills", "achievements", "projects", "experience", "education", "certifications", "languages"]
+achievements = "consolidated"   # los logros salen de su entrada y van juntos, con la empresa de origen
+experience = "compact"          # una línea por puesto: sin resumen ni logros
+```
+
+- Las secciones que un tema no nombre van **detrás**, en su orden natural: nunca se pierde ninguna.
+- La **portada** —nombre, titular, contacto y resumen— no se mueve: es lo primero en todos los CV del catálogo,
+  y hacerla movible sería ofrecer una opción que nadie quiere.
+- Con la organización por defecto, `applyLayout` devuelve la vista **tal cual**: el PDF de Typst y el Markdown
+  no cambian ni un byte.
+
+**Ocho temas la declaran** (`functional`, `achievements-first`, `skills-first`, `hybrid`, `education-first`,
+`project-portfolio`, `ats-plain` y `chronological`) porque su organización cabe en esas tres claves. Los demás
+—`sidebar-left`, `two-column-dense`, `europass-like`, `unified-timeline`, `one-page`, `impact-first`— la tienen
+en su **maquetación**: columnas laterales, tablas a dos columnas, ejes temporales fusionados, recortes con
+«+N». Eso no cabe en tres claves y **fingir que se hereda sería peor que decir qué parte se hereda**: en ODT
+mantienen el orden por defecto y sí toman su tipografía y su color.
+
 ## §4 Cómo se usa
 
 ```bash
-cv generate-cv --format odt                      # output/cv-<nombre>.odt
-cv generate-cv -s backend --format odt -o mi.odt # con especialidad y nombre propio
+cv generate-cv --format odt                          # output/cv-<nombre>.odt
+cv generate-cv -s backend --format odt -o mi.odt     # con especialidad y nombre propio
+cv generate-cv --format odt --theme functional       # hereda tipografía, color y organización del tema
+cv theme list                                        # los temas disponibles, con su clase
 ```
 
 En la web, en **Generar**, el selector «Formato» tiene la opción **«ODT (documento editable)»**; en **Salidas**
