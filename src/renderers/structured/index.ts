@@ -5,3 +5,4 @@
  */
 export * from './inline';
 export * from './view';
+export * from './layout';

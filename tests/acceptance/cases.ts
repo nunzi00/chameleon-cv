@@ -86,6 +86,14 @@ export const SCENARIOS: readonly Scenario[] = [
       // ODT (T-9.23): se compara por sus entradas descomprimidas, no por bytes: la compresión depende de la
       // zlib de cada máquina, igual que en los PDF.
       { id: 'generate-backend-odt', args: ['generate-cv', '-s', 'backend', '--format', 'odt', '-o', 'output/cv-backend.odt'], exitCode: 0, outputs: [{ path: 'output/cv-backend.odt', kind: 'odt' }] },
+      // El ODT hereda el tema (T-9.26): «functional» cambia el orden de las secciones, consolida los logros con
+      // su origen y deja la experiencia en una línea por puesto, todo dentro de un documento editable.
+      {
+        id: 'generate-backend-odt-functional',
+        args: ['generate-cv', '-s', 'backend', '--format', 'odt', '--theme', 'functional', '-o', 'output/cv-backend-functional.odt'],
+        exitCode: 0,
+        outputs: [{ path: 'output/cv-backend-functional.odt', kind: 'odt' }],
+      },
       { id: 'generate-full-pdfkit', args: ['generate-cv', '--format', 'pdf', '-o', 'output/cv-full.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-full.pdfkit.pdf', kind: 'pdf' }] },
       { id: 'generate-backend-pdfkit', args: ['generate-cv', '-s', 'backend', '--format', 'pdf', '-o', 'output/cv-backend.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-backend.pdfkit.pdf', kind: 'pdf' }] },
       { id: 'generate-nexo-pdf-compact-pdfkit', args: ['generate-cv', '-s', 'backend', '-f', 'offers/pdf/nexo-senior-backend.pdf', '--compact', '--format', 'pdf', '-o', 'output/cv-backend-nexo-compact.pdfkit.pdf'], exitCode: 0, outputs: [{ path: 'output/cv-backend-nexo-compact.pdfkit.pdf', kind: 'pdf' }] },

@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { parseMasterProfile } from '../../../src/core/schema';
+import { parseThemeConfig, type ThemeConfig } from '../../../src/themes/schema';
 import { selectForSpecialty } from '../../../src/core/selection';
 import { ODT_MIMETYPE, renderOdtCv } from '../../../src/renderers/odt';
 import { contentXml, escapeXml, manifestXml, metaXml, runXml, stylesXml } from '../../../src/renderers/odt/document';
@@ -212,4 +213,100 @@ describe('LibreOffice abre el documento', () => {
       rmSync(directory, { recursive: true, force: true });
     }
   }, 200_000);
+});
+
+describe('el ODT hereda el tema (T-9.26)', () => {
+  const view = buildStructuredView(parseMasterProfile(fullProfileInput()), 'es-ES');
+
+  /** Un tema completo, con su organización declarada, como el `theme.toml` de cualquier tema del catálogo. */
+  function theme(layout: string): ReturnType<typeof parseThemeConfig> {
+    return parseThemeConfig(
+      [
+        '[theme]',
+        'name = "prueba"',
+        'version = 1',
+        '[colors]',
+        'text = "#111111"',
+        'primary = "#AA0000"',
+        'secondary = "#666666"',
+        'accent = "#0000FF"',
+        'rule = "#DDDDDD"',
+        '[fonts]',
+        'body = "Libertinus Serif"',
+        'heading = "EB Garamond"',
+        'mono = "Fira Code"',
+        '[sizes]',
+        'name = 30',
+        'headline = 13',
+        'contact = 9',
+        'section = 8',
+        'title = 11',
+        'meta = 9',
+        'body = 12',
+        'footer = 8',
+        'code = 10',
+        '[spacing]',
+        'leading = 1',
+        'paragraph = 0.5',
+        'list = 0.25',
+        '[page]',
+        'paper = "a5"',
+        '[page.margins]',
+        'top = 10',
+        'right = 15',
+        'bottom = 10',
+        'left = 15',
+        layout,
+      ].join('\n'),
+    );
+  }
+
+  function configOf(layout = ''): ThemeConfig {
+    const parsed = theme(layout);
+    if (!parsed.ok) {
+      throw new Error(parsed.errors.join('; '));
+    }
+    return parsed.config;
+  }
+
+  it('los colores, las tipografías, los tamaños, el interlineado y la página van a los estilos con nombre', () => {
+    const xml = stylesXml(view, configOf());
+    expect(xml).toContain('fo:font-size="12pt"');
+    expect(xml).toContain('fo:color="#111111"');
+    expect(xml).toContain("fo:font-family=\"&apos;Libertinus Serif&apos;\"");
+    expect(xml).toContain("fo:font-family=\"&apos;EB Garamond&apos;\"");
+    expect(xml).toContain('fo:font-size="30pt"');
+    // leading 1 em sobre el cuerpo: ODF quiere la altura total de línea.
+    expect(xml).toContain('fo:line-height="200%"');
+    // A5 y márgenes en centímetros, desde los milímetros del tema.
+    expect(xml).toContain('fo:page-width="14.8cm"');
+    expect(xml).toContain('fo:margin-left="1.5cm"');
+    // Y el color de enlace del tema, que sin su estilo no se vería.
+    expect(xml).toContain('style:name="Internet_20_link"');
+    expect(xml).toContain('fo:color="#0000ff"');
+  });
+
+  it('un título de sección nunca sale más pequeño que el texto que encabeza', () => {
+    // `section = 8` es la etiqueta pequeña que Typst maqueta en versalitas; el cuerpo es 12.
+    const heading = /style:name="Heading_20_1"[\s\S]*?<\/style:style>/.exec(stylesXml(view, configOf()));
+    expect(heading?.[0]).toContain('fo:font-size="12pt"');
+  });
+
+  it('sin tema, el aspecto y la organización de siempre', () => {
+    expect(stylesXml(view)).toContain("fo:font-family=\"&apos;Liberation Sans&apos;\"");
+    expect(contentXml(view)).toContain('>Experiencia<');
+  });
+
+  it('la organización declarada decide el orden de las secciones y dónde viven los logros', () => {
+    const config = configOf(['[layout]', 'sections = ["skills", "achievements", "experience"]', 'achievements = "consolidated"', 'experience = "compact"'].join('\n'));
+    const odt = renderOdtCv(parseMasterProfile(fullProfileInput()), { theme: config });
+    const content = entries(odt).get('content.xml') ?? '';
+    const order = [...content.matchAll(/outline-level="1">([^<]+)/g)].map((match) => match[1]);
+    expect(order.slice(0, 3)).toEqual(['Habilidades', 'Logros destacados', 'Experiencia']);
+    // Consolidados: el logro lleva la empresa de la que sale…
+    expect(content).toContain('ACME Corp:');
+    // …y el puesto queda en una línea, sin sus viñetas.
+    const experience = content.slice(content.indexOf('outline-level="1">Experiencia'));
+    expect(experience).not.toContain('text:list');
+  });
 });

@@ -108,7 +108,7 @@ describe('cv generate-cv --format pdf --engine typst (T-3.2)', () => {
       [['--format', 'pdf', '-t', 'x.hbs'], '«--template» solo aplica a «--format md» o a «--engine typst»: pdfkit no usa plantilla'],
       [['--typst-path', 'x'], '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»'],
       [['--format', 'pdf', '--typst-any-version'], '«--typst-path» y «--typst-any-version» solo aplican a «--engine typst»'],
-      [['--theme', 'mio'], '«--theme» solo aplica a «--engine typst» (con --format pdf)'],
+      [['--theme', 'mio'], '«--theme» solo aplica a «--engine typst» (con --format pdf) y a «--format odt»'],
     ];
     for (const [args, message] of cases) {
       const h = harness(OK);

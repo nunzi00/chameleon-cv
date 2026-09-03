@@ -1,1 +1,1 @@
-«--theme» solo aplica a «--engine typst» (con --format pdf)
+«--theme» solo aplica a «--engine typst» (con --format pdf) y a «--format odt»

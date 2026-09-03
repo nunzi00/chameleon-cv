@@ -46,3 +46,6 @@ top = 17
 right = 19
 bottom = 16
 left = 19
+
+[layout]                # la organización, para las salidas que no ejecutan el template.typ (T-9.26)
+sections = ["education", "certifications", "skills", "projects", "experience", "achievements", "languages"]

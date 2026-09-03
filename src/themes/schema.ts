@@ -29,6 +29,13 @@ export const PAPER_SIZES = ['a4', 'a5', 'a3', 'us-letter', 'us-legal'] as const;
 
 export const THEME_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
+/**
+ * Las secciones que un tema puede reordenar. La portada —nombre, titular, contacto y resumen— no entra: es lo
+ * primero en todos los CV del catálogo, y hacerla movible sería ofrecer una opción que nadie quiere.
+ */
+export const LAYOUT_SECTIONS = ['experience', 'projects', 'skills', 'achievements', 'education', 'certifications', 'languages'] as const;
+export type LayoutSection = (typeof LAYOUT_SECTIONS)[number];
+
 export const ThemeConfigSchema = z.strictObject({
   theme: z.strictObject({
     /** Si se indica, debe coincidir con el nombre del directorio del tema. */
@@ -83,6 +90,29 @@ export const ThemeConfigSchema = z.strictObject({
     /** En milímetros. */
     margins: z.strictObject({ top: Millimetres, right: Millimetres, bottom: Millimetres, left: Millimetres }),
   }),
+  /**
+   * La **organización** del contenido, dicha de forma declarativa (T-9.26). Hasta aquí, lo que un tema hacía
+   * con las secciones vivía en su `template.typ`, que es código Typst: legible para el motor PDF e invisible
+   * para cualquier otra salida. Por eso el ODT solo tenía una forma posible.
+   *
+   * Esto NO sustituye a la plantilla —una columna lateral o una tabla de dos columnas no caben en tres
+   * claves—: la describe en lo que sí es común a todas las salidas (qué va antes, dónde viven los logros y
+   * cuánto se cuenta de cada puesto), que es lo que un documento editable puede reproducir.
+   */
+  layout: z
+    .strictObject({
+      /** Orden de las secciones; las que falten van detrás, en el orden por defecto. La portada no se mueve. */
+      sections: z
+        .array(z.enum(LAYOUT_SECTIONS))
+        .max(LAYOUT_SECTIONS.length)
+        .refine((values) => new Set(values).size === values.length, { error: 'sections no admite secciones repetidas' })
+        .optional(),
+      /** `per-entry` (por defecto): cada logro bajo su puesto. `consolidated`: todos juntos, con su origen. */
+      achievements: z.enum(['per-entry', 'consolidated'], { error: 'achievements debe ser per-entry o consolidated' }).optional(),
+      /** `detailed` (por defecto) o `compact`: una línea por puesto, sin resumen ni logros. */
+      experience: z.enum(['detailed', 'compact'], { error: 'experience debe ser detailed o compact' }).optional(),
+    })
+    .optional(),
 });
 
 export type ThemeConfig = z.output<typeof ThemeConfigSchema>;

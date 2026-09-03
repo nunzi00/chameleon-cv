@@ -12,11 +12,17 @@ cv generate-cv -f ofertas/acme.txt -s backend --top-n 4 --max-skills 12 # afinad
 cv generate-cv -f - --compact < oferta.txt    # oferta por la entrada estándar, preset de una página
 cv generate-cv -t mi-plantilla.hbs -l en      # plantilla Handlebars propia, en inglés
 cv generate-cv --build -s backend             # recompila el artefacto antes de generar
+cv generate-cv --format odt --theme functional  # ODT que hereda tipografía, color y organización del tema
 ```
 
 - El nombre del fichero es `cv-<nombre>[-<especialidad>][-<oferta>].md|pdf|odt`; `-o` lo cambia.
 - **`--format odt`** da un **documento abierto** (OpenDocument) que abren LibreOffice, Word y Google Docs. Es la
   salida para **seguir editándolo**: usa estilos con nombre, así que cambias el aspecto de todas las secciones
-  tocando uno solo. `--engine`, `--theme` y `--template` no aplican; su aspecto se ajusta en el propio documento.
-- `--theme` y `--typst-path` solo tienen sentido con `--engine typst`; `--template` y `--stdout`, solo con Markdown.
+  tocando uno solo. `--engine` y `--template` no aplican (la plantilla es código Typst).
+- **`--theme` también vale con `--format odt`** (T-9.26): el ODT hereda del tema los colores, las tipografías,
+  los tamaños, el interlineado y la página, y de su `[layout]` el orden de las secciones, si los logros se
+  consolidan con su empresa de origen y si la experiencia va en una línea por puesto. Lo que **no** hereda es la
+  maquetación del `template.typ` —columnas, paneles, tablas—: eso es código Typst y no cabe en un documento
+  pensado para editarse a mano.
+- `--typst-path` solo tiene sentido con `--engine typst`; `--template` y `--stdout`, solo con Markdown.
 - Guías: [Generar el CV](/guide/generate), [Adaptar el CV a una oferta](/guide/offers), [Typst y temas](/guide/typst-themes).

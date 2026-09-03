@@ -202,6 +202,9 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     const odtBody = (await odt.json()) as { output: { kind: string; bytes: number } };
     expect(odtBody.output.kind).toBe('odt');
     expect(odtBody.output.bytes).toBeGreaterThan(500);
+    // Y hereda el tema (T-9.26): un tema que no existe se rechaza aquí igual que en el PDF, sin escribir nada.
+    const odtSinTema = await post('/generate', { specialty: 'backend', format: 'odt', output: 'cv-tema.odt', theme: 'no-existe' });
+    expect(odtSinTema.status).toBe(422);
     const servedOdt = await api('/output/cv.odt');
     expect(servedOdt.headers.get('content-type')).toBe('application/vnd.oasis.opendocument.text');
     expect(Buffer.from(await servedOdt.arrayBuffer()).subarray(30, 38).toString('latin1')).toBe('mimetype');

@@ -492,7 +492,8 @@ import type { ApiClient, OutputFile } from '../lib/api/client';
           {#if themes !== undefined}
             <label class="cv-field">
               <span>Tema</span>
-              <select name="theme" bind:value={form.theme} disabled={form.format !== 'pdf' || form.engine !== 'typst'}>
+              <!-- El ODT también hereda el tema (T-9.26): su parte declarativa —colores, tipografías, página y organización—. -->
+              <select name="theme" bind:value={form.theme} disabled={form.format === 'md' || (form.format === 'pdf' && form.engine !== 'typst')}>
                 <option value="">Por defecto ({themes.defaultName})</option>
                 {#each themeGroups(themes.entries) as group (group.label)}
                   <optgroup label={group.label}>

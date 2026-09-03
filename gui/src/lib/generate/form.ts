@@ -112,12 +112,14 @@ export function buildGenerateRequest(form: GenerateForm): FormResult<GenerateReq
   const [topN = -1, maxSkills = -1, maxProjects = -1, maxCertifications = -1] = parsed;
   const pdf = form.format === 'pdf';
   const typst = pdf && form.engine === 'typst';
+  // El tema viaja con el PDF de Typst y con el ODT, que hereda su parte declarativa (T-9.26); con Markdown, no.
+  const themed = typst || form.format === 'odt';
   const body: GenerateRequest = {
     ...(form.specialty === '' ? {} : { specialty: form.specialty }),
     ...(offer.body === undefined ? {} : { offer: offer.body }),
     format: form.format,
     ...(pdf ? { engine: form.engine } : {}),
-    ...(typst && form.theme !== '' ? { theme: form.theme } : {}),
+    ...(themed && form.theme !== '' ? { theme: form.theme } : {}),
     ...(form.locale.trim() === '' ? {} : { locale: form.locale.trim() }),
     ...(output === '' ? {} : { output }),
     ...(form.build ? { build: true } : {}),
