@@ -27,6 +27,12 @@ export interface ProfileEntry {
   readonly id: string;
   /** Cómo se lee («Desarrollador · Concello de Lugo»). */
   readonly title: string;
+  /**
+   * Quién es el dueño de la entrada: la empresa, el centro o el nombre del proyecto. Es su **identidad**, y va
+   * aparte del título porque comparar el título entero mete el puesto en la misma bolsa que la empresa (B-20).
+   * Ausente cuando el importador no lo reconoció («Empresa pendiente»).
+   */
+  readonly organization?: string | undefined;
   /** El periodo tal cual está en la fuente; ausente si la entrada no lo trae. */
   readonly start?: string | undefined;
   readonly end?: string | undefined;
@@ -38,6 +44,17 @@ export interface ProfileEntry {
 function datesOf(item: Experience | Education | Project): { readonly start?: string | undefined; readonly end?: string | undefined } {
   const range = item.dates;
   return range === undefined ? {} : { start: range.start, end: range.end };
+}
+
+/**
+ * De quién es la entrada: la empresa, el centro o el propio proyecto. Es lo que la identifica —dos puestos
+ * parecidos en empresas distintas son dos empleos— y por eso se compara aparte del puesto o la titulación.
+ */
+export function organizationOf(section: AdoptableSection, item: Experience | Education | Project): string {
+  if (section === 'experience') {
+    return (item as Experience).company;
+  }
+  return section === 'education' ? (item as Education).institution : (item as Project).name;
 }
 
 /** Cómo se lee una entrada: «puesto · empresa», «titulación · centro» o el nombre del proyecto. */
@@ -60,6 +77,7 @@ export function entriesOf(profile: MasterProfile): readonly ProfileEntry[] {
       section,
       id: item.id,
       title: titleOf(section, item),
+      organization: organizationOf(section, item),
       ...datesOf(item),
       path: `${section}/${entityFileName(section as EntitySection, item.id).fileName}.md`,
     })),
@@ -96,18 +114,43 @@ export interface EntrySignature {
   readonly spaced: boolean;
 }
 
-export function signatureOf(...parts: ReadonlyArray<string | undefined>): EntrySignature {
-  const text = parts.filter((part): part is string => part !== undefined).join(' ');
+function signature(text: string, minToken: number): EntrySignature {
   const words = normalize(PLACEHOLDERS.reduce((rest, placeholder) => rest.replaceAll(placeholder, ' '), text))
     .split(/[^\p{L}\p{N}]+/u)
     .filter((word) => word !== '');
   const single = words.filter((word) => word.length === 1).length;
   return {
-    tokens: [...new Set(words.filter((word) => word.length >= MIN_TOKEN && !STOPWORDS.has(word)))],
+    tokens: [...new Set(words.filter((word) => word.length >= minToken && !STOPWORDS.has(word)))],
     glued: words.join(''),
     // Más de la mitad de las «palabras» de una sola letra: el PDF espació el texto y no hay palabras que valgan.
     spaced: words.length >= 6 && single * 2 > words.length,
   };
+}
+
+export function signatureOf(...parts: ReadonlyArray<string | undefined>): EntrySignature {
+  return signature(parts.filter((part): part is string => part !== undefined).join(' '), MIN_TOKEN);
+}
+
+/**
+ * La huella de un **nombre propio** —una empresa, un centro, un proyecto—. Ahí no vale el mínimo de cuatro
+ * letras del texto corrido: «IBM» y «SAP» son el nombre entero, y descartarlos por cortos dejaría a las dos
+ * entradas sin identidad y las haría emparejar con cualquiera.
+ */
+export function nameSignatureOf(name: string | undefined): EntrySignature {
+  return signature(name ?? '', 1);
+}
+
+/**
+ * La huella de una organización **como aguja**: la que se busca dentro de la otra entrada. Igual que la de un
+ * nombre propio, pero sin las iniciales sueltas cuando el nombre trae además palabras de verdad: «I.E.S Muralla
+ * Romana» se busca por «muralla romana», porque el otro CV escribe «ies muralla romana» de una pieza y las tres
+ * letras sueltas solo diluyen la proporción. Cuando las iniciales son TODO lo que hay («I.E.S» a secas), son el
+ * nombre y se quedan.
+ */
+export function organizationSignatureOf(name: string | undefined): EntrySignature {
+  const whole = nameSignatureOf(name);
+  const solid = whole.tokens.filter((token) => token.length > 1);
+  return solid.length === 0 ? whole : { ...whole, tokens: solid };
 }
 
 /** El periodo en meses; sin `end`, abierto. Una fecha «2011» abarca el año entero. */
@@ -181,6 +224,51 @@ export function similarity(a: EntrySignature, b: EntrySignature): number {
 /** Desde dónde dos entradas se consideran la misma cosa. La mitad de las palabras de la más corta. */
 export const SIMILARITY_THRESHOLD = 0.5;
 
+/** Las huellas de una entrada: la del título, la de su organización y la del título con las palabras cortas. */
+export interface EntrySignatures {
+  /** El título entero, solo con palabras de cuerpo: mide cuánto se parecen dos entradas. */
+  readonly title: EntrySignature;
+  /** La empresa, el centro o el proyecto: su identidad. Cuenta hasta «IBM» o «I.E.S». */
+  readonly organization: EntrySignature;
+  /**
+   * El título entero tokenizado **como un nombre propio**. Es contra esto —y no contra `title`— contra lo que se
+   * busca la organización de la otra entrada: un centro que se llama «I.E.S» es todo palabras de una letra, y
+   * buscarlo entre las palabras de cuerpo del otro título no lo encontraría nunca.
+   */
+  readonly whole: EntrySignature;
+}
+
+/** ¿Se reconoce esta organización en el texto de la otra entrada? */
+function recognizable(organization: EntrySignature, title: EntrySignature): boolean {
+  return similarity(organization, title) >= SIMILARITY_THRESHOLD;
+}
+
+/**
+ * ¿Cada entrada reconoce a la organización de la otra? Es la **primera** condición para que dos entradas sean
+ * la misma cosa, y nació de un falso positivo del corpus real del PO (B-20): «Desarrollador / Administrador ·
+ * Servigasa Special Jobs» y «Desarrollador/Administrador · Picas Rojas» compartían la mitad de sus palabras
+ * —las del PUESTO— y solapaban fechas, así que se agrupaban. Y como un grupo se forma contra su semilla, ese
+ * emparejamiento falso además **robaba** el miembro al grupo verdadero: las dos entradas de Picas Rojas, que sí
+ * eran la misma, se quedaban sin agrupar.
+ *
+ * Se busca la organización **en el título entero de la otra**, no contra su campo `company`, y esa asimetría es
+ * deliberada: medio corpus llega con la empresa y el puesto **intercambiados** (T-9.19), así que comparar campo
+ * con campo rompería justo el caso que aquel hito resolvió. Lo que se exige es que la empresa de cada una se
+ * reconozca en lo que dice la otra, venga en el campo que venga.
+ *
+ * Y la excepción, también deliberada: si a alguna **no se le conoce** la organización —«Empresa pendiente», que
+ * es lo que escribe el importador cuando no la reconoció— no se descarta nada y deciden las palabras del
+ * título. Es el caso para el que se hizo T-9.20: una mitad trae las fechas y «Centro pendiente», y la otra el
+ * centro de verdad.
+ */
+export function sameOrganization(a: EntrySignatures, b: EntrySignatures): boolean {
+  // Basta con que a UNA no se le conozca: la otra no puede reconocerse en un texto donde la empresa no está.
+  if (a.organization.tokens.length === 0 || b.organization.tokens.length === 0) {
+    return true;
+  }
+  return recognizable(a.organization, b.whole) && recognizable(b.organization, a.whole);
+}
+
 /** Una entrada dentro de un grupo de duplicados: de qué borrador viene, o de las fuentes de hoy. */
 export interface DuplicateMember {
   /** Nombre del borrador; `undefined` = ya está en `data/sources/`. */
@@ -195,14 +283,14 @@ export interface DuplicateGroup {
   readonly inSources: boolean;
 }
 
-/** La huella de una entrada a partir de su título (que ya junta empresa y puesto, o centro y titulación). */
-function signatureOfEntry(entry: ProfileEntry): EntrySignature {
-  return signatureOf(entry.title);
+export function signaturesOf(entry: ProfileEntry): EntrySignatures {
+  return { title: signatureOf(entry.title), organization: organizationSignatureOf(entry.organization), whole: nameSignatureOf(entry.title) };
 }
 
 /**
- * Las entradas que parecen la misma cosa, agrupadas. Se comparan solo dentro de la misma sección y solo si los
- * periodos coinciden de verdad: dos cursos de «Monitor Informática» de 2007 y de 2009 son dos cursos.
+ * Las entradas que parecen la misma cosa, agrupadas. Se comparan solo dentro de la misma sección, solo si son
+ * de la **misma organización** —dos puestos parecidos en empresas distintas son dos empleos (B-20)— y solo si
+ * los periodos coinciden de verdad: dos cursos de «Monitor Informática» de 2007 y de 2009 son dos cursos.
  *
  * Un grupo son las entradas que se parecen A LA PRIMERA, no las que se parecen en cadena. La diferencia no es
  * un detalle: encadenando, «C. S. Administrador de Sistemas» y «C. S. Desarrollo de Aplicaciones Web» —dos
@@ -219,7 +307,7 @@ function signatureOfEntry(entry: ProfileEntry): EntrySignature {
  */
 export function groupDuplicates(members: readonly DuplicateMember[]): readonly DuplicateGroup[] {
   const order = members
-    .map((member, index) => ({ member, index, signature: signatureOfEntry(member.entry) }))
+    .map((member, index) => ({ member, index, signature: signaturesOf(member.entry) }))
     .sort(
       (a, b) =>
         a.member.entry.section.localeCompare(b.member.entry.section) ||
@@ -240,7 +328,12 @@ export function groupDuplicates(members: readonly DuplicateMember[]): readonly D
       if (grouped.has(candidate.index) || candidate.member.entry.section !== seed.member.entry.section) {
         continue;
       }
-      if (periodsOverlap(seed.member.entry, candidate.member.entry) && similarity(seed.signature, candidate.signature) >= SIMILARITY_THRESHOLD) {
+      // Tres condiciones, y la organización va primero: sin ella, el puesto empareja empleos de empresas distintas.
+      if (
+        sameOrganization(seed.signature, candidate.signature) &&
+        periodsOverlap(seed.member.entry, candidate.member.entry) &&
+        similarity(seed.signature.title, candidate.signature.title) >= SIMILARITY_THRESHOLD
+      ) {
         grouped.add(candidate.index);
         bucket.push(candidate.member);
       }
