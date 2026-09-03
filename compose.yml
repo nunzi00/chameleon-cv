@@ -5,7 +5,7 @@
 # Datos personales solo en ./my-profile (montado en /work) y en el volumen cv-cache; nada dentro de la imagen.
 services:
   chameleon-cv:
-    image: ${CHAMELEON_CV_IMAGE:-ghcr.io/nunzi00/chameleon-cv:1.20.0}   # la versión exacta publicada (docker compose pull); una prueba exige que coincida con package.json
+    image: ${CHAMELEON_CV_IMAGE:-ghcr.io/nunzi00/chameleon-cv:1.21.0}   # la versión exacta publicada (docker compose pull); una prueba exige que coincida con package.json
     build:
       context: .
       target: runtime

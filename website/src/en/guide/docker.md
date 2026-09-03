@@ -113,7 +113,7 @@ only after the freshly built image passes the smoke test on each architecture:
 
 | Tag | What it is |
 |---|---|
-| `ghcr.io/nunzi00/chameleon-cv:1.20.0` | The exact version (the same as `cv --version` and as the tar.gz); it is what `compose.yml` pins. |
+| `ghcr.io/nunzi00/chameleon-cv:1.21.0` | The exact version (the same as `cv --version` and as the tar.gz); it is what `compose.yml` pins. |
 | `:1.5` · `:1` · `:latest` | Moving aliases to the latest 1.5.x / 1.x / stable. Prereleases (`1.2.0-rc.1`) move no alias. |
 | `:1.1.1-distroless` (and `:1-distroless`, `:latest-distroless`) | The variant on `distroless/cc`: no shell and no package manager, `nonroot` user (65532), for whoever prioritises minimal surface. |
 
@@ -123,9 +123,9 @@ only after the freshly built image passes the smoke test on each architecture:
   signed provenance attestation (Sigstore) from the release workflow, just like the executable:
 
 ```bash
-gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.20.0 --owner nunzi00
-docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.20.0 --format '{{ json .SBOM }}'
-docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.20.0 --format '{{ json .Provenance }}'
+gh attestation verify oci://ghcr.io/nunzi00/chameleon-cv:1.21.0 --owner nunzi00
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.21.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.21.0 --format '{{ json .Provenance }}'
 ```
 
 - **User**: the published image runs as `cv` with UID/GID `1000`. If on Linux your user is a different one, build
@@ -135,7 +135,7 @@ docker buildx imagetools inspect ghcr.io/nunzi00/chameleon-cv:1.20.0 --format '{
   `CHAMELEON_CV_IMAGE=ghcr.io/nunzi00/chameleon-cv:1 docker compose run --rm chameleon-cv --version` (or your
   own, `chameleon-cv:local`).
 - **`docker run` without Compose**:
-  `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.20.0 --help`.
+  `docker run --rm -v "$PWD/my-profile:/work" ghcr.io/nunzi00/chameleon-cv:1.21.0 --help`.
 
 ## What is in the image
 

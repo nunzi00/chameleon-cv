@@ -1,4 +1,4 @@
-Chameleon CV 1.20.0 · espacio de trabajo <WS>
+Chameleon CV 1.21.0 · espacio de trabajo <WS>
 API: http://127.0.0.1:<PORT>/api/v1/ (Authorization: Bearer <token>)
 Interfaz: http://127.0.0.1:<PORT>/#token=<TOKEN>
 Ctrl-C para parar (o POST /api/v1/shutdown)
