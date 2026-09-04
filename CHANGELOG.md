@@ -2,6 +2,13 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **Cuatro organizaciones de la interfaz, no cuatro paletas** (T-9.29, encargo del PO del 4-sep: «un rediseño total… que cada estilo sea un enfoque distinto en la organización de la web, y que con un simple click se cambie de tema»). La web tenía **una sola forma** desde T-8.6. Ahora el conmutador **Organización** de la cabecera cambia dónde vive la navegación, cuánta cabecera hay y cuánto aire respira el contenido: **Barra** (lateral permanente, la de trabajar muchas horas seguidas), **Cinta** (una fila arriba, sin lateral: todo el ancho y más densidad), **Tablero** (sin navegación permanente, mosaico bajo demanda, tarjetas y más aire) y **Foco** (columna estrecha, tipografía mayor y sin chips, para leer y escribir sin ruido). La elección se guarda y se aplica **antes de pintar**, así que recargar no da ningún salto.
+- **Y es una sola carcasa, no cuatro interfaces que mantener.** El modelo de pantallas es el mismo y se pinta de **tres** formas —barra, cinta y mosaico—; las pantallas no saben en qué organización viven y el resto lo decide `data-ui` en la hoja de estilos. Sigue siendo **independiente del tema claro/oscuro**: son dos decisiones distintas —cómo trabajas y qué luz tienes— y combinarlas daría doce opciones para algo que nadie elige a la vez. En «Foco» se retiran los chips de estado pero **nunca el conmutador**: sin él, alguien quedaría atrapado en una interfaz sin salida.
+
 ## [1.22.0] - 2026-09-04
 
 ### Añadido

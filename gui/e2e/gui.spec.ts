@@ -248,6 +248,50 @@ test('la barra lateral y la cabecera de contexto (T-8.6 S1): chips en toda panta
   await page.setViewportSize({ width: 1280, height: 800 });
 });
 
+test('las cuatro organizaciones de la interfaz cambian con un click y sobreviven a la recarga (T-9.29)', async ({ page }) => {
+  await openWithToken(page, state);
+  const banner = page.getByRole('banner');
+  const organizacion = banner.getByRole('group', { name: 'Organización de la interfaz' });
+
+  // «Barra» es la de siempre: no escribe atributo y la navegación lateral está a la vista.
+  await expect(page.locator('html')).not.toHaveAttribute('data-ui', /./);
+  await expect(page.locator('.cv-nav')).toBeVisible();
+
+  // Cinta: la navegación se va arriba y la lateral desaparece; las mismas pantallas siguen alcanzables.
+  await organizacion.getByRole('button', { name: 'Cinta' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'cinta');
+  await expect(page.locator('.cv-nav')).toHaveCount(0);
+  await expect(page.locator('.cv-ribbon')).toBeVisible();
+  await page.locator('.cv-ribbon').getByRole('link', { name: 'Salidas' }).click();
+  await page.getByRole('heading', { name: 'Salidas' }).waitFor();
+
+  // Tablero: sin navegación permanente; el mosaico se abre desde la cabecera y se cierra al elegir.
+  await organizacion.getByRole('button', { name: 'Tablero' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'tablero');
+  await expect(page.locator('.cv-ribbon')).toHaveCount(0);
+  await banner.getByRole('button', { name: 'Pantallas' }).click();
+  await expect(page.locator('.cv-launcher')).toBeVisible();
+  await page.locator('.cv-launcher').getByRole('link', { name: 'Estado del artefacto' }).click();
+  await expect(page.locator('.cv-launcher')).toHaveCount(0);
+  await page.getByRole('heading', { name: 'Estado del artefacto' }).waitFor();
+
+  // Foco: los chips de estado se retiran y el conmutador de organización se queda, que es la vuelta atrás.
+  await organizacion.getByRole('button', { name: 'Foco' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'foco');
+  await expect(banner.getByText('Artefacto al día')).toBeHidden();
+  await expect(organizacion).toBeVisible();
+
+  // La elección sobrevive a la recarga y se aplica ANTES del primer render, sin salto de la carcasa.
+  expect(await page.evaluate(() => localStorage.getItem('cv.ui'))).toBe('foco');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Estado del artefacto' }).waitFor();
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'foco');
+
+  await organizacion.getByRole('button', { name: 'Barra' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-ui', /./);
+  expect(await page.evaluate(() => localStorage.getItem('cv.ui'))).toBeNull();
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
   await page.getByRole('button', { name: 'Apagar cv serve' }).click();

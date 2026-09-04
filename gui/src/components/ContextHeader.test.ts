@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { StatusResponse } from '../lib/api/types';
@@ -15,13 +15,13 @@ const STATUS = {
 
 describe('ContextHeader', () => {
   it('sin contexto muestra un esqueleto y ningún chip', () => {
-    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined } });
+    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'barra' as const, onlayoutchange: vi.fn() } });
     expect(screen.getByText('Cargando el espacio de trabajo…')).toBeTruthy();
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
   it('con contexto: nombre y ruta del espacio, cuatro chips con su tono y el tema marcado', () => {
-    render(ContextHeader, { props: { context: { status: STATUS, remoteAllowed: false, reviews: 0 }, theme: 'dark', onthemechange: () => undefined, onshutdown: () => undefined } });
+    render(ContextHeader, { props: { context: { status: STATUS, remoteAllowed: false, reviews: 0 }, theme: 'dark', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'barra' as const, onlayoutchange: vi.fn() } });
     expect(screen.getByText('cv')).toBeTruthy();
     expect(screen.getByText('/home/ana/cv')).toBeTruthy();
     const chips = [...screen.getByRole('status').querySelectorAll('.cv-chip')];
@@ -38,14 +38,14 @@ describe('ContextHeader', () => {
 
   it('el conmutador de tema avisa con el modo elegido', async () => {
     const onthemechange = vi.fn();
-    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange, onshutdown: () => undefined } });
+    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange, onshutdown: () => undefined, layout: 'barra' as const, onlayoutchange: vi.fn() } });
     await fireEvent.click(screen.getByRole('button', { name: 'Claro' }));
     expect(onthemechange).toHaveBeenCalledWith('light');
   });
 
   it('apagar pide confirmación: cancelar no avisa, confirmar sí', async () => {
     const onshutdown = vi.fn();
-    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown } });
+    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown, layout: 'barra' as const, onlayoutchange: vi.fn() } });
     expect(screen.queryByRole('dialog')).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Apagar cv serve' }));
     expect(screen.getByRole('dialog')).toBeTruthy();
@@ -59,9 +59,38 @@ describe('ContextHeader', () => {
   });
 
   it('Esc cierra la confirmación', async () => {
-    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined } });
+    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'barra' as const, onlayoutchange: vi.fn() } });
     await fireEvent.click(screen.getByRole('button', { name: 'Apagar cv serve' }));
     await fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('el conmutador de organización ofrece las cuatro y avisa de la elegida (T-9.29)', async () => {
+    const onlayoutchange = vi.fn();
+    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'barra' as const, onlayoutchange } });
+    const group = screen.getByRole('group', { name: 'Organización de la interfaz' });
+    expect(within(group).getAllByRole('button').map((button) => button.textContent)).toEqual(['Barra', 'Cinta', 'Tablero', 'Foco']);
+    expect(within(group).getByRole('button', { name: 'Barra' }).getAttribute('aria-pressed')).toBe('true');
+    // Cada opción dice qué cambia: elegir no puede ser adivinar.
+    expect(within(group).getByRole('button', { name: 'Foco' }).getAttribute('title')).toContain('columna estrecha');
+    await fireEvent.click(within(group).getByRole('button', { name: 'Tablero' }));
+    expect(onlayoutchange).toHaveBeenCalledWith('tablero');
+  });
+
+  it('sin navegación permanente, la cabecera lleva el botón que abre el mosaico', async () => {
+    const onlaunchertoggle = vi.fn();
+    const { rerender } = render(ContextHeader, {
+      props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'foco' as const, onlayoutchange: vi.fn(), launcher: true, launcherOpen: false, onlaunchertoggle },
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /Pantallas/ }));
+    expect(onlaunchertoggle).toHaveBeenCalled();
+    // Abierto, el mismo botón cierra: no hay dos formas de volver.
+    await rerender({ context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'foco' as const, onlayoutchange: vi.fn(), launcher: true, launcherOpen: true, onlaunchertoggle });
+    expect(screen.getByRole('button', { name: /Cerrar/ })).toBeTruthy();
+  });
+
+  it('con navegación permanente no hay botón de mosaico', () => {
+    render(ContextHeader, { props: { context: undefined, theme: 'system', onthemechange: () => undefined, onshutdown: () => undefined, layout: 'barra' as const, onlayoutchange: vi.fn() } });
+    expect(screen.queryByRole('button', { name: /Pantallas/ })).toBeNull();
   });
 });

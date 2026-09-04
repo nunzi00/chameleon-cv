@@ -38,6 +38,24 @@ that answer without navigating: whether the artifact is up to date, whether Typs
 answers and whether the server allows remotes; on the right, the theme switch (light, dark or the system's, with
 no flash on load) and **Apagar**, which stops `cv serve` after confirmation.
 
+## Four organisations, one click
+
+The same application in four different shapes, not four palettes. The **Organización** switch sits in the
+header, in all of them:
+
+| | Navigation | Content |
+| --- | --- | --- |
+| **Barra** | permanent sidebar, with groups | fluid; the one for long sessions |
+| **Cinta** | a single row on top, no sidebar | full width and more density |
+| **Tablero** | none: a grid when you ask for it | in cards, with more air |
+| **Foco** | none: a grid when you ask for it | narrow column, larger type and no chips |
+
+The choice is stored in your browser and applied **before painting**, so reloading causes no jump. It is
+independent from the light/dark theme: two different decisions —how you work and what light you have— taken
+separately. «Foco» drops the status chips but **never the switch**: that is the way back to the others.
+
+The screens are the same, and in the same order, in all four: the shell changes, not what is inside.
+
 ## Estado — artifact status
 
 ![The Estado screen: the artifact card with its badge, sources, specialties and themes; Typst and the co-pilot beside it; the table of installed themes and portability](/gui/estado.png)

@@ -646,3 +646,58 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 .cv-history-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
 .cv-history-entry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--cv-border); border-radius: var(--cv-radius); font-size: 13px; }
 .cv-history-entry .cv-mono { font-size: var(--cv-size-xs); color: var(--cv-muted); }
+
+/* ── Organizaciones de la interfaz (T-9.29) ──────────────────────────────────
+   Una sola carcasa dirigida por datos: el marcado es el mismo y `data-ui` en <html> decide dónde vive la
+   navegación, cuánta cabecera hay y cuánto aire respira el contenido. «barra» no escribe atributo: es lo de
+   arriba, y así no hay que repetir la hoja base dentro de un selector.
+   Cada organización trae además su propio carácter —densidad, radios, tipografía—, porque cambiar de sitio la
+   navegación sin cambiar el aire deja cuatro veces la misma pantalla movida. */
+
+/* Cinta superior: nada a los lados, todo el ancho para el contenido y una fila de pantallas arriba. */
+.cv-app[data-nav='ribbon'], .cv-app[data-nav='launcher'] { grid-template-columns: 1fr; }
+.cv-ribbon { display: flex; align-items: center; gap: 2px; padding: 0 14px 8px; flex: none;
+  border-bottom: 1px solid var(--cv-border); background: var(--cv-surface); overflow-x: auto; }
+.cv-ribbon-brand { display: flex; align-items: center; padding: 0 10px 0 2px; color: var(--cv-accent); flex: none; }
+.cv-ribbon-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; flex: none;
+  border-radius: var(--cv-radius-sm); color: var(--cv-text); text-decoration: none; font-size: var(--cv-size-sm); white-space: nowrap; }
+.cv-ribbon-item:hover { background: var(--cv-surface-2); }
+.cv-ribbon-item[aria-current='page'] { background: var(--cv-accent-soft); color: var(--cv-accent); font-weight: 600; }
+:root[data-ui='cinta'] { --cv-size-md: 13px; --cv-size-lg: 14.5px; --cv-size-xl: 18px; }
+:root[data-ui='cinta'] .cv-page, :root[data-ui='cinta'] .cv-page-wide { padding: 16px 18px 48px; max-width: none; }
+:root[data-ui='cinta'] .cv-header { padding: 8px 16px 4px; }
+
+/* Lanzador: sin navegación permanente; el mosaico ocupa el sitio del contenido y se cierra al elegir. */
+.cv-header-launch { flex: none; }
+.cv-launcher { padding: 26px 24px 60px; max-width: 1180px; margin: 0 auto; display: grid; gap: 26px; }
+.cv-launcher-group h2 { margin: 0 0 10px; font-size: var(--cv-size-sm); font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--cv-muted); }
+.cv-launcher-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr)); }
+.cv-launcher-item { display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+  border: 1px solid var(--cv-border); border-radius: var(--cv-radius-lg); background: var(--cv-surface);
+  color: var(--cv-text); text-decoration: none; font-weight: 600; }
+.cv-launcher-item:hover { border-color: var(--cv-accent); background: var(--cv-surface-2); }
+.cv-launcher-item[aria-current='page'] { border-color: var(--cv-accent); color: var(--cv-accent); }
+.cv-launcher-item svg { flex: none; color: var(--cv-accent); }
+
+/* Tablero: más aire y todo en tarjetas; la cabecera se queda entera porque el estado es la mitad del tablero. */
+:root[data-ui='tablero'] { --cv-radius-lg: 16px; --cv-radius-md: 13px; }
+:root[data-ui='tablero'] .cv-page, :root[data-ui='tablero'] .cv-page-wide { padding: 30px 30px 72px; }
+:root[data-ui='tablero'] .cv-card { border-radius: var(--cv-radius-lg); padding: 20px; }
+:root[data-ui='tablero'] .cv-header { padding: 14px 24px; }
+
+/* Foco: ni chips ni conmutadores a la vista; una columna estrecha, tipografía mayor y mucho margen. */
+:root[data-ui='foco'] { --cv-size-md: 15px; --cv-size-sm: 13.5px; --cv-size-lg: 17px; --cv-size-xl: 24px; }
+:root[data-ui='foco'] .cv-header { padding: 12px 22px; border-bottom: none; }
+:root[data-ui='foco'] .cv-header-chips, :root[data-ui='foco'] .cv-header-sep { display: none; }
+:root[data-ui='foco'] .cv-page { padding: 34px 24px 80px; max-width: 780px; margin: 0 auto; }
+:root[data-ui='foco'] .cv-page-wide { padding: 28px 24px 72px; max-width: 1100px; margin: 0 auto; }
+:root[data-ui='foco'] .cv-launcher { max-width: 780px; }
+/* El conmutador de organización sigue estando: es lo único que devuelve al usuario a las otras vistas. */
+:root[data-ui='foco'] .cv-segmented:not(.cv-header-layout) { display: none; }
+
+/* Por debajo de 1024 px manda el ancho, no el gusto: la barra se pliega y la cinta se hace desplazable. */
+@media (max-width: 1024px) {
+  :root[data-ui='cinta'] .cv-page, :root[data-ui='cinta'] .cv-page-wide { padding: 14px 14px 40px; }
+  .cv-launcher-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
