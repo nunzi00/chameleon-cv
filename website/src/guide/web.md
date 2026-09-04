@@ -79,6 +79,20 @@ Cuando una revisión **ya no deja nada pendiente**, al aplicarla se archiva sola
 
 En cada fuente abierta, **Eliminar** la borra. Primero enseña qué entradas del perfil se lleva por delante —un fichero no siempre aporta lo que uno cree— y solo después pide confirmación; si sin ese fichero tus fuentes dejaran de cargar, se niega y dice por qué. La versión anterior completa queda en el histórico, así que se recupera desde «Historial de esta fuente» de cualquier fuente.
 
+## Vida laboral
+
+Las fechas de un CV se degradan solas: se escribe de memoria y se copia del CV anterior. Esta pantalla compara
+tus fuentes con el **informe de vida laboral** de la Seguridad Social —*Sede Electrónica → Ciudadanos → Informes
+y certificados → Informe de tu vida laboral*— y te dice qué empleos das por **abiertos** y el informe cierra,
+qué **inicios** y **finales** no cuadran, qué empresas registra que tu perfil no tiene y cuáles tienes tú que el
+informe no (normal en el extranjero, en becas sin alta o como funcionario).
+
+El PDF **no se guarda**: se sube, se compara y se olvida. Y del informe **solo se leen empresas y fechas**: el
+DNI, el número de la Seguridad Social y el domicilio que trae dentro no se leen, no se escriben y no salen de tu
+máquina. Cuando la razón social del informe no se parece a la marca de tu CV, el apunte avisa de que el
+emparejado fue **por el periodo** y hay que comprobarlo. No se cambia nada: las fechas las corriges tú en
+Fuentes.
+
 ## LinkedIn
 
 Tu perfil de LinkedIn envejece solo: el titular se queda, las aptitudes se quedan y las fuentes siguen creciendo.

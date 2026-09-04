@@ -23,7 +23,7 @@ import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 
 import { locateTypst } from '../../src/renderers/typst';
-import { generateOfferPdfs, generateReviews, generateThemeArchives } from './bench/generate';
+import { generateOfferPdfs, generateReviews, generateThemeArchives, generateVidaLaboralPdf } from './bench/generate';
 import { SCENARIOS, type Scenario, type Step, type StepOutput } from './cases';
 import { compareBytes, compareOdt, comparePdf, compareText, type Mismatch } from './compare';
 
@@ -401,7 +401,7 @@ export async function checkBenchConsistency(): Promise<ScenarioResult> {
   try {
     const copy = join(root, 'ws');
     await cp(BENCH_WORKSPACE, copy, { recursive: true });
-    const produced = [...(await generateOfferPdfs(copy)), ...(await generateReviews(copy)), ...(await generateThemeArchives(copy))];
+    const produced = [...(await generateOfferPdfs(copy)), ...(await generateReviews(copy)), ...(await generateThemeArchives(copy)), await generateVidaLaboralPdf(copy)];
     const mismatches: Mismatch[] = [];
     for (const path of produced) {
       const file = relative(copy, path);

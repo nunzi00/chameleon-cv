@@ -14,6 +14,7 @@ import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOpti
 import { runApplyCommand, runArchiveCommand, runUndoCommand, type ApplyOptions } from './commands/apply';
 import { runSourceDelete, type DeleteSourceOptions } from './commands/source-delete';
 import { runLinkedin, type LinkedinOptions } from './commands/linkedin';
+import { runVidaLaboral, type VidaLaboralOptions } from './commands/vida-laboral';
 import { runHistoryList, runHistoryRestore, runHistoryShow, type HistoryOptions } from './commands/history';
 import { type LlmRuntimeCommandOptions, type LlmStatusCommandOptions, runLlmDown, runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmModels, runLlmStatus, runLlmUp } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
@@ -237,6 +238,15 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--dry-run', 'enseña lo que haría sin escribir ni borrar nada', false)
     .action(async (keep: string, options: DuplicatesResolveOptions) => {
       onExit(await runDuplicatesResolve(context, keep, options));
+    });
+
+  program
+    .command('vida-laboral <informe>')
+    .description('compara las fechas de tus fuentes con el informe de vida laboral de la Seguridad Social (PDF) y sugiere correcciones: inicios y finales que no cuadran, empresas que faltan y empleos que das por abiertos; no escribe nada')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--json', 'los apuntes en JSON')
+    .action(async (report: string, options: VidaLaboralOptions) => {
+      onExit(await runVidaLaboral(context, report, options));
     });
 
   program

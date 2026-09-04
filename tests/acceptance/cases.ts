@@ -87,6 +87,9 @@ export const SCENARIOS: readonly Scenario[] = [
       // zlib de cada máquina, igual que en los PDF.
       // El plan de LinkedIn (T-9.27): sin borrador con el que comparar, todo lo del perfil es «añadir».
       { id: 'linkedin-plan', args: ['linkedin'], exitCode: 0 },
+      // El informe de vida laboral (T-9.28): fechas que no cuadran, un empleo dado por abierto y una empresa
+      // que el perfil no tiene. El PDF del banco es sintético y se genera con el resto de derivados.
+      { id: 'vida-laboral', args: ['vida-laboral', 'tools/vida-laboral.pdf'], exitCode: 0 },
       { id: 'generate-backend-odt', args: ['generate-cv', '-s', 'backend', '--format', 'odt', '-o', 'output/cv-backend.odt'], exitCode: 0, outputs: [{ path: 'output/cv-backend.odt', kind: 'odt' }] },
       // El ODT hereda el tema (T-9.26): «functional» cambia el orden de las secciones, consolida los logros con
       // su origen y deja la experiencia en una línea por puesto, todo dentro de un documento editable.

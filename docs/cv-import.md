@@ -314,6 +314,55 @@ fuentes y `output/` son los CV que este programa acaba de generar—.
 Con una sola candidata queda puesta y solo hay que pulsar. **La lista no es una jaula**: el campo de ruta sigue
 ahí para una carpeta que no esté, y si el recorrido falla la pantalla cae a él sola.
 
+## §14 El informe de vida laboral (T-9.28)
+
+**Encargo del PO (2026-09-04)**: «a partir del informe de vida laboral sugiere corrección de fechas de
+empresas, o actualizaciones de fechas de puestos de trabajo».
+
+Un CV se escribe de memoria y se copia del CV anterior, así que las **fechas** se degradan solas: nadie recuerda
+si entró en enero o en marzo de 2015. El informe de vida laboral de la Tesorería General de la Seguridad Social
+es lo más cercano a la verdad que existe sobre eso —no es lo que uno recuerda, es lo que consta— y hasta ahora
+el producto no lo miraba.
+
+### §14.1 Del informe solo salen empresas y fechas
+
+`src/import/vida-laboral.ts`. El PDF trae el nombre, el **DNI**, el número de la Seguridad Social, la fecha de
+nacimiento y el **domicilio**. Nada de eso se lee, se devuelve, se escribe ni se imprime: el lector reconoce
+únicamente las filas de la tabla de situaciones y descarta el resto del documento. La prueba lo comprueba
+explícitamente sobre un informe con datos identificativos dentro.
+
+La tabla tiene una forma fija —`régimen · cuenta de cotización · empresa · alta · efecto · baja · … · días`— con
+dos trampas que solo aparecen con un informe real: el nombre de la empresa **se parte en varias líneas** cuando
+no cabe, y en la misma tabla conviven las **situaciones asimiladas al alta** (vacaciones no disfrutadas,
+prestación por desempleo, convenio especial), que tienen la misma forma y **no son un empleo**.
+
+### §14.2 Un empleo, no cinco altas
+
+`employersOf` junta los contratos **encadenados** con la misma empresa: renovaciones y cambios de contrato son
+un empleo en un CV, no cinco líneas. Pero volver a la misma empresa **catorce años después** no se junta con la
+primera vez —el corte está en doce meses de hueco—, porque eso daría un tramo de dieciséis años que nadie vivió.
+Y al otro lado, `stintsOf` agrupa las etapas del perfil por **contención de nombre**: «Life5» dentro de «Life5
+(antes Getlife)» es la misma empresa; «Baser Lugo» y «Concello de Lugo», que comparten la ciudad, no.
+
+### §14.3 Emparejar cuando el nombre no coincide
+
+La razón social del informe casi nunca es la marca del CV: «YOUR LIFE CORREDURIA DE SEGUROS SL» es «Life5».
+Así que se empareja primero **por nombre** —excluyendo las altas de autónomo, cuya «empresa» es la **provincia**
+y hacía que «Baser Lugo» casara con el alta «LUGO» de otra década— y, con lo que queda, **por periodo**: una
+empresa del informe que solape con un solo empleo sin emparejar es casi seguro la misma con otro nombre. Casi
+seguro no es seguro, y por eso el apunte **dice cómo se emparejó**; con dos candidatas no se empareja ninguna,
+porque elegir sería decidir por el usuario.
+
+### §14.4 Qué se dice, y qué no se hace
+
+Cinco clases de apunte: empleos que tus fuentes dan por **abiertos** y el informe cierra (lo que más se nota en
+un CV), **inicios** y **finales** que no cuadran, empresas del informe que tu perfil no tiene —a partir de un
+mes de alta: siete días son unas prácticas o una ETT, y un CV los omite a propósito— y empleos tuyos que el
+informe no registra, que puede estar perfectamente bien (extranjero, becas sin alta, funcionarios).
+
+**No escribe nada.** Corregir una fecha sigue siendo una edición tuya en Fuentes: el informe es una fuente de
+verdad sobre las fechas, no sobre qué quieres contar.
+
 ## §13 El plan de LinkedIn (T-9.27)
 
 **Encargo del PO (2026-09-03)**: «me falta un botón en la web para generar las mejoras de linkedin en base al

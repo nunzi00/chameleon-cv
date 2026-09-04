@@ -90,7 +90,13 @@ export function entriesOf(profile: MasterProfile): readonly ProfileEntry[] {
  * Palabras que no distinguen nada: preposiciones, artículos y las formas societarias, que en un corpus de
  * una sola persona aparecen en la mitad de las empresas.
  */
-const STOPWORDS: ReadonlySet<string> = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'en', 'y', 'con', 'por', 'para', 'the', 'of', 'and', 'in', 'at', 'sl', 'slu', 'sa', 'srl', 'sau']);
+const STOPWORDS: ReadonlySet<string> = new Set([
+  'de', 'del', 'la', 'el', 'los', 'las', 'en', 'y', 'con', 'por', 'para', 'the', 'of', 'and', 'in', 'at',
+  'sl', 'slu', 'sa', 'srl', 'sau', 'sln', 'slne', 'ett',
+  // Los conectivos con los que se cuenta un renombrado: «Getlife (hoy Life5)» y «Life5 (antes Getlife)» son la
+  // misma empresa, y sin quitarlos sus huellas no se contienen y salen dos empleos donde hay uno.
+  'hoy', 'antes', 'ahora', 'antiguo', 'antigua', 'formerly', 'now',
+]);
 
 /** Solo cuentan las palabras con cuerpo: «de» y «web» no emparejan nada por sí solas. */
 const MIN_TOKEN = 4;

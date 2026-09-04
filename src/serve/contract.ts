@@ -21,6 +21,7 @@ import type { ApplyOutcome, ReviewFile, ReviewSummary, WrittenFile } from '../ap
 import type { UndoOutcome } from '../app/review-undo';
 import type { DeleteSourceOutcome } from '../app/source-delete';
 import type { LinkedinPlan } from '../app/linkedin';
+import type { VidaLaboralReport } from '../app/vida-laboral';
 import type { SourceEntry, SourceFile } from '../app/sources';
 import type { OfferListEntry } from '../app/offer';
 import type { CreatedTheme, InstalledTheme, ThemeInventory, ThemeVerification } from '../app/themes';
@@ -314,6 +315,9 @@ export const LinkedinPlanSchema = z.object({
 });
 export type LinkedinPlanRequestBody = z.infer<typeof LinkedinPlanSchema>;
 export type LinkedinPlanResponse = LinkedinPlan;
+
+/** `POST /vida-laboral` (cuerpo application/pdf): fechas del informe frente a las de tus fuentes (T-9.28). */
+export type VidaLaboralResponse = VidaLaboralReport;
 
 /** `POST /reviews/{name}/archive`: apartar la revisión a revisiones-archivadas/ o devolverla a la vista. */
 export const ReviewArchiveSchema = z.object({

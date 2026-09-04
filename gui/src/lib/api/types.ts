@@ -19,6 +19,7 @@ export type {
   RankResponse,
   LinkedinPlanRequestBody,
   LinkedinPlanResponse,
+  VidaLaboralResponse,
   ImportFolderRequest,
   ImportFolderResponse,
   AnalyzeRequest,
