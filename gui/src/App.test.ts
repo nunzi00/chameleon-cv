@@ -10,6 +10,7 @@ import { THEME_KEY } from './lib/theme';
 const STATUS = { version: '1.2.0', workspace: '/work', artifact: { status: 'fresh', detail: undefined, specialties: [] }, typst: { required: '0.15.1', candidates: [], selected: undefined, usable: false }, llm: { config: undefined, configError: undefined, health: undefined, keys: {}, keysFile: '', allowedHosts: [], remote: undefined, usable: false, settings: { path: undefined, present: false, configured: false, error: undefined }, providers: [] }, themes: { defaultName: 'default', configWarning: undefined, roots: [], entries: [] } };
 const LLM_CONFIG = { llm: STATUS.llm, file: { path: '/work/cv.toml', present: false, sha256: undefined }, remote: { allowed: true, configured: undefined, pending: false } };
 const REVIEWS = { reviews: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] };
+const USERS = { root: '/work', users: [{ id: 'lucas', root: '/work/usuarios/lucas', sources: true, name: 'Lucas' }, { id: 'invitado1', root: '/work/usuarios/invitado1', sources: true, name: undefined }], current: undefined, pinned: undefined, rootUsable: true };
 
 let calls: string[] = [];
 let shutdownStatus = 200;
@@ -25,7 +26,7 @@ const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (url.endsWith('/shutdown')) {
     return new Response(JSON.stringify(shutdownStatus === 200 ? { stopping: true } : { error: { code: 'unauthorized', message: 'Caducó' } }), { status: shutdownStatus, headers: { 'Content-Type': 'application/json' } });
   }
-  const body = url.endsWith('/status') ? STATUS : url.endsWith('/config/llm') ? LLM_CONFIG : url.endsWith('/reviews') ? REVIEWS : {};
+  const body = url.endsWith('/status') ? STATUS : url.endsWith('/config/llm') ? LLM_CONFIG : url.endsWith('/reviews') ? REVIEWS : url.endsWith('/users') ? USERS : {};
   return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }) as typeof fetch;
 
@@ -81,6 +82,33 @@ describe('App', () => {
     const before = calls.filter((call) => call === 'GET /api/v1/status').length;
     location.hash = '#/salidas';
     await waitFor(() => expect(calls.filter((call) => call === 'GET /api/v1/status').length).toBe(before + 1));
+  });
+
+  it('cambiar de usuario lo recuerda, conserva la pantalla, suelta el fichero abierto y RECARGA (T-9.32)', async () => {
+    // Todo lo que hay en pantalla es de la persona anterior: refrescar solo la cabecera dejaría el
+    // contexto diciendo una cosa y el contenido enseñando otra.
+    const reload = vi.fn();
+    sessionStorage.setItem(TOKEN_KEY, '0123456789abcdef0123');
+    location.hash = '#/fuentes/experience/acme.md';
+    render(App, { props: { fetchImpl, reload } });
+    const selector = await screen.findByLabelText('Usuario');
+    await fireEvent.change(selector, { target: { value: 'invitado1' } });
+    expect(preferences.getItem('cv.user')).toBe('invitado1');
+    expect(location.hash).toBe('#/fuentes');
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('volver al espacio de trabajo olvida la elección y recarga igual', async () => {
+    const reload = vi.fn();
+    preferences.setItem('cv.user', 'lucas');
+    sessionStorage.setItem(TOKEN_KEY, '0123456789abcdef0123');
+    location.hash = '#/estado';
+    render(App, { props: { fetchImpl, reload } });
+    const selector = await screen.findByLabelText('Usuario');
+    await waitFor(() => expect((selector as HTMLSelectElement).value).toBe('lucas'));
+    await fireEvent.change(selector, { target: { value: '' } });
+    expect(preferences.getItem('cv.user')).toBeNull();
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it('el conmutador de tema escribe data-theme en <html> y lo guarda; el plegado de la barra persiste', async () => {

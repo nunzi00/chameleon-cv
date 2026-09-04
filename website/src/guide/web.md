@@ -34,7 +34,8 @@ destello al cargar) y **Apagar**, que detiene `cv serve` tras confirmar.
 Si el espacio de trabajo tiene [usuarios](/guide/users), la cabecera trae un **selector** con quiénes son y un
 botón **Usuario** para crear otro. El selector solo aparece cuando hay a quién elegir; el botón está siempre,
 también en un espacio que todavía no tiene ninguno. La elección se recuerda en ese navegador y todo lo que ves
-—fuentes, salidas, revisiones, historial— es de esa persona.
+—fuentes, salidas, revisiones, historial— es de esa persona. **Cambiar de usuario recarga la página** y
+conserva la pantalla en la que estabas, no el fichero abierto: ese es de otro perfil.
 
 Con `cv serve --user <id>` el servidor queda fijado: el selector desaparece y la cabecera solo enseña de quién
 es la sesión. **Un usuario no es una cuenta**: quien tenga esta URL y su token puede abrir cualquiera de ellos.

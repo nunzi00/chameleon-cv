@@ -2,6 +2,12 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [1.26.1] - 2026-09-04
+
+### Corregido
+
+- **Cambiar de usuario ahora recarga la página** (encargo del PO tras probar la 1.26: «al cambiar usuario debe recargar»). Tenía razón: cambiar de usuario refrescaba la cabecera pero no la pantalla, y **cada pantalla pide lo suyo al montarse**, así que el contexto decía una cosa y el contenido —el fichero abierto en Fuentes, la revisión a medias, la lista de salidas— seguía enseñando lo de la persona anterior. Se conserva la **pantalla** en la que estabas y se suelta el **fichero**, porque ese identificador es de otro perfil y no tiene por qué existir en este. La recarga se inyecta como una propiedad, igual que el `fetch`, para poder comprobarla sin recargar de verdad.
+
 ## [1.26.0] - 2026-09-04
 
 ### Añadido
