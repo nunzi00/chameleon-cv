@@ -670,8 +670,11 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 
 /* Lanzador: sin navegación permanente; el mosaico ocupa el sitio del contenido y se cierra al elegir. */
 .cv-header-launch { flex: none; }
-.cv-header-palette select { padding: 4px 8px; border: 1px solid var(--cv-border-strong); border-radius: var(--cv-radius-sm);
+.cv-header-palette select, .cv-header-user select { padding: 4px 8px; border: 1px solid var(--cv-border-strong); border-radius: var(--cv-radius-sm);
   background: var(--cv-surface); color: var(--cv-text); font: var(--cv-size-sm)/1.2 var(--cv-font); }
+/* Usuarios (T-9.32): el selector se ensancha con el nombre, pero nunca se come la cabecera. */
+.cv-header-user select { max-width: 200px; font-weight: 600; }
+.cv-error-text { margin: 6px 0 0; color: var(--cv-error); font-size: var(--cv-size-sm); }
 .cv-launcher { padding: 26px 24px 60px; max-width: 1180px; margin: 0 auto; display: grid; gap: 26px; }
 .cv-launcher-group h2 { margin: 0 0 10px; font-size: var(--cv-size-sm); font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--cv-muted); }

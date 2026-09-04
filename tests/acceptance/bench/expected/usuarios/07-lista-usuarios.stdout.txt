@@ -1,0 +1,3 @@
+usuario    nombre       fuentes  ruta
+invitado1  Ada Ejemplo  sí       usuarios/invitado1
+1 usuario · elige con «cv --user <id> <orden>» o CHAMELEON_USER

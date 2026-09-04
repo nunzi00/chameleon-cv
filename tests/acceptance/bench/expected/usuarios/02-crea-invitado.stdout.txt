@@ -1,0 +1,3 @@
+Usuario «invitado1» creado en <WS>/usuarios/invitado1
+Sembrado con el dataset de ejemplo (el mismo de «cv init»)
+Trabaja con él: cv --user invitado1 build

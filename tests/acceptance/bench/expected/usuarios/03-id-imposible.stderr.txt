@@ -1,0 +1,1 @@
+Identificador de usuario no válido «../fuera»: minúsculas, dígitos y guiones, sin empezar ni terminar en guión

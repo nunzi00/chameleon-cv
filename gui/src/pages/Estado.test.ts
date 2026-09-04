@@ -16,6 +16,9 @@ const STATUS: StatusResponse = {
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    users: vi.fn(),
+    createUser: vi.fn(),
+    removeUser: vi.fn(),
     status: vi.fn(async () => STATUS),
     validate: vi.fn(async () => ({ root: '/work/data/sources', files: [{ path: 'a' }, { path: 'b' }] as never, summary: '2 experiencias' })),
     build: vi.fn(async () => ({ artifactPath: '/work/data/dist/profile.json', files: [] as never, summary: 'ok' })),

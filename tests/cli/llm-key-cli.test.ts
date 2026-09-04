@@ -115,6 +115,14 @@ describe('cv llm key', () => {
     expect(status.settings.path).toBe(join(process.cwd(), 'cv.toml'));
   });
 
+  it('al cambiar de raíz (un usuario, T-9.32) el contexto de Node vuelve a leer el cv.toml que toca', async () => {
+    const base = createNodeContext({ interactive: false });
+    const rooted = { ...base, ...base.withWorkspace?.(join(process.cwd(), 'usuarios', 'lucas'), process.cwd()) };
+    const status = await rooted.llmStatus({ env: { CHAMELEON_LLM_BASE_URL: 'http://127.0.0.1:9' } });
+    // El que se edita es el del usuario; el de la raíz sigue debajo como valores por defecto.
+    expect(status.settings.path).toBe(join(process.cwd(), 'usuarios', 'lucas', 'cv.toml'));
+  });
+
   it('askSecretInTerminal muestra la pregunta pero no lo tecleado; Retroceso borra; Ctrl-C cancela; con TTY usa el modo raw', async () => {
     const output = new PassThrough();
     const input = new PassThrough();

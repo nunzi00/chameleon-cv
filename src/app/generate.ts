@@ -98,7 +98,7 @@ type ThemeOutcome = { readonly ok: true; readonly theme: LoadedTheme } | { reado
  * aquí sus estilos y su organización.
  */
 async function resolveThemeFor(context: AppContext, request: GenerateRequest, report: GenerateReport): Promise<ThemeOutcome> {
-  const project = await loadProjectConfig(context.cwd, context.datasetFileSystem);
+  const project = await loadProjectConfig(context.cwd, context.datasetFileSystem, context.workspaceRoot);
   if (!project.ok) {
     return { ok: false, error: dataError(project.message) };
   }

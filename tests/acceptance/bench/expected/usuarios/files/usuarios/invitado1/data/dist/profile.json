@@ -1,0 +1,280 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "locale": "es-ES",
+    "updatedAt": "2026-08-28"
+  },
+  "personal": {
+    "fullName": "Ada Ejemplo",
+    "headline": "Ingeniera de software",
+    "summary": "Ingeniera de software con **10 años** construyendo plataformas de pago.\n\nResumen por defecto en dos párrafos.",
+    "email": "ada@example.com",
+    "phone": "+34 600 000 000",
+    "location": {
+      "city": "Madrid",
+      "region": "Comunidad de Madrid",
+      "country": "España"
+    },
+    "links": [
+      {
+        "label": "GitHub",
+        "url": "https://github.com/ada-ejemplo"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://www.linkedin.com/in/ada-ejemplo"
+      }
+    ]
+  },
+  "specialties": [
+    {
+      "id": "backend",
+      "title": "Senior Backend Engineer",
+      "summary": "APIs y sistemas distribuidos para esta especialidad.",
+      "tags": [
+        "php",
+        "symfony",
+        "kubernetes",
+        "kafka"
+      ]
+    },
+    {
+      "id": "engineering-manager",
+      "title": "Engineering Manager",
+      "tags": [
+        "liderazgo",
+        "gestion",
+        "agile"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-acme",
+      "company": "ACME Corp",
+      "role": "Senior Backend Engineer",
+      "location": "Madrid (remoto)",
+      "dates": {
+        "start": "2021-03",
+        "end": "2024-06"
+      },
+      "summary": "Plataforma de pagos con 2 M de transacciones/mes.",
+      "technologies": [
+        "PHP 8.3",
+        "Symfony 6.4",
+        "Kubernetes"
+      ],
+      "achievements": [
+        {
+          "id": "exp-acme-1",
+          "text": "Reduje la latencia p95 del checkout un **40 %** rediseñando la capa de caché.",
+          "impact": "-40 % p95",
+          "date": "2023-05",
+          "tags": [
+            "performance",
+            "php"
+          ]
+        },
+        {
+          "id": "exp-acme-k8s",
+          "text": "Lideré la migración a Kubernetes sin ventana de parada.",
+          "tags": [
+            "kubernetes",
+            "devops"
+          ]
+        },
+        {
+          "id": "exp-acme-3",
+          "text": "Introduje contract testing entre el monolito y 4 microservicios.",
+          "tags": [
+            "testing",
+            "arquitectura"
+          ]
+        }
+      ],
+      "tags": [
+        "php",
+        "symfony",
+        "kubernetes"
+      ]
+    },
+    {
+      "id": "exp-startup",
+      "company": "Startup Ejemplo",
+      "role": "Tech Lead",
+      "dates": {
+        "start": "2024-07"
+      },
+      "summary": "Liderazgo técnico de un equipo de 6 personas.",
+      "technologies": [],
+      "achievements": [],
+      "tags": [
+        "node.js",
+        "typescript",
+        "liderazgo"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-chameleon",
+      "name": "Chameleon CLI",
+      "role": "Autora",
+      "url": "https://example.com/chameleon",
+      "dates": {
+        "start": "2026-08"
+      },
+      "summary": "Generador de CVs dinámicos.",
+      "technologies": [
+        "TypeScript",
+        "Node.js"
+      ],
+      "achievements": [
+        {
+          "id": "proj-chameleon-1",
+          "text": "Diseñé el esquema de datos unificado validado con zod.",
+          "tags": [
+            "typescript",
+            "arquitectura"
+          ]
+        }
+      ],
+      "tags": [
+        "typescript",
+        "cli"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-universidad",
+      "institution": "Universidad Ejemplo",
+      "degree": "Grado en Ingeniería Informática",
+      "field": "Software",
+      "dates": {
+        "start": "2010",
+        "end": "2014"
+      },
+      "tags": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "skill-1",
+      "name": "PHP",
+      "category": "language",
+      "level": "expert",
+      "years": 10,
+      "aliases": [],
+      "tags": [
+        "php",
+        "backend"
+      ]
+    },
+    {
+      "id": "skill-2",
+      "name": "Symfony",
+      "category": "framework",
+      "level": "expert",
+      "years": 8,
+      "aliases": [],
+      "tags": [
+        "symfony",
+        "php",
+        "backend"
+      ]
+    },
+    {
+      "id": "skill-3",
+      "name": "Kubernetes",
+      "category": "platform",
+      "level": "advanced",
+      "years": 5,
+      "aliases": [
+        "k8s"
+      ],
+      "tags": [
+        "kubernetes",
+        "devops",
+        "platform"
+      ]
+    },
+    {
+      "id": "skill-4",
+      "name": "C++",
+      "category": "language",
+      "level": "intermediate",
+      "years": 3,
+      "aliases": [
+        "cpp"
+      ],
+      "tags": [
+        "c++"
+      ]
+    },
+    {
+      "id": "skill-5",
+      "name": "Liderazgo técnico",
+      "category": "soft",
+      "level": "advanced",
+      "aliases": [
+        "tech lead",
+        "team lead"
+      ],
+      "tags": [
+        "liderazgo"
+      ]
+    }
+  ],
+  "achievements": [
+    {
+      "id": "ach-1",
+      "text": "Ponente en una conferencia de ejemplo sobre sistemas distribuidos.",
+      "date": "2025-10",
+      "tags": [
+        "comunidad"
+      ]
+    },
+    {
+      "id": "ach-2",
+      "text": "Mentora de 5 personas en un programa de ejemplo.",
+      "tags": [
+        "liderazgo",
+        "comunidad"
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-1",
+      "name": "CKA",
+      "issuer": "CNCF",
+      "date": "2022-05-10",
+      "url": "https://example.com/cert/cka",
+      "tags": [
+        "kubernetes",
+        "devops"
+      ]
+    },
+    {
+      "id": "cert-2",
+      "name": "Symfony Certified Developer",
+      "issuer": "SensioLabs",
+      "date": "2021",
+      "tags": [
+        "symfony",
+        "php"
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "name": "Español",
+      "level": "native"
+    },
+    {
+      "name": "Inglés",
+      "level": "C1"
+    }
+  ]
+}

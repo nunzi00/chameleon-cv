@@ -38,6 +38,16 @@ that answer without navigating: whether the artifact is up to date, whether Typs
 answers and whether the server allows remotes; on the right, the theme switch (light, dark or the system's, with
 no flash on load) and **Apagar**, which stops `cv serve` after confirmation.
 
+## Users
+
+If the workspace has [users](/en/guide/users), the header carries a **selector** listing them and a **Usuario**
+button to create another. The selector only appears when there is someone to choose; the button is always
+there, including in a workspace that has none yet. The choice is remembered in that browser, and everything you
+see — sources, outputs, reviews, history — belongs to that person.
+
+With `cv serve --user <id>` the server is pinned: the selector disappears and the header only shows whose
+session this is. **A user is not an account**: anyone with this URL and its token can open any of them.
+
 ## Six organisations and five palettes, one click
 
 The same application in four different shapes, not four palettes. The **Organización** switch sits in the
@@ -177,7 +187,7 @@ back from «Historial de esta fuente» on any source.
 
 ## What the interface writes, and what it doesn't
 
-It writes **only when you press a named button**: Guardar and Eliminar (a source), Compilar (the artifact), Generar CV (a file
+It writes **only when you press a named button**: Crear (a user, under `usuarios/<id>/`), Guardar and Eliminar (a source), Compilar (the artifact), Generar CV (a file
 in `output/`), Crear tema and Instalar tema (`themes/<name>/`), Lanzar (a review in `output/` when an improve or
 summarize job finishes), Guardar marcas (the review file), Escribir en las fuentes (your sources, with the
 previous version in the history, after confirmation), Archivar and Desarchivar (they move the review file),

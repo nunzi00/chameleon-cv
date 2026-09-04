@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import { InvalidArgumentError } from 'commander';
 
 import { loadServeSettings } from '../../app/settings';
+import { contextForWorkspace, resolveUser } from '../../app/users';
 import { readVersion } from '../../app/workspace';
 import { describeError } from '../../shared/errors';
 import { startServer, type ServeOptions as StartOptions, type ServerHandle } from '../../serve/server';
@@ -29,6 +30,12 @@ export interface ServeCommandOptions {
    * consentimiento de coste). Sin bandera (`undefined`) manda `[serve] allow_remote` de `cv.toml`; sin clave, no.
    */
   readonly allowRemote?: boolean | undefined;
+  /**
+   * `--user <id>`: fija el servidor a ese usuario (T-9.32). Sin él, el servidor sirve a TODOS los del
+   * espacio de trabajo y la web elige en cada petición; con él, el selector desaparece y no hay forma de
+   * llegar a los demás: es el modo quiosco para prestarle la web a alguien.
+   */
+  readonly user?: string | undefined;
 }
 
 export interface ServeDeps {
@@ -80,6 +87,17 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
     context.stderr(`No se puede usar el espacio de trabajo «${workspace}»: ${describeError(error)}\n`);
     return EXIT_FAILURE;
   }
+  // Fijar el servidor a un usuario, si se pidió: a partir de aquí su raíz es la del usuario y la del
+  // espacio de trabajo queda como la compartida (cv.toml de referencia y themes/).
+  let served = { ...context, cwd: workspace } as CliContext;
+  if (options.user !== undefined) {
+    const resolved = await resolveUser({ ...context, cwd: workspace }, options.user);
+    if ('error' in resolved) {
+      context.stderr(`${resolved.error.message}\n`);
+      return EXIT_FAILURE;
+    }
+    served = contextForWorkspace(context, resolved.root, workspace);
+  }
   // El permiso de salida a remotos: la bandera de la CLI manda; sin ella, `[serve] allow_remote` de cv.toml (T-8.17).
   let allowRemote = options.allowRemote ?? false;
   let allowRemoteOrigin = options.allowRemote === undefined ? 'por defecto' : '--allow-remote';
@@ -96,7 +114,9 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
   let handle: ServerHandle;
   try {
     handle = await deps.start({
-      context: { ...context, cwd: workspace },
+      context: served,
+      root: workspace,
+      pinnedUser: options.user,
       host: options.host,
       port: options.port,
       data: options.data,
@@ -111,6 +131,9 @@ export async function runServe(context: CliContext, options: ServeCommandOptions
     return EXIT_FAILURE;
   }
   context.stderr(`Chameleon CV ${version} · espacio de trabajo ${workspace}\n`);
+  if (options.user !== undefined) {
+    context.stderr(`Fijado al usuario «${options.user}»: la web no podrá cambiar de usuario\n`);
+  }
   context.stderr(`API: ${handle.url}api/v1/ (Authorization: Bearer <token>)\n`);
   if (allowRemote) {
     context.stderr(`Proveedores remotos permitidos (${allowRemoteOrigin}): cada trabajo exigirá confirmar el coste estimado\n`);

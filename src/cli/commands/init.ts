@@ -9,6 +9,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { isMissingFile } from '../../artifact';
 import type { FileSystem } from '../../parsers';
 import { describeError } from '../../shared/errors';
+import { USERS_DIRNAME } from '../../app/users';
 import type { CliContext } from '../context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from '../defaults';
 import { EXIT_FAILURE, EXIT_OK, pluralize } from '../output';
@@ -20,8 +21,14 @@ export const TEMPLATE_DATASET_DIR = resolve(__dirname, '..', '..', '..', 'templa
 export const SOURCE_MODE = 0o600;
 const GITIGNORE_MODE = 0o644;
 
-/** Rutas que nunca deben versionarse (datos personales en claro). */
-export const GITIGNORE_ENTRIES = [`${dirname(DEFAULT_ARTIFACT_PATH)}/`, `${DEFAULT_OUTPUT_DIR}/`] as const;
+/** Rutas que nunca deben versionarse (datos personales en claro): las de la raíz y las de cada usuario (T-9.32). */
+export const GITIGNORE_ENTRIES = [`${dirname(DEFAULT_ARTIFACT_PATH)}/`, `${DEFAULT_OUTPUT_DIR}/`, `${USERS_DIRNAME}/*/${dirname(DEFAULT_ARTIFACT_PATH)}/`, `${USERS_DIRNAME}/*/${DEFAULT_OUTPUT_DIR}/`] as const;
+
+/**
+ * Lo que se EXIGE a un `.gitignore` que ya existía. Solo las dos de la raíz: avisar de las de usuarios a
+ * quien no tiene ninguno sería ruido, y quien crea el primero recibe el recordatorio entonces.
+ */
+export const GITIGNORE_REQUIRED = GITIGNORE_ENTRIES.slice(0, 2);
 
 export interface InitOptions {
   /** Dataset de ejemplo alternativo; por defecto el distribuido (por la capa de assets). */
@@ -72,13 +79,13 @@ async function ensureGitignore(context: CliContext, root: string): Promise<Gitig
     return 'created';
   }
   const lines = new Set(current.split('\n').map((line) => line.trim()));
-  return GITIGNORE_ENTRIES.every((entry) => lines.has(entry) || lines.has(entry.slice(0, -1))) ? 'complete' : 'incomplete';
+  return GITIGNORE_REQUIRED.every((entry) => lines.has(entry) || lines.has(entry.slice(0, -1))) ? 'complete' : 'incomplete';
 }
 
 const GITIGNORE_MESSAGES: Readonly<Record<GitignoreOutcome, string>> = {
-  created: `.gitignore creado (${GITIGNORE_ENTRIES.join(' y ')} contienen datos personales)`,
+  created: `.gitignore creado (${GITIGNORE_ENTRIES.join(', ')}: datos personales en claro)`,
   complete: '.gitignore conservado (ya cubre las rutas sensibles)',
-  incomplete: `Aviso: añade ${GITIGNORE_ENTRIES.join(' y ')} a tu .gitignore (contienen datos personales)`,
+  incomplete: `Aviso: añade ${GITIGNORE_REQUIRED.join(' y ')} a tu .gitignore (contienen datos personales)`,
   unreadable: 'Aviso: no se pudo leer .gitignore; comprueba que excluye data/dist/ y output/',
 };
 

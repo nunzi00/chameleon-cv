@@ -1,0 +1,1 @@
+No existe el usuario «invitado1» en <WS>/usuarios

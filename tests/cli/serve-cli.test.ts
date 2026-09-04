@@ -155,6 +155,29 @@ describe('cv serve', () => {
     expect(stderr()).toContain('No se pudo arrancar el servidor en 127.0.0.1:4310: EADDRINUSE');
   });
 
+  it('--user fija el servidor a un usuario: cambia la raíz, lo anuncia y rechaza uno que no existe (T-9.32)', async () => {
+    const { context, stderr } = harness({ '/work/usuarios/invitado1/data/sources/profile.md': '---\nfullName: Eva\n---\n' });
+    const { handle } = fakeHandle();
+    let started: Parameters<ServeDeps['start']>[0] | undefined;
+    const deps: ServeDeps = {
+      start: (options) => {
+        started = options;
+        return Promise.resolve(handle);
+      },
+      openBrowser: () => undefined,
+      onInterrupt: (handler) => setTimeout(handler, 5),
+    };
+    expect(await runServe(context, { ...OPTIONS, user: 'invitado1' }, deps)).toBe(EXIT_OK);
+    expect(started?.context.cwd).toBe('/work/usuarios/invitado1');
+    // La raíz del espacio de trabajo sigue siendo la compartida: de ahí salen cv.toml y themes/.
+    expect(started?.context.workspaceRoot).toBe('/work');
+    expect(started?.root).toBe('/work');
+    expect(started?.pinnedUser).toBe('invitado1');
+    expect(stderr()).toContain('Fijado al usuario «invitado1»: la web no podrá cambiar de usuario');
+    expect(await runServe(context, { ...OPTIONS, user: 'nadie' }, deps)).toBe(EXIT_FAILURE);
+    expect(stderr()).toContain('No existe el usuario «nadie»');
+  });
+
   it('parsePort admite 0–65535 y rechaza el resto', () => {
     expect(parsePort('0')).toBe(0);
     expect(parsePort('4310')).toBe(4310);

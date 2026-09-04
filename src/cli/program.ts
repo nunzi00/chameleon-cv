@@ -10,6 +10,7 @@ import { runImportLinkedIn, type ImportLinkedInOptions } from './commands/import
 import { runBuild, type BuildOptions } from './commands/build';
 import { runGenerateCv, type GenerateCvOptions } from './commands/generate-cv';
 import { runInit, type InitOptions } from './commands/init';
+import { runUsersCreate, runUsersList, runUsersPath, runUsersRemove, type UsersCreateOptions } from './commands/users';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, runArchiveCommand, runUndoCommand, type ApplyOptions } from './commands/apply';
 import { runSourceDelete, type DeleteSourceOptions } from './commands/source-delete';
@@ -32,19 +33,51 @@ import { parseLimit, parseList, parseProposals } from './limits';
 import { runImportManfred, type ImportManfredOptions } from './commands/import-manfred';
 import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions } from './commands/drafts';
 import { runDuplicatesList, runDuplicatesResolve, type DuplicatesListOptions, type DuplicatesResolveOptions } from './commands/duplicates';
-import { EXIT_FAILURE, EXIT_OK } from './output';
+import { EXIT_FAILURE, EXIT_OK, reportError } from './output';
+import { contextForWorkspace, selectWorkspace } from '../app/users';
 import { readVersion } from './version';
 import { TYPST_VERSION } from '../renderers/typst';
 import { REMOTE_PROVIDER_IDS } from '../llm';
 
-export function createProgram(context: CliContext, onExit: (code: number) => void, version: string): Command {
+/**
+ * Órdenes que NO trabajan sobre las fuentes de una persona y por eso no exigen elegir usuario (T-9.32):
+ * `users` los gestiona, `init` crea el espacio de trabajo y `serve` los sirve a todos —la web elige en
+ * cada petición—, salvo que se le fije uno con `--user`.
+ */
+export const USERLESS_COMMANDS: ReadonlySet<string> = new Set(['users', 'init', 'serve']);
+
+export function createProgram(base: CliContext, onExit: (code: number) => void, version: string, environment: Readonly<Record<string, string | undefined>> = process.env): Command {
+  /** La raíz efectiva de esta ejecución: la del usuario elegido, o la del espacio de trabajo. */
+  let context = base;
+  /** El usuario pedido, tal cual: `cv serve` lo necesita para fijarse a uno en vez de servirlos a todos. */
+  let requestedUser: string | undefined;
   const program = new Command().enablePositionalOptions()
     .name('cv')
     .description('Chameleon CV: genera CVs dinámicos y personalizados a partir de tus fuentes Markdown y CSV. Todo se procesa en local.')
     .version(version, '-V, --version', 'muestra la versión')
     .helpOption('-h, --help', 'muestra esta ayuda')
+    .option('-u, --user <id>', `trabaja como ese usuario del espacio de trabajo (usuarios/<id>/); también con CHAMELEON_USER`)
     .exitOverride()
-    .configureOutput({ writeOut: context.stdout, writeErr: context.stderr });
+    .configureOutput({ writeOut: base.stdout, writeErr: base.stderr })
+    .hook('preSubcommand', async (thisCommand, subcommand) => {
+      // Antes de cualquier orden: fijar la raíz. Toda la lógica resuelve sus rutas contra `cwd`, así que
+      // esta línea es TODO el multiusuario; el resto del programa no sabe que existe.
+      const named = (thisCommand.opts()['user'] as string | undefined) ?? environment['CHAMELEON_USER'];
+      requestedUser = named === undefined || named === '' ? undefined : named;
+      if (USERLESS_COMMANDS.has(subcommand.name())) {
+        context = base;
+        return;
+      }
+      const selection = await selectWorkspace(base, requestedUser);
+      if ('error' in selection) {
+        onExit(reportError(base, selection.error));
+        throw new CommanderError(selection.error.exitCode, 'cv.user', selection.error.message);
+      }
+      if (selection.notice !== undefined) {
+        base.stderr(`${selection.notice}\n`);
+      }
+      context = selection.user === undefined ? base : contextForWorkspace(base, selection.root, base.cwd);
+    });
 
   program
     .command('init')
@@ -53,6 +86,36 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--template <dir>', 'dataset de ejemplo alternativo (por defecto, el distribuido)')
     .action(async (directory: string, options: InitOptions) => {
       onExit(await runInit(context, directory, options));
+    });
+
+  const users = program
+    .command('users')
+    .description('los usuarios del espacio de trabajo: varias personas —tú, un invitado— cada una con sus fuentes, sus salidas y su historial en usuarios/<id>/');
+  users
+    .command('list', { isDefault: true })
+    .description('los usuarios que hay, con su nombre compilado y si ya tienen fuentes')
+    .action(async () => {
+      onExit(await runUsersList(context));
+    });
+  users
+    .command('create <id>')
+    .description('crea usuarios/<id>/ y lo siembra con el dataset de ejemplo; nunca pisa un usuario que ya exista')
+    .option('--empty', 'sin dataset de ejemplo: el usuario nace vacío', false)
+    .option('--adopt', 'traslada al usuario nuevo lo que ya hay en la raíz (data/, output/, import/, offers/, revisiones/): un renombrado, ni un byte reescrito', false)
+    .action(async (id: string, options: UsersCreateOptions) => {
+      onExit(await runUsersCreate(context, id, options));
+    });
+  users
+    .command('path <id>')
+    .description('imprime la ruta del espacio de trabajo de ese usuario')
+    .action(async (id: string) => {
+      onExit(await runUsersPath(context, id));
+    });
+  users
+    .command('remove <id>')
+    .description('retira un usuario: NO borra, renombra su espacio entero a usuarios/<id>.<marca>.bak')
+    .action(async (id: string) => {
+      onExit(await runUsersRemove(context, id));
     });
 
   program
@@ -465,7 +528,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .action(async (options: ServeCommandOptions, command: Command) => {
       // Sin bandera explícita, `runServe` consulta `[serve] allow_remote` de cv.toml (T-8.17).
       const explicit = command.getOptionValueSource('allowRemote') === 'cli';
-      onExit(await runServe(context, { ...options, allowRemote: explicit ? options.allowRemote === true : undefined }));
+      onExit(await runServe(context, { ...options, user: requestedUser, allowRemote: explicit ? options.allowRemote === true : undefined }));
     });
 
   const history = program.command('history').description('histórico de versiones de las fuentes (output/historial-fuentes): lo que cv improve apply y cv history restore dejaron antes de escribir');
@@ -559,7 +622,7 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
 }
 
 /** Ejecuta `cv` con los argumentos del usuario (sin `node` ni el nombre del binario). */
-export async function runCli(argv: readonly string[], context: CliContext): Promise<number> {
+export async function runCli(argv: readonly string[], context: CliContext, environment: Readonly<Record<string, string | undefined>> = process.env): Promise<number> {
   let exitCode = EXIT_OK;
   // La versión sale de los assets (package.json del repositorio o del binario), no de una ruta fija (T-6.2).
   const version = readVersion(await context.assets.text('package.json'));
@@ -569,6 +632,7 @@ export async function runCli(argv: readonly string[], context: CliContext): Prom
       exitCode = code;
     },
     version,
+    environment,
   );
   try {
     await program.parseAsync([...argv], { from: 'user' });

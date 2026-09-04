@@ -43,9 +43,14 @@ export function builtinThemeRoot(fileSystem: FileSystem = new NodeFileSystem(), 
   return { directory, fileSystem, builtin: true };
 }
 
-/** Orden de búsqueda: `themes/` del proyecto (con el sistema de ficheros inyectado) y después los distribuidos. */
-export function themeRoots(cwd: string, fileSystem: FileSystem, builtin: ThemeRoot = builtinThemeRoot()): ThemeRoot[] {
-  const project = resolve(cwd, THEMES_DIRECTORY_NAME);
+/**
+ * Orden de búsqueda: `themes/` del proyecto (con el sistema de ficheros inyectado) y después los
+ * distribuidos. Con usuarios (T-9.32) el `themes/` del proyecto es SIEMPRE el de la raíz compartida y
+ * nunca el del usuario: un tema es del espacio de trabajo, como `cv.toml`, y darle a cada persona los
+ * suyos multiplicaría por N las instalaciones sin que nadie lo hubiera pedido.
+ */
+export function themeRoots(cwd: string, fileSystem: FileSystem, builtin: ThemeRoot = builtinThemeRoot(), sharedRoot?: string | undefined): ThemeRoot[] {
+  const project = resolve(sharedRoot ?? cwd, THEMES_DIRECTORY_NAME);
   return project === builtin.directory ? [builtin] : [{ directory: project, fileSystem, builtin: false }, builtin];
 }
 

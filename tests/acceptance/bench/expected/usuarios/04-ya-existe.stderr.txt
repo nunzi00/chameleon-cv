@@ -1,0 +1,1 @@
+Ya existe el usuario «invitado1» en <WS>/usuarios/invitado1

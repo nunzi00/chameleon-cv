@@ -90,7 +90,7 @@ async function originOf(root: ThemeRoot, entry: ThemeInventoryEntry, verify: boo
 
 export async function themeInventory(context: AppContext, options: ThemeInventoryOptions = {}): Promise<ThemeInventory> {
   const roots = await projectThemeRoots(context);
-  const project = await loadProjectConfig(context.cwd, context.datasetFileSystem);
+  const project = await loadProjectConfig(context.cwd, context.datasetFileSystem, context.workspaceRoot);
   const defaultName = project.ok ? (project.config?.theme?.name ?? DEFAULT_THEME) : DEFAULT_THEME;
   const entries: ThemeInventoryEntry[] = [];
   for (const entry of await inventoryThemes(roots)) {

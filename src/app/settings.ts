@@ -26,9 +26,9 @@ export interface LlmSettingsSnapshot {
   readonly error: string | undefined;
 }
 
-/** `[llm]` de `<cwd>/cv.toml`; la ausencia del fichero o de la tabla no es un error. */
-export async function loadLlmSettings(cwd: string, fileSystem: FileSystem): Promise<LlmSettingsSnapshot> {
-  const loaded = await loadProjectConfig(cwd, fileSystem);
+/** `[llm]` de `<cwd>/cv.toml`, con el de la raíz compartida debajo (T-9.32); la ausencia no es un error. */
+export async function loadLlmSettings(cwd: string, fileSystem: FileSystem, sharedRoot?: string | undefined): Promise<LlmSettingsSnapshot> {
+  const loaded = await loadProjectConfig(cwd, fileSystem, sharedRoot);
   if (!loaded.ok) {
     return { path: loaded.path, settings: undefined, present: true, error: loaded.message };
   }
@@ -44,8 +44,8 @@ export interface ServeSettingsSnapshot {
 }
 
 /** `[serve]` de `<cwd>/cv.toml`; la ausencia del fichero o de la tabla no es un error (T-8.17). */
-export async function loadServeSettings(cwd: string, fileSystem: FileSystem): Promise<ServeSettingsSnapshot> {
-  const loaded = await loadProjectConfig(cwd, fileSystem);
+export async function loadServeSettings(cwd: string, fileSystem: FileSystem, sharedRoot?: string | undefined): Promise<ServeSettingsSnapshot> {
+  const loaded = await loadProjectConfig(cwd, fileSystem, sharedRoot);
   if (!loaded.ok) {
     return { path: loaded.path, settings: undefined, present: true, error: loaded.message };
   }
@@ -90,9 +90,13 @@ export interface ConfigFileState {
   readonly text: string | undefined;
 }
 
-/** `cv.toml` tal cual está en disco, con su huella (para `If-Match`). */
-export async function readConfigFile(context: Pick<AppContext, 'cwd' | 'datasetFileSystem'>): Promise<ConfigFileState | { readonly error: AppError }> {
-  const path = projectConfigPath(context.cwd);
+/**
+ * `cv.toml` tal cual está en disco, con su huella (para `If-Match`). Siempre el de la RAÍZ: `[llm]` y
+ * `[serve]` configuran el proveedor de modelos y el servidor, que son del espacio de trabajo y no de una
+ * persona; el `cv.toml` de un usuario existe para anular su tema y se edita a mano (T-9.32).
+ */
+export async function readConfigFile(context: Pick<AppContext, 'cwd' | 'workspaceRoot' | 'datasetFileSystem'>): Promise<ConfigFileState | { readonly error: AppError }> {
+  const path = projectConfigPath(context.workspaceRoot ?? context.cwd);
   try {
     const text = await context.datasetFileSystem.readTextFile(path);
     return { path, present: true, sha256: contentHash(text), text };

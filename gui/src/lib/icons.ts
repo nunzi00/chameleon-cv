@@ -23,6 +23,7 @@ export type IconName =
   | 'alert'
   | 'warning'
   | 'info'
+  | 'user'
   | 'plus'
   | 'close'
   | 'chevron'
@@ -51,6 +52,7 @@ export const ICONS: Readonly<Record<IconName, readonly string[]>> = {
   alert: ['M3.5 12a8.5 8.5 0 1017 0a8.5 8.5 0 10-17 0', 'M12 7.5v5M12 16h.01'],
   warning: ['M12 4l8 15H4z', 'M12 10v4M12 16.5h.01'],
   info: ['M3.5 12a8.5 8.5 0 1017 0a8.5 8.5 0 10-17 0', 'M12 11v5.5M12 8h.01'],
+  user: ['M8.5 9a3.5 3.5 0 107 0a3.5 3.5 0 10-7 0', 'M5 19c1.2-3 3.8-4.5 7-4.5c3.2 0 5.8 1.5 7 4.5'],
   plus: ['M12 6v12M6 12h12'],
   close: ['M6 6l12 12M18 6L6 18'],
   chevron: ['M8 5l7 7-7 7'],
