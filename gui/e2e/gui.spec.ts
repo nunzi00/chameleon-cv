@@ -357,20 +357,21 @@ test('los usuarios del espacio de trabajo se crean y se cambian desde la cabecer
   await page.getByLabel('Identificador').fill('invitado1');
   await page.getByRole('button', { name: 'Crear' }).click();
 
-  // Creado, la web pasa a trabajar como él: el selector aparece con el usuario elegido.
+  // Creado, la web RECARGA y pasa a trabajar como él: el selector aparece con el usuario elegido.
   const selector = page.getByRole('banner').getByLabel('Usuario');
   await expect(selector).toHaveValue('invitado1');
   expect(existsSync(join(state.workspace, 'usuarios', 'invitado1', 'data', 'sources', 'profile.md'))).toBe(true);
+  expect(await page.evaluate(() => localStorage.getItem('cv.user'))).toBe('invitado1');
 
   // Y lo que se ve es SUYO: el dataset de ejemplo, no el del espacio de trabajo.
   await page.getByRole('link', { name: 'Fuentes' }).click();
   await expect(page.getByRole('button', { name: 'profile.md' })).toBeVisible();
+  await page.getByRole('button', { name: 'profile.md' }).click();
+  await expect(page).toHaveURL(/#\/fuentes\/profile\.md$/);
 
-  // La elección sobrevive a la recarga; volver al espacio de trabajo también es un click.
-  await page.reload();
-  await expect(page.getByRole('banner').getByLabel('Usuario')).toHaveValue('invitado1');
-  expect(await page.evaluate(() => localStorage.getItem('cv.user'))).toBe('invitado1');
+  // Cambiar de usuario recarga: se conserva la PANTALLA y se suelta el fichero, que es de otro perfil.
   await page.getByRole('banner').getByLabel('Usuario').selectOption('');
+  await expect(page).toHaveURL(`${state.url}#/fuentes`);
   await expect(page.getByRole('banner').getByLabel('Usuario')).toHaveValue('');
   expect(await page.evaluate(() => localStorage.getItem('cv.user'))).toBeNull();
 });

@@ -56,6 +56,12 @@ revisiones, y que prestar la herramienta no signifique enseñar tu vida laboral.
 | Web | El selector de la cabecera; se recuerda en el navegador (`cv.user`) |
 | Quiosco | `cv serve --user <id>`: el servidor queda **fijado** y la web pierde el selector |
 
+**Cambiar de usuario en la web recarga la página.** Cada pantalla pide lo suyo al montarse, así que refrescar
+solo el contexto dejaría la cabecera diciendo una cosa y el contenido —el fichero abierto en Fuentes, la
+revisión a medias, la lista de salidas— enseñando la de la persona anterior. Se conserva la pantalla, no el
+fichero: ese identificador es de otro perfil. La recarga se inyecta como una propiedad (`reload`), como el
+`fetch`, para que se pueda comprobar sin recargar de verdad.
+
 **No hay un «usuario activo» guardado en el disco del espacio de trabajo.** Es deliberado: un estado invisible
 que decide de quién es el CV que acabas de generar es la clase de cosa que se descubre tarde y mal. En la CLI
 el usuario es explícito siempre; en la web se recuerda porque la cabecera lo enseña en todo momento, que es lo

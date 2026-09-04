@@ -21,8 +21,10 @@
   interface Props {
     /** Solo para las pruebas: un `fetch` distinto del global. */
     fetchImpl?: typeof fetch;
+    /** Solo para las pruebas: recargar sin recargar de verdad. */
+    reload?: () => void;
   }
-  let { fetchImpl = (input, init) => fetch(input, init) }: Props = $props();
+  let { fetchImpl = (input, init) => fetch(input, init), reload = () => location.reload() }: Props = $props();
 
   const preferences = browserStorage();
   let token = $state<string | undefined>(undefined);
@@ -80,17 +82,21 @@
     }
   }
 
-  /** Cambiar de usuario: se recuerda y se vuelve a pedir todo, porque todo lo que se ve es de esa persona. */
+  /**
+   * Cambiar de usuario **recarga la página**. Es lo honesto: TODO lo que hay en pantalla es de la persona
+   * anterior —el fichero abierto en Fuentes, la revisión a medias, la lista de salidas, el trabajo del
+   * co-piloto—, y cada pantalla pide lo suyo al montarse, así que refrescar solo la cabecera dejaría el
+   * contexto diciendo una cosa y el contenido enseñando otra. Se conserva la PANTALLA en la que estabas,
+   * no el fichero: ese identificador es de otro perfil y no tiene por qué existir en este.
+   */
   function changeUser(id: string | undefined): void {
-    user = id;
     storeUser(preferences, id);
-    context = undefined;
-    void refreshContext();
+    location.hash = formatRoute({ page: route.page });
+    reload();
   }
 
   async function createUser(id: string): Promise<void> {
     await api.createUser({ id });
-    await refreshUsers();
     changeUser(id);
   }
 

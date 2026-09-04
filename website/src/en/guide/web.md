@@ -43,7 +43,8 @@ no flash on load) and **Apagar**, which stops `cv serve` after confirmation.
 If the workspace has [users](/en/guide/users), the header carries a **selector** listing them and a **Usuario**
 button to create another. The selector only appears when there is someone to choose; the button is always
 there, including in a workspace that has none yet. The choice is remembered in that browser, and everything you
-see — sources, outputs, reviews, history — belongs to that person.
+see — sources, outputs, reviews, history — belongs to that person. **Switching users reloads the page**, keeping
+the screen you were on but not the open file: that one belongs to another profile.
 
 With `cv serve --user <id>` the server is pinned: the selector disappears and the header only shows whose
 session this is. **A user is not an account**: anyone with this URL and its token can open any of them.

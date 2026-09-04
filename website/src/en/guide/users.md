@@ -55,6 +55,11 @@ export CHAMELEON_USER=invitado1   # or set it for the whole session
 The flag goes **before** the command. In the web interface, use the header selector; the choice is remembered
 in that browser, and the header always shows who you are working as.
 
+**Switching users reloads the page.** Everything on screen — the file open in Fuentes, the half-finished
+review, the list of outputs — belongs to the previous person, so refreshing just the header would leave the
+context saying one thing and the content showing another. The **screen** you were on is kept; the file is not,
+because that identifier belongs to another profile and need not exist in this one.
+
 ::: tip There is no "active user" stored on disk
 In the terminal the user is always explicit. Invisible state deciding whose CV you just generated is the kind
 of thing you find out about late and badly.

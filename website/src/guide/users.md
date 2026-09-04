@@ -56,6 +56,11 @@ export CHAMELEON_USER=invitado1   # o fíjalo para toda la sesión
 La bandera va **antes** de la orden. En la web, el selector de la cabecera; la elección se recuerda en ese
 navegador y la cabecera enseña en todo momento con quién estás trabajando.
 
+**Cambiar de usuario recarga la página.** Todo lo que hay en pantalla —el fichero abierto en Fuentes, la
+revisión a medias, la lista de salidas— es de la persona anterior, así que refrescar solo la cabecera dejaría
+el contexto diciendo una cosa y el contenido enseñando otra. Se conserva la **pantalla** en la que estabas,
+no el fichero: ese identificador es de otro perfil y no tiene por qué existir en este.
+
 ::: tip No hay un «usuario activo» guardado en el disco
 En la terminal el usuario es explícito siempre. Un estado invisible que decidiera de quién es el CV que acabas
 de generar sería la clase de cosa que se descubre tarde y mal.
