@@ -13,6 +13,7 @@
   import { forgetToken, rememberToken, startSession } from './lib/session';
   import { browserStorage } from './lib/storage';
   import { applyTheme, readTheme, storeTheme, type ThemeMode } from './lib/theme';
+  import { applyUiLayout, navShapeOf, readUiLayout, storeUiLayout, type UiLayout } from './lib/ui-layout';
 
   interface Props {
     /** Solo para las pruebas: un `fetch` distinto del global. */
@@ -26,6 +27,11 @@
   let context = $state<AppContext | undefined>(undefined);
   let theme = $state<ThemeMode>(readTheme(preferences));
   let collapsed = $state(readCollapsed(preferences));
+  /** La organización de la interfaz (T-9.29): la misma carcasa, dirigida por datos. */
+  let layout = $state<UiLayout>(readUiLayout(preferences));
+  /** El mosaico del lanzador, en las organizaciones que no tienen navegación permanente. */
+  let launcherOpen = $state(false);
+  const navShape = $derived(navShapeOf(layout));
   let stopped = $state(false);
   let gateReason = $state<'expired' | undefined>(undefined);
   const api = createApiClient({ fetch: (input, init) => fetchImpl(input, init), token: () => token });
@@ -60,6 +66,14 @@
     storeTheme(preferences, mode);
   }
 
+  function changeLayout(next: UiLayout): void {
+    layout = next;
+    applyUiLayout(document.documentElement, next);
+    storeUiLayout(preferences, next);
+    // Cambiar de organización cierra el mosaico: la nueva puede tener la navegación siempre a la vista.
+    launcherOpen = false;
+  }
+
   function toggleNav(): void {
     collapsed = !collapsed;
     storeCollapsed(preferences, collapsed);
@@ -83,6 +97,7 @@
   }
 
   onMount(() => {
+    applyUiLayout(document.documentElement, layout);
     const session = startSession(location.hash, sessionStorage);
     token = session.token;
     if (session.fromUrl) {
@@ -110,11 +125,29 @@
 {#if token === undefined}
   <SessionGate onsubmit={enter} reason={gateReason} />
 {:else}
-  <div class="cv-app" data-rail={collapsed ? '' : undefined}>
-    <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} />
+  <div class="cv-app" data-rail={collapsed && navShape === 'sidebar' ? '' : undefined} data-nav={navShape}>
+    {#if navShape === 'sidebar'}
+      <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape="sidebar" />
+    {/if}
     <div class="cv-content">
-      <ContextHeader {context} {theme} onthemechange={changeTheme} onshutdown={shutdown} />
+      <ContextHeader
+        {context}
+        {theme}
+        {layout}
+        onthemechange={changeTheme}
+        onlayoutchange={changeLayout}
+        onshutdown={shutdown}
+        launcher={navShape === 'launcher'}
+        {launcherOpen}
+        onlaunchertoggle={() => (launcherOpen = !launcherOpen)}
+      />
+      {#if navShape === 'ribbon'}
+        <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape="ribbon" />
+      {/if}
       <main class="cv-main">
+        {#if launcherOpen && navShape === 'launcher'}
+          <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape="launcher" onnavigate={() => (launcherOpen = false)} />
+        {:else}
         {#if stopped}
           <div class="cv-empty">
             <div class="cv-empty-inner">
@@ -199,6 +232,7 @@
               {/await}
             {/if}
           </div>
+        {/if}
         {/if}
       </main>
     </div>

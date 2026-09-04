@@ -33,4 +33,31 @@ describe('Nav', () => {
     button.click();
     expect(ontoggle).toHaveBeenCalledTimes(1);
   });
+
+  it('la cinta pinta las MISMAS pantallas en una fila, sin grupos ni portal (T-9.29)', () => {
+    render(Nav, { props: { route: { page: 'generar' }, reviews: 2, collapsed: false, ontoggle: () => undefined, shape: 'ribbon' as const } });
+    expect(screen.getByRole('link', { name: 'Generar' }).getAttribute('aria-current')).toBe('page');
+    // Las doce pantallas siguen ahí: la organización cambia la forma, no el modelo.
+    expect(screen.getAllByRole('link')).toHaveLength(12);
+    expect(screen.queryByRole('link', { name: 'Portada' })).toBeNull();
+    // Y el contador de revisiones se conserva: es información, no adorno de la barra.
+    expect(screen.getByLabelText('2 pendientes')).toBeTruthy();
+  });
+
+  it('el lanzador pinta el mosaico por grupos y avisa al elegir, para poder cerrarse (T-9.29)', async () => {
+    const onnavigate = vi.fn();
+    render(Nav, { props: { route: { page: 'estado' }, reviews: 0, collapsed: false, ontoggle: () => undefined, shape: 'launcher' as const, onnavigate } });
+    expect(screen.getByRole('heading', { name: 'Perfil' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Producir' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Estado del artefacto' }).getAttribute('aria-current')).toBe('page');
+    (screen.getByRole('link', { name: 'Generar' }) as HTMLElement).click();
+    expect(onnavigate).toHaveBeenCalled();
+    // El portal sigue abriéndose fuera, también desde el mosaico.
+    expect(screen.getByRole('link', { name: 'Portada' }).getAttribute('target')).toBe('_blank');
+  });
+
+  it('sin «onnavigate» el mosaico no se rompe al elegir', () => {
+    render(Nav, { props: { route: { page: 'estado' }, reviews: 0, collapsed: false, ontoggle: () => undefined, shape: 'launcher' as const } });
+    expect(() => (screen.getByRole('link', { name: 'Generar' }) as HTMLElement).click()).not.toThrow();
+  });
 });

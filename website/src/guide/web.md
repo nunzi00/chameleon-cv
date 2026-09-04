@@ -29,6 +29,24 @@ de trabajo y cuatro chips que responden sin navegar: si el artefacto está al d�
 responde y si el servidor permite remotos; a la derecha, el conmutador de tema (claro, oscuro o el del sistema, sin
 destello al cargar) y **Apagar**, que detiene `cv serve` tras confirmar.
 
+## Cuatro organizaciones, un click
+
+La misma aplicación en cuatro formas distintas, no cuatro paletas. El conmutador **Organización** está en la
+cabecera, en todas ellas:
+
+| | Navegación | Contenido |
+| --- | --- | --- |
+| **Barra** | lateral permanente, con grupos | fluido; la de trabajar muchas horas seguidas |
+| **Cinta** | una fila arriba, sin lateral | todo el ancho y más densidad |
+| **Tablero** | ninguna: mosaico cuando lo pides | en tarjetas, con más aire |
+| **Foco** | ninguna: mosaico cuando lo pides | columna estrecha, tipografía mayor y sin chips |
+
+La elección se guarda en tu navegador y se aplica **antes de pintar**, así que al recargar no hay salto. Es
+independiente del tema claro/oscuro: son dos decisiones distintas —cómo trabajas y qué luz tienes— y se toman
+por separado. En «Foco» se retiran los chips de estado, pero **nunca el conmutador**: es la vuelta a las demás.
+
+Las pantallas son las mismas y están en el mismo orden en las cuatro: cambia la carcasa, no lo que hay dentro.
+
 ## Estado del artefacto
 
 ![Pantalla Estado: la tarjeta del artefacto con badge, fuentes, especialidades y temas; Typst y co-piloto a su lado; la tabla de temas instalados y la portabilidad](/gui/estado.png)
