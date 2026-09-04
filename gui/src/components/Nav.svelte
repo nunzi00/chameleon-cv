@@ -15,10 +15,12 @@
      * mosaico. Una sola fuente de pantallas y una sola marca de «dónde estoy»; lo que cambia es la forma.
      */
     shape?: NavShape;
-    /** Solo en el lanzador: abrir un destino cierra el mosaico. */
+    /** Solo en el lanzador y en el raíl desplegado: abrir un destino lo cierra. */
     onnavigate?: () => void;
+    /** Solo en el raíl: desplegado enseña los nombres, por encima del contenido y sin moverlo. */
+    expanded?: boolean;
   }
-  let { route, reviews, collapsed, ontoggle, shape = 'sidebar', onnavigate }: Props = $props();
+  let { route, reviews, collapsed, ontoggle, shape = 'sidebar', onnavigate, expanded = false }: Props = $props();
 
   const items = $derived(NAV_GROUPS.flatMap((group) => group.items));
   /** Solo en «Pestañas»: el grupo de la pantalla en la que estás decide el segundo nivel. */
@@ -54,17 +56,30 @@
     </button>
   </nav>
 {:else if shape === 'rail'}
-  <!-- Raíl: la misma barra reducida a iconos y sin plegado, porque plegar un raíl no significa nada. -->
-  <nav class="cv-nav cv-rail" aria-label="Pantallas">
-    <span class="cv-rail-brand" title="Chameleon CV"><Icon name="brand" size={20} /></span>
+  <!-- Raíl: iconos por 56 px, y se despliega POR ENCIMA del contenido para leer los nombres sin moverlo. -->
+  <nav class="cv-nav cv-rail" class:cv-rail-open={expanded} aria-label="Pantallas">
+    <span class="cv-rail-brand" title="Chameleon CV"><Icon name="brand" size={20} /><span>Chameleon CV</span></span>
     {#each items as item (item.page)}
-      <a class="cv-nav-item" href={formatRoute({ page: item.page })} title={item.label} aria-label={item.label} aria-current={route.page === item.page ? 'page' : undefined}>
+      <a
+        class="cv-nav-item"
+        href={formatRoute({ page: item.page })}
+        title={item.label}
+        aria-label={item.label}
+        aria-current={route.page === item.page ? 'page' : undefined}
+        onclick={() => onnavigate?.()}>
         <Icon name={item.icon} />
+        <span>{item.label}</span>
         {#if item.page === 'revisiones' && reviews > 0}
           <span class="cv-nav-count" aria-label="{reviews} pendientes">{reviews}</span>
         {/if}
       </a>
     {/each}
+    <div class="cv-nav-spacer"></div>
+    <!-- El texto sigue al estado: plegado el nombre accesible sale del `title`, y desplegado del propio texto. -->
+    <button class="cv-nav-item" type="button" aria-expanded={expanded} title={expanded ? 'Plegar la barra' : 'Desplegar la barra'} onclick={ontoggle}>
+      <Icon name="sidebar" />
+      <span>{expanded ? 'Plegar la barra' : 'Desplegar la barra'}</span>
+    </button>
   </nav>
 {:else if shape === 'tabs'}
   <!-- Pestañas: dos niveles. Arriba los grupos; debajo, solo las pantallas del grupo en el que estás. -->

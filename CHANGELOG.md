@@ -2,6 +2,16 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Cambiado
+
+- **Las paletas ahora se notan** (T-9.31, encargo del PO tras probar la 1.24: «las combinaciones de colores no se notan mucho»). Tenía razón y el motivo es medible: solo teñían el acento y el fondo, y las **tarjetas, la barra y la cabecera** son la misma superficie, que es la mitad de lo que se ve. Ahora cada paleta tiñe también **superficies y bordes**, en claro y en oscuro. Lo único que sigue sin cambiar es el **color del texto**: ahí vive el contraste, y teñirlo sería cambiar un color a costa de poder leer. Como ahora se tiñe donde vive el texto, cada paleta pasa de cuatro parejas comprobadas a **ocho** —texto y texto atenuado sobre el fondo, sobre las tarjetas y sobre los fondos hundidos—, leídas de la hoja de estilos real: 32 comprobaciones nuevas, todas AA, la peor a 5,28:1.
+
+### Añadido
+
+- **El raíl se despliega** («en raíl me gustaría poder desplegar la barra lateral»). Nació sin plegado —«plegar un raíl no significa nada»— y eso dejaba los nombres fuera del alcance de quien no reconoce un icono. Ahora tiene su propio botón: desplegado **se ensancha por encima del contenido**, sin recolocar la pantalla, y **elegir una pantalla lo cierra**, porque es una ojeada y no un modo; por eso tampoco se guarda en el navegador. El E2E fija lo que costó acertar: al desplegar, el ancho del área principal **no cambia**.
+
 ## [1.24.0] - 2026-09-04
 
 ### Añadido
