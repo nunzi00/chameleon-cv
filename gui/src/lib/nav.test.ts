@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { NAV_GROUPS, NAV_KEY, PORTAL_LINKS, PORTAL_URL, readCollapsed, storeCollapsed } from './nav';
+import { NAV_GROUPS, NAV_KEY, PORTAL_LINKS, PORTAL_URL, groupOf, readCollapsed, storeCollapsed } from './nav';
 import { PAGES } from './router';
 
 function memory(initial: Record<string, string> = {}): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> & { data: Record<string, string> } {
@@ -58,5 +58,12 @@ describe('plegado persistente', () => {
     expect(storage.data[NAV_KEY]).toBeUndefined();
     expect(() => storeCollapsed(broken, true)).not.toThrow();
     expect(() => storeCollapsed(broken, false)).not.toThrow();
+  });
+
+  it('toda pantalla vive en un grupo, y groupOf lo encuentra (T-9.30)', () => {
+    // Es lo que sostiene el registro exhaustivo de `groupOf`: sin esto, «Pestañas» tendría pantallas huérfanas.
+    for (const { page } of PAGES) {
+      expect(groupOf(page).items.some((item) => item.page === page), page).toBe(true);
+    }
   });
 });

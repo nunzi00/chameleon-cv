@@ -265,6 +265,20 @@ test('las cuatro organizaciones de la interfaz cambian con un click y sobreviven
   await page.locator('.cv-ribbon').getByRole('link', { name: 'Salidas' }).click();
   await page.getByRole('heading', { name: 'Salidas' }).waitFor();
 
+  // Raíl: la barra se queda, pero solo con iconos: la navegación cuesta 56 px.
+  await organizacion.getByRole('button', { name: 'Raíl' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'rail');
+  await expect(page.locator('.cv-rail')).toBeVisible();
+  await expect(page.locator('.cv-ribbon')).toHaveCount(0);
+
+  // Pestañas: dos niveles; el segundo enseña SOLO las pantallas del grupo en el que estás.
+  await organizacion.getByRole('button', { name: 'Pestañas' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'pestanas');
+  await expect(page.getByRole('tab', { name: 'Producir' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.cv-tabs-items').getByRole('link', { name: 'Duplicados' })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Perfil' }).click();
+  await expect(page.locator('.cv-tabs-items').getByRole('link', { name: 'Duplicados' })).toBeVisible();
+
   // Tablero: sin navegación permanente; el mosaico se abre desde la cabecera y se cierra al elegir.
   await organizacion.getByRole('button', { name: 'Tablero' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-ui', 'tablero');
@@ -290,6 +304,38 @@ test('las cuatro organizaciones de la interfaz cambian con un click y sobreviven
   await organizacion.getByRole('button', { name: 'Barra' }).click();
   await expect(page.locator('html')).not.toHaveAttribute('data-ui', /./);
   expect(await page.evaluate(() => localStorage.getItem('cv.ui'))).toBeNull();
+});
+
+test('las paletas son un eje aparte del claro/oscuro y de la organización (T-9.30)', async ({ page }) => {
+  await openWithToken(page, state);
+  const paleta = page.getByRole('banner').getByLabel('Paleta de colores');
+
+  await expect(page.locator('html')).not.toHaveAttribute('data-palette', /./);
+  await paleta.selectOption('bosque');
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'bosque');
+  // El acento cambia de verdad: es el color del ítem activo de la navegación.
+  const verde = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--cv-accent').trim());
+  expect(verde).toBe('#1b6b39');
+
+  // Ortogonal al claro/oscuro: la misma paleta trae su propio valor para cada uno.
+  await page.getByRole('banner').getByRole('button', { name: 'Oscuro' }).click();
+  await expect(page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--cv-accent').trim())).resolves.toBe('#6fbf87');
+
+  // Y ortogonal a la organización: se puede cambiar de carcasa sin perder el color.
+  await page.getByRole('banner').getByRole('group', { name: 'Organización de la interfaz' }).getByRole('button', { name: 'Cinta' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'bosque');
+  await expect(page.locator('html')).toHaveAttribute('data-ui', 'cinta');
+
+  // Sobrevive a la recarga y se aplica antes de pintar.
+  expect(await page.evaluate(() => localStorage.getItem('cv.palette'))).toBe('bosque');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Estado del artefacto' }).waitFor();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'bosque');
+
+  await page.getByRole('banner').getByLabel('Paleta de colores').selectOption('pizarra');
+  await expect(page.locator('html')).not.toHaveAttribute('data-palette', /./);
+  await page.getByRole('banner').getByRole('button', { name: 'Sistema' }).click();
+  await page.getByRole('banner').getByRole('group', { name: 'Organización de la interfaz' }).getByRole('button', { name: 'Barra' }).click();
 });
 
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {

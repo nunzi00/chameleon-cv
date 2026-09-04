@@ -29,7 +29,7 @@ de trabajo y cuatro chips que responden sin navegar: si el artefacto está al d�
 responde y si el servidor permite remotos; a la derecha, el conmutador de tema (claro, oscuro o el del sistema, sin
 destello al cargar) y **Apagar**, que detiene `cv serve` tras confirmar.
 
-## Cuatro organizaciones, un click
+## Seis organizaciones y cinco paletas, un click
 
 La misma aplicación en cuatro formas distintas, no cuatro paletas. El conmutador **Organización** está en la
 cabecera, en todas ellas:
@@ -37,7 +37,9 @@ cabecera, en todas ellas:
 | | Navegación | Contenido |
 | --- | --- | --- |
 | **Barra** | lateral permanente, con grupos | fluido; la de trabajar muchas horas seguidas |
+| **Raíl** | lateral en iconos, 56 px | casi todo el ancho, con la navegación siempre visible |
 | **Cinta** | una fila arriba, sin lateral | todo el ancho y más densidad |
+| **Pestañas** | grupos arriba y, debajo, el grupo actual | todo el ancho; caben con su nombre |
 | **Tablero** | ninguna: mosaico cuando lo pides | en tarjetas, con más aire |
 | **Foco** | ninguna: mosaico cuando lo pides | columna estrecha, tipografía mayor y sin chips |
 
@@ -45,7 +47,12 @@ La elección se guarda en tu navegador y se aplica **antes de pintar**, así que
 independiente del tema claro/oscuro: son dos decisiones distintas —cómo trabajas y qué luz tienes— y se toman
 por separado. En «Foco» se retiran los chips de estado, pero **nunca el conmutador**: es la vuelta a las demás.
 
-Las pantallas son las mismas y están en el mismo orden en las cuatro: cambia la carcasa, no lo que hay dentro.
+Las pantallas son las mismas y están en el mismo orden en las seis: cambia la carcasa, no lo que hay dentro.
+
+Y al lado, la **paleta**: Pizarra (la de siempre), Bosque, Ámbar, Índigo y Carbón, cada una con sus valores para
+claro y para oscuro. Son **tres ejes independientes** —la luz que tienes, cómo trabajas y qué color quieres
+mirar— y se eligen por separado. Ninguna paleta toca el color del texto ni el de las tarjetas: ahí vive el
+contraste que se comprueba en las pruebas, y las cinco pasan AA en claro y en oscuro.
 
 ## Estado del artefacto
 

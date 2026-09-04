@@ -2,6 +2,13 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [Unreleased]
+
+### Añadido
+
+- **Dos organizaciones más de la interfaz, y las tres que mejor aprovechan el espacio** (T-9.30, encargo del PO tras probar la 1.23: «el cinta es el que mejor aprovecha el espacio. Crea más temas»). **Raíl**: la barra reducida a iconos de forma permanente, la navegación cuesta 56 px y no se pliega. **Pestañas**: dos niveles arriba —los grupos y, debajo, solo las pantallas del grupo en el que estás—, que es lo que hace que quepan con su nombre en vez de apretar doce en una fila. Con «Cinta» son tres formas de resolver el mismo problema: que la navegación no se coma el ancho. Seis organizaciones en total, con **cinco** formas de pintar la navegación, no seis interfaces.
+- **Y un tercer eje: la paleta de colores** («también con combinación de colores»). Cinco —**Pizarra** (la de siempre), **Bosque**, **Ámbar**, **Índigo** y **Carbón** (monocroma)— en un desplegable de la cabecera. Los tres ejes son **ortogonales**: la luz que tienes (claro/oscuro), cómo trabajas (organización) y qué color quieres mirar (paleta), y se eligen por separado. Cada paleta trae sus propios valores para claro y para oscuro, porque un acento que funciona sobre blanco casi nunca funciona sobre casi-negro. **Ninguna toca el color del texto ni el de las tarjetas**: ahí vive el contraste verificado, y teñirlo sería cambiar un color a costa de poder leer. Las ocho combinaciones nuevas se comprueban **leyendo la hoja de estilos** en las pruebas: todas dan AA.
+
 ## [1.23.0] - 2026-09-04
 
 ### Añadido

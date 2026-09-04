@@ -655,7 +655,8 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
    navegación sin cambiar el aire deja cuatro veces la misma pantalla movida. */
 
 /* Cinta superior: nada a los lados, todo el ancho para el contenido y una fila de pantallas arriba. */
-.cv-app[data-nav='ribbon'], .cv-app[data-nav='launcher'] { grid-template-columns: 1fr; }
+.cv-app[data-nav='ribbon'], .cv-app[data-nav='launcher'], .cv-app[data-nav='tabs'] { grid-template-columns: 1fr; }
+.cv-app[data-nav='rail'] { grid-template-columns: 56px 1fr; }
 .cv-ribbon { display: flex; align-items: center; gap: 2px; padding: 0 14px 8px; flex: none;
   border-bottom: 1px solid var(--cv-border); background: var(--cv-surface); overflow-x: auto; }
 .cv-ribbon-brand { display: flex; align-items: center; padding: 0 10px 0 2px; color: var(--cv-accent); flex: none; }
@@ -669,6 +670,8 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 
 /* Lanzador: sin navegación permanente; el mosaico ocupa el sitio del contenido y se cierra al elegir. */
 .cv-header-launch { flex: none; }
+.cv-header-palette select { padding: 4px 8px; border: 1px solid var(--cv-border-strong); border-radius: var(--cv-radius-sm);
+  background: var(--cv-surface); color: var(--cv-text); font: var(--cv-size-sm)/1.2 var(--cv-font); }
 .cv-launcher { padding: 26px 24px 60px; max-width: 1180px; margin: 0 auto; display: grid; gap: 26px; }
 .cv-launcher-group h2 { margin: 0 0 10px; font-size: var(--cv-size-sm); font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--cv-muted); }
@@ -700,4 +703,137 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 @media (max-width: 1024px) {
   :root[data-ui='cinta'] .cv-page, :root[data-ui='cinta'] .cv-page-wide { padding: 14px 14px 40px; }
   .cv-launcher-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+/* Raíl: la barra reducida a iconos de forma permanente. La navegación cuesta 56 px y no se pliega: plegar un
+   raíl no significa nada. Los nombres viven en el `title` y en el `aria-label` de cada icono. */
+.cv-rail { padding: 12px 8px; align-items: center; }
+.cv-rail-brand { display: flex; align-items: center; justify-content: center; padding: 2px 0 12px; color: var(--cv-accent); }
+.cv-rail .cv-nav-item { justify-content: center; padding: 9px 0; position: relative; }
+.cv-rail .cv-nav-count { position: absolute; top: 2px; right: 4px; }
+:root[data-ui='rail'] .cv-page, :root[data-ui='rail'] .cv-page-wide { padding: 18px 20px 52px; max-width: none; }
+
+/* Pestañas: dos niveles arriba. El primero son los grupos y el segundo solo las pantallas del grupo actual, así
+   que caben con su nombre en vez de apretar doce en una fila. */
+.cv-tabs { flex: none; border-bottom: 1px solid var(--cv-border); background: var(--cv-surface); }
+.cv-tabs-groups { display: flex; gap: 2px; padding: 0 14px; }
+.cv-tabs-group { padding: 7px 12px 6px; border-bottom: 2px solid transparent; color: var(--cv-muted);
+  text-decoration: none; font-size: var(--cv-size-sm); font-weight: 600; }
+.cv-tabs-group:hover { color: var(--cv-text); }
+.cv-tabs-group[aria-selected='true'] { color: var(--cv-accent); border-bottom-color: var(--cv-accent); }
+.cv-tabs-items { display: flex; gap: 2px; padding: 6px 12px; border-top: 1px solid var(--cv-border);
+  background: var(--cv-surface-2); overflow-x: auto; }
+:root[data-ui='pestanas'] { --cv-size-md: 13px; }
+:root[data-ui='pestanas'] .cv-page, :root[data-ui='pestanas'] .cv-page-wide { padding: 16px 18px 48px; max-width: none; }
+:root[data-ui='pestanas'] .cv-header { padding: 8px 16px; }
+
+/* ── Paletas (T-9.30) ────────────────────────────────────────────────────────
+   El tercer eje, ortogonal a la organización y al claro/oscuro: qué color se mira. Cada paleta trae sus
+   valores para claro Y para oscuro, porque un acento que funciona sobre blanco casi nunca funciona sobre
+   casi-negro. Ninguna toca `--cv-surface` ni `--cv-text`: ahí vive el contraste verificado del texto, y teñirlo
+   sería cambiar un color a costa de poder leer. «pizarra» no escribe atributo: son los tokens base de arriba.
+   Los pares de contraste de las cuatro se comprueban en `lib/contrast.test.ts`, en claro y en oscuro. */
+:root[data-palette='bosque'] {
+  --cv-accent: #1b6b39;
+  --cv-accent-hover: #14522c;
+  --cv-accent-text: #ffffff;
+  --cv-accent-soft: #e8f3ec;
+  --cv-focus: #1b6b39;
+  --cv-bg: #f2f7f3;
+}
+:root[data-palette='ambar'] {
+  --cv-accent: #8a5a00;
+  --cv-accent-hover: #6d4700;
+  --cv-accent-text: #ffffff;
+  --cv-accent-soft: #fdf3e0;
+  --cv-focus: #8a5a00;
+  --cv-bg: #faf6ee;
+}
+:root[data-palette='indigo'] {
+  --cv-accent: #4a3aa8;
+  --cv-accent-hover: #3a2d85;
+  --cv-accent-text: #ffffff;
+  --cv-accent-soft: #ecebf9;
+  --cv-focus: #4a3aa8;
+  --cv-bg: #f4f3fb;
+}
+:root[data-palette='carbon'] {
+  --cv-accent: #24292e;
+  --cv-accent-hover: #14181d;
+  --cv-accent-text: #ffffff;
+  --cv-accent-soft: #eef0f2;
+  --cv-focus: #24292e;
+  --cv-bg: #f3f4f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='bosque']:not([data-theme='light']) {
+    --cv-accent: #6fbf87;
+    --cv-accent-hover: #8fd3a3;
+    --cv-accent-text: #0b1a10;
+    --cv-accent-soft: #14241a;
+    --cv-focus: #6fbf87;
+    --cv-bg: #0e1411;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='ambar']:not([data-theme='light']) {
+    --cv-accent: #e0a83a;
+    --cv-accent-hover: #ecbf63;
+    --cv-accent-text: #201700;
+    --cv-accent-soft: #2a2113;
+    --cv-focus: #e0a83a;
+    --cv-bg: #15120c;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='indigo']:not([data-theme='light']) {
+    --cv-accent: #a99cf0;
+    --cv-accent-hover: #c0b6f6;
+    --cv-accent-text: #14103a;
+    --cv-accent-soft: #1e1b33;
+    --cv-focus: #a99cf0;
+    --cv-bg: #111018;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='carbon']:not([data-theme='light']) {
+    --cv-accent: #d8dde3;
+    --cv-accent-hover: #eef1f4;
+    --cv-accent-text: #14181d;
+    --cv-accent-soft: #232a33;
+    --cv-focus: #d8dde3;
+    --cv-bg: #101214;
+  }
+}
+:root[data-palette='bosque'][data-theme='dark'] {
+  --cv-accent: #6fbf87;
+  --cv-accent-hover: #8fd3a3;
+  --cv-accent-text: #0b1a10;
+  --cv-accent-soft: #14241a;
+  --cv-focus: #6fbf87;
+  --cv-bg: #0e1411;
+}
+:root[data-palette='ambar'][data-theme='dark'] {
+  --cv-accent: #e0a83a;
+  --cv-accent-hover: #ecbf63;
+  --cv-accent-text: #201700;
+  --cv-accent-soft: #2a2113;
+  --cv-focus: #e0a83a;
+  --cv-bg: #15120c;
+}
+:root[data-palette='indigo'][data-theme='dark'] {
+  --cv-accent: #a99cf0;
+  --cv-accent-hover: #c0b6f6;
+  --cv-accent-text: #14103a;
+  --cv-accent-soft: #1e1b33;
+  --cv-focus: #a99cf0;
+  --cv-bg: #111018;
+}
+:root[data-palette='carbon'][data-theme='dark'] {
+  --cv-accent: #d8dde3;
+  --cv-accent-hover: #eef1f4;
+  --cv-accent-text: #14181d;
+  --cv-accent-soft: #232a33;
+  --cv-focus: #d8dde3;
+  --cv-bg: #101214;
 }

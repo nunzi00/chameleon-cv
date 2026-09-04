@@ -34,17 +34,19 @@ function root(): Element {
 }
 
 describe('UI_LAYOUTS', () => {
-  it('son cuatro organizaciones distintas, cada una con su forma de navegación y su explicación', () => {
-    expect(UI_LAYOUTS.map((option) => option.layout)).toEqual(['barra', 'cinta', 'tablero', 'foco']);
+  it('son seis organizaciones distintas, cada una con su forma de navegación y su explicación', () => {
+    expect(UI_LAYOUTS.map((option) => option.layout)).toEqual(['barra', 'rail', 'cinta', 'pestanas', 'tablero', 'foco']);
     // Elegir no puede ser adivinar: cada una dice qué cambia.
     expect(UI_LAYOUTS.every((option) => option.description.length > 30)).toBe(true);
     // Tres formas de pintar el mismo modelo de navegación, no cuatro interfaces que mantener.
-    expect(new Set(UI_LAYOUTS.map((option) => option.nav))).toEqual(new Set(['sidebar', 'ribbon', 'launcher']));
+    expect(new Set(UI_LAYOUTS.map((option) => option.nav))).toEqual(new Set(['sidebar', 'rail', 'ribbon', 'tabs', 'launcher']));
   });
 
   it('navShapeOf dice cómo se pinta la navegación de cada una', () => {
     expect(navShapeOf('barra')).toBe('sidebar');
+    expect(navShapeOf('rail')).toBe('rail');
     expect(navShapeOf('cinta')).toBe('ribbon');
+    expect(navShapeOf('pestanas')).toBe('tabs');
     expect(navShapeOf('tablero')).toBe('launcher');
     expect(navShapeOf('foco')).toBe('launcher');
   });

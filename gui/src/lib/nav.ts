@@ -81,3 +81,15 @@ export function storeCollapsed(storage: KeyValueStorage, collapsed: boolean): vo
     // Sin persistencia: la barra vuelve a su ancho al recargar.
   }
 }
+
+/**
+ * El grupo de cada pantalla, construido una vez. Es un registro exhaustivo por `Page` en lugar de una búsqueda
+ * con respaldo: toda pantalla está en un grupo —lo comprueba su prueba—, y un `??` aquí sería una rama que no
+ * puede darse.
+ */
+const GROUP_OF = Object.fromEntries(NAV_GROUPS.flatMap((group) => group.items.map((item) => [item.page, group]))) as Record<Page, NavGroup>;
+
+/** El grupo al que pertenece una pantalla; con él, «Pestañas» sabe qué segundo nivel enseñar. */
+export function groupOf(page: Page): NavGroup {
+  return GROUP_OF[page];
+}

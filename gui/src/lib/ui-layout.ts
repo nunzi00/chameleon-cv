@@ -10,13 +10,13 @@
  */
 import type { KeyValueStorage } from './storage';
 
-export type UiLayout = 'barra' | 'cinta' | 'tablero' | 'foco';
+export type UiLayout = 'barra' | 'rail' | 'cinta' | 'pestanas' | 'tablero' | 'foco';
 
 export const UI_LAYOUT_KEY = 'cv.ui';
 export const DEFAULT_UI_LAYOUT: UiLayout = 'barra';
 
 /** Cómo pinta la navegación cada organización; tres formas para cuatro temas, y un solo modelo detrás. */
-export type NavShape = 'sidebar' | 'ribbon' | 'launcher';
+export type NavShape = 'sidebar' | 'rail' | 'ribbon' | 'tabs' | 'launcher';
 
 export interface UiLayoutOption {
   readonly layout: UiLayout;
@@ -26,8 +26,15 @@ export interface UiLayoutOption {
   readonly nav: NavShape;
 }
 
-/** Tres formas de pintar la navegación para cuatro organizaciones: «tablero» y «foco» comparten lanzador. */
-const NAV_SHAPES: Readonly<Record<UiLayout, NavShape>> = { barra: 'sidebar', cinta: 'ribbon', tablero: 'launcher', foco: 'launcher' };
+/** Cinco formas de pintar la navegación para seis organizaciones: «tablero» y «foco» comparten lanzador. */
+const NAV_SHAPES: Readonly<Record<UiLayout, NavShape>> = {
+  barra: 'sidebar',
+  rail: 'rail',
+  cinta: 'ribbon',
+  pestanas: 'tabs',
+  tablero: 'launcher',
+  foco: 'launcher',
+};
 
 /** La forma de la navegación de una organización. */
 export function navShapeOf(layout: UiLayout): NavShape {
@@ -36,7 +43,9 @@ export function navShapeOf(layout: UiLayout): NavShape {
 
 export const UI_LAYOUTS: readonly UiLayoutOption[] = [
   { layout: 'barra', label: 'Barra', description: 'Navegación lateral siempre a la vista y cabecera con el estado. La de trabajar muchas horas seguidas.', nav: NAV_SHAPES.barra },
+  { layout: 'rail', label: 'Raíl', description: 'La barra reducida a iconos, siempre a la vista: la navegación cuesta 56 px y el resto es contenido.', nav: NAV_SHAPES.rail },
   { layout: 'cinta', label: 'Cinta', description: 'Navegación en una cinta superior y nada a los lados: todo el ancho para el contenido, con más densidad.', nav: NAV_SHAPES.cinta },
+  { layout: 'pestanas', label: 'Pestañas', description: 'Dos niveles arriba: los grupos como pestañas y, debajo, solo las pantallas del grupo en el que estás.', nav: NAV_SHAPES.pestanas },
   { layout: 'tablero', label: 'Tablero', description: 'Sin navegación permanente: se abre en mosaico cuando la pides. Contenido en tarjetas y más aire.', nav: NAV_SHAPES.tablero },
   { layout: 'foco', label: 'Foco', description: 'Ni barra ni chips: una columna estrecha, tipografía mayor y la navegación solo cuando la llamas.', nav: NAV_SHAPES.foco },
 ];
