@@ -5,6 +5,7 @@ export * from './headings';
 export * from './items';
 export * from './layout';
 export * from './linkedin';
+export * from './vida-laboral';
 export * from './manfred';
 export * from './quality';
 export * from './structure';

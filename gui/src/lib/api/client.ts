@@ -27,6 +27,9 @@ import type {
   TagsApplyResponse,
   RankRequest,
   RankResponse,
+  LinkedinPlanRequestBody,
+  LinkedinPlanResponse,
+  VidaLaboralResponse,
   ImportFolderRequest,
   ImportFolderResponse,
   AnalyzeRequest,
@@ -154,6 +157,10 @@ export interface ApiClient {
   importFolder(body: ImportFolderRequest): Promise<ImportFolderResponse>;
   /** GET /import-cv/folders (T-9.21): las carpetas del espacio con CV dentro, para elegir una sin escribir la ruta. */
   cvFolders(): Promise<CvFoldersResponse>;
+  /** El plan para poner LinkedIn al día desde tus fuentes (T-9.27); no escribe nada. */
+  linkedinPlan(body: LinkedinPlanRequestBody): Promise<LinkedinPlanResponse>;
+  /** Compara las fechas de tus fuentes con el informe de vida laboral en PDF (T-9.28); no escribe nada. */
+  vidaLaboral(pdf: Blob): Promise<VidaLaboralResponse>;
   /** Historial de una oferta (solo lectura): procesamientos previos por la huella de su texto. */
   offerHistory(body: HistoryLookupRequest): Promise<HistoryLookupResponse>;
   /** Un PDF (bytes) → su texto, extraído en el worker aislado del servidor. */
@@ -362,6 +369,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     rankOffers: (body) => request('POST', '/offers/rank', { body }),
     importFolder: (body) => request('POST', '/import-cv/folder', { body }),
     cvFolders: () => request('GET', '/import-cv/folders'),
+    linkedinPlan: (body) => request('POST', '/linkedin/plan', { body }),
+    vidaLaboral: async (pdf) => {
+      const response = await raw('POST', '/vida-laboral', { body: pdf, contentType: 'application/pdf' });
+      return parseJson(await response.text()) as VidaLaboralResponse;
+    },
     offerHistory: (body) => request('POST', '/offers/history', { body }),
     extractOffer: async (pdf) => {
       const response = await raw('POST', '/offers/extract', { body: pdf, contentType: 'application/pdf' });

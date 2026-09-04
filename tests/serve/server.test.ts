@@ -31,6 +31,10 @@ function pdfExtractor(bytes: Uint8Array): Promise<PdfExtractionResult> {
   if (text === 'timeout') {
     return Promise.resolve({ ok: false, code: 'timeout', message: 'tiempo agotado' });
   }
+  // Un informe de vida laboral de mentira, para la ruta que lo compara con las fuentes (T-9.28).
+  if (text.startsWith('%PDF-VIDA')) {
+    return Promise.resolve({ ok: true, text: 'GENERAL 27104248036 ACME CORP, S.L. 08.01.2015 08.01.2015 31.10.2016 189 --- 07 601', pages: 1 });
+  }
   return Promise.resolve(text.startsWith('%PDF') ? { ok: true, text: 'Texto extraído', pages: 1 } : { ok: false, code: 'invalid', message: 'no es un PDF' });
 }
 
@@ -140,6 +144,18 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(fs.file('/work/data/sources/profile.md')).toBeDefined();
   });
 
+  it('POST /linkedin/plan compara el perfil con lo exportado de LinkedIn y no escribe nada (T-9.27)', async () => {
+    const plan = await post('/linkedin/plan', {});
+    expect(plan.status).toBe(200);
+    const body = (await plan.json()) as { counts: { add: number; fix: number; pending: number }; items: Array<{ action: string; kind: string; title: string }>; draft?: string };
+    expect(body.draft).toBeUndefined();
+    expect(body.counts.fix).toBe(0);
+    expect(body.items.some((item) => item.action === 'add')).toBe(true);
+    // Un borrador que no existe se dice; el cuerpo que no es JSON, también.
+    expect((await post('/linkedin/plan', { draft: 'no-esta' })).status).toBe(422);
+    expect((await api('/linkedin/plan', { method: 'POST', body: 'x', headers: { 'Content-Type': 'application/json' } })).status).toBe(400);
+  });
+
   it('validar, compilar, leer el perfil, generar (Markdown, plantilla propia, PDF), listar y servir la salida', async () => {
     expect((await api('/profile')).status).toBe(422);
     const validate = await post('/validate', {});
@@ -244,6 +260,22 @@ describe('cv serve: el contrato /api/v1 sobre un espacio de trabajo en memoria',
     expect(await (await raw('%PDF-1.7 …')).json()).toEqual({ text: 'Texto extraído' });
     expect((await raw('no')).status).toBe(422);
     expect((await raw('timeout')).status).toBe(503);
+  });
+
+  it('POST /vida-laboral compara las fechas con el informe y no escribe nada (T-9.28)', async () => {
+    const send = (body: string, type = 'application/pdf'): Promise<Response> => api('/vida-laboral', { method: 'POST', body, headers: { 'Content-Type': type } });
+    expect((await send('%PDF-VIDA', 'text/plain')).status).toBe(400);
+    // Y sin cabecera de tipo, tampoco: el cuerpo tiene que declararse como PDF.
+    expect((await api('/vida-laboral', { method: 'POST', body: new Uint8Array([1, 2, 3]) })).status).toBe(400);
+    const response = await send('%PDF-VIDA');
+    expect(response.status).toBe(200);
+    const report = (await response.json()) as { spells: number; employers: number; items: Array<{ kind: string; company: string }> };
+    expect(report).toMatchObject({ spells: 1, employers: 1 });
+    expect(report.items.some((item) => item.company.includes('ACME'))).toBe(true);
+    // Un PDF que no es un informe, y uno que ni siquiera se puede extraer.
+    expect((await send('%PDF-1.7 …')).status).toBe(422);
+    expect((await send('no')).status).toBe(422);
+    expect((await send('timeout')).status).toBe(503);
   });
 
   it('temas: inventario y creación (201), con validación del cuerpo y de los errores de la capa', async () => {

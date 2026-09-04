@@ -173,6 +173,18 @@
               {:then salidas}
                 <salidas.default {api} item={route.item} onsession={sessionLost} {navigate} />
               {/await}
+            {:else if route.page === 'vida-laboral'}
+              {#await import('./pages/VidaLaboral.svelte')}
+                <p class="cv-muted">Cargando…</p>
+              {:then vida}
+                <vida.default {api} onsession={sessionLost} {navigate} />
+              {/await}
+            {:else if route.page === 'linkedin'}
+              {#await import('./pages/LinkedIn.svelte')}
+                <p class="cv-muted">Cargando…</p>
+              {:then linkedin}
+                <linkedin.default {api} onsession={sessionLost} {navigate} />
+              {/await}
             {:else if route.page === 'copiloto'}
               {#await import('./pages/Copiloto.svelte')}
                 <p class="cv-muted">Cargando…</p>

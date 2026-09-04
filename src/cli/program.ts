@@ -13,6 +13,8 @@ import { runInit, type InitOptions } from './commands/init';
 import { IMPROVE_DEFAULTS, runImproveCommand, runLlmCacheClear, type ImproveOptions } from './commands/improve';
 import { runApplyCommand, runArchiveCommand, runUndoCommand, type ApplyOptions } from './commands/apply';
 import { runSourceDelete, type DeleteSourceOptions } from './commands/source-delete';
+import { runLinkedin, type LinkedinOptions } from './commands/linkedin';
+import { runVidaLaboral, type VidaLaboralOptions } from './commands/vida-laboral';
 import { runHistoryList, runHistoryRestore, runHistoryShow, type HistoryOptions } from './commands/history';
 import { type LlmRuntimeCommandOptions, type LlmStatusCommandOptions, runLlmDown, runLlmKeyList, runLlmKeyRemove, runLlmKeySet, runLlmModels, runLlmStatus, runLlmUp } from './commands/llm';
 import { SUGGEST_TAGS_DEFAULTS, parseMaxTags, runSuggestTagsCommand, type SuggestTagsOptions } from './commands/suggest-tags';
@@ -236,6 +238,25 @@ export function createProgram(context: CliContext, onExit: (code: number) => voi
     .option('--dry-run', 'enseña lo que haría sin escribir ni borrar nada', false)
     .action(async (keep: string, options: DuplicatesResolveOptions) => {
       onExit(await runDuplicatesResolve(context, keep, options));
+    });
+
+  program
+    .command('vida-laboral <informe>')
+    .description('compara las fechas de tus fuentes con el informe de vida laboral de la Seguridad Social (PDF) y sugiere correcciones: inicios y finales que no cuadran, empresas que faltan y empleos que das por abiertos; no escribe nada')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--json', 'los apuntes en JSON')
+    .action(async (report: string, options: VidaLaboralOptions) => {
+      onExit(await runVidaLaboral(context, report, options));
+    });
+
+  program
+    .command('linkedin')
+    .description('el plan para poner tu LinkedIn al día a partir de tus fuentes: qué añadir, qué corregir y qué le falta a tu perfil antes de subirlo; compara con lo que exportaste de LinkedIn si le pasas el borrador')
+    .option('-d, --data <dir>', 'directorio de fuentes', DEFAULT_DATA_DIR)
+    .option('--draft <nombre>', 'borrador de import/ con lo exportado de LinkedIn; sin él, el plan solo dice qué tienes tú')
+    .option('--json', 'el plan en JSON')
+    .action(async (options: LinkedinOptions) => {
+      onExit(await runLinkedin(context, options));
     });
 
   const sources = program.command('sources').description('tus fuentes de data/sources: por ahora, eliminar una (T-9.25); verlas y editarlas es «cv validate», «cv build» y la pantalla Fuentes');

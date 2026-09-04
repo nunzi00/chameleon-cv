@@ -66,6 +66,35 @@ export async function generateOfferPdfs(workspace: string = BENCH_WORKSPACE): Pr
   return written;
 }
 
+/**
+ * Un informe de vida laboral **sintético** con la forma exacta del de la Seguridad Social (T-9.28), para que el
+ * arnés recorra la cadena entera: PDF → extracción → lectura de la tabla → comparación con las fuentes. Los
+ * desfases están puestos a propósito: Lumen empieza antes en el informe, Órbita acaba después, Nexo Pagos está
+ * abierta en las fuentes y con baja en el informe, y hay una empresa que el banco no tiene.
+ */
+const VIDA_LABORAL = [
+  'INFORME DE VIDA LABORAL - SITUACIONES',
+  'DATOS IDENTIFICATIVOS',
+  'RÉGIMEN EMPRESA FECHA ALTA FECHA DE EFECTO DE ALTA FECHA DE BAJA C.T. CTP % G.C. DÍAS',
+  'GENERAL 28100000001 VACACIONES RETRIBUIDAS Y NO DISFRUTADAS 01.03.2026 01.03.2026 10.03.2026 --- --- -- 10',
+  'GENERAL 28100000001 NEXO PAGOS TECNOLOGIA, S.L. 15.03.2022 15.03.2022 28.02.2026 100 --- 03 1.446',
+  'GENERAL 28100000002 ORBITA CLOUD SERVICIOS, S.L.U. 03.06.2019 03.06.2019 31.03.2022 100 --- 03 1.033',
+  'GENERAL 28100000003 DELTA CONSULTORES, S.A. 09.01.2017 09.01.2017 31.05.2019 100 --- 03 873',
+  'GENERAL 28100000004 LUMEN ANALYTICS, S.L. 01.07.2015 01.07.2015 31.12.2016 100 --- 03 550',
+  'GENERAL 28100000005 TALLERES DEL SUR, S.A. 01.02.2011 01.02.2011 31.12.2012 100 --- 03 699',
+  'AUTONOMO ----------- MADRID 01.02.2013 01.02.2013 31.08.2015 --- --- -- 942',
+  'REFERENCIAS ELECTRÓNICAS',
+].join('\n');
+
+/** El informe del banco, en PDF, con la misma fecha fija que el resto de derivados. */
+export async function generateVidaLaboralPdf(workspace: string = BENCH_WORKSPACE): Promise<string> {
+  const directory = join(workspace, 'tools');
+  await mkdir(directory, { recursive: true });
+  const path = join(directory, 'vida-laboral.pdf');
+  await writeFile(path, await renderOfferPdf(VIDA_LABORAL, 'vida-laboral'));
+  return path;
+}
+
 const HEADER: Omit<ReviewHeader, 'task' | 'promptVersion'> = {
   generatedAt: BENCH_DATE.toISOString(),
   specialty: 'backend',
@@ -216,9 +245,9 @@ export async function generateThemeArchives(workspace: string = BENCH_WORKSPACE)
 }
 
 if (require.main === module) {
-  Promise.all([generateOfferPdfs(), generateReviews(), generateThemeArchives()])
-    .then(([pdfs, reviews, archives]) => {
-      for (const path of [...pdfs, ...reviews, ...archives]) {
+  Promise.all([generateOfferPdfs(), generateReviews(), generateThemeArchives(), generateVidaLaboralPdf()])
+    .then(([pdfs, reviews, archives, vidaLaboral]) => {
+      for (const path of [...pdfs, ...reviews, ...archives, vidaLaboral]) {
         console.log(`generado ${path}`);
       }
     })

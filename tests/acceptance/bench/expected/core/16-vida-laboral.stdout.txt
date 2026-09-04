@@ -1,0 +1,24 @@
+Empleos que tus fuentes dan por abiertos (1)
+  - Nexo Pagos sigue abierta en tus fuentes y el informe registra la baja el 2026-02-28
+      Si ya no estás allí, ponle fecha de fin; si sigues, el informe puede ir por detrás de la realidad.
+      exp-nexo-pagos
+
+Fechas de inicio que no cuadran (1)
+  - Lumen Analytics empieza en 2015-09 y el informe dice 2015-07-01
+      exp-lumen-analytics
+
+Fechas de fin que no cuadran (1)
+  - Órbita Cloud termina en 2022-02 y el informe dice 2022-03-31
+      exp-orbita-cloud
+
+En el informe y no en tus fuentes (2)
+  - El informe registra 942 días en «MADRID» (2013-02-01 → 2015-08-31) y tus fuentes no lo tienen
+      Alta como autónomo: la «empresa» que consta es la provincia.
+  - El informe registra 699 días en «TALLERES DEL SUR, S.A.» (2011-02-01 → 2012-12-31) y tus fuentes no lo tienen
+      Decide tú si entra en el CV: el informe registra empleos, no carreras.
+
+En tus fuentes y no en el informe (1)
+  - «Freelance» (2013-02 → 2015-08) no aparece en el informe
+      El informe no cubre el trabajo en el extranjero, las becas sin alta ni los funcionarios: puede estar bien.
+      exp-freelance
+

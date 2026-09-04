@@ -24,6 +24,8 @@ import { readOffer, type OfferInput } from '../app/offer';
 import { isSafeSourcePath } from '../app/paths';
 import { REVIEW_NAME, applyReview, listReviews, locateReview, readReview, removeReview, setReviewArchived } from '../app/review';
 import { deleteSource } from '../app/source-delete';
+import { linkedinPlan } from '../app/linkedin';
+import { compareVidaLaboralText } from '../app/vida-laboral';
 import { undoReviewApply } from '../app/review-undo';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
@@ -49,7 +51,7 @@ import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarnin
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { ODT_MIMETYPE } from '../renderers';
 import { describeError } from '../shared/errors';
-import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, ReviewArchiveSchema, type ReviewArchiveResponse, type ReviewUndoResponse, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourceDeleteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
+import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, LinkedinPlanSchema, type LinkedinPlanResponse, type VidaLaboralResponse, ReviewArchiveSchema, type ReviewArchiveResponse, type ReviewUndoResponse, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourceDeleteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
 import { JobFailure, isFinished, type JobKind, type JobQueue, type JobReport } from './jobs';
@@ -272,6 +274,41 @@ function addWorkspaceRoutes(router: Router<ServerState>): void {
     handler: async (request, state) => {
       const result = await deleteSource(state.context, resolve(state.context.cwd, state.data), { path: String(request.params['path']), dryRun: true });
       return result.ok ? json(200, result.outcome satisfies SourceDeleteResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/linkedin/plan`,
+    summary: 'El plan para poner LinkedIn al día desde tus fuentes (T-9.27): qué añadir, qué corregir y qué le falta a tu perfil. Con «draft», compara con lo que exportaste de LinkedIn. No escribe nada.',
+    writes: false,
+    body: LinkedinPlanSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, LinkedinPlanSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await linkedinPlan(state.context, { data: state.data, ...(parsed.value.draft === undefined ? {} : { draft: parsed.value.draft }) });
+      return result.ok ? json(200, result.plan satisfies LinkedinPlanResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/vida-laboral`,
+    summary: 'Compara las fechas de tus fuentes con el informe de vida laboral (cuerpo application/pdf, hasta 10 MiB) y sugiere correcciones (T-9.28). No escribe nada; del informe solo se leen empresas y fechas.',
+    writes: false,
+    accepts: 'application/pdf',
+    handler: async (request, state) => {
+      if (String((request.headers['content-type'] ?? '').split(';')[0]).trim() !== 'application/pdf') {
+        return errorResponse('bad-request', 'El cuerpo debe ser application/pdf');
+      }
+      const extracted = await state.context.pdfExtractor(request.body);
+      if (!extracted.ok) {
+        return appErrorResponse(extracted.code === 'timeout' || extracted.code === 'failed' ? environmentError(extracted.message) : { code: 'invalid-data', message: extracted.message, exitCode: 1 });
+      }
+      const result = await compareVidaLaboralText(state.context, { data: state.data, text: extracted.text });
+      return result.ok ? json(200, result.report satisfies VidaLaboralResponse) : appErrorResponse(result.error);
     },
   });
 

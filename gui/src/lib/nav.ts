@@ -31,6 +31,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { page: 'importar', label: 'Importar CV', icon: 'file-up' },
       { page: 'borradores', label: 'Borradores', icon: 'layers' },
       { page: 'duplicados', label: 'Duplicados', icon: 'copy' },
+      { page: 'vida-laboral', label: 'Vida laboral', icon: 'shield' },
       { page: 'estado', label: 'Estado del artefacto', icon: 'check-circle' },
     ],
   },
@@ -38,6 +39,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     label: 'Producir',
     items: [
       { page: 'generar', label: 'Generar', icon: 'play' },
+      { page: 'linkedin', label: 'LinkedIn', icon: 'globe' },
       { page: 'salidas', label: 'Salidas', icon: 'file-down' },
     ],
   },

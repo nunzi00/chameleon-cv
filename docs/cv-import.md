@@ -314,6 +314,100 @@ fuentes y `output/` son los CV que este programa acaba de generar—.
 Con una sola candidata queda puesta y solo hay que pulsar. **La lista no es una jaula**: el campo de ruta sigue
 ahí para una carpeta que no esté, y si el recorrido falla la pantalla cae a él sola.
 
+## §14 El informe de vida laboral (T-9.28)
+
+**Encargo del PO (2026-09-04)**: «a partir del informe de vida laboral sugiere corrección de fechas de
+empresas, o actualizaciones de fechas de puestos de trabajo».
+
+Un CV se escribe de memoria y se copia del CV anterior, así que las **fechas** se degradan solas: nadie recuerda
+si entró en enero o en marzo de 2015. El informe de vida laboral de la Tesorería General de la Seguridad Social
+es lo más cercano a la verdad que existe sobre eso —no es lo que uno recuerda, es lo que consta— y hasta ahora
+el producto no lo miraba.
+
+### §14.1 Del informe solo salen empresas y fechas
+
+`src/import/vida-laboral.ts`. El PDF trae el nombre, el **DNI**, el número de la Seguridad Social, la fecha de
+nacimiento y el **domicilio**. Nada de eso se lee, se devuelve, se escribe ni se imprime: el lector reconoce
+únicamente las filas de la tabla de situaciones y descarta el resto del documento. La prueba lo comprueba
+explícitamente sobre un informe con datos identificativos dentro.
+
+La tabla tiene una forma fija —`régimen · cuenta de cotización · empresa · alta · efecto · baja · … · días`— con
+dos trampas que solo aparecen con un informe real: el nombre de la empresa **se parte en varias líneas** cuando
+no cabe, y en la misma tabla conviven las **situaciones asimiladas al alta** (vacaciones no disfrutadas,
+prestación por desempleo, convenio especial), que tienen la misma forma y **no son un empleo**.
+
+### §14.2 Un empleo, no cinco altas
+
+`employersOf` junta los contratos **encadenados** con la misma empresa: renovaciones y cambios de contrato son
+un empleo en un CV, no cinco líneas. Pero volver a la misma empresa **catorce años después** no se junta con la
+primera vez —el corte está en doce meses de hueco—, porque eso daría un tramo de dieciséis años que nadie vivió.
+Y al otro lado, `stintsOf` agrupa las etapas del perfil por **contención de nombre**: «Life5» dentro de «Life5
+(antes Getlife)» es la misma empresa; «Baser Lugo» y «Concello de Lugo», que comparten la ciudad, no.
+
+### §14.3 Emparejar cuando el nombre no coincide
+
+La razón social del informe casi nunca es la marca del CV: «YOUR LIFE CORREDURIA DE SEGUROS SL» es «Life5».
+Así que se empareja primero **por nombre** —excluyendo las altas de autónomo, cuya «empresa» es la **provincia**
+y hacía que «Baser Lugo» casara con el alta «LUGO» de otra década— y, con lo que queda, **por periodo**: una
+empresa del informe que solape con un solo empleo sin emparejar es casi seguro la misma con otro nombre. Casi
+seguro no es seguro, y por eso el apunte **dice cómo se emparejó**; con dos candidatas no se empareja ninguna,
+porque elegir sería decidir por el usuario.
+
+### §14.4 Qué se dice, y qué no se hace
+
+Cinco clases de apunte: empleos que tus fuentes dan por **abiertos** y el informe cierra (lo que más se nota en
+un CV), **inicios** y **finales** que no cuadran, empresas del informe que tu perfil no tiene —a partir de un
+mes de alta: siete días son unas prácticas o una ETT, y un CV los omite a propósito— y empleos tuyos que el
+informe no registra, que puede estar perfectamente bien (extranjero, becas sin alta, funcionarios).
+
+**No escribe nada.** Corregir una fecha sigue siendo una edición tuya en Fuentes: el informe es una fuente de
+verdad sobre las fechas, no sobre qué quieres contar.
+
+## §13 El plan de LinkedIn (T-9.27)
+
+**Encargo del PO (2026-09-03)**: «me falta un botón en la web para generar las mejoras de linkedin en base al
+perfil (es necesario indicar los pasos para exportar de linkedin y como importar aqui)».
+
+Hasta aquí, el flujo con LinkedIn iba en una sola dirección: **importar**. Pero el perfil del PO llevaba años
+sin tocarse —un titular de «Senior Developer, devops» y un bloque de especialidades con COBOL— mientras sus
+fuentes decían «Arquitecto de software» con 13.032 commits. Lo que faltaba era la dirección contraria: **qué
+cambiar allí para que diga lo que dicen tus fuentes**.
+
+### §13.1 Es un diff, no un modelo
+
+`src/app/linkedin.ts`. No hay LLM ni red: se comparan **dos perfiles** —el tuyo y el que LinkedIn exportó,
+importado como borrador— con la **misma regla de identidad** que el detector de duplicados (§11): si dos
+entradas son de la misma organización y sus periodos coinciden, son la misma cosa (`sameOrganization` +
+`periodsOverlap`, B-20). Reutilizarla no es ahorro: es que «el mismo empleo» tiene que significar lo mismo en
+las dos pantallas.
+
+Tres acciones, y la tercera mira al revés que las otras dos:
+
+| Acción | Qué es |
+| --- | --- |
+| `add` | Está en tus fuentes y no en LinkedIn. Trae el **cuerpo listo para copiar**: el resumen de la entrada y sus logros como viñetas. |
+| `fix` | Está en los dos y no dice lo mismo. **Tus fuentes son la referencia**, porque son las que compilas, versionas y de las que salen tus CV. |
+| `pending` | Le falta a **tu perfil**, no a LinkedIn: puestos sin logros, sin etiquetas, cero certificaciones, y lo que LinkedIn trae y tus fuentes no. Subir un puesto vacío no mejora nada, así que se dice aparte en vez de mezclarlo con lo que ya se puede copiar. |
+
+### §13.2 Dos decisiones que solo se ven con datos reales
+
+- **El emparejado es uno a uno y por la mejor candidata.** Con `.find()` a la primera, la única «desarrollo de
+  aplicaciones web · ies muralla romana» que exportó LinkedIn —sin fechas, así que casa con cualquier periodo—
+  salía como contrapartida de las **tres** titulaciones del mismo instituto. Y la única entrada «Software
+  Developer · Life5», abierta desde 2022, competía con las cuatro etapas del PO en esa empresa: ahora se lleva
+  la que más se le parece por título y las otras tres quedan como «añadir», que es justo lo que hay que hacer.
+- **Las aptitudes se comparan por nombre y por alias.** LinkedIn dice «GCP» y las fuentes «Google Cloud»: sin
+  mirar los alias, esa habilidad salía como si faltara.
+
+### §13.3 Los pasos, en la propia pantalla
+
+La pantalla **LinkedIn** de la web no es solo el botón: lleva delante cómo exportar (la **exportación de datos**
+con *Positions*, *Education*, *Skills*, *Languages* y *Profile*, que trae los datos estructurados; o *Guardar
+como PDF*, inmediato pero con maquetación que adivinar) y cómo importarlo aquí (el `.zip` por
+`cv import-linkedin`, el PDF por `cv import-cv`; los dos dejan un **borrador**, nunca escriben en tus fuentes).
+Sin ese paso no hay nada que comparar, y un botón que falla porque falta un requisito que nadie explicó es peor
+que no tenerlo.
+
 ## §11 Duplicados en las propias fuentes (T-9.20)
 
 **El encargo del PO (2-sep, tras adoptar de varios borradores)**: «necesito una herramienta para detectar

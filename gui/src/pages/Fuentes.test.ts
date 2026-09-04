@@ -22,7 +22,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
     deleteSourcePlan: vi.fn(async (path: string) => ({ root: '/work/data/sources', path, bytes: 42, removed: [{ section: 'experience' as const, id: 'exp-acme', title: 'Backend Engineer · ACME' }], dryRun: true, historyId: undefined })),
     deleteSource: vi.fn(async (path: string) => ({ root: '/work/data/sources', path, bytes: 42, removed: [{ section: 'experience' as const, id: 'exp-acme', title: 'Backend Engineer · ACME' }], dryRun: false, historyId: '20260903T100000000Z-borrado' })),
     generate: vi.fn(),
-    analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), cvFolders: vi.fn(),
+    analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), cvFolders: vi.fn(), linkedinPlan: vi.fn(), vidaLaboral: vi.fn(),
     extractOffer: vi.fn(),
     setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), drafts: vi.fn(), draftFiles: vi.fn(), draftFile: vi.fn(), writeDraftFile: vi.fn(), adoptDraftEntries: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(), importLinkedIn: vi.fn(), importManfred: vi.fn(), importCv: vi.fn(),
     offers: vi.fn(),
