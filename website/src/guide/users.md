@@ -103,6 +103,20 @@ name = "cinta"
 Los ajustes del co-piloto y del servidor (`[llm]`, `[serve]`) se escriben siempre en el `cv.toml` de la raíz,
 también desde la pantalla **Ajustes**: configuran el proveedor de modelos y el servidor, que son de la máquina.
 
+## Un invitado que trae su CV
+
+El camino entero, sin salir de la web:
+
+1. **Usuario → Crear** en la cabecera: nace con el perfil de ejemplo, para que la aplicación funcione desde el
+   primer momento.
+2. **Importar CV**: su PDF o DOCX cae en *su* `import/`, nunca en el de nadie más.
+3. **Borradores → «Usar este borrador como mis fuentes»**: el borrador **entero** pasa a ser su perfil, también
+   su nombre, su titular, su contacto y sus habilidades, que marcando entradas una a una no se pueden traer.
+4. **Estado → Compilar** y ya puede generar su CV.
+
+El paso 3 sustituye, así que enseña el plan antes y **no borra nada**: el perfil de ejemplo con el que nació
+queda entero en `data/sources.<marca>.bak`.
+
 ## Prestar la web a alguien: el modo quiosco
 
 ```bash

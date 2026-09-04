@@ -16,6 +16,7 @@ import type {
   DraftFilesResponse,
   DraftsAdoptRequest,
   DraftsAdoptResponse,
+  DraftsReplaceRequestBody,
   ImportCvResponse,
   ImportApplyRequestBody,
   ImportApplyResponse,
@@ -196,6 +197,8 @@ export interface ApiClient {
   writeDraftFile(name: string, path: string, content: string, ifMatch: string): Promise<SourceWriteResponse>;
   /** POST /drafts/adopt (T-9.19): copia en data/sources/ las entradas señaladas; escribe fuentes, por eso lo pide un botón. */
   adoptDraftEntries(body: DraftsAdoptRequest): Promise<DraftsAdoptResponse>;
+  /** El borrador ENTERO pasa a ser tus fuentes (T-9.33). */
+  replaceSourcesWithDraft(body: DraftsReplaceRequestBody): Promise<ImportResponse>;
   /** GET /duplicates (T-9.20): lo repetido en las propias fuentes, agrupado, con el fichero de cada entrada. */
   duplicates(): Promise<DuplicatesResponse>;
   /** POST /duplicates/resolve: la elegida absorbe lo que le falta y las otras se borran; con dryRun, solo el plan. */
@@ -404,6 +407,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     draftFile: (name, path) => request('GET', `/drafts/${encodeId(name)}/files/${encodeId(path)}`),
     writeDraftFile: (name, path, content, ifMatch) => requestWithHeaders('PUT', `/drafts/${encodeId(name)}/files/${encodeId(path)}`, { content }, { 'If-Match': ifMatchHeader(ifMatch) }),
     adoptDraftEntries: (body) => request('POST', '/drafts/adopt', { body }),
+    replaceSourcesWithDraft: (body) => request('POST', '/drafts/replace', { body }),
     duplicates: () => request('GET', '/duplicates'),
     resolveDuplicate: (body) => request('POST', '/duplicates/resolve', { body }),
     offers: () => request('GET', '/offers'),

@@ -18,6 +18,7 @@ const REPORT: VidaLaboralResponse = {
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     vidaLaboral: vi.fn(async () => REPORT),
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),

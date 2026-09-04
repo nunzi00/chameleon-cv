@@ -219,6 +219,30 @@ the plan.
 **It is not a merge**: two versions of the same job are never blended. You adopt the one you prefer and edit it
 afterwards.
 
+### What if that CV is yours, whole?
+
+Adopting entry by entry is for taking **parts** of an old CV into a profile that is already yours. It is not for
+the opposite: starting a profile **from** the CV you just imported. And it is not a matter of patience — some
+things are not standalone entries: your **name**, your **headline**, your **contact details** and your **skills**
+live in `profile.md` and `skills.csv`, which is why `adopt` cannot bring them. Without this, someone importing
+their CV into a brand-new space kept generating a CV under the name *Ada Ejemplo*.
+
+```bash
+cv drafts replace my-cv --dry-run    # what it would write, without writing
+cv drafts replace my-cv              # the WHOLE draft becomes your sources
+cv build
+```
+
+In the web interface it is the **«Usar este borrador como mis fuentes»** button on the **Borradores** screen,
+which shows the plan — how many files and how many entries — before asking.
+
+Replacing is destructive, so there are three safeguards: the draft **must compile** (otherwise nothing is
+written), the plan is shown first, and your current sources are **not deleted**: they are moved aside whole as
+`data/sources.<stamp>.bak`, so going back is a rename.
+
+This is what a **guest** in your workspace needs: they create their user, import their CV from the web and keep
+it in one go. See [Several people, one workspace](/en/guide/users).
+
 ### What is repeated
 
 If you imported several versions of your CV, the same job shows up in all of them — and hardly ever the same way:

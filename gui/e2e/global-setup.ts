@@ -54,6 +54,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   }
   mkdirSync(join(workspace, 'ofertas'));
   cpSync(join(ROOT, 'tests', 'acceptance', 'bench', 'workspace', 'offers', 'nexo-senior-backend.txt'), join(workspace, 'ofertas', 'nexo.txt'));
+  // Un PDF maquetado para importar desde la web (T-9.33): el mismo del banco, servido como si fuera un CV.
+  cpSync(join(ROOT, 'tests', 'acceptance', 'bench', 'workspace', 'offers', 'pdf', 'nexo-senior-backend.pdf'), join(workspace, 'ofertas', 'micv.pdf'));
   // Un tema de la comunidad del banco (T-8.3) para «Instalar tema…» sin red.
   mkdirSync(join(workspace, 'themes'), { recursive: true });
   cpSync(join(ROOT, 'tests', 'acceptance', 'bench', 'workspace', 'themes', 'comunidad.zip'), join(workspace, 'themes', 'comunidad.zip'));

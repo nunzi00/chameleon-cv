@@ -207,6 +207,14 @@ export const DraftsAdoptSchema = z.object({
 });
 export type DraftsAdoptRequest = z.infer<typeof DraftsAdoptSchema>;
 
+/** `POST /drafts/replace`: el borrador ENTERO pasa a ser las fuentes (T-9.33). */
+export const DraftsReplaceSchema = z.object({
+  draft: z.string().trim().min(1).max(120),
+  /** Enseña el plan sin escribir nada. */
+  dryRun: z.boolean().optional(),
+});
+export type DraftsReplaceRequestBody = z.infer<typeof DraftsReplaceSchema>;
+
 /**
  * `POST /import/apply` (T-9.5): mueve UNA línea sin situar del borrador a la sección propuesta. Síncrona y sin
  * modelo: el co-piloto ya propuso, aquí decide y aplica la persona (C2). `fields` trae lo que el esquema exige y

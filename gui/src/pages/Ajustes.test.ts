@@ -42,6 +42,7 @@ function response(overrides: { llm?: Partial<LlmConfigResponse['llm']>; remote?:
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),

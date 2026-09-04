@@ -46,6 +46,7 @@ describe('cliente de la API', () => {
     await api.draftFile('cv-lucas', 'experience/ñ acme.md');
     await api.writeDraftFile('cv-lucas', 'experience/acme.md', 'nuevo', 'abc');
     await api.adoptDraftEntries({ entries: [{ draft: 'cv-lucas', section: 'experience', id: 'exp-acme' }] });
+    await api.replaceSourcesWithDraft({ draft: 'cv-lucas' });
     await api.duplicates();
     await api.resolveDuplicate({ keep: 'edu-a', absorb: ['edu-b'], dryRun: true });
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
@@ -64,6 +65,7 @@ describe('cliente de la API', () => {
       'GET /api/v1/drafts/cv-lucas/files/experience/%C3%B1%20acme.md',
       'PUT /api/v1/drafts/cv-lucas/files/experience/acme.md',
       'POST /api/v1/drafts/adopt',
+      'POST /api/v1/drafts/replace',
       'GET /api/v1/duplicates',
       'POST /api/v1/duplicates/resolve',
     ]);

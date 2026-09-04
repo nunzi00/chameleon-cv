@@ -2,6 +2,17 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [1.27.0] - 2026-09-04
+
+### Añadido
+
+- **Quedarse con el borrador ENTERO** (T-9.33, encargo del PO: «los invitados deberían poder importar su cv desde la web»). Importar ya funcionaba por usuario, pero el camino se cortaba justo después: **adoptar entrada a entrada no puede traer tu nombre, tu titular, tu contacto ni tus habilidades**, porque no son entradas sueltas —viven en `profile.md` y en `skills.csv`—. El resultado medido: alguien que estrenaba su espacio importando su CV **seguía generando un CV a nombre de Ada Ejemplo**. Ahora `cv drafts replace <nombre>` y el botón **«Usar este borrador como mis fuentes»** de la pantalla Borradores hacen que el borrador sea el perfil, de una vez.
+- Y no trae lógica nueva: el borrador se compila con **el mismo cargador** que las fuentes —si no compila, no se escribe nada— y el perfil resultante se escribe con la misma inversa de `cv build` que usa `cv import`. **Sustituir no destruye**: tus fuentes de ahora se apartan enteras como `data/sources.<marca>.bak`, así que volver es renombrarlas. Se enseña el plan antes de preguntar, y el botón no aparece en un borrador que no carga: ahí lo que toca es corregirlo.
+
+### Corregido
+
+- Un borrador que **no existe** y uno que **no compila** daban el mismo mensaje. Ahora se distinguen: el primero es un nombre mal escrito, el segundo son datos que corregir; y el motivo del segundo ya no se pierde detrás de la lista de problemas del dataset.
+
 ## [1.26.1] - 2026-09-04
 
 ### Corregido

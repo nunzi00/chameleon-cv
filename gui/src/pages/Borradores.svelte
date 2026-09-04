@@ -10,9 +10,16 @@
    *   cuando seis CV se contradicen en las fechas del mismo empleo.
    * - Adoptar **añade**: escribe ficheros nuevos y no toca ni una fuente tuya. Si te equivocas, se borra el
    *   fichero y ya está.
+   *
+   * Y desde T-9.33, el otro camino: **quedarse con el borrador entero**. Adoptar entrada a entrada no puede
+   * traer el nombre, el titular, el contacto ni las habilidades —no son entradas sueltas, viven en `profile.md`
+   * y en `skills.csv`—, así que quien estrena su espacio importando su CV se quedaba con el perfil de ejemplo
+   * y su propio nombre fuera. Sustituir sí es destructivo, así que se enseña el plan antes y las fuentes
+   * anteriores se apartan enteras como copia.
    */
   import { onMount } from 'svelte';
 
+  import Dialog from '../components/Dialog.svelte';
   import Editor from '../components/Editor.svelte';
   import Icon from '../components/Icon.svelte';
   import Notice from '../components/Notice.svelte';
@@ -45,6 +52,11 @@
   let error = $state<ExplainedError | undefined>(undefined);
   let message = $state<string | undefined>(undefined);
   let adopting = $state(false);
+
+  /* ── quedarse con el borrador entero (T-9.33) ── */
+  let replacing = $state(false);
+  /** El plan de la sustitución, ya calculado: enseñarlo ANTES es lo que convierte el aviso en una decisión. */
+  let replacePlan = $state<{ readonly draft: string; readonly files: number; readonly summary: string; readonly root: string } | undefined>(undefined);
 
   /** Lo señalado para adoptar, compartido por las dos pestañas: `borrador|sección|id`. */
   let picked = $state<ReadonlySet<string>>(new Set());
@@ -139,6 +151,48 @@
 
   function sectionsOf(draft: Draft): ReadonlyArray<readonly [string, readonly Entry[]]> {
     return (['experience', 'education', 'projects'] as const).map((section) => [section, draft.entries.filter((entry) => entry.section === section)] as const).filter(([, entries]) => entries.length > 0);
+  }
+
+  /** Qué escribiría, sin escribir: el diálogo enseña el recuento y la ruta antes de preguntar. */
+  async function planReplace(draft: string): Promise<void> {
+    replacing = true;
+    message = undefined;
+    error = undefined;
+    try {
+      const plan = await api.replaceSourcesWithDraft({ draft, dryRun: true });
+      const counts = plan.plan.counts;
+      const parts = [
+        [counts.experience, 'experiencias'],
+        [counts.projects, 'proyectos'],
+        [counts.education, 'formaciones'],
+        [counts.skills, 'habilidades'],
+        [counts.certifications, 'certificaciones'],
+      ] as const;
+      replacePlan = { draft, files: plan.plan.files.length, summary: parts.filter(([value]) => value > 0).map(([value, label]) => `${String(value)} ${label}`).join(', '), root: plan.root };
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      replacing = false;
+    }
+  }
+
+  async function confirmReplace(): Promise<void> {
+    const plan = replacePlan;
+    if (plan === undefined) {
+      return;
+    }
+    replacing = true;
+    try {
+      const result = await api.replaceSourcesWithDraft({ draft: plan.draft });
+      replacePlan = undefined;
+      message = `Tus fuentes son ahora import/${plan.draft}: ${plural(result.written.length, 'fichero escrito', 'ficheros escritos')} en ${result.root}.${result.backup === undefined ? '' : ` Las anteriores están enteras en ${result.backup}.`} Compila el artefacto en «Estado».`;
+      await load();
+    } catch (caught) {
+      replacePlan = undefined;
+      fail(caught);
+    } finally {
+      replacing = false;
+    }
   }
 
   async function adopt(): Promise<void> {
@@ -274,6 +328,21 @@
           como ficheros nuevos, sin tocar nada de lo que ya tienes.
         </p>
 
+        {#if current.problem === undefined}
+          <!-- El otro camino (T-9.33): este borrador ES mi perfil. Adoptar entrada a entrada no puede traer el
+               nombre, el titular, el contacto ni las habilidades, que no son entradas sueltas. -->
+          <div class="cv-draft-whole">
+            <div>
+              <strong>¿Este CV es el tuyo?</strong>
+              <p class="cv-muted">
+                Quédate con el borrador <strong>entero</strong>: también tu nombre, tu titular, tu contacto y tus habilidades, que marcando entradas no se pueden traer. Tus fuentes de ahora se apartan
+                enteras como copia y no se borra nada.
+              </p>
+            </div>
+            <button class="cv-button" type="button" onclick={() => void planReplace(current.name)} disabled={replacing}>Usar este borrador como mis fuentes</button>
+          </div>
+        {/if}
+
         {#each sectionsOf(current) as [section, entries] (section)}
           {@const allPicked = entries.every((entry) => picked.has(keyOf(current.name, entry.section, entry.id)))}
           <div class="cv-draft-section">
@@ -378,7 +447,37 @@
   {/if}
 </section>
 
+<Dialog open={replacePlan !== undefined} title="¿Este borrador pasa a ser tu perfil?" onclose={() => (replacePlan = undefined)}>
+  {#if replacePlan !== undefined}
+    <p>
+      <strong>import/{replacePlan.draft}</strong> sustituirá tus fuentes: {plural(replacePlan.files, 'fichero', 'ficheros')} en <code>{replacePlan.root}</code>{replacePlan.summary === '' ? '' : ` (${replacePlan.summary})`}.
+    </p>
+    <p class="cv-muted">Tus fuentes de ahora <strong>no se borran</strong>: se apartan enteras como <code>data/sources.&lt;marca&gt;.bak</code>, y volver es renombrarlas.</p>
+  {/if}
+  <div class="cv-dialog-actions">
+    <button class="cv-button" type="button" onclick={() => (replacePlan = undefined)}>Cancelar</button>
+    <button class="cv-button primary" type="button" disabled={replacing} onclick={() => void confirmReplace()}>{replacing ? 'Sustituyendo…' : 'Sustituir mis fuentes'}</button>
+  </div>
+</Dialog>
+
 <style>
+  /* «Este CV es el mío»: el otro camino, al lado del de marcar entradas y sin competir con él. */
+  .cv-draft-whole {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--cv-border);
+    border-radius: var(--cv-radius-md);
+    background: var(--cv-surface-2);
+  }
+  .cv-draft-whole p {
+    margin: 4px 0 0;
+    max-width: 62ch;
+  }
   .cv-table-drafts .cv-table-head,
   .cv-table-drafts :global(.cv-table-row) {
     grid-template-columns: minmax(10rem, 1.4fr) minmax(8rem, 1.6fr) 4rem 4rem 4rem 5rem 6rem;

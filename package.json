@@ -1,6 +1,6 @@
 {
   "name": "chameleon-cv",
-  "version": "1.26.1",
+  "version": "1.27.0",
   "description": "Chameleon CV: generador de CVs dinámicos y personalizados a partir de datos fuente (Markdown, CSV). CLI 100% local, sin telemetría.",
   "private": true,
   "license": "MIT",
