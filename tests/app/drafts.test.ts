@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDraftFiles, listDrafts, periodsOverlap, readDraft, readDraftFile, readReport, signatureOf, similarity, writeDraftFile, type DuplicateMember, type ProfileEntry } from '../../src/app/drafts';
+import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, groupDuplicates, isBackupName, listDraftFiles, listDrafts, periodsOverlap, readDraft, readDraftFile, readReport, replaceSourcesWithDraft, signatureOf, similarity, writeDraftFile, type DuplicateMember, type ProfileEntry } from '../../src/app/drafts';
 import { organizationSignatureOf, sameOrganization, signaturesOf } from '../../src/app/duplicates';
 import { appContext } from '../helpers/app-context';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
@@ -562,5 +562,64 @@ describe('las secciones adoptables', () => {
     // skills.csv, certifications.csv y achievements.md juntan muchas entradas en un fichero: adoptarlas
     // exigiría reescribir un fichero que ya es tuyo, y esa es otra tarea con otras garantías.
     expect([...ADOPTABLE_SECTIONS]).toEqual(['experience', 'education', 'projects']);
+  });
+});
+
+describe('replaceSourcesWithDraft (T-9.33)', () => {
+  const MIO = ['---', 'schemaVersion: 1', 'locale: es-ES', 'fullName: Eva Invitada', 'email: eva@example.com', 'links: []', '---', '', 'Resumen.', ''].join('\n');
+
+  function workspace(): MemoryFileSystem {
+    return new MemoryFileSystem({
+      '/work/data/sources/profile.md': PROFILE,
+      '/work/data/sources/experience/ada.md': experienceFile('ACME', 'Dev', '2020-01', '2021-01'),
+      '/work/import/micv/profile.md': MIO,
+      '/work/import/micv/experience/life5.md': experienceFile('Life5', 'Backend Engineer', '2022-05'),
+      '/work/import/micv/skills.csv': 'name,category\nPHP,language\n',
+    });
+  }
+
+  it('el borrador ENTERO pasa a ser las fuentes, con el nombre y las habilidades que «adopt» no puede llevarse', async () => {
+    const fs = workspace();
+    const context = appContext(fs, { now: () => new Date('2026-09-04T10:00:00.000Z') });
+    const result = await replaceSourcesWithDraft(context, { draft: 'micv', data: 'data/sources' });
+    expect(result).toMatchObject({ ok: true });
+    // Lo que marcando entradas se quedaba fuera: el nombre y el correo viven en profile.md, y las skills en un CSV.
+    expect(fs.file('/work/data/sources/profile.md')?.content).toContain('fullName: Eva Invitada');
+    expect(fs.file('/work/data/sources/profile.md')?.content).toContain('eva@example.com');
+    expect(fs.file('/work/data/sources/skills.csv')?.content).toContain('PHP');
+    // Y lo que había deja de estar donde estaba, pero NO se borra (C9).
+    expect(fs.file('/work/data/sources/experience/ada.md')).toBeUndefined();
+    const backup = result.ok ? result.outcome.backup : undefined;
+    expect(backup).toMatch(/^\/work\/data\/sources\.\d{8}-\d{6}\.bak$/);
+    expect(fs.file(`${String(backup)}/experience/ada.md`)?.content).toContain('ACME');
+  });
+
+  it('con dryRun devuelve el plan y no toca ni un fichero', async () => {
+    const fs = workspace();
+    const result = await replaceSourcesWithDraft(appContext(fs), { draft: 'micv', data: 'data/sources', dryRun: true });
+    expect(result).toMatchObject({ ok: true, outcome: { dryRun: true, written: [], backup: undefined } });
+    expect(fs.file('/work/data/sources/profile.md')?.content).toBe(PROFILE);
+  });
+
+  it('un borrador que no compila no puede ser tu perfil, y se dice por qué', async () => {
+    // Sin `fullName` no hay perfil que valga: el mismo cargador que las fuentes lo rechaza.
+    const fs = new MemoryFileSystem({ '/work/data/sources/profile.md': PROFILE, '/work/import/roto/profile.md': '---\nschemaVersion: 1\nlocale: es-ES\nlinks: []\n---\n' });
+    const result = await replaceSourcesWithDraft(appContext(fs), { draft: 'roto', data: 'data/sources' });
+    expect(result).toMatchObject({ ok: false, error: { code: 'invalid-data' } });
+    expect(result.ok ? [] : result.error.lines).toEqual(expect.arrayContaining([expect.stringContaining('/work/import/roto') as string]));
+    expect(fs.file('/work/data/sources/profile.md')?.content).toBe(PROFILE);
+  });
+
+  it('un nombre imposible y uno que no existe se distinguen: nombre mal escrito o borrador ausente', async () => {
+    const context = appContext(workspace());
+    expect(await replaceSourcesWithDraft(context, { draft: '../fuera', data: 'data/sources' })).toMatchObject({ ok: false, error: { code: 'invalid-data' } });
+    expect(await replaceSourcesWithDraft(context, { draft: 'nadie', data: 'data/sources' })).toMatchObject({ ok: false, error: { code: 'not-found' } });
+  });
+
+  it('unas fuentes vacías no necesitan copia: no hay nada que apartar', async () => {
+    const fs = new MemoryFileSystem({ '/work/import/micv/profile.md': MIO });
+    const result = await replaceSourcesWithDraft(appContext(fs), { draft: 'micv', data: 'data/sources' });
+    expect(result).toMatchObject({ ok: true, outcome: { backup: undefined } });
+    expect(fs.file('/work/data/sources/profile.md')?.content).toContain('Eva Invitada');
   });
 });

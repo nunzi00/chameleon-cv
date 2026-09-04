@@ -30,7 +30,7 @@ import { undoReviewApply } from '../app/review-undo';
 import { contentHash, listSources, readSource, writeSource } from '../app/sources';
 import { describePlan, exportProfile, importProfile } from '../app/portability';
 import { applyImportProposal } from '../app/import-apply';
-import { adoptEntries, draftDuplicates, listDraftFiles, listDrafts, readDraftFile, writeDraftFile } from '../app/drafts';
+import { adoptEntries, draftDuplicates, listDraftFiles, listDrafts, readDraftFile, replaceSourcesWithDraft, writeDraftFile } from '../app/drafts';
 import { resolveDuplicate, sourceDuplicates } from '../app/dedupe';
 import { importLinkedInDraft } from '../app/import-linkedin';
 import { importManfredDraft } from '../app/import-manfred';
@@ -42,7 +42,7 @@ import { THEME_DOWNLOAD_LIMITS, classifyInstallSource, createTheme, installTheme
 import { findCvFolders, importCvFolder, importCvDraft } from '../app/import-cv';
 import { listOffers } from '../app/offer';
 import { OFFER_URL_LIMITS, fetchOffer, offerFetcher } from '../offers';
-import { DraftsAdoptSchema, DuplicatesResolveSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse, type DuplicatesResolveResponse, type DuplicatesResponse } from './contract';
+import { DraftsReplaceSchema, DraftsAdoptSchema, DuplicatesResolveSchema, type DraftFilesResponse, type DraftsAdoptResponse, type DraftsResponse, type DuplicatesResolveResponse, type DuplicatesResponse } from './contract';
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
 import type { LlmProvider } from '../llm/provider';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
@@ -1370,6 +1370,27 @@ function addDraftRoutes(router: Router<ServerState>): void {
       }
       const result = await adoptEntries(state.context, { data: state.data, entries: parsed.value.entries, dryRun: parsed.value.dryRun });
       return result.ok ? json(parsed.value.dryRun === true ? 200 : 201, result.outcome satisfies DraftsAdoptResponse) : appErrorResponse(result.error);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/drafts/replace`,
+    summary:
+      'El borrador ENTERO pasa a ser data/sources/: también el nombre, el titular, el contacto y las habilidades, que «adopt» no puede llevarse porque no son entradas sueltas. Aparta las fuentes anteriores como data/sources.<marca>.bak y no escribe nada si el borrador no compila. Con dryRun devuelve el plan.',
+    writes: true,
+    body: DraftsReplaceSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, DraftsReplaceSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const result = await replaceSourcesWithDraft(state.context, { draft: parsed.value.draft, data: state.data, dryRun: parsed.value.dryRun });
+      if (!result.ok) {
+        return appErrorResponse(result.error);
+      }
+      const { plan, root, dryRun, written, backup } = result.outcome;
+      return json(dryRun ? 200 : 201, { root, dryRun, plan: describePlan(plan), written, backup } satisfies ImportResponse);
     },
   });
 }

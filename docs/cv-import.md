@@ -314,6 +314,27 @@ fuentes y `output/` son los CV que este programa acaba de generar—.
 Con una sola candidata queda puesta y solo hay que pulsar. **La lista no es una jaula**: el campo de ruta sigue
 ahí para una carpeta que no esté, y si el recorrido falla la pantalla cae a él sola.
 
+## §15 Quedarse con el borrador ENTERO (T-9.33)
+
+Encargo del PO: «los invitados deberían poder importar su cv desde la web». Importar ya funcionaba por usuario
+—el borrador cae en `usuarios/<id>/import/`— pero el camino se cortaba justo después: **adoptar entrada a
+entrada no puede traer el nombre, el titular, el contacto ni las habilidades**, porque no son entradas sueltas
+(viven en `profile.md` y en `skills.csv`, ficheros compartidos, §10 y `docs/portability.md` §1). Medido: un
+usuario nuevo nace con el dataset de ejemplo, importa su CV, adopta sus nueve experiencias… y sigue generando
+un CV a nombre de *Ada Ejemplo*.
+
+`replaceSourcesWithDraft` cierra el camino, y **no trae lógica nueva**:
+
+1. El borrador se compila con el **mismo cargador** que las fuentes. Si no compila, no se escribe nada y se dice
+   por qué (y si no existe, se dice eso otro: son errores distintos).
+2. El perfil resultante se escribe con `importProfile`, la inversa de `cv build` que ya usa `cv import`, con
+   `replace`: **aparta las fuentes anteriores enteras** como `data/sources.<marca>.bak` (C9) y valida el
+   resultado antes de tocar el disco.
+
+Superficie: `cv drafts replace <nombre>` (con `--dry-run` y `--yes`; en terminal pregunta), `POST /drafts/replace`
+(200 el ensayo, 201 la escritura) y el botón **«Usar este borrador como mis fuentes»** de la pantalla Borradores,
+que enseña el plan antes de preguntar. El botón **no aparece** en un borrador que no carga: primero se corrige.
+
 ## §14 El informe de vida laboral (T-9.28)
 
 **Encargo del PO (2026-09-04)**: «a partir del informe de vida laboral sugiere corrección de fechas de

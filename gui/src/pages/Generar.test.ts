@@ -37,6 +37,7 @@ const ANALYSIS = { history: [],
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),

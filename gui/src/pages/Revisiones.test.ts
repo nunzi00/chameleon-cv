@@ -43,6 +43,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
       entry: { id: '20260831T101010000Z-20260830t101010000z-revision-improve', at: '2026-08-31T10:10:10.000Z', action: 'restore' as const, origin: '20260830T101010000Z-revision-improve', root: '/work/data/sources', files: [{ path: 'experience/acme.md', sha256Before: 'b', sha256After: 'a', ids: ['x'] }] },
       unarchived: '/work/output/revision-improve-2026-08-30.md',
     })),
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),

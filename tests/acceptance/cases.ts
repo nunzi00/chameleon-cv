@@ -376,6 +376,12 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'cabecera-desconocida', args: ['import-cv', 'offers/nexo-senior-backend.txt'], exitCode: 1 },
       { id: 'valida-borrador', args: ['build', '--data', 'import/nexo'], exitCode: 0 },
       { id: 'readme-borrador', args: ['import-cv', 'offers/pdf/orbita-platform-engineer.pdf'], exitCode: 0 },
+      // T-9.33: quedarse con el borrador ENTERO. El ensayo no toca nada; la sustitución trae el nombre y las
+      // habilidades —que `adopt` no puede llevarse— y aparta las fuentes anteriores enteras.
+      { id: 'replace-ensayo', args: ['drafts', 'replace', 'nexo', '--dry-run'], exitCode: 0 },
+      { id: 'replace-borrador-inexistente', args: ['drafts', 'replace', 'nadie'], exitCode: 2 },
+      { id: 'replace', args: ['drafts', 'replace', 'nexo', '--yes'], exitCode: 0, outputs: [{ path: 'data/sources', kind: 'tree' }] },
+      { id: 'replace-compila', args: ['build'], exitCode: 0 },
     ],
   },
   {

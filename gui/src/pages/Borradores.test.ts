@@ -3,10 +3,10 @@
  * `data/sources/`, los grupos de duplicados —que se enseñan sin decidir nada, con lo que ya tienes marcado como
  * no seleccionable— y la corrección de un fichero del borrador con su huella.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ApiClient } from '../lib/api/client';
+import { ApiError, type ApiClient } from '../lib/api/client';
 import type { DraftsResponse } from '../lib/api/types';
 import Borradores from './Borradores.svelte';
 
@@ -47,8 +47,22 @@ const DRAFTS: DraftsResponse = {
   },
 };
 
+/** El plan que devuelve el ensayo de «quedarme con el borrador entero» (T-9.33). */
+const PLAN = {
+  root: '/work/data/sources',
+  dryRun: true,
+  plan: {
+    files: [{ path: 'profile.md', bytes: 400 }, { path: 'skills.csv', bytes: 90 }],
+    counts: { specialties: 0, experience: 3, projects: 0, education: 1, achievements: 0, skills: 9, certifications: 0 },
+    warnings: [],
+  },
+  written: [] as readonly string[],
+  backup: undefined as string | undefined,
+};
+
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),
@@ -128,5 +142,53 @@ describe('Borradores', () => {
     await waitFor(() => expect(api.writeDraftFile).toHaveBeenCalledWith('cv-lucas', 'experience/acme.md', '---\ncompany: Acme S.L.\n---\n', 'b'.repeat(64)));
     expect(screen.getByText(/no toca tus fuentes/)).toBeTruthy();
     expect(api.writeSource).not.toHaveBeenCalled();
+  });
+
+  it('«Usar este borrador como mis fuentes» enseña el plan antes y solo sustituye al confirmar (T-9.33)', async () => {
+    const api = fakeApi({
+      replaceSourcesWithDraft: vi.fn(async (body: { readonly dryRun?: boolean }) =>
+        body.dryRun === true ? PLAN : { ...PLAN, dryRun: false, written: ['profile.md', 'skills.csv'], backup: '/work/data/sources.20260904-120000.bak' },
+      ) as ApiClient['replaceSourcesWithDraft'],
+    });
+    render(Borradores, { props: { api, item: 'cv-lucas', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Usar este borrador como mis fuentes' }));
+
+    // Primero el plan, sin escribir: el recuento y la ruta son lo que convierte el aviso en una decisión.
+    await waitFor(() => expect(api.replaceSourcesWithDraft).toHaveBeenCalledWith({ draft: 'cv-lucas', dryRun: true }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/2 ficheros/)).toBeTruthy();
+    expect(within(dialog).getByText(/3 experiencias, 1 formaciones, 9 habilidades/)).toBeTruthy();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sustituir mis fuentes' }));
+    await waitFor(() => expect(api.replaceSourcesWithDraft).toHaveBeenCalledWith({ draft: 'cv-lucas' }));
+    expect(await screen.findByText(/Tus fuentes son ahora import\/cv-lucas/)).toBeTruthy();
+    expect(screen.getByText(/Las anteriores están enteras en \/work\/data\/sources\.20260904-120000\.bak/)).toBeTruthy();
+  });
+
+  it('cancelar el diálogo no sustituye nada: solo se ha pedido el plan', async () => {
+    const api = fakeApi({ replaceSourcesWithDraft: vi.fn(async () => PLAN) as ApiClient['replaceSourcesWithDraft'] });
+    render(Borradores, { props: { api, item: 'cv-lucas', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Usar este borrador como mis fuentes' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Sustituir mis fuentes' })).toBeNull());
+    expect(api.replaceSourcesWithDraft).toHaveBeenCalledTimes(1);
+    expect(api.replaceSourcesWithDraft).toHaveBeenCalledWith({ draft: 'cv-lucas', dryRun: true });
+  });
+
+  it('el borrador que no carga no ofrece quedárselo entero: primero se corrige', async () => {
+    const api = fakeApi();
+    render(Borradores, { props: { api, item: 'roto', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'roto' })).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Usar este borrador como mis fuentes' })).toBeNull();
+  });
+
+  it('si el servidor rechaza la sustitución, se explica y el diálogo se cierra', async () => {
+    const api = fakeApi({
+      replaceSourcesWithDraft: vi.fn(() => Promise.reject(new ApiError(422, { code: 'invalid-data', message: 'El borrador «cv-lucas» no compila' }))) as ApiClient['replaceSourcesWithDraft'],
+    });
+    render(Borradores, { props: { api, item: 'cv-lucas', onsession: vi.fn(), navigate: vi.fn(), plainEditor: true } });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Usar este borrador como mis fuentes' }));
+    expect(await screen.findByText(/no compila/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sustituir mis fuentes' })).toBeNull();
   });
 });

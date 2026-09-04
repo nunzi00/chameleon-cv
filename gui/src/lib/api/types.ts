@@ -16,6 +16,7 @@ export type {
   DraftFilesResponse,
   DraftsAdoptRequest,
   DraftsAdoptResponse,
+  DraftsReplaceRequestBody,
   AliasesRequest,
   AliasesResponse,
   TagsApplyRequest,

@@ -11,6 +11,7 @@ beforeAll(() => {
 
 function fakeApi(): ApiClient {
   return {
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),

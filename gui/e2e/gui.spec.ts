@@ -376,6 +376,41 @@ test('los usuarios del espacio de trabajo se crean y se cambian desde la cabecer
   expect(await page.evaluate(() => localStorage.getItem('cv.user'))).toBeNull();
 });
 
+test('un invitado importa su CV desde la web y se queda con el borrador ENTERO como sus fuentes (T-9.33)', async ({ page }) => {
+  await openWithToken(page, state);
+  // Un usuario nuevo: nace con el perfil de ejemplo, que es justo el problema que esto resuelve.
+  await page.getByRole('banner').getByRole('button', { name: 'Usuario' }).click();
+  await page.getByLabel('Identificador').fill('invitado2');
+  await page.getByRole('button', { name: 'Crear' }).click();
+  await expect(page.getByRole('banner').getByLabel('Usuario')).toHaveValue('invitado2');
+
+  // Importa su CV desde la web: cae en SU import/, no en el del espacio de trabajo.
+  await page.getByRole('link', { name: 'Importar CV' }).click();
+  await page.getByLabel('Fichero (.pdf o .docx)').setInputFiles(join(state.workspace, 'ofertas', 'micv.pdf'));
+  await page.getByLabel('Nombre del borrador (opcional)').fill('micv');
+  await page.getByRole('button', { name: 'Importar como borrador' }).click();
+  await expect(page.getByRole('link', { name: 'Ver el borrador' }).or(page.getByText(/micv/).first())).toBeVisible();
+  // Cae en SU import/, no en el del espacio de trabajo.
+  expect(existsSync(join(state.workspace, 'usuarios', 'invitado2', 'import', 'micv'))).toBe(true);
+  expect(existsSync(join(state.workspace, 'import', 'micv'))).toBe(false);
+
+  // Y se lo queda ENTERO: adoptar entrada a entrada no puede traer el nombre ni las habilidades.
+  await page.getByRole('link', { name: 'Borradores' }).click();
+  await page.getByRole('button', { name: /micv/ }).first().click();
+  await page.getByRole('button', { name: 'Usar este borrador como mis fuentes' }).click();
+  await expect(page.getByRole('dialog')).toContainText('sustituirá tus fuentes');
+  await page.getByRole('button', { name: 'Sustituir mis fuentes' }).click();
+  await expect(page.getByText(/Tus fuentes son ahora import\/micv/)).toBeVisible();
+
+  // Sus fuentes son ahora las del CV importado, no el perfil de ejemplo con el que nació el usuario.
+  const sources = join(state.workspace, 'usuarios', 'invitado2', 'data', 'sources');
+  expect(readFileSync(join(sources, 'profile.md'), 'utf8')).not.toContain('Ada Ejemplo');
+  // Nada se ha borrado: las de antes están enteras al lado.
+  expect(readdirSync(join(state.workspace, 'usuarios', 'invitado2', 'data')).some((name) => /^sources\.\d{8}-\d{6}\.bak$/.test(name))).toBe(true);
+
+  await page.getByRole('banner').getByLabel('Usuario').selectOption('');
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
   await page.getByRole('button', { name: 'Apagar cv serve' }).click();

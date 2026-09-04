@@ -31,7 +31,7 @@ import type { CliContext } from './context';
 import { DEFAULT_ARTIFACT_PATH, DEFAULT_DATA_DIR, DEFAULT_OUTPUT_DIR } from './defaults';
 import { parseLimit, parseList, parseProposals } from './limits';
 import { runImportManfred, type ImportManfredOptions } from './commands/import-manfred';
-import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions } from './commands/drafts';
+import { runDraftsAdopt, runDraftsDuplicates, runDraftsList, runDraftsReplace, runDraftsShow, type DraftsAdoptOptions, type DraftsListOptions, type DraftsReplaceOptions } from './commands/drafts';
 import { runDuplicatesList, runDuplicatesResolve, type DuplicatesListOptions, type DuplicatesResolveOptions } from './commands/duplicates';
 import { EXIT_FAILURE, EXIT_OK, reportError } from './output';
 import { contextForWorkspace, selectWorkspace } from '../app/users';
@@ -254,7 +254,7 @@ export function createProgram(base: CliContext, onExit: (code: number) => void, 
       onExit(await runAnalyzeOffer(context, offer, extra, options));
     });
 
-  const drafts = program.command('drafts').description('los borradores de import/: verlos, comparar sus duplicados y adoptar entradas sueltas en data/sources/ (T-9.19)');
+  const drafts = program.command('drafts').description('los borradores de import/: verlos, comparar sus duplicados, adoptar entradas sueltas en data/sources/ (T-9.19) o quedarte con el borrador entero (T-9.33)');
   drafts
     .command('list', { isDefault: true })
     .description('lista los borradores de import/ con su origen, lo que reconoció cada uno y lo que dejó en el informe')
@@ -283,6 +283,15 @@ export function createProgram(base: CliContext, onExit: (code: number) => void, 
     .option('--dry-run', 'enseña lo que escribiría sin escribir nada', false)
     .action(async (name: string, options: DraftsAdoptOptions) => {
       onExit(await runDraftsAdopt(context, name, options));
+    });
+  drafts
+    .command('replace <nombre>')
+    .description('el borrador ENTERO pasa a ser tus fuentes (nombre, titular, contacto y habilidades incluidos, que «adopt» no puede llevarse): aparta las anteriores como data/sources.<marca>.bak y no escribe nada si el borrador no compila')
+    .option('-d, --data <dir>', 'directorio de fuentes de destino', DEFAULT_DATA_DIR)
+    .option('--dry-run', 'enseña lo que escribiría sin escribir nada', false)
+    .option('--yes', 'no pregunta antes de sustituir', false)
+    .action(async (name: string, options: DraftsReplaceOptions) => {
+      onExit(await runDraftsReplace(context, name, options));
     });
 
   const duplicates = program.command('duplicates').description('lo que está repetido en TUS fuentes y cómo resolverlo (T-9.20); adoptar de varios borradores el mismo empleo es lo que lo crea');

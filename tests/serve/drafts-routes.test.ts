@@ -176,4 +176,26 @@ describe('cv serve: rutas de borradores', () => {
     });
     expect(unknownSection.status).toBe(400);
   });
+
+  it('POST /drafts/replace: el borrador entero pasa a ser las fuentes; 200 ensaya, 201 escribe (T-9.33)', async () => {
+    const replace = (body: unknown): Promise<Response> => api('drafts/replace', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+
+    const dry = await replace({ draft: 'mio', dryRun: true });
+    expect(dry.status).toBe(200);
+    expect(await dry.json()).toMatchObject({ dryRun: true, written: [], root: '/work/data/sources' });
+    // No ha tocado nada: la fuente de antes sigue donde estaba.
+    expect(fs.file('/work/data/sources/experience/life5.md')).toBeDefined();
+
+    const done = await replace({ draft: 'mio' });
+    expect(done.status).toBe(201);
+    const outcome = (await done.json()) as { readonly backup?: string; readonly written: readonly string[] };
+    expect(outcome.written).toContain('profile.md');
+    // Sustituir no destruye: lo anterior queda entero en la copia (C9).
+    expect(String(outcome.backup)).toMatch(/^\/work\/data\/sources\.\d{8}-\d{6}\.bak$/);
+    expect(fs.file(`${String(outcome.backup)}/experience/life5.md`)).toBeDefined();
+
+    // Un nombre manipulado no sale de import/, y un cuerpo sin borrador lo para el esquema.
+    expect((await replace({ draft: '../fuera' })).status).toBe(422);
+    expect((await replace({})).status).toBe(400);
+  });
 });

@@ -19,6 +19,7 @@ function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     drafts: vi.fn(async () => ({ drafts: [{ name: 'perfil', counts: { experience: 6, education: 3, projects: 0, skills: 3, certifications: 0 }, entries: [], report: { issues: 0, unparsed: 0 }, files: 5 }], duplicates: { groups: [], compared: 0 } })),
     linkedinPlan: vi.fn(async () => PLAN), vidaLaboral: vi.fn(),
+    replaceSourcesWithDraft: vi.fn(),
     users: vi.fn(),
     createUser: vi.fn(),
     removeUser: vi.fn(),

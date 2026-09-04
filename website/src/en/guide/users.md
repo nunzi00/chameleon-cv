@@ -102,6 +102,20 @@ name = "cinta"
 Co-pilot and server settings (`[llm]`, `[serve]`) are always written to the root `cv.toml`, including from the
 **Ajustes** screen: they configure the model provider and the server, which belong to the machine.
 
+## A guest who brings their own CV
+
+The whole path, without leaving the web interface:
+
+1. **Usuario → Crear** in the header: the new user is seeded with the sample profile, so the app works from the
+   first moment.
+2. **Importar CV**: their PDF or DOCX lands in *their* `import/`, never in anyone else's.
+3. **Borradores → «Usar este borrador como mis fuentes»**: the **whole** draft becomes their profile, including
+   their name, headline, contact details and skills, which picking entries one by one cannot bring over.
+4. **Estado → Compilar**, and they can generate their CV.
+
+Step 3 replaces, so it shows the plan first and **deletes nothing**: the sample profile they started with is
+kept whole in `data/sources.<stamp>.bak`.
+
 ## Lending the web interface: kiosk mode
 
 ```bash

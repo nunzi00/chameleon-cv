@@ -36,7 +36,7 @@ interface Harness {
   readonly stderr: () => string;
 }
 
-function harness(extra: Record<string, string> = {}): Harness {
+function harness(extra: Record<string, string> = {}, answer = true): Harness {
   const out: string[] = [];
   const err: string[] = [];
   const fs = new MemoryFileSystem({ ...TREE, ...extra });
@@ -60,7 +60,8 @@ function harness(extra: Record<string, string> = {}): Harness {
     llmProvider: () => Promise.resolve({ ok: false as const, message: 'sin proveedor en las pruebas' }),
     llmCache: new MemoryLlmCache(),
     assets: defaultAssets(),
-    confirm: () => Promise.resolve(true),
+    confirm: () => Promise.resolve(answer),
+    now: () => new Date('2026-09-04T10:00:00.000Z'),
   };
   return { context, fs, stdout: () => out.join(''), stderr: () => err.join('') };
 }
@@ -223,5 +224,59 @@ describe('cv drafts adopt', () => {
     const missing = harness();
     expect(await runCli(['drafts', 'adopt', 'mio', '--entry', 'exp-inventada'], missing.context)).toBe(EXIT_DATA_ERROR);
     expect(missing.fs.file('/work/data/sources/experience/acme.md')).toBeUndefined();
+  });
+});
+
+describe('cv drafts replace (T-9.33)', () => {
+  const MIO = ['---', 'schemaVersion: 1', 'locale: es-ES', 'fullName: Eva Invitada', 'email: eva@example.com', 'links: []', '---', ''].join('\n');
+  const EXTRA = { '/work/import/mio/profile.md': MIO, '/work/import/mio/skills.csv': 'name,category\nPHP,language\n' };
+
+  it('enseña el plan, pregunta y sustituye; el nombre y las habilidades llegan, y lo anterior queda en una copia', async () => {
+    const h = harness(EXTRA);
+    expect(await runCli(['drafts', 'replace', 'mio'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('import/mio pasa a ser tus fuentes.');
+    expect(h.stdout()).toContain('Perfil importado en /work/data/sources');
+    expect(h.fs.file('/work/data/sources/profile.md')?.content).toContain('fullName: Eva Invitada');
+    expect(h.fs.file('/work/data/sources/skills.csv')?.content).toContain('PHP');
+    // Lo de antes no se borra: se aparta entero. La marca de la copia es la LOCAL de quien ejecuta, así que se
+    // comprueba su forma y que el fichero está dentro, no un huso concreto.
+    const backup = /Copia de seguridad de las fuentes anteriores: (\/work\/data\/sources\.\d{8}-\d{6}\.bak)\n/.exec(h.stdout());
+    expect(backup?.[1]).toBeDefined();
+    expect(h.fs.file(`${String(backup?.[1])}/experience/life5.md`)).toBeDefined();
+  });
+
+  it('--dry-run enseña el plan y no escribe nada', async () => {
+    const h = harness(EXTRA);
+    expect(await runCli(['drafts', 'replace', 'mio', '--dry-run'], h.context)).toBe(EXIT_OK);
+    expect(h.stdout()).toContain('No se ha escrito nada (--dry-run).');
+    expect(h.fs.file('/work/data/sources/profile.md')?.content).toBe(PROFILE);
+  });
+
+  it('decir que no cancela sin tocar nada; --yes no pregunta', async () => {
+    const no = harness(EXTRA, false);
+    expect(await runCli(['drafts', 'replace', 'mio'], no.context)).toBe(EXIT_OK);
+    expect(no.stderr()).toContain('Cancelado: no se ha tocado nada');
+    expect(no.fs.file('/work/data/sources/profile.md')?.content).toBe(PROFILE);
+    const si = harness(EXTRA, false);
+    expect(await runCli(['drafts', 'replace', 'mio', '--yes'], si.context)).toBe(EXIT_OK);
+    expect(si.fs.file('/work/data/sources/profile.md')?.content).toContain('Eva Invitada');
+  });
+
+  it('si el disco falla al apartar las fuentes, se dice y no se escribe media importación', async () => {
+    const h = harness(EXTRA);
+    h.fs.failures.add('rename');
+    expect(await runCli(['drafts', 'replace', 'mio'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('No se pudo apartar');
+    expect(h.fs.file('/work/data/sources/profile.md')?.content).toBe(PROFILE);
+  });
+
+  it('un borrador que no existe o que no compila se dice, y las fuentes siguen intactas', async () => {
+    const h = harness({ '/work/import/roto/profile.md': '---\nschemaVersion: 1\nlocale: es-ES\nlinks: []\n---\n' });
+    // Que no exista y que no compile son cosas distintas, y se dicen distinto.
+    expect(await runCli(['drafts', 'replace', 'nadie'], h.context)).toBe(EXIT_FAILURE);
+    expect(h.stderr()).toContain('No existe el borrador «nadie»');
+    expect(await runCli(['drafts', 'replace', 'roto'], h.context)).toBe(EXIT_DATA_ERROR);
+    expect(h.stderr()).toContain('no compila, así que no puede ser tu perfil');
+    expect(h.fs.file('/work/data/sources/profile.md')?.content).toBe(PROFILE);
   });
 });

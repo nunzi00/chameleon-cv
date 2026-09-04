@@ -4,9 +4,10 @@
  * y adoptar en `data/sources/` las entradas que se elijan—. Todo el criterio vive en `src/app/drafts.ts`, que es
  * lo que también usa la web (C14); aquí queda lo que es de la terminal: las tablas y los códigos de salida.
  */
-import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, listDrafts, readDraft, type AdoptableSection, type DraftSummary, type DuplicateGroup } from '../../app/drafts';
+import { ADOPTABLE_SECTIONS, adoptEntries, draftDuplicates, listDrafts, readDraft, replaceSourcesWithDraft, type AdoptableSection, type DraftSummary, type DuplicateGroup } from '../../app/drafts';
 import type { CliContext } from '../context';
 import { EXIT_DATA_ERROR, EXIT_FAILURE, EXIT_OK, formatTable, pluralize, reportError } from '../output';
+import { formatImportOutcome } from './portability';
 
 export interface DraftsListOptions {
   readonly data: string;
@@ -151,5 +152,39 @@ export async function runDraftsAdopt(context: CliContext, name: string, options:
       ? `${pluralize(adopted.length, 'entrada', 'entradas')} se escribiría(n) en ${result.outcome.root} (nada escrito: --dry-run)\n`
       : `${pluralize(adopted.length, 'entrada adoptada', 'entradas adoptadas')} en ${result.outcome.root}; revísalas y ejecuta «cv build»\n`,
   );
+  return EXIT_OK;
+}
+
+export interface DraftsReplaceOptions {
+  readonly data: string;
+  readonly dryRun: boolean;
+  /** No pregunta antes de sustituir (para guiones); en una terminal se pregunta siempre. */
+  readonly yes: boolean;
+}
+
+/**
+ * `cv drafts replace <nombre>`: el borrador ENTERO pasa a ser tus fuentes. Es lo que necesita quien estrena
+ * su espacio —el CV importado ES su perfil, no unas entradas que añadir al de ejemplo—. Pregunta antes,
+ * porque sustituye; y no destruye, porque las fuentes anteriores quedan enteras en una copia.
+ */
+export async function runDraftsReplace(context: CliContext, name: string, options: DraftsReplaceOptions): Promise<number> {
+  const planned = await replaceSourcesWithDraft(context, { draft: name, data: options.data, dryRun: true });
+  if (!planned.ok) {
+    return reportError(context, planned.error);
+  }
+  context.stdout(`import/${name} pasa a ser tus fuentes.\n`);
+  context.stdout(formatImportOutcome(planned.outcome));
+  if (options.dryRun) {
+    return EXIT_OK;
+  }
+  if (!options.yes && context.confirm !== undefined && !(await context.confirm(`Las fuentes actuales de ${planned.outcome.root} se apartan enteras como copia. ¿Sustituirlas? [s/N] `))) {
+    context.stderr('Cancelado: no se ha tocado nada\n');
+    return EXIT_OK;
+  }
+  const result = await replaceSourcesWithDraft(context, { draft: name, data: options.data });
+  if (!result.ok) {
+    return reportError(context, result.error);
+  }
+  context.stdout(formatImportOutcome(result.outcome));
   return EXIT_OK;
 }

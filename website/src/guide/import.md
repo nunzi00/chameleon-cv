@@ -214,6 +214,30 @@ entero que quedará, así que no puedes dejar unas fuentes que `cv build` rechac
 
 **No es un *merge***: no se mezclan dos versiones del mismo empleo. Adoptas la que prefieras y la editas después.
 
+### ¿Y si ese CV es el tuyo, entero?
+
+Adoptar entrada a entrada sirve para llevarte **partes** de un CV antiguo a un perfil que ya es tuyo. No sirve
+para lo contrario: estrenar el perfil **con** el CV que acabas de importar. Y no es cuestión de paciencia, es
+que hay cosas que no son entradas sueltas: tu **nombre**, tu **titular**, tu **contacto** y tus **habilidades**
+viven en `profile.md` y en `skills.csv`, y por eso `adopt` no puede traerlas. Sin esto, alguien que importaba su
+CV en un espacio recién creado seguía generando un CV a nombre de *Ada Ejemplo*.
+
+```bash
+cv drafts replace mi-cv --dry-run    # qué escribiría, sin escribir
+cv drafts replace mi-cv              # el borrador ENTERO pasa a ser tus fuentes
+cv build
+```
+
+En la web es el botón **«Usar este borrador como mis fuentes»** de la pantalla **Borradores**, que enseña el
+plan —cuántos ficheros y cuántas entradas— antes de preguntar.
+
+Sustituir sí es destructivo, así que hay tres seguros: el borrador **tiene que compilar** (si no, no se escribe
+nada), se te enseña el plan antes, y tus fuentes de ahora **no se borran**: se apartan enteras como
+`data/sources.<marca>.bak`, así que volver es renombrarlas.
+
+Es lo que necesita un **invitado** en tu espacio de trabajo: crea su usuario, importa su CV desde la web y se
+queda con él de una vez. Ver [Varias personas, un espacio de trabajo](/guide/users).
+
 ### Qué está repetido
 
 Si has importado varias versiones de tu CV, el mismo empleo aparece en todas —y casi nunca igual: cambian las

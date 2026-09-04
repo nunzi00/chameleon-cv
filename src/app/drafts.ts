@@ -17,8 +17,9 @@ import { validateMasterProfile, type Education, type Experience, type MasterProf
 import { SECTION_LABEL, entriesOf, groupDuplicates, titleOf, type AdoptableSection, type DuplicateMember, type DuplicatesResult, type ProfileEntry } from './duplicates';
 import type { AppContext } from './context';
 import { loadSources } from './dataset';
-import { dataError, notFoundError, type AppError } from './errors';
+import { dataError, errorLines, notFoundError, type AppError } from './errors';
 import { slugify } from './slug';
+import { importProfile, type ImportOutcome } from './portability';
 import { listSources, readSource, writeSource, type SourceListResult, type SourceReadResult, type SourceWriteResult } from './sources';
 
 /** Carpeta de los borradores dentro del espacio de trabajo; `cv import-cv` nunca escribe fuera de ella. */
@@ -360,4 +361,50 @@ export async function adoptEntries(context: AppContext, request: AdoptRequest): 
     adopted.push(file.entry);
   }
   return { ok: true, outcome: { root, adopted, skipped, dryRun: false } };
+}
+
+export interface DraftReplaceRequest {
+  /** El borrador que pasa a ser el perfil: `import/<nombre>`. */
+  readonly draft: string;
+  readonly data: string;
+  /** Solo planificar y comprobar; no escribir nada. */
+  readonly dryRun?: boolean | undefined;
+}
+
+export type DraftReplaceResult = { readonly ok: true; readonly outcome: ImportOutcome } | { readonly ok: false; readonly error: AppError };
+
+/**
+ * **Adoptar un borrador ENTERO como tus fuentes** (T-9.33): lo contrario de `adoptEntries`, que añade
+ * entrada a entrada sobre unas fuentes que ya son tuyas.
+ *
+ * Existe por el caso que lo pidió: alguien que estrena su espacio —un invitado— importa su CV desde la web
+ * y se encuentra con que solo puede llevarse experiencias, formaciones y proyectos, uno a uno, encima del
+ * perfil de ejemplo; su **nombre, su titular, su correo y sus habilidades** no tenían camino, porque viven
+ * en `profile.md` y en `skills.csv`, que son ficheros compartidos y no entradas sueltas. Con lo que había,
+ * el CV que generaba seguía llamándose Ada Ejemplo.
+ *
+ * No hay lógica nueva: el borrador se compila con el MISMO cargador que las fuentes —si no compila, no se
+ * escribe nada— y el perfil resultante se escribe con `importProfile`, que es la inversa de `cv build` y ya
+ * aparta las fuentes anteriores enteras como `data/sources.<marca>.bak`. Sustituir no destruye (C9).
+ */
+export async function replaceSourcesWithDraft(context: AppContext, request: DraftReplaceRequest): Promise<DraftReplaceResult> {
+  const root = draftRoot(context, request.draft);
+  if (root === undefined) {
+    return { ok: false, error: badName(request.draft) };
+  }
+  // Que no exista y que no compile son cosas distintas y se dicen distinto: la primera es un nombre mal
+  // escrito, la segunda un borrador que hay que corregir.
+  try {
+    await context.datasetFileSystem.stat(root);
+  } catch {
+    return { ok: false, error: notFoundError(`No existe el borrador «${request.draft}»; «cv drafts list» dice cuáles hay`) };
+  }
+  const draft = await loadSources(context, { data: `${DRAFTS_DIR}/${request.draft}` });
+  if (!draft.ok) {
+    // La cabecera va DENTRO de las líneas: `reportError` imprime `lines` en lugar de `message` cuando las hay,
+    // y sin esto el motivo («no compila») se perdía y solo se veían los problemas sueltos del dataset.
+    const headline = `El borrador «${request.draft}» no compila, así que no puede ser tu perfil: corrígelo primero`;
+    return { ok: false, error: dataError(headline, [headline, ...errorLines(draft.error)]) };
+  }
+  return importProfile(context, draft.dataset.profile, { data: request.data, replace: true, dryRun: request.dryRun });
 }

@@ -1,0 +1,9 @@
+import/nexo pasa a ser tus fuentes.
+Plan de importación en <WS>/data/sources: 1 fichero (0 especialidades, 0 experiencias, 0 proyectos, 0 formaciones, 0 skills, 0 certificaciones, 0 logros transversales, 0 idiomas)
+  profile.md (708 bytes)
+Auto-chequeo: las fuentes regeneradas reproducen el perfil importado.
+No se ha escrito nada (--dry-run).
+Perfil importado en <WS>/data/sources: 1 fichero (0 especialidades, 0 experiencias, 0 proyectos, 0 formaciones, 0 skills, 0 certificaciones, 0 logros transversales, 0 idiomas)
+Copia de seguridad de las fuentes anteriores: <WS>/data/sources.<STAMP>.bak
+Solo profile.md: el perfil no traía entidades.
+Ejecuta «cv build» para regenerar el artefacto.

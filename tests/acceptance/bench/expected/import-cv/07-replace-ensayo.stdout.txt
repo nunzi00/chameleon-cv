@@ -1,0 +1,5 @@
+import/nexo pasa a ser tus fuentes.
+Plan de importación en <WS>/data/sources: 1 fichero (0 especialidades, 0 experiencias, 0 proyectos, 0 formaciones, 0 skills, 0 certificaciones, 0 logros transversales, 0 idiomas)
+  profile.md (708 bytes)
+Auto-chequeo: las fuentes regeneradas reproducen el perfil importado.
+No se ha escrito nada (--dry-run).
