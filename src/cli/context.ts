@@ -39,13 +39,24 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
   const assets = defaultAssets();
   const datasetFileSystem = new NodeFileSystem();
   const cwd = process.cwd();
-  /** La tabla `[llm]` de `cv.toml`, leída en cada orden (T-8.2). */
-  const settings = async (): Promise<Pick<LlmStatusOptions, 'settings' | 'settingsError' | 'settingsPath' | 'settingsPresent'>> => {
-    const snapshot = await loadLlmSettings(cwd, datasetFileSystem);
-    return { settings: snapshot.settings, settingsError: snapshot.error, settingsPath: snapshot.path, settingsPresent: snapshot.present };
+  /**
+   * Lo que depende de la RAÍZ, agrupado para poder rehacerlo al elegir usuario (T-9.32): la tabla `[llm]`
+   * de `cv.toml` —leída en cada orden (T-8.2), con la de la raíz compartida debajo— y el runtime local.
+   */
+  const rooted = (root: string, shared: string | undefined): Pick<CliContext, 'llmStatus' | 'llmProvider' | 'llmRuntime'> => {
+    const settings = async (): Promise<Pick<LlmStatusOptions, 'settings' | 'settingsError' | 'settingsPath' | 'settingsPresent'>> => {
+      const snapshot = await loadLlmSettings(root, datasetFileSystem, shared);
+      return { settings: snapshot.settings, settingsError: snapshot.error, settingsPath: snapshot.path, settingsPresent: snapshot.present };
+    };
+    return {
+      llmStatus: async (statusOptions) => llmStatus({ ...statusOptions, ...(await settings()) }),
+      llmProvider: async (selection) => selectProvider(selection, await settings()),
+      llmRuntime: createLlmRuntime(async () => runtimeConfiguration(process.env, await settings()), createNodeRuntimeSystem({ cwd: root })),
+    };
   };
   return {
     cwd,
+    withWorkspace: (root, shared) => rooted(root, shared),
     stdout: (text) => {
       process.stdout.write(text);
     },
@@ -61,11 +72,9 @@ export function createNodeContext(options: NodeContextOptions = {}): CliContext 
     typstRenderer: (profile, options) => renderTypstCv(profile, options),
     typstInstall: (options, report) => installTypst(options, report),
     typstStatus: (options) => typstStatus(options),
-    llmStatus: async (options) => llmStatus({ ...options, ...(await settings()) }),
-    llmProvider: async (selection) => selectProvider(selection, await settings()),
+    ...rooted(cwd, undefined),
     ...(interactive ? { confirm: askInTerminal, readSecret: askSecretInTerminal } : {}),
     llmCache: createNodeLlmCache(),
-    llmRuntime: createLlmRuntime(async () => runtimeConfiguration(process.env, await settings()), createNodeRuntimeSystem({ cwd })),
     assets,
   };
 }

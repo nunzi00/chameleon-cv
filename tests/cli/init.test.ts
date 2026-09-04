@@ -85,11 +85,12 @@ describe('cv init', () => {
     expect(h.fs.file('/work/nuevo/data/sources/enlace.md')).toBeUndefined();
     expect(h.fs.file('/work/nuevo/.gitignore')).toMatchObject({
       mode: 0o644,
-      content: '# Chameleon CV: datos personales generados, nunca se versionan\ndata/dist/\noutput/\n',
+      content: '# Chameleon CV: datos personales generados, nunca se versionan\ndata/dist/\noutput/\nusuarios/*/data/dist/\nusuarios/*/output/\n',
     });
-    expect(GITIGNORE_ENTRIES).toEqual(['data/dist/', 'output/']);
+    // Se escriben las cuatro (también las de los usuarios, T-9.32) y se EXIGEN solo las dos de la raíz.
+    expect(GITIGNORE_ENTRIES).toEqual(['data/dist/', 'output/', 'usuarios/*/data/dist/', 'usuarios/*/output/']);
     expect(h.stdout()).toBe(
-      `Espacio de trabajo creado en /work/nuevo: 4 ficheros de ejemplo en data/sources (perfil sintético; sustitúyelo por tus datos)\n.gitignore creado (data/dist/ y output/ contienen datos personales)\n${NEXT_STEPS}`,
+      `Espacio de trabajo creado en /work/nuevo: 4 ficheros de ejemplo en data/sources (perfil sintético; sustitúyelo por tus datos)\n.gitignore creado (data/dist/, output/, usuarios/*/data/dist/, usuarios/*/output/: datos personales en claro)\n${NEXT_STEPS}`,
     );
   });
 

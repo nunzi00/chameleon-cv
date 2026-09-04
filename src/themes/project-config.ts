@@ -56,8 +56,51 @@ export type ProjectConfigResult =
   | { readonly ok: true; readonly path: string; /** `undefined` si no hay `cv.toml`. */ readonly config: ProjectConfig | undefined }
   | { readonly ok: false; readonly path: string; readonly message: string };
 
-/** Lee `<cwd>/cv.toml` si existe; su ausencia no es un error. */
-export async function loadProjectConfig(cwd: string, fileSystem: FileSystem): Promise<ProjectConfigResult> {
+type PlainObject = Record<string, unknown>;
+
+function isPlainObject(value: unknown): value is PlainObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Cascada de configuración (T-9.32): lo del usuario ANULA CLAVE A CLAVE lo de la raíz, no el fichero
+ * entero. Es la misma regla que ya usaba `[theme]` sobre el `theme.toml` del tema, y es la que permite
+ * que la raíz ponga el proveedor de modelos y un usuario cambie solo su tema por defecto.
+ */
+export function mergeConfigValues(base: PlainObject, over: PlainObject): PlainObject {
+  const merged: PlainObject = { ...base };
+  for (const [key, value] of Object.entries(over)) {
+    const current = merged[key];
+    merged[key] = isPlainObject(current) && isPlainObject(value) ? mergeConfigValues(current, value) : value;
+  }
+  return merged;
+}
+
+export function mergeProjectConfig(base: ProjectConfig | undefined, over: ProjectConfig | undefined): ProjectConfig | undefined {
+  if (base === undefined || over === undefined) {
+    return base ?? over;
+  }
+  return mergeConfigValues(base, over);
+}
+
+/**
+ * Lee `<cwd>/cv.toml` si existe; su ausencia no es un error. Con `sharedRoot` (se trabaja como usuario)
+ * el de la raíz se lee ANTES y el del usuario lo anula clave a clave; la ruta que se devuelve es la del
+ * usuario, que es la que habría que editar.
+ */
+export async function loadProjectConfig(cwd: string, fileSystem: FileSystem, sharedRoot?: string | undefined): Promise<ProjectConfigResult> {
+  const shared = sharedRoot === undefined || resolve(sharedRoot) === resolve(cwd) ? undefined : await loadProjectConfig(sharedRoot, fileSystem);
+  if (shared !== undefined && !shared.ok) {
+    return shared;
+  }
+  const own = await loadOwnConfig(cwd, fileSystem);
+  if (!own.ok || shared?.config === undefined) {
+    return own;
+  }
+  return { ok: true, path: own.path, config: mergeProjectConfig(shared.config, own.config) };
+}
+
+async function loadOwnConfig(cwd: string, fileSystem: FileSystem): Promise<ProjectConfigResult> {
   const path = resolve(cwd, PROJECT_CONFIG_FILE);
   let kind: string;
   try {

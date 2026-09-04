@@ -36,6 +36,9 @@ const LLM_CONFIG = {
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    users: vi.fn(),
+    createUser: vi.fn(),
+    removeUser: vi.fn(),
     status: vi.fn(async () => STATUS),
     profile: vi.fn(async () => ({ experience: [{ role: 'Dev', company: 'ACME', achievements: [{ id: 'exp-acme-1', text: 'Hice A' }] }], projects: [], achievements: [] }) as never),
     jobs: vi.fn(async () => ({ jobs: [] })),

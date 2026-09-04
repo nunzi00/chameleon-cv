@@ -1,0 +1,2 @@
+No hay usuarios en <WS>/usuarios
+Este espacio de trabajo es de una sola persona; «cv users create <id>» crea el primero.

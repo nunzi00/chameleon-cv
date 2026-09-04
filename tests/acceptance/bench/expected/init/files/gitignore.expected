@@ -1,3 +1,5 @@
 # Chameleon CV: datos personales generados, nunca se versionan
 data/dist/
 output/
+usuarios/*/data/dist/
+usuarios/*/output/

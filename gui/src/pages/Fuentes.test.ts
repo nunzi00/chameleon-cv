@@ -12,6 +12,9 @@ const ENTRIES = [
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    users: vi.fn(),
+    createUser: vi.fn(),
+    removeUser: vi.fn(),
     status: vi.fn(),
     validate: vi.fn(async () => ({ root: '/work/data/sources', files: [{ path: 'x' }] as never, summary: 'ok' })),
     build: vi.fn(),

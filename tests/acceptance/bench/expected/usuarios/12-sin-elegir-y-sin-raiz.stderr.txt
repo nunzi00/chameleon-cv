@@ -1,0 +1,3 @@
+Este espacio de trabajo tiene usuarios y no has elegido ninguno.
+  cv --user invitado1 <orden>   (o export CHAMELEON_USER=invitado1)
+Usuarios: invitado1, lucas

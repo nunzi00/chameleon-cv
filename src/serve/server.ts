@@ -11,11 +11,11 @@ import type { AddressInfo } from 'node:net';
 import type { AppContext } from '../app/context';
 import { describeError } from '../shared/errors';
 import { ConsentStore } from './consent';
-import { errorResponse, headerValue, readBody } from './http';
+import { appErrorResponse, errorResponse, headerValue, readBody } from './http';
 import { JobQueue, isFinished } from './jobs';
 import { fallbackPage } from './page';
 import type { RouteResponse } from './router';
-import { API_PREFIX, bodyLimitFor, createRouter, type ServerState } from './routes';
+import { API_PREFIX, bodyLimitFor, createRouter, scopedState, type ServerState } from './routes';
 import { allowedHosts, generateToken, isAllowedHost, isAllowedOrigin, isAuthorized } from './security';
 import { GUI_CSP, loadStaticSite } from './static';
 
@@ -30,6 +30,10 @@ export interface ServeOptions {
   readonly allowedHosts: readonly string[];
   /** `--allow-remote`: los trabajos pueden usar proveedores remotos (cada uno con consentimiento de coste). */
   readonly allowRemote: boolean;
+  /** La raíz del espacio de trabajo (T-9.32): de ella cuelgan `usuarios/`, el `cv.toml` compartido y `themes/`. */
+  readonly root?: string | undefined;
+  /** `cv serve --user <id>`: el servidor queda fijado a ese usuario y ninguna petición puede pedir otro. */
+  readonly pinnedUser?: string | undefined;
   /** Solo para pruebas: un token fijo en lugar de uno aleatorio. */
   readonly token?: string | undefined;
 }
@@ -136,7 +140,18 @@ export async function startServer(options: ServeOptions): Promise<ServerHandle> 
       server.closeAllConnections();
     });
   };
-  const state: ServerState = { context: options.context, data: options.data, profile: options.profile, version: options.version, jobs, consents, allowRemote: options.allowRemote, shutdown: () => setImmediate(() => void close()) };
+  const state: ServerState = {
+    context: options.context,
+    root: options.root ?? options.context.cwd,
+    pinnedUser: options.pinnedUser,
+    data: options.data,
+    profile: options.profile,
+    version: options.version,
+    jobs,
+    consents,
+    allowRemote: options.allowRemote,
+    shutdown: () => setImmediate(() => void close()),
+  };
   let allowed: ReadonlySet<string> = new Set();
 
   /** La interfaz web: solo GET/HEAD, solo la lista cerrada de `gui/dist`; sin ella, la página mínima en `/`. */
@@ -192,8 +207,15 @@ export async function startServer(options: ServeOptions): Promise<ServerHandle> 
     for (const [name, value] of Object.entries(request.headers)) {
       headers[name] = headerValue(value);
     }
+    // El usuario de ESTA petición (T-9.32): un solo punto en el que la raíz cambia, y todas las rutas
+    // siguen siendo clientes de la capa de casos de uso sin saber que existen los usuarios.
+    const scoped = await scopedState(state, headers['x-cv-user']);
+    if ('error' in scoped) {
+      send(response, appErrorResponse(scoped.error), streams);
+      return;
+    }
     try {
-      send(response, await match.spec.handler({ params: match.params, headers, body: body.body }, state), streams);
+      send(response, await match.spec.handler({ params: match.params, headers, body: body.body }, scoped.state), streams);
     } catch (error) {
       send(response, errorResponse('environment', `Error inesperado: ${describeError(error)}`), streams);
     }

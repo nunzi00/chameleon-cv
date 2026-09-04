@@ -23,6 +23,12 @@ export type LlmProviderResult = ProviderSelectionResult;
 
 export interface AppContext {
   readonly cwd: string;
+  /**
+   * La raíz del espacio de trabajo cuando `cwd` es la de un USUARIO (`usuarios/<id>/`, T-9.32). De ella
+   * salen las dos únicas cosas que los usuarios comparten: el `cv.toml` de referencia y los `themes/`
+   * del proyecto. Ausente (lo normal) significa que `cwd` ya es la raíz.
+   */
+  readonly workspaceRoot?: string | undefined;
   readonly datasetFileSystem: FileSystem;
   readonly artifactFileSystem: WritableFileSystem;
   readonly parsers: readonly SourceParser[];
@@ -50,4 +56,10 @@ export interface AppContext {
   readonly fetcher?: Fetcher | undefined;
   /** Assets distribuidos (temas, fuentes, plantilla, dataset de ejemplo, prompts, package.json): repositorio o binario (T-6.2). */
   readonly assets: AssetStore;
+  /**
+   * Lo que hay que REHACER al cambiar de raíz (T-9.32, usuarios): las piezas que capturaron la raíz al
+   * construirse —el lector de `cv.toml` que alimenta al proveedor de modelos y su runtime—. Un contexto de
+   * pruebas puede no traerlo: entonces cambiar de raíz es cambiar `cwd`, que es lo único que importa.
+   */
+  readonly withWorkspace?: ((cwd: string, workspaceRoot: string | undefined) => Partial<AppContext>) | undefined;
 }

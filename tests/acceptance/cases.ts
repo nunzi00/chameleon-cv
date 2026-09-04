@@ -378,4 +378,27 @@ export const SCENARIOS: readonly Scenario[] = [
       { id: 'readme-borrador', args: ['import-cv', 'offers/pdf/orbita-platform-engineer.pdf'], exitCode: 0 },
     ],
   },
+  {
+    id: 'usuarios',
+    description:
+      'varias personas en el mismo espacio de trabajo (T-9.32): crear un usuario sembrado, elegirlo con --user y comprobar que su artefacto y su CV salen DENTRO de usuarios/<id>/; adoptar la raíz; el aviso al trabajar sobre la raíz habiendo usuarios; identificadores imposibles y usuarios inexistentes; y retirar uno sin borrarlo',
+    workspace: 'bench',
+    steps: [
+      { id: 'sin-usuarios', args: ['users'], exitCode: 0 },
+      { id: 'crea-invitado', args: ['users', 'create', 'invitado1'], exitCode: 0, outputs: [{ path: 'usuarios/invitado1/data/sources', kind: 'tree' }] },
+      { id: 'id-imposible', args: ['users', 'create', '../fuera'], exitCode: 2 },
+      { id: 'ya-existe', args: ['users', 'create', 'invitado1'], exitCode: 2 },
+      { id: 'compila-invitado', args: ['--user', 'invitado1', 'build'], exitCode: 0, outputs: [{ path: 'usuarios/invitado1/data/dist/profile.json', kind: 'json' }] },
+      { id: 'genera-invitado', args: ['--user', 'invitado1', 'generate-cv'], exitCode: 0, outputs: [{ path: 'usuarios/invitado1/output', kind: 'tree' }] },
+      { id: 'lista-usuarios', args: ['users', 'list'], exitCode: 0 },
+      { id: 'ruta-usuario', args: ['users', 'path', 'invitado1'], exitCode: 0 },
+      { id: 'usuario-inexistente', args: ['--user', 'nadie', 'build'], exitCode: 2 },
+      { id: 'raiz-con-aviso', args: ['validate'], exitCode: 0 },
+      { id: 'adopta-la-raiz', args: ['users', 'create', 'lucas', '--adopt'], exitCode: 0 },
+      { id: 'sin-elegir-y-sin-raiz', args: ['validate'], exitCode: 2 },
+      { id: 'lucas-conserva-lo-suyo', args: ['--user', 'lucas', 'validate'], exitCode: 0 },
+      { id: 'retira-invitado', args: ['users', 'remove', 'invitado1'], exitCode: 0 },
+      { id: 'ya-no-esta', args: ['--user', 'invitado1', 'build'], exitCode: 2 },
+    ],
+  },
 ];

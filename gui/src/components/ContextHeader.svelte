@@ -1,8 +1,10 @@
 <script lang="ts">
   import { type AppContext, describeChips, workspaceName } from '../lib/context';
+  import type { UserSummaryPayload } from '../lib/api/types';
   import { THEME_OPTIONS, type ThemeMode } from '../lib/theme';
   import { UI_LAYOUTS, type UiLayout } from '../lib/ui-layout';
   import { PALETTES, type Palette } from '../lib/palette';
+  import { isUserId } from '../lib/user-id';
   import Dialog from './Dialog.svelte';
   import Icon from './Icon.svelte';
 
@@ -22,11 +24,76 @@
     launcher?: boolean;
     launcherOpen?: boolean;
     onlaunchertoggle?: () => void;
+    /** Los usuarios del espacio de trabajo (T-9.32); vacío = espacio de una sola persona, sin selector. */
+    users?: readonly UserSummaryPayload[];
+    /** El usuario con el que se trabaja; `undefined` = la raíz del espacio de trabajo. */
+    user?: string | undefined;
+    /** `cv serve --user`: el servidor está fijado y no hay nada que elegir. */
+    pinnedUser?: string | undefined;
+    /** La raíz tiene fuentes propias: sigue siendo un destino válido del selector. */
+    rootUsable?: boolean;
+    onuserchange?: (id: string | undefined) => void;
+    onusercreate?: (id: string) => Promise<void>;
   }
-  let { context, theme, onthemechange, onshutdown, layout, onlayoutchange, palette, onpalettechange, launcher = false, launcherOpen = false, onlaunchertoggle }: Props = $props();
+  let {
+    context,
+    theme,
+    onthemechange,
+    onshutdown,
+    layout,
+    onlayoutchange,
+    palette,
+    onpalettechange,
+    launcher = false,
+    launcherOpen = false,
+    onlaunchertoggle,
+    users = [],
+    user = undefined,
+    pinnedUser = undefined,
+    rootUsable = true,
+    onuserchange,
+    onusercreate,
+  }: Props = $props();
 
   let confirm = $state(false);
   const chips = $derived(context === undefined ? [] : describeChips(context));
+
+  /**
+   * El SELECTOR solo aparece cuando hay a quién elegir; el botón de CREAR está siempre, porque si no
+   * un espacio sin usuarios no tendría desde dónde crear el primero. Con el servidor fijado no hay ni uno
+   * ni otro: no habría nada que hacer con ellos.
+   */
+  const canChoose = $derived(pinnedUser === undefined);
+  const showUsers = $derived(canChoose && users.length > 0);
+  let creating = $state(false);
+  let newUser = $state('');
+  let createError = $state<string | undefined>(undefined);
+  let busy = $state(false);
+
+  const ROOT_VALUE = '';
+
+  function pick(value: string): void {
+    onuserchange?.(value === ROOT_VALUE ? undefined : value);
+  }
+
+  async function create(): Promise<void> {
+    const id = newUser.trim();
+    if (!isUserId(id)) {
+      createError = 'Minúsculas, dígitos y guiones, sin empezar ni terminar en guión.';
+      return;
+    }
+    busy = true;
+    createError = undefined;
+    try {
+      await onusercreate?.(id);
+      creating = false;
+      newUser = '';
+    } catch (caught) {
+      createError = caught instanceof Error ? caught.message : String(caught);
+    } finally {
+      busy = false;
+    }
+  }
 
   function shutdown(): void {
     confirm = false;
@@ -49,6 +116,23 @@
       <span title={context.status.workspace}>{context.status.workspace}</span>
     {/if}
   </div>
+  <div class="cv-header-sep" aria-hidden="true"></div>
+  {#if showUsers}
+    <label class="cv-header-user">
+      <span class="cv-sr-only">Usuario</span>
+      <select name="user" value={user ?? ROOT_VALUE} onchange={(event) => pick((event.currentTarget as HTMLSelectElement).value)}>
+        {#if rootUsable}<option value={ROOT_VALUE}>Espacio de trabajo</option>{/if}
+        {#each users as option (option.id)}<option value={option.id}>{option.name ?? option.id}</option>{/each}
+      </select>
+    </label>
+  {/if}
+  {#if canChoose}
+    <button class="cv-button small" type="button" onclick={() => (creating = true)}>
+      <Icon name="plus" size={14} weight={1.8} />Usuario
+    </button>
+  {:else}
+    <span class="cv-chip" title="El servidor se arrancó con --user: no se puede cambiar de usuario desde aquí"><Icon name="user" size={13} weight={1.8} />{pinnedUser}</span>
+  {/if}
   <div class="cv-header-sep" aria-hidden="true"></div>
   <div class="cv-header-chips" role="status" aria-label="Estado del espacio de trabajo">
     {#each chips as chip (chip.id)}
@@ -76,6 +160,20 @@
     <Icon name="power" size={14} weight={1.8} />Apagar
   </button>
 </header>
+
+<Dialog open={creating} title="Nuevo usuario" onclose={() => (creating = false)}>
+  <p>Un usuario es un espacio de trabajo completo dentro de este: sus fuentes, sus salidas y su historial en <code>usuarios/&lt;id&gt;/</code>. Nace con el dataset de ejemplo.</p>
+  <p class="cv-muted">No es una cuenta ni protege nada: quien tenga esta URL y su token puede abrir cualquiera de los usuarios.</p>
+  <label class="cv-field">
+    <span>Identificador</span>
+    <input name="user-id" bind:value={newUser} placeholder="invitado1" autocomplete="off" />
+  </label>
+  {#if createError !== undefined}<p class="cv-error-text">{createError}</p>{/if}
+  <div class="cv-dialog-actions">
+    <button class="cv-button" type="button" onclick={() => (creating = false)}>Cancelar</button>
+    <button class="cv-button primary" type="button" disabled={busy} onclick={create}>{busy ? 'Creando…' : 'Crear'}</button>
+  </div>
+</Dialog>
 
 <Dialog open={confirm} title="¿Apagar cv serve?" onclose={() => (confirm = false)}>
   <p>La interfaz dejará de funcionar hasta que vuelvas a arrancar <code>cv serve</code>; el token de esta sesión deja de valer.</p>

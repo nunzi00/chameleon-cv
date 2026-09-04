@@ -320,3 +320,50 @@ describe('peticiones GET a la vez', () => {
     expect(calls).toHaveLength(4);
   });
 });
+
+describe('usuarios del espacio de trabajo (T-9.32)', () => {
+  it('manda x-cv-user cuando hay usuario elegido y no la manda cuando no lo hay', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, { root: '/work', users: [], current: undefined, pinned: undefined, rootUsable: true }));
+    let user: string | undefined;
+    const api = createApiClient({ fetch: f, token: () => 't', user: () => user });
+    await api.users();
+    expect(calls[0]?.headers['x-cv-user']).toBeUndefined();
+    user = 'invitado1';
+    await api.users();
+    expect(calls[1]?.headers['x-cv-user']).toBe('invitado1');
+    // Una elección vacía es «la raíz», no una cabecera vacía que el servidor tendría que interpretar.
+    user = '';
+    await api.users();
+    expect(calls[2]?.headers['x-cv-user']).toBeUndefined();
+  });
+
+  it('crea y retira usuarios por las rutas del contrato, con el identificador codificado', async () => {
+    const { fetch: f, calls } = fakeFetch(() => json(200, {}));
+    const api = createApiClient({ fetch: f, token: () => 't' });
+    await api.createUser({ id: 'invitado1' });
+    expect(calls[0]).toMatchObject({ url: '/api/v1/users', method: 'POST', body: '{"id":"invitado1"}' });
+    await api.removeUser('invitado 1');
+    expect(calls[1]).toMatchObject({ url: '/api/v1/users/invitado%201', method: 'DELETE' });
+  });
+
+  it('dos GET iguales de USUARIOS DISTINTOS no comparten petición: la clave lleva el usuario', async () => {
+    const pending: ((response: Response) => void)[] = [];
+    const calls: string[] = [];
+    let user = 'a';
+    const f = ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      calls.push(String((init as { headers?: Record<string, string> } | undefined)?.headers?.['x-cv-user'] ?? ''));
+      void input;
+      return new Promise<Response>((resolve) => pending.push(resolve));
+    }) as typeof fetch;
+    const api = createApiClient({ fetch: f, token: () => 't', user: () => user });
+    const first = api.status();
+    user = 'b';
+    const second = api.status();
+    // Dos peticiones de verdad, una por usuario: compartirlas devolvería a «b» los datos de «a».
+    expect(calls).toEqual(['a', 'b']);
+    for (const resolve of pending) {
+      resolve(json(200, {}));
+    }
+    await Promise.all([first, second]);
+  });
+});

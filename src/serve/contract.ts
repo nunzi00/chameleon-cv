@@ -320,6 +320,16 @@ export type LinkedinPlanResponse = LinkedinPlan;
 export type VidaLaboralResponse = VidaLaboralReport;
 
 /** `POST /reviews/{name}/archive`: apartar la revisión a revisiones-archivadas/ o devolverla a la vista. */
+/** `POST /users`: crear un usuario del espacio de trabajo (T-9.32). */
+export const UserCreateSchema = z.object({
+  id: z.string(),
+  /** Sin dataset de ejemplo: el usuario nace vacío. */
+  empty: z.boolean().optional(),
+  /** Traslada al usuario nuevo lo que ya hay en la raíz del espacio de trabajo. */
+  adopt: z.boolean().optional(),
+});
+export type UserCreateRequest = z.infer<typeof UserCreateSchema>;
+
 export const ReviewArchiveSchema = z.object({
   archived: z.boolean(),
 });
@@ -648,6 +658,36 @@ export interface ReviewWriteResponse {
 export interface ReviewDeleteResponse {
   readonly deleted: string;
 }
+export interface UserSummaryPayload {
+  readonly id: string;
+  readonly root: string;
+  readonly sources: boolean;
+  readonly name: string | undefined;
+}
+
+export interface UsersResponse {
+  /** La raíz del espacio de trabajo: de ella cuelga `usuarios/`. */
+  readonly root: string;
+  readonly users: readonly UserSummaryPayload[];
+  /** El usuario de esta petición (cabecera `x-cv-user`); ausente = se trabaja sobre la raíz. */
+  readonly current: string | undefined;
+  /** `cv serve --user <id>`: el servidor está fijado y el selector no debe ofrecer nada más. */
+  readonly pinned: string | undefined;
+  /** La raíz tiene fuentes propias: es un espacio de trabajo clásico y se puede trabajar sin elegir usuario. */
+  readonly rootUsable: boolean;
+}
+
+export interface UserCreateResponse {
+  readonly id: string;
+  readonly root: string;
+  readonly adopted: readonly string[];
+}
+
+export interface UserRemoveResponse {
+  readonly id: string;
+  readonly backup: string;
+}
+
 export interface ReviewArchiveResponse {
   readonly name: string;
   readonly archived: boolean;

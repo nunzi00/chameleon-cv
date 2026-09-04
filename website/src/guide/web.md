@@ -29,6 +29,16 @@ de trabajo y cuatro chips que responden sin navegar: si el artefacto está al d�
 responde y si el servidor permite remotos; a la derecha, el conmutador de tema (claro, oscuro o el del sistema, sin
 destello al cargar) y **Apagar**, que detiene `cv serve` tras confirmar.
 
+## Usuarios
+
+Si el espacio de trabajo tiene [usuarios](/guide/users), la cabecera trae un **selector** con quiénes son y un
+botón **Usuario** para crear otro. El selector solo aparece cuando hay a quién elegir; el botón está siempre,
+también en un espacio que todavía no tiene ninguno. La elección se recuerda en ese navegador y todo lo que ves
+—fuentes, salidas, revisiones, historial— es de esa persona.
+
+Con `cv serve --user <id>` el servidor queda fijado: el selector desaparece y la cabecera solo enseña de quién
+es la sesión. **Un usuario no es una cuenta**: quien tenga esta URL y su token puede abrir cualquiera de ellos.
+
 ## Seis organizaciones y cinco paletas, un click
 
 La misma aplicación en cuatro formas distintas, no cuatro paletas. El conmutador **Organización** está en la
@@ -141,7 +151,7 @@ empleo» que usa Duplicados.
 
 ## Qué escribe la interfaz y qué no
 
-Escribe **solo cuando pulsas un botón con nombre**: Guardar y Eliminar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema e Instalar tema (`themes/<nombre>/`), Lanzar (una revisión en `output/` al terminar un trabajo de mejorar o resumir), Guardar marcas (el fichero de la revisión), Escribir en las fuentes (tus fuentes, con la versión anterior en el histórico, tras confirmar), Archivar y Desarchivar (mueven el fichero de la revisión), Deshacer la aplicación (tus fuentes, tras confirmar) y Eliminar (una revisión). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.
+Escribe **solo cuando pulsas un botón con nombre**: Crear (un usuario, en `usuarios/<id>/`), Guardar y Eliminar (una fuente), Compilar (el artefacto), Generar CV (un fichero en `output/`), Crear tema e Instalar tema (`themes/<nombre>/`), Lanzar (una revisión en `output/` al terminar un trabajo de mejorar o resumir), Guardar marcas (el fichero de la revisión), Escribir en las fuentes (tus fuentes, con la versión anterior en el histórico, tras confirmar), Archivar y Desarchivar (mueven el fichero de la revisión), Deshacer la aplicación (tus fuentes, tras confirmar) y Eliminar (una revisión). Nunca escribe por su cuenta ni al cerrar. Todo lo demás es lectura. El servidor comprueba cada escritura de fuentes con la huella del fichero, exactamente como la API.
 
 ## Seguridad
 

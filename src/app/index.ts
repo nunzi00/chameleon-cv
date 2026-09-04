@@ -32,5 +32,6 @@ export * from './sources';
 export * from './tailor';
 export * from './text';
 export * from './themes';
+export * from './users';
 export * from './vida-laboral';
 export * from './workspace';

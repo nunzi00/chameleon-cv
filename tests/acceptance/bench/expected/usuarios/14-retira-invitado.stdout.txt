@@ -1,0 +1,2 @@
+Usuario «invitado1» retirado: su espacio queda entero en <WS>/usuarios/invitado1.<STAMP>.bak
+Para deshacerlo, renómbralo de vuelta a <WS>/usuarios/invitado1

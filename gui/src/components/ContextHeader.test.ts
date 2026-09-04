@@ -104,3 +104,70 @@ describe('ContextHeader', () => {
     expect(screen.queryByRole('button', { name: /Pantallas/ })).toBeNull();
   });
 });
+
+describe('ContextHeader: usuarios del espacio de trabajo (T-9.32)', () => {
+  const BASE = { context: undefined, theme: 'system' as const, onthemechange: vi.fn(), onshutdown: vi.fn(), layout: 'barra' as const, onlayoutchange: vi.fn(), palette: 'pizarra' as const, onpalettechange: vi.fn() };
+  const USERS = [
+    { id: 'lucas', root: '/work/usuarios/lucas', sources: true, name: 'Lucas Nunzi' },
+    { id: 'invitado1', root: '/work/usuarios/invitado1', sources: true, name: undefined },
+  ];
+
+  it('sin usuarios no hay selector, pero sí el botón de crear el primero', () => {
+    render(ContextHeader, { props: { ...BASE } });
+    expect(screen.queryByLabelText('Usuario')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Usuario' })).toBeTruthy();
+  });
+
+  it('lista a cada uno por su nombre compilado y por su id cuando todavía no lo tiene', () => {
+    render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas' } });
+    const select = screen.getByLabelText('Usuario') as HTMLSelectElement;
+    expect([...select.options].map((option) => option.textContent)).toEqual(['Espacio de trabajo', 'Lucas Nunzi', 'invitado1']);
+    expect(select.value).toBe('lucas');
+  });
+
+  it('con la raíz inservible desaparece su opción: no se puede trabajar sin elegir a alguien', () => {
+    render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas', rootUsable: false } });
+    expect([...(screen.getByLabelText('Usuario') as HTMLSelectElement).options].map((option) => option.value)).toEqual(['lucas', 'invitado1']);
+  });
+
+  it('elegir avisa con el usuario, y volver al espacio de trabajo avisa con «ninguno»', async () => {
+    const onuserchange = vi.fn();
+    render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas', onuserchange } });
+    const select = screen.getByLabelText('Usuario');
+    await fireEvent.change(select, { target: { value: 'invitado1' } });
+    expect(onuserchange).toHaveBeenCalledWith('invitado1');
+    await fireEvent.change(select, { target: { value: '' } });
+    expect(onuserchange).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it('crear pide un identificador, rechaza los imposibles sin salir a la red y enseña el error del servidor', async () => {
+    const onusercreate = vi.fn(() => Promise.reject(new Error('Ya existe el usuario «invitado1»')));
+    render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas', onusercreate } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Usuario' }));
+    const input = screen.getByLabelText('Identificador');
+    await fireEvent.input(input, { target: { value: 'NO VALE' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+    expect(onusercreate).not.toHaveBeenCalled();
+    expect(screen.getByText('Minúsculas, dígitos y guiones, sin empezar ni terminar en guión.')).toBeTruthy();
+    await fireEvent.input(input, { target: { value: 'invitado1' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+    expect(onusercreate).toHaveBeenCalledWith('invitado1');
+    expect(await screen.findByText('Ya existe el usuario «invitado1»')).toBeTruthy();
+  });
+
+  it('crear con éxito cierra el diálogo', async () => {
+    const onusercreate = vi.fn(() => Promise.resolve());
+    render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas', onusercreate } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Usuario' }));
+    await fireEvent.input(screen.getByLabelText('Identificador'), { target: { value: 'invitado2' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+    expect(onusercreate).toHaveBeenCalledWith('invitado2');
+    expect(screen.queryByLabelText('Identificador')).toBeNull();
+  });
+
+  it('con el servidor fijado no hay selector, solo el nombre de quien manda', () => {
+    render(ContextHeader, { props: { ...BASE, users: USERS, user: 'invitado1', pinnedUser: 'invitado1' } });
+    expect(screen.queryByLabelText('Usuario')).toBeNull();
+    expect(screen.getByTitle('El servidor se arrancó con --user: no se puede cambiar de usuario desde aquí').textContent).toContain('invitado1');
+  });
+});

@@ -2,6 +2,21 @@
 
 Todos los cambios notables de Chameleon CV se documentan aquí. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, el [Versionado Semántico](https://semver.org/lang/es/). La sección de cada versión es la fuente de las notas de su release en GitHub: el flujo de release la extrae con `npm run release:notes -- <versión>` y se detiene si no existe, no lleva fecha o está vacía.
 
+## [1.26.0] - 2026-09-04
+
+### Añadido
+
+- **Varias personas en un mismo espacio de trabajo** (T-9.32, encargo del PO: «quiero que la misma aplicación pueda tener usuarios, por ejemplo en chameleon-cv-lucas quiero tener el usuario lucas, el usuario invitado1…»). Un usuario **es un espacio de trabajo dentro del espacio de trabajo** (`usuarios/<id>/`), con sus fuentes, su artefacto, sus salidas, su historial, sus borradores, sus ofertas y sus revisiones. Y esa frase es la funcionalidad entera: todo el producto resuelve sus rutas contra una raíz, así que cambiar de usuario es cambiar esa raíz y nada más. Se elige con `cv --user <id> <orden>` o `CHAMELEON_USER`, con la cabecera `x-cv-user` en la API y con un **selector en la cabecera** de la web. `cv users list|create|path|remove` los gestiona, y `cv serve --user <id>` fija el servidor a una persona para prestarle la web a alguien.
+- **Convertir lo que ya tienes en el primer usuario**: `cv users create lucas --adopt` **traslada** `data`, `output`, `import`, `offers` y `revisiones` de la raíz al usuario nuevo con un renombrado por directorio —ni un byte se reescribe— y deja `cv.toml` y `themes/` en la raíz, porque son del espacio de trabajo y se comparten. Nada se migra solo: es una orden que das tú. Y `cv users remove` **no borra**: aparta el espacio entero a `usuarios/<id>.<marca>.bak`.
+- **Un `cv.toml` por usuario**, que hereda del de la raíz **clave a clave**: cuatro líneas bastan para que una persona tenga otro tema por defecto sin quedarse sin proveedor de modelos. Los ajustes del co-piloto y del servidor se siguen escribiendo en el de la raíz, también desde Ajustes: configuran la máquina, no a una persona.
+- Guía nueva, en castellano y en inglés: **«Varias personas, un espacio de trabajo»**, con el diseño completo en `docs/usuarios.md`.
+
+### Cambiado
+
+- **Un usuario NO es una cuenta, y el producto lo dice en todas partes.** Es una frontera de **organización**, no de seguridad: no hay contraseñas, quien tiene el token de `cv serve` puede abrir cualquiera de los usuarios y quien tiene una terminal los lee con `cat`. Ponerlas sobre unos ficheros que el propio usuario del sistema operativo lee sin pedir permiso daría un aislamiento **falso**, que es peor que ninguno; la frontera real ya existe y es la del sistema operativo. El modelo de amenazas de `docs/api-headless.md` §6 lleva la fila nueva, y su control es «ninguno, a propósito». Lo que sí se controla es el **identificador**: minúsculas, dígitos y guiones, para que no pueda salir de `usuarios/`.
+- **Trabajar sobre la raíz habiendo usuarios ya no es silencioso**: si la raíz conserva sus fuentes se usa —siempre fue un espacio de trabajo válido— pero se avisa; si ya no las tiene, la orden se para y enumera los usuarios, en vez de un «no hay fuentes» que no explicaría nada. **No hay un «usuario activo» guardado en el disco**: en la terminal siempre es explícito.
+- `cv init` escribe **cuatro** entradas en el `.gitignore` (`usuarios/*/data/dist/` y `usuarios/*/output/` además de las dos de siempre), pero a un `.gitignore` que ya existía se le siguen exigiendo solo las dos de la raíz: avisar de las de usuarios a quien no tiene ninguno sería ruido.
+
 ## [1.25.0] - 2026-09-04
 
 ### Cambiado

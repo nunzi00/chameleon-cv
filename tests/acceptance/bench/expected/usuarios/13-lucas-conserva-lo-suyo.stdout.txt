@@ -1,0 +1,1 @@
+Dataset válido: 18 ficheros en <WS>/usuarios/lucas/data/sources (4 especialidades, 5 experiencias, 3 proyectos, 2 formaciones, 16 skills, 4 certificaciones, 4 logros transversales, 3 idiomas)

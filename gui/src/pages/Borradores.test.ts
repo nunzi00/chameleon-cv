@@ -49,6 +49,9 @@ const DRAFTS: DraftsResponse = {
 
 function fakeApi(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    users: vi.fn(),
+    createUser: vi.fn(),
+    removeUser: vi.fn(),
     status: vi.fn(), validate: vi.fn(), build: vi.fn(), profile: vi.fn(), sources: vi.fn(), source: vi.fn(), writeSource: vi.fn(), deleteSourcePlan: vi.fn(), deleteSource: vi.fn(), generate: vi.fn(), analyze: vi.fn(), saveAliases: vi.fn(), applyTags: vi.fn(), rankOffers: vi.fn(), importFolder: vi.fn(), cvFolders: vi.fn(), linkedinPlan: vi.fn(), vidaLaboral: vi.fn(), extractOffer: vi.fn(), themes: vi.fn(), createTheme: vi.fn(), installTheme: vi.fn(), verifyTheme: vi.fn(), exportProfile: vi.fn(), importProfile: vi.fn(), llmConfig: vi.fn(), writeLlmConfig: vi.fn(), checkLlm: vi.fn(), offerHistory: vi.fn(), shutdown: vi.fn(), llmRuntime: vi.fn(), llmModels: vi.fn(), llmRuntimeAction: vi.fn(), sourceHistory: vi.fn(), sourceVersion: vi.fn(), restoreSourceVersion: vi.fn(), writeServeConfig: vi.fn(), reviews: vi.fn(), review: vi.fn(), writeReview: vi.fn(), deleteReview: vi.fn(), archiveReview: vi.fn(), undoReview: vi.fn(), applyReview: vi.fn(), jobs: vi.fn(), job: vi.fn(), cancelJob: vi.fn(), outputs: vi.fn(), output: vi.fn(), offers: vi.fn(), offerFetch: vi.fn(), offerSave: vi.fn(), setLlmKey: vi.fn(), removeLlmKey: vi.fn(), applyImportProposal: vi.fn(), importLinkedIn: vi.fn(), importManfred: vi.fn(), importCv: vi.fn(), startJob: vi.fn(), jobEvents: vi.fn(), duplicates: vi.fn(), resolveDuplicate: vi.fn(),
     drafts: vi.fn(async () => DRAFTS),
     draftFiles: vi.fn(async () => ({ name: 'cv-lucas', entries: [{ path: 'README.md', bytes: 900, mtimeMs: 0, sha256: 'a'.repeat(64) }, { path: 'experience/acme.md', bytes: 120, mtimeMs: 0, sha256: 'b'.repeat(64) }] })),

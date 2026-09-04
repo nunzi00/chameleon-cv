@@ -15,6 +15,8 @@
   import { applyTheme, readTheme, storeTheme, type ThemeMode } from './lib/theme';
   import { applyUiLayout, navShapeOf, readUiLayout, storeUiLayout, type UiLayout } from './lib/ui-layout';
   import { applyPalette, readPalette, storePalette, type Palette } from './lib/palette';
+  import { readUser, resolveUser, storeUser } from './lib/users';
+  import type { UserSummaryPayload } from './lib/api/types';
 
   interface Props {
     /** Solo para las pruebas: un `fetch` distinto del global. */
@@ -39,7 +41,15 @@
   const navShape = $derived(navShapeOf(layout));
   let stopped = $state(false);
   let gateReason = $state<'expired' | undefined>(undefined);
-  const api = createApiClient({ fetch: (input, init) => fetchImpl(input, init), token: () => token });
+  /**
+   * El usuario del espacio de trabajo (T-9.32): viaja en la cabecera de cada petición, así que el cliente
+   * lo lee del estado en cada llamada y cambiar de usuario cambia de datos sin recrear nada.
+   */
+  let user = $state<string | undefined>(undefined);
+  let users = $state<readonly UserSummaryPayload[]>([]);
+  let pinnedUser = $state<string | undefined>(undefined);
+  let rootUsable = $state(true);
+  const api = createApiClient({ fetch: (input, init) => fetchImpl(input, init), token: () => token, user: () => user });
 
   function navigate(target: Route): void {
     location.hash = formatRoute(target);
@@ -50,6 +60,38 @@
     token = undefined;
     context = undefined;
     gateReason = 'expired';
+  }
+
+  /**
+   * Quién hay y con quién se trabaja. Va ANTES que el contexto: si el espacio de trabajo tiene usuarios y
+   * la raíz ya no tiene fuentes, pedir el estado sin usuario solo daría una pantalla vacía.
+   */
+  async function refreshUsers(): Promise<void> {
+    try {
+      const listed = await api.users();
+      users = listed.users;
+      pinnedUser = listed.pinned;
+      rootUsable = listed.rootUsable;
+      user = resolveUser({ stored: readUser(preferences), known: listed.users.map((entry) => entry.id), pinned: listed.pinned, rootUsable: listed.rootUsable });
+    } catch (caught) {
+      if (explainError(caught).kind === 'session') {
+        sessionLost();
+      }
+    }
+  }
+
+  /** Cambiar de usuario: se recuerda y se vuelve a pedir todo, porque todo lo que se ve es de esa persona. */
+  function changeUser(id: string | undefined): void {
+    user = id;
+    storeUser(preferences, id);
+    context = undefined;
+    void refreshContext();
+  }
+
+  async function createUser(id: string): Promise<void> {
+    await api.createUser({ id });
+    await refreshUsers();
+    changeUser(id);
   }
 
   /** Una sola consulta alimenta los chips de la cabecera y el contador de revisiones en todas las pantallas. */
@@ -107,10 +149,15 @@
     }
   }
 
+  async function load(): Promise<void> {
+    await refreshUsers();
+    await refreshContext();
+  }
+
   function enter(value: string): void {
     token = rememberToken(sessionStorage, value);
     gateReason = undefined;
-    void refreshContext();
+    void load();
   }
 
   onMount(() => {
@@ -123,7 +170,7 @@
     }
     route = parseRoute(location.hash);
     if (token !== undefined) {
-      void refreshContext();
+      void load();
     }
     const onHashChange = (): void => {
       const next = parseRoute(location.hash);
@@ -160,6 +207,12 @@
         launcher={navShape === 'launcher'}
         {launcherOpen}
         onlaunchertoggle={() => (launcherOpen = !launcherOpen)}
+        {users}
+        {user}
+        {pinnedUser}
+        {rootUsable}
+        onuserchange={changeUser}
+        onusercreate={createUser}
       />
       {#if navShape === 'ribbon' || navShape === 'tabs'}
         <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape={navShape} />

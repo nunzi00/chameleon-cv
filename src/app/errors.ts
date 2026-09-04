@@ -32,6 +32,11 @@ export function conflictError(message: string, exitCode: ExitCode = 1): AppError
   return { code: 'conflict', message, exitCode };
 }
 
+/** Falta algo que solo puede decidir quien llama (p. ej. con qué usuario se trabaja); no son datos malos. */
+export function usageError(message: string, lines?: readonly string[]): AppError {
+  return { code: 'usage', message, lines, exitCode: 2 };
+}
+
 export function unsafePathError(message: string): AppError {
   return { code: 'unsafe-path', message, exitCode: 2 };
 }

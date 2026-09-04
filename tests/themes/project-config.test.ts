@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { FileSystem } from '../../src/parsers';
-import { PROJECT_CONFIG_FILE, applyThemeOverrides, builtinThemeRoot, loadProjectConfig, loadTheme, overriddenKeys, parseProjectConfig } from '../../src/themes';
+import { PROJECT_CONFIG_FILE, applyThemeOverrides, builtinThemeRoot, loadProjectConfig, loadTheme, mergeConfigValues, mergeProjectConfig, overriddenKeys, parseProjectConfig } from '../../src/themes';
 import { MemoryFileSystem } from '../helpers/memory-file-system';
 
 describe('cv.toml (T-5.2): anulaciones con el vocabulario de theme.toml', () => {
@@ -54,5 +54,36 @@ describe('cv.toml (T-5.2): anulaciones con el vocabulario de theme.toml', () => 
     const failing: FileSystem = { readDirectory: (path) => base.readDirectory(path), stat: (path) => base.stat(path), realPath: (path) => base.realPath(path), readBinaryFile: (path) => base.readBinaryFile(path), readTextFile: () => Promise.reject(new Error('EIO')) };
     expect(await loadProjectConfig('/work', failing)).toEqual({ ok: false, path: '/work/cv.toml', message: 'No se pudo leer /work/cv.toml: EIO' });
     expect(PROJECT_CONFIG_FILE).toBe('cv.toml');
+  });
+});
+
+describe('cascada de cv.toml con usuarios (T-9.32)', () => {
+  const ROOT = '[llm]\nprovider = "ollama"\nmodel = "qwen3:8b"\n\n[theme]\nname = "default"\n\n[theme.colors]\nprimary = "#111111"\n';
+
+  it('el del usuario anula CLAVE A CLAVE, no el fichero entero', async () => {
+    const fs = new MemoryFileSystem({ '/work/cv.toml': ROOT, '/work/usuarios/lucas/cv.toml': '[theme]\nname = "cinta"\n' });
+    const loaded = await loadProjectConfig('/work/usuarios/lucas', fs, '/work');
+    // El tema cambia; el proveedor de modelos y el color de la raíz siguen ahí.
+    expect(loaded).toMatchObject({ ok: true, path: '/work/usuarios/lucas/cv.toml', config: { theme: { name: 'cinta', colors: { primary: '#111111' } }, llm: { provider: 'ollama', model: 'qwen3:8b' } } });
+  });
+
+  it('sin cv.toml propio se hereda el de la raíz entero, y sin el de la raíz manda el propio', async () => {
+    const fs = new MemoryFileSystem({ '/work/cv.toml': ROOT, '/work/usuarios/ada/otro.txt': 'x', '/work/usuarios/eva/cv.toml': '[theme]\nname = "foco"\n' });
+    expect(await loadProjectConfig('/work/usuarios/ada', fs, '/work')).toMatchObject({ config: { llm: { provider: 'ollama' } } });
+    expect(await loadProjectConfig('/work/usuarios/eva', new MemoryFileSystem({ '/work/usuarios/eva/cv.toml': '[theme]\nname = "foco"\n' }), '/work')).toMatchObject({ config: { theme: { name: 'foco' } } });
+  });
+
+  it('una raíz compartida igual que la propia no se lee dos veces, y un cv.toml roto en la raíz se explica', async () => {
+    const fs = new MemoryFileSystem({ '/work/cv.toml': ROOT });
+    expect(await loadProjectConfig('/work', fs, '/work')).toMatchObject({ ok: true, config: { theme: { name: 'default' } } });
+    const roto = new MemoryFileSystem({ '/work/cv.toml': '[theme]\nname = "MAYÚSCULAS"\n', '/work/usuarios/lucas/cv.toml': '[theme]\nname = "cinta"\n' });
+    expect(await loadProjectConfig('/work/usuarios/lucas', roto, '/work')).toMatchObject({ ok: false, path: '/work/cv.toml' });
+  });
+
+  it('mergeConfigValues fusiona en profundidad y una lista sustituye, no se concatena', () => {
+    expect(mergeConfigValues({ a: { b: 1, c: 2 }, d: [1, 2] }, { a: { c: 3 }, d: [9] })).toEqual({ a: { b: 1, c: 3 }, d: [9] });
+    expect(mergeProjectConfig(undefined, { theme: { name: 'foco' } })).toEqual({ theme: { name: 'foco' } });
+    expect(mergeProjectConfig({ theme: { name: 'foco' } }, undefined)).toEqual({ theme: { name: 'foco' } });
+    expect(mergeProjectConfig(undefined, undefined)).toBeUndefined();
   });
 });

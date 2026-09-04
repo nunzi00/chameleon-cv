@@ -4,6 +4,10 @@
  * servidor convertida en `ApiError`. Sin caché ni estado: la verdad está en el servidor.
  */
 import type {
+  UsersResponse,
+  UserCreateRequest,
+  UserCreateResponse,
+  UserRemoveResponse,
   CvFoldersResponse,
   DuplicatesResponse,
   DuplicatesResolveRequest,
@@ -129,10 +133,16 @@ export interface ApiClientOptions {
   readonly fetch: typeof fetch;
   /** El token de sesión vigente; sin él las peticiones salen sin cabecera y el servidor responde 401. */
   readonly token: () => string | undefined;
+  /** El usuario con el que se trabaja (T-9.32); sin él, el servidor usa la raíz del espacio de trabajo. */
+  readonly user?: (() => string | undefined) | undefined;
   readonly base?: string | undefined;
 }
 
 export interface ApiClient {
+  /** Los usuarios del espacio de trabajo (T-9.32). */
+  users(): Promise<UsersResponse>;
+  createUser(request: UserCreateRequest): Promise<UserCreateResponse>;
+  removeUser(id: string): Promise<UserRemoveResponse>;
   status(): Promise<StatusResponse>;
   validate(): Promise<ValidateResponse>;
   build(): Promise<BuildResponse>;
@@ -309,6 +319,10 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     if (token !== undefined) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    const user = options.user?.();
+    if (user !== undefined && user !== '') {
+      headers['x-cv-user'] = user;
+    }
     if (init.contentType !== undefined) {
       headers['Content-Type'] = init.contentType;
     }
@@ -331,8 +345,11 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
    * dato viejo: lo único que se ahorra es la petición duplicada.
    */
   const inFlight = new Map<string, Promise<unknown>>();
+  /** La clave lleva el usuario (T-9.32): dos peticiones a la misma ruta con distinto usuario NO son la misma. */
+  const keyOf = (path: string): string => `${options.user?.() ?? ''}\n${path}`;
   async function request<T>(method: Method, path: string, init: RequestInit = {}): Promise<T> {
-    const shared = method === 'GET' && init.headers === undefined ? inFlight.get(path) : undefined;
+    const key = keyOf(path);
+    const shared = method === 'GET' && init.headers === undefined ? inFlight.get(key) : undefined;
     if (shared !== undefined) {
       return (await shared) as T;
     }
@@ -344,15 +361,18 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     if (method !== 'GET' || init.headers !== undefined) {
       return run;
     }
-    inFlight.set(path, run);
+    inFlight.set(key, run);
     try {
       return await run;
     } finally {
-      inFlight.delete(path);
+      inFlight.delete(key);
     }
   }
   const requestWithHeaders = <T>(method: Method, path: string, body: unknown, headers: Readonly<Record<string, string>>): Promise<T> => request<T>(method, path, { body, headers });
   return {
+    users: () => request('GET', '/users'),
+    createUser: (body) => request('POST', '/users', { body }),
+    removeUser: (id) => request('DELETE', `/users/${encodeId(id)}`),
     status: () => request('GET', '/status'),
     validate: () => request('POST', '/validate', { body: {} }),
     build: () => request('POST', '/build', { body: {} }),

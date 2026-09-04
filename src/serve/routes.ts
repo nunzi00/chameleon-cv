@@ -46,11 +46,14 @@ import { DraftsAdoptSchema, DuplicatesResolveSchema, type DraftFilesResponse, ty
 import { REMOTE_PROVIDERS, outputTokensFloorFor } from '../llm/registry';
 import type { LlmProvider } from '../llm/provider';
 import { inspectWorkspace, type WorkspaceStatus } from '../app/workspace';
+import { contextForWorkspace, createUser, listUsers, removeUser, resolveUser, seedUserSources } from '../app/users';
+import { backupDirectory } from '../app/portability';
 import { isMissingFile } from '../artifact';
 import { IMPROVE_LIMITS, SUGGEST_TAGS_LIMITS, SUMMARIZE_LIMITS, formatCostWarning, formatTagLine, type CostEstimate } from '../llm';
 import { DEFAULT_PDF_LIMITS } from '../pdf';
 import { ODT_MIMETYPE } from '../renderers';
 import { describeError } from '../shared/errors';
+import { UserCreateSchema, type UserCreateResponse, type UserRemoveResponse, type UsersResponse } from './contract';
 import { type CvFoldersResponse, AliasesSchema, type AliasesResponse, TagsApplySchema, type TagsApplyResponse, RankSchema, type RankResponse, ImportFolderSchema, type ImportFolderResponse, AnalyzeSchema, type LlmModelsResponse, ApplySchema, LinkedinPlanSchema, type LinkedinPlanResponse, type VidaLaboralResponse, ReviewArchiveSchema, type ReviewArchiveResponse, type ReviewUndoResponse, EmptySchema, GenerateSchema, ImportSchema, ImproveJobSchema, OUTPUT_NAME, OfferSchema, SourceWriteSchema, SuggestTagsJobSchema, SummarizeJobSchema, ThemeCreateSchema, ThemeInstallSchema, type AnalyzeResponse, type ApplyResponse, type BuildResponse, type ExtractResponse, type GenerateResponse, type JobCreatedResponse, type JobResponse, type JobsResponse, type OutputListResponse, type ProfileResponse, type ReviewDeleteResponse, type ReviewResponse, type ReviewWriteResponse, type ReviewsResponse, type ShutdownResponse, type SourceResponse, type SourceWriteResponse, type SourceDeleteResponse, type SourcesResponse, type StatusResponse, type ThemeCreateResponse, type ThemeInstallResponse, type ThemesResponse, type ValidateResponse, type ExportResponse, type ImportResponse, LlmCheckSchema, LlmRuntimeActionSchema, HistoryVersionSchema, LlmSettingsSchema, ServeSettingsSchema, ImportMapJobSchema, type ImportMapJobResult, ImportApplySchema, type ImportApplyResponse, LlmKeySchema, type LlmKeyResponse, type ServeConfigWriteResponse, type LlmCheckResponse, type LlmRuntimeDownResponse, type SourceHistoryResponse, type SourceRestoreResponse, type SourceVersionResponse, type LlmRuntimeResponse, type LlmConfigResponse, type LlmConfigWriteResponse, HistoryLookupSchema, type HistoryLookupResponse, type ImportCvResponse, OfferFetchSchema, OfferSaveSchema, type OffersListResponse, type OfferFetchResponse, type OfferSaveResponse } from './contract';
 import type { ConsentKind, ConsentStore } from './consent';
 import { appErrorResponse, errorResponse, json, parseJsonBody, headerValue } from './http';
@@ -59,6 +62,12 @@ import { Router, type RouteRequest, type RouteResponse } from './router';
 
 export interface ServerState {
   readonly context: AppContext;
+  /** La raíz del espacio de trabajo: de ella cuelgan `usuarios/`, el `cv.toml` compartido y `themes/` (T-9.32). */
+  readonly root: string;
+  /** `cv serve --user <id>`: el servidor está fijado a ese usuario y ninguna petición puede pedir otro. */
+  readonly pinnedUser: string | undefined;
+  /** El usuario de ESTA petición (cabecera `x-cv-user`); `undefined` = la raíz del espacio de trabajo. */
+  readonly user?: string | undefined;
   readonly data: string;
   readonly profile: string;
   readonly version: string;
@@ -71,6 +80,31 @@ export interface ServerState {
 }
 
 export const API_PREFIX = '/api/v1';
+
+/** La cabecera con la que cada petición dice con qué usuario trabaja (T-9.32). */
+export const USER_HEADER = 'x-cv-user';
+
+export type ScopedState = { readonly state: ServerState } | { readonly error: AppError };
+
+/**
+ * El estado de una petición, con la raíz del usuario que pide la cabecera. Sin cabecera se trabaja sobre
+ * la raíz del espacio de trabajo, como siempre: `GET /users` tiene que responder aunque todavía no se haya
+ * elegido a nadie. Con el servidor fijado (`cv serve --user`), pedir otro usuario es un error, no un cambio.
+ */
+export async function scopedState(state: ServerState, requested: string | undefined): Promise<ScopedState> {
+  const id = requested === undefined || requested.trim() === '' ? undefined : requested.trim();
+  if (state.pinnedUser !== undefined) {
+    return id === undefined || id === state.pinnedUser
+      ? { state: { ...state, user: state.pinnedUser } }
+      : { error: conflictError(`Este servidor está fijado al usuario «${state.pinnedUser}»: arranca otro «cv serve» para trabajar con «${id}»`, 2) };
+  }
+  if (id === undefined) {
+    return { state: { ...state, user: undefined } };
+  }
+  const base = { ...state.context, cwd: state.root };
+  const resolved = await resolveUser(base, id);
+  return 'error' in resolved ? resolved : { state: { ...state, user: id, context: contextForWorkspace(state.context, resolved.root, state.root) } };
+}
 const OUTPUT_DIR = 'output';
 
 type WorkspaceFileResult = { readonly ok: true; readonly path: string } | { readonly ok: false; readonly error: AppError };
@@ -185,6 +219,7 @@ function costConsent(state: ServerState, kind: ConsentKind, provider: LlmProvide
 export function createRouter(): Router<ServerState> {
   const router = new Router<ServerState>();
   addWorkspaceRoutes(router);
+  addUserRoutes(router);
   addAliasRoutes(router);
   addConfigRoutes(router);
   addHistoryRoutes(router);
@@ -197,6 +232,68 @@ export function createRouter(): Router<ServerState> {
   addServerRoutes(router);
   addCopilotRoutes(router);
   return router;
+}
+
+/**
+ * Los usuarios del espacio de trabajo (T-9.32). Estas tres rutas son las ÚNICAS que trabajan siempre
+ * sobre la raíz: gestionan los espacios, no el contenido de ninguno.
+ */
+function addUserRoutes(router: Router<ServerState>): void {
+  router.add({
+    method: 'GET',
+    path: `${API_PREFIX}/users`,
+    summary: 'Los usuarios del espacio de trabajo, con quién es el de esta petición y si el servidor está fijado a uno.',
+    writes: false,
+    handler: async (_request, state) => {
+      const base = { ...state.context, cwd: state.root };
+      const users = await listUsers(base);
+      const rootUsable = await hasSources(base, state.data);
+      return json(200, { root: state.root, users, current: state.user, pinned: state.pinnedUser, rootUsable } satisfies UsersResponse);
+    },
+  });
+
+  router.add({
+    method: 'POST',
+    path: `${API_PREFIX}/users`,
+    summary: 'Crea usuarios/<id>/ y, salvo «empty», lo siembra con el dataset de ejemplo; «adopt» traslada al usuario lo que ya hay en la raíz.',
+    writes: true,
+    body: UserCreateSchema,
+    handler: async (request, state) => {
+      const parsed = parseJsonBody(request.body, UserCreateSchema);
+      if (!parsed.ok) {
+        return parsed.response;
+      }
+      const base = { ...state.context, cwd: state.root };
+      const created = await createUser(base, { id: parsed.value.id, adopt: parsed.value.adopt === true });
+      if ('error' in created) {
+        return appErrorResponse(created.error);
+      }
+      if (created.adopted.length === 0 && parsed.value.empty !== true) {
+        await seedUserSources(base, created.root);
+      }
+      return json(201, { id: created.id, root: created.root, adopted: created.adopted } satisfies UserCreateResponse);
+    },
+  });
+
+  router.add({
+    method: 'DELETE',
+    path: `${API_PREFIX}/users/{id}`,
+    summary: 'Retira un usuario: NO borra, renombra su espacio entero a usuarios/<id>.<marca>.bak.',
+    writes: true,
+    handler: async (request, state) => {
+      const removed = await removeUser({ ...state.context, cwd: state.root }, String(request.params['id']), backupDirectory);
+      return 'error' in removed ? appErrorResponse(removed.error) : json(200, removed satisfies UserRemoveResponse);
+    },
+  });
+}
+
+/** ¿La raíz tiene fuentes propias? Es lo que distingue un espacio clásico de uno que solo contiene usuarios. */
+async function hasSources(context: AppContext, data: string): Promise<boolean> {
+  try {
+    return (await context.datasetFileSystem.stat(resolve(context.cwd, data))).kind === 'directory';
+  } catch {
+    return false;
+  }
 }
 
 /** El espacio de trabajo: estado, fuentes, validación, compilación, perfil y portabilidad (exportar e importar). */

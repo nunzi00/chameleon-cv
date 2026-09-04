@@ -62,8 +62,13 @@ cv serve --host 0.0.0.0          # solo dentro de un contenedor cuyo puerto publ
 
 Prefijo `/api/v1`. JSON UTF-8; errores siempre `{ "error": { "code", "message", "details"? } }` con los códigos de `AppError`. Todas las rutas exigen `Authorization: Bearer <token>` (§6). Rutas que escriben en el espacio de trabajo marcadas con ✎.
 
+Desde T-9.32 toda ruta acepta la cabecera **`x-cv-user: <id>`**, que elige el usuario del espacio de trabajo (`usuarios/<id>/`) sobre el que se resuelve TODO: fuentes, artefacto, salidas, historial, borradores, ofertas y revisiones. La cabecera se resuelve **una vez por petición**, antes de llamar al manejador (`scopedState`), así que ninguna ruta sabe que los usuarios existen. Sin cabecera se trabaja sobre la raíz. Un identificador imposible es 400; uno que no existe, 404. Con `cv serve --user <id>` el servidor está fijado y pedir otro es 409. Detalle en `docs/usuarios.md`.
+
 | Método y ruta | Qué hace |
 |---|---|
+| `GET /users` | Los usuarios del espacio de trabajo (id, ruta, si tienen fuentes y su nombre compilado), cuál es el de esta petición, si el servidor está fijado y si la raíz sirve por sí sola. |
+| `POST /users` ✎ | Crea `usuarios/<id>/` y lo siembra con el dataset de ejemplo; `empty` para no sembrarlo, `adopt` para trasladar al usuario lo que ya hay en la raíz. Nunca pisa uno existente (409). |
+| `DELETE /users/{id}` ✎ | Retira un usuario: **no borra**, renombra su espacio entero a `usuarios/<id>.<marca>.bak` y devuelve la ruta. |
 | `GET /status` | Versión, espacio de trabajo, estado del artefacto (`current`/`missing`/`outdated`), especialidades, Typst (utilizable, versión), proveedor local (responde, modelo), temas disponibles y tema por defecto. Nunca sale a la red. |
 | `GET /sources` | Árbol de `data/sources`: ruta relativa, tipo, tamaño, fecha, `sha256`. |
 | `GET /sources/{path}` | Contenido de un fichero de fuentes con su `sha256` (`ETag`). |
@@ -106,6 +111,7 @@ Pasar de «sin red» a un servidor HTTP —aunque sea en loopback— cambia el m
 | Salida a proveedores remotos (C3, C11) | El servidor arranca con los proveedores remotos **desactivados** salvo `--allow-remote`; aun así, cada trabajo remoto pasa por el doble paso `consent-required` → estimación → reenvío con `consent: { estimateId }`. Nunca `--yes` implícito. |
 | Fuga de datos en registros | El servidor registra método, ruta, código y duración; nunca cuerpos, tokens ni contenido de fuentes. |
 | Agotamiento (PDF grandes, muchos trabajos) | Límites de cuerpo (1 MiB JSON, 10 MiB PDF), un trabajo del co-piloto en ejecución a la vez, tiempos máximos por petición; los del worker de PDF y de Typst se heredan. |
+| Un usuario del espacio de trabajo abriendo el de otro (T-9.32) | **Ninguno, a propósito.** Un usuario es una frontera de *organización*, no de seguridad: quien tiene el token los ve todos, y quien tiene una terminal los lee con `cat`. Poner contraseñas sobre ficheros que el usuario del sistema operativo ya puede leer daría un aislamiento falso. La frontera real sigue siendo la del sistema operativo: dos cuentas, dos directorios, dos `cv serve`. Lo que sí se controla es que el **identificador** no pueda salir de `usuarios/` (solo minúsculas, dígitos y guiones: ni punto, ni barra, ni `..`). |
 | Token en la barra de direcciones | El fragmento no se envía al servidor ni aparece en `Referer`; la GUI lo guarda en memoria (no en `localStorage`) y lo elimina de la URL al cargar. |
 
 `cv serve` nunca se arranca solo: es una orden explícita del usuario, como el resto.

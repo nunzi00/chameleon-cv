@@ -11,7 +11,10 @@ export async function builtinThemesRoot(context: Pick<AppContext, 'assets'>): Pr
   return builtinThemeRoot(new NodeFileSystem(), await context.assets.directory('themes'));
 }
 
-/** `themes/` del proyecto y después los distribuidos, resueltos por la capa de assets. */
-export async function projectThemeRoots(context: Pick<AppContext, 'cwd' | 'datasetFileSystem' | 'assets'>): Promise<ThemeRoot[]> {
-  return themeRoots(context.cwd, context.datasetFileSystem, await builtinThemesRoot(context));
+/**
+ * `themes/` del usuario, `themes/` del espacio de trabajo compartido y después los distribuidos,
+ * resueltos por la capa de assets. Con un usuario elegido son tres raíces; sin él, las dos de siempre.
+ */
+export async function projectThemeRoots(context: Pick<AppContext, 'cwd' | 'workspaceRoot' | 'datasetFileSystem' | 'assets'>): Promise<ThemeRoot[]> {
+  return themeRoots(context.cwd, context.datasetFileSystem, await builtinThemesRoot(context), context.workspaceRoot);
 }

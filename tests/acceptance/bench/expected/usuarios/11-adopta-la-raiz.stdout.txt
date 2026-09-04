@@ -1,0 +1,4 @@
+Usuario «lucas» creado en <WS>/usuarios/lucas
+Trasladado desde la raíz: data, offers
+Si versionas este espacio, añade a .gitignore: usuarios/*/data/dist/ y usuarios/*/output/
+Trabaja con él: cv --user lucas build

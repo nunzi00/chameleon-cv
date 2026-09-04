@@ -348,6 +348,33 @@ test('las paletas son un eje aparte del claro/oscuro y de la organización (T-9.
   await page.getByRole('banner').getByRole('group', { name: 'Organización de la interfaz' }).getByRole('button', { name: 'Barra' }).click();
 });
 
+test('los usuarios del espacio de trabajo se crean y se cambian desde la cabecera (T-9.32)', async ({ page }) => {
+  await openWithToken(page, state);
+  // Un espacio de una sola persona no enseña selector: no hay nada que elegir.
+  await expect(page.getByRole('banner').getByLabel('Usuario')).toHaveCount(0);
+
+  await page.getByRole('banner').getByRole('button', { name: 'Usuario' }).click();
+  await page.getByLabel('Identificador').fill('invitado1');
+  await page.getByRole('button', { name: 'Crear' }).click();
+
+  // Creado, la web pasa a trabajar como él: el selector aparece con el usuario elegido.
+  const selector = page.getByRole('banner').getByLabel('Usuario');
+  await expect(selector).toHaveValue('invitado1');
+  expect(existsSync(join(state.workspace, 'usuarios', 'invitado1', 'data', 'sources', 'profile.md'))).toBe(true);
+
+  // Y lo que se ve es SUYO: el dataset de ejemplo, no el del espacio de trabajo.
+  await page.getByRole('link', { name: 'Fuentes' }).click();
+  await expect(page.getByRole('button', { name: 'profile.md' })).toBeVisible();
+
+  // La elección sobrevive a la recarga; volver al espacio de trabajo también es un click.
+  await page.reload();
+  await expect(page.getByRole('banner').getByLabel('Usuario')).toHaveValue('invitado1');
+  expect(await page.evaluate(() => localStorage.getItem('cv.user'))).toBe('invitado1');
+  await page.getByRole('banner').getByLabel('Usuario').selectOption('');
+  await expect(page.getByRole('banner').getByLabel('Usuario')).toHaveValue('');
+  expect(await page.evaluate(() => localStorage.getItem('cv.user'))).toBeNull();
+});
+
 test('Apagar detiene el servidor tras confirmar (última prueba)', async ({ page }) => {
   await openWithToken(page, state);
   await page.getByRole('button', { name: 'Apagar cv serve' }).click();
