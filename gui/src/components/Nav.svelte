@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { NAV_GROUPS, PORTAL_LINKS } from '../lib/nav';
+  import { NAV_GROUPS, PORTAL_LINKS, groupOf } from '../lib/nav';
   import { formatRoute, type Route } from '../lib/router';
   import type { NavShape } from '../lib/ui-layout';
   import Icon from './Icon.svelte';
@@ -21,6 +21,8 @@
   let { route, reviews, collapsed, ontoggle, shape = 'sidebar', onnavigate }: Props = $props();
 
   const items = $derived(NAV_GROUPS.flatMap((group) => group.items));
+  /** Solo en «Pestañas»: el grupo de la pantalla en la que estás decide el segundo nivel. */
+  const current = $derived(groupOf(route.page));
 </script>
 
 {#if shape === 'sidebar'}
@@ -50,6 +52,44 @@
       <Icon name="sidebar" />
       <span>Plegar a iconos</span>
     </button>
+  </nav>
+{:else if shape === 'rail'}
+  <!-- Raíl: la misma barra reducida a iconos y sin plegado, porque plegar un raíl no significa nada. -->
+  <nav class="cv-nav cv-rail" aria-label="Pantallas">
+    <span class="cv-rail-brand" title="Chameleon CV"><Icon name="brand" size={20} /></span>
+    {#each items as item (item.page)}
+      <a class="cv-nav-item" href={formatRoute({ page: item.page })} title={item.label} aria-label={item.label} aria-current={route.page === item.page ? 'page' : undefined}>
+        <Icon name={item.icon} />
+        {#if item.page === 'revisiones' && reviews > 0}
+          <span class="cv-nav-count" aria-label="{reviews} pendientes">{reviews}</span>
+        {/if}
+      </a>
+    {/each}
+  </nav>
+{:else if shape === 'tabs'}
+  <!-- Pestañas: dos niveles. Arriba los grupos; debajo, solo las pantallas del grupo en el que estás. -->
+  <nav class="cv-tabs" aria-label="Pantallas">
+    <div class="cv-tabs-groups" role="tablist" aria-label="Grupos">
+      {#each NAV_GROUPS as group (group.label)}
+        <a
+          class="cv-tabs-group"
+          role="tab"
+          aria-selected={group.label === current.label}
+          href={formatRoute({ page: (group.items[0] ?? { page: 'estado' }).page })}
+          aria-current={group.label === current.label ? 'true' : undefined}>{group.label}</a>
+      {/each}
+    </div>
+    <div class="cv-tabs-items">
+      {#each current.items as item (item.page)}
+        <a class="cv-ribbon-item" href={formatRoute({ page: item.page })} title={item.label} aria-current={route.page === item.page ? 'page' : undefined}>
+          <Icon name={item.icon} size={15} />
+          <span>{item.label}</span>
+          {#if item.page === 'revisiones' && reviews > 0}
+            <span class="cv-nav-count" aria-label="{reviews} pendientes">{reviews}</span>
+          {/if}
+        </a>
+      {/each}
+    </div>
   </nav>
 {:else if shape === 'ribbon'}
   <!-- Cinta: las mismas pantallas en una fila, sin grupos ni portal, para que quepan y no roben altura. -->

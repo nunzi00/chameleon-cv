@@ -1,4 +1,4 @@
-# Organizaciones de la interfaz (T-9.29)
+# Organizaciones y paletas de la interfaz (T-9.29, T-9.30)
 
 ## §0 Encargo
 
@@ -12,18 +12,38 @@ contexto con chips, contenido a la derecha. El conmutador claro/oscuro cambiaba 
 ## §1 Qué es una «organización» aquí
 
 No es una paleta. Una organización cambia **dónde vive la navegación, cuánta cabecera hay y cuánto aire respira
-el contenido**, y con ello a qué invita la pantalla. Cuatro, y cada una responde a una forma distinta de usar el
+el contenido**, y con ello a qué invita la pantalla. Seis, y cada una responde a una forma distinta de usar el
 producto:
 
 | Organización | Navegación | Cabecera | Contenido | Para |
 | --- | --- | --- | --- | --- |
 | **Barra** (por defecto) | lateral permanente, con grupos | completa, con chips | fluido | trabajar muchas horas seguidas, saltando entre pantallas |
+| **Raíl** | lateral reducida a iconos, 56 px | completa | casi todo el ancho | el mejor aprovechamiento vertical: la navegación siempre visible por 56 px |
 | **Cinta** | fila superior, sin lateral | integrada y compacta | todo el ancho, más densidad | pantallas anchas y sesiones largas de una sola pantalla |
+| **Pestañas** | dos niveles arriba: grupos y, debajo, el grupo actual | integrada y compacta | todo el ancho | doce pantallas no caben en una fila con su nombre; por grupos, sí |
 | **Tablero** | ninguna permanente: mosaico bajo demanda | completa | en tarjetas, más aire y radios mayores | entrar, mirar el estado y hacer una cosa |
 | **Foco** | ninguna permanente: mosaico bajo demanda | mínima, sin chips | columna de 780 px, tipografía mayor | leer y escribir sin ruido |
 
 «Tablero» y «Foco» comparten la forma de navegación —un lanzador— y se distinguen en lo demás: uno es **ancho y
-con tarjetas**, el otro **estrecho y silencioso**.
+con tarjetas**, el otro **estrecho y silencioso**. Seis organizaciones con **cinco** formas de navegación
+(`sidebar`, `rail`, `ribbon`, `tabs`, `launcher`), no seis interfaces.
+
+**«Cinta» fue la que más gustó al PO por aprovechamiento del espacio (4-sep)**, y de ahí salieron «Raíl» y
+«Pestañas»: las tres atacan el mismo problema —que la navegación no se coma el ancho— por caminos distintos.
+«Raíl» lo resuelve estrechando, «Cinta» pasando a horizontal y «Pestañas» enseñando solo un grupo cada vez.
+
+## §1.5 Paletas (T-9.30)
+
+El **tercer eje**, y los tres son ortogonales a propósito: `data-theme` es la luz de la habitación,
+`data-ui` es cómo trabajas y `data-palette` es qué color quieres mirar. Cinco: **Pizarra** (la de siempre, azul
+frío), **Bosque**, **Ámbar**, **Índigo** y **Carbón** (monocroma).
+
+Cada paleta trae sus valores para claro **y** para oscuro, porque un acento que funciona sobre blanco casi nunca
+funciona sobre casi-negro. Y ninguna toca `--cv-surface` ni `--cv-text`: ahí vive el contraste verificado del
+texto, y teñirlo sería cambiar un color a costa de poder leer. Sí tiñen `--cv-bg`, que es superficie de fondo, y
+por eso **las ocho combinaciones (cuatro paletas × claro y oscuro) se comprueban en las pruebas leyendo la hoja
+de estilos**: acento sobre superficie, texto del acento sobre acento, y texto y texto atenuado sobre el fondo
+teñido. Todas dan AA.
 
 ## §2 Una sola carcasa, dirigida por datos
 

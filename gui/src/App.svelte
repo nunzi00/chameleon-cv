@@ -14,6 +14,7 @@
   import { browserStorage } from './lib/storage';
   import { applyTheme, readTheme, storeTheme, type ThemeMode } from './lib/theme';
   import { applyUiLayout, navShapeOf, readUiLayout, storeUiLayout, type UiLayout } from './lib/ui-layout';
+  import { applyPalette, readPalette, storePalette, type Palette } from './lib/palette';
 
   interface Props {
     /** Solo para las pruebas: un `fetch` distinto del global. */
@@ -31,6 +32,8 @@
   let layout = $state<UiLayout>(readUiLayout(preferences));
   /** El mosaico del lanzador, en las organizaciones que no tienen navegación permanente. */
   let launcherOpen = $state(false);
+  /** La paleta de colores (T-9.30). */
+  let palette = $state<Palette>(readPalette(preferences));
   const navShape = $derived(navShapeOf(layout));
   let stopped = $state(false);
   let gateReason = $state<'expired' | undefined>(undefined);
@@ -74,6 +77,12 @@
     launcherOpen = false;
   }
 
+  function changePalette(next: Palette): void {
+    palette = next;
+    applyPalette(document.documentElement, next);
+    storePalette(preferences, next);
+  }
+
   function toggleNav(): void {
     collapsed = !collapsed;
     storeCollapsed(preferences, collapsed);
@@ -98,6 +107,7 @@
 
   onMount(() => {
     applyUiLayout(document.documentElement, layout);
+    applyPalette(document.documentElement, palette);
     const session = startSession(location.hash, sessionStorage);
     token = session.token;
     if (session.fromUrl) {
@@ -126,8 +136,8 @@
   <SessionGate onsubmit={enter} reason={gateReason} />
 {:else}
   <div class="cv-app" data-rail={collapsed && navShape === 'sidebar' ? '' : undefined} data-nav={navShape}>
-    {#if navShape === 'sidebar'}
-      <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape="sidebar" />
+    {#if navShape === 'sidebar' || navShape === 'rail'}
+      <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape={navShape} />
     {/if}
     <div class="cv-content">
       <ContextHeader
@@ -136,13 +146,15 @@
         {layout}
         onthemechange={changeTheme}
         onlayoutchange={changeLayout}
+        {palette}
+        onpalettechange={changePalette}
         onshutdown={shutdown}
         launcher={navShape === 'launcher'}
         {launcherOpen}
         onlaunchertoggle={() => (launcherOpen = !launcherOpen)}
       />
-      {#if navShape === 'ribbon'}
-        <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape="ribbon" />
+      {#if navShape === 'ribbon' || navShape === 'tabs'}
+        <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape={navShape} />
       {/if}
       <main class="cv-main">
         {#if launcherOpen && navShape === 'launcher'}

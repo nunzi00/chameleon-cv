@@ -60,4 +60,25 @@ describe('Nav', () => {
     render(Nav, { props: { route: { page: 'estado' }, reviews: 0, collapsed: false, ontoggle: () => undefined, shape: 'launcher' as const } });
     expect(() => (screen.getByRole('link', { name: 'Generar' }) as HTMLElement).click()).not.toThrow();
   });
+
+  it('el raíl son solo iconos, con el nombre en el aria-label y sin plegado (T-9.30)', () => {
+    render(Nav, { props: { route: { page: 'generar' }, reviews: 3, collapsed: false, ontoggle: () => undefined, shape: 'rail' as const } });
+    expect(screen.getAllByRole('link')).toHaveLength(12);
+    // Sin texto visible, el nombre sigue estando para quien no ve el icono.
+    expect(screen.getByRole('link', { name: 'Generar' }).getAttribute('aria-current')).toBe('page');
+    // Plegar un raíl no significa nada: el botón no está.
+    expect(screen.queryByRole('button', { name: /Plegar/ })).toBeNull();
+    expect(screen.getByLabelText('3 pendientes')).toBeTruthy();
+  });
+
+  it('las pestañas enseñan los grupos y SOLO las pantallas del grupo actual (T-9.30)', () => {
+    render(Nav, { props: { route: { page: 'generar' }, reviews: 0, collapsed: false, ontoggle: () => undefined, shape: 'tabs' as const } });
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Perfil', 'Producir', 'Co-piloto']);
+    // «Generar» vive en «Producir»: esa pestaña queda seleccionada y su grupo es el que se despliega.
+    expect(tabs.find((tab) => tab.textContent === 'Producir')?.getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('link', { name: 'Salidas' })).toBeTruthy();
+    // Y las de otro grupo no están: es lo que hace que quepan con su nombre.
+    expect(screen.queryByRole('link', { name: 'Duplicados' })).toBeNull();
+  });
 });
