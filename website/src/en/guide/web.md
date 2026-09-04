@@ -46,7 +46,7 @@ header, in all of them:
 | | Navigation | Content |
 | --- | --- | --- |
 | **Barra** | permanent sidebar, with groups | fluid; the one for long sessions |
-| **Raíl** | sidebar reduced to icons, 56 px | almost all the width, navigation always visible |
+| **Raíl** | sidebar reduced to icons, 56 px, with a button to expand it | almost all the width, navigation always visible |
 | **Cinta** | a single row on top, no sidebar | full width and more density |
 | **Pestañas** | groups on top and, below, the current group | full width; they fit with their names |
 | **Tablero** | none: a grid when you ask for it | in cards, with more air |
@@ -60,8 +60,11 @@ The screens are the same, and in the same order, in all six: the shell changes, 
 
 Next to it, the **palette**: Pizarra (the usual one), Bosque, Ámbar, Índigo and Carbón, each with its own values
 for light and dark. Three independent axes —the light you have, how you work and which colour you want to look
-at— chosen separately. No palette touches text or card colours: that is where the verified contrast lives, and
-all five pass AA in light and dark.
+at— chosen separately. Each palette tints the accent, the background, the cards and the borders; the only thing
+that never changes is the **text colour**, which is where the contrast lives. The eight combinations are checked
+by reading the stylesheet and all pass AA, in light and dark.
+
+In **Raíl**, a button expands the sidebar over the content to read the names; choosing a screen closes it.
 
 ## Estado — artifact status
 

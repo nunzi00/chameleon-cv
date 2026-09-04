@@ -18,7 +18,7 @@ producto:
 | Organización | Navegación | Cabecera | Contenido | Para |
 | --- | --- | --- | --- | --- |
 | **Barra** (por defecto) | lateral permanente, con grupos | completa, con chips | fluido | trabajar muchas horas seguidas, saltando entre pantallas |
-| **Raíl** | lateral reducida a iconos, 56 px | completa | casi todo el ancho | el mejor aprovechamiento vertical: la navegación siempre visible por 56 px |
+| **Raíl** | lateral en iconos, 56 px, **desplegable** | completa | casi todo el ancho | el mejor aprovechamiento vertical: la navegación siempre visible por 56 px |
 | **Cinta** | fila superior, sin lateral | integrada y compacta | todo el ancho, más densidad | pantallas anchas y sesiones largas de una sola pantalla |
 | **Pestañas** | dos niveles arriba: grupos y, debajo, el grupo actual | integrada y compacta | todo el ancho | doce pantallas no caben en una fila con su nombre; por grupos, sí |
 | **Tablero** | ninguna permanente: mosaico bajo demanda | completa | en tarjetas, más aire y radios mayores | entrar, mirar el estado y hacer una cosa |
@@ -39,11 +39,28 @@ El **tercer eje**, y los tres son ortogonales a propósito: `data-theme` es la l
 frío), **Bosque**, **Ámbar**, **Índigo** y **Carbón** (monocroma).
 
 Cada paleta trae sus valores para claro **y** para oscuro, porque un acento que funciona sobre blanco casi nunca
-funciona sobre casi-negro. Y ninguna toca `--cv-surface` ni `--cv-text`: ahí vive el contraste verificado del
-texto, y teñirlo sería cambiar un color a costa de poder leer. Sí tiñen `--cv-bg`, que es superficie de fondo, y
-por eso **las ocho combinaciones (cuatro paletas × claro y oscuro) se comprueban en las pruebas leyendo la hoja
-de estilos**: acento sobre superficie, texto del acento sobre acento, y texto y texto atenuado sobre el fondo
-teñido. Todas dan AA.
+funciona sobre casi-negro.
+
+**Corregido el 4-sep, encargo del PO**: la primera versión solo teñía el acento y el fondo, y «no se notaba
+mucho» — con razón, porque las tarjetas, la barra y la cabecera son `--cv-surface`, que es la mitad de lo que
+se ve. Ahora las paletas tiñen también **superficies y bordes**. Lo que **no** cambian es el color del **texto**:
+ahí vive el contraste, y teñirlo sería cambiar un color a costa de poder leer.
+
+Como las superficies sí se tiñen, **las ocho combinaciones (cuatro paletas × claro y oscuro) se comprueban en
+las pruebas leyendo la hoja de estilos**, con ocho parejas cada una: acento sobre superficie, texto del acento
+sobre acento, y texto y texto atenuado sobre el fondo, sobre las tarjetas y sobre los fondos hundidos. Todas dan
+AA; la peor a 5,28:1.
+
+### El raíl se despliega
+
+«Raíl» nació sin plegado —«plegar un raíl no significa nada»— y eso dejaba los nombres fuera del alcance de
+quien no reconoce un icono. Ahora tiene su propio botón: desplegado **se ensancha por encima del contenido**,
+sin recolocar la pantalla, y **elegir una pantalla lo cierra**, porque es una ojeada y no un modo. No se guarda
+en el navegador por lo mismo: una ojeada no es una preferencia.
+
+Un detalle que costó una prueba: el desplegado se queda **en el flujo del grid**, con un `width` mayor que su
+columna, en vez de salirse con `position: absolute`. Sacándolo, el grid daba la columna de 56 px al contenido y
+la pantalla entera saltaba al desplegar.
 
 ## §2 Una sola carcasa, dirigida por datos
 

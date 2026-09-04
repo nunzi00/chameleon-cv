@@ -708,9 +708,20 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 /* Raíl: la barra reducida a iconos de forma permanente. La navegación cuesta 56 px y no se pliega: plegar un
    raíl no significa nada. Los nombres viven en el `title` y en el `aria-label` de cada icono. */
 .cv-rail { padding: 12px 8px; align-items: center; }
-.cv-rail-brand { display: flex; align-items: center; justify-content: center; padding: 2px 0 12px; color: var(--cv-accent); }
+.cv-rail-brand { display: flex; align-items: center; gap: 9px; justify-content: center; padding: 2px 0 12px; color: var(--cv-accent); }
 .cv-rail .cv-nav-item { justify-content: center; padding: 9px 0; position: relative; }
 .cv-rail .cv-nav-count { position: absolute; top: 2px; right: 4px; }
+/* Plegado, los nombres no ocupan; el icono conserva su `aria-label`, así que nada se pierde por el camino. */
+.cv-rail:not(.cv-rail-open) .cv-nav-item > span, .cv-rail:not(.cv-rail-open) .cv-rail-brand > span { display: none; }
+/* Desplegado se ensancha POR ENCIMA del contenido: leer los nombres no debería recolocar la pantalla entera.
+   Se queda EN el flujo del grid —con `width` mayor que su columna, que desborda— en vez de salirse con
+   `position: absolute`: sacándolo, el grid daba la columna de 56 px al contenido y la pantalla saltaba. */
+.cv-rail-open { position: relative; width: 232px; z-index: 20; overflow: visible;
+  align-items: stretch; box-shadow: 0 8px 28px rgba(16, 24, 40, .18); }
+.cv-rail-open .cv-nav-item { justify-content: flex-start; gap: 10px; padding: 8px; }
+.cv-rail-open .cv-nav-count { position: static; }
+.cv-rail-open .cv-rail-brand { justify-content: flex-start; padding-left: 6px; }
+.cv-app[data-nav='rail'] { position: relative; }
 :root[data-ui='rail'] .cv-page, :root[data-ui='rail'] .cv-page-wide { padding: 18px 20px 52px; max-width: none; }
 
 /* Pestañas: dos niveles arriba. El primero son los grupos y el segundo solo las pantallas del grupo actual, así
@@ -727,52 +738,73 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
 :root[data-ui='pestanas'] .cv-page, :root[data-ui='pestanas'] .cv-page-wide { padding: 16px 18px 48px; max-width: none; }
 :root[data-ui='pestanas'] .cv-header { padding: 8px 16px; }
 
-/* ── Paletas (T-9.30) ────────────────────────────────────────────────────────
-   El tercer eje, ortogonal a la organización y al claro/oscuro: qué color se mira. Cada paleta trae sus
-   valores para claro Y para oscuro, porque un acento que funciona sobre blanco casi nunca funciona sobre
-   casi-negro. Ninguna toca `--cv-surface` ni `--cv-text`: ahí vive el contraste verificado del texto, y teñirlo
-   sería cambiar un color a costa de poder leer. «pizarra» no escribe atributo: son los tokens base de arriba.
-   Los pares de contraste de las cuatro se comprueban en `lib/contrast.test.ts`, en claro y en oscuro. */
+/* ── Paletas (T-9.30, ampliadas en T-9.31) ───────────────────────────────────
+   El tercer eje, ortogonal a la organización y al claro/oscuro: qué color se mira. Cada paleta trae sus valores
+   para claro Y para oscuro, porque un acento que funciona sobre blanco casi nunca funciona sobre casi-negro.
+   Tiñen el acento, el fondo, LAS SUPERFICIES y los bordes —tarjetas, barra y cabecera son `--cv-surface`, y sin
+   teñirlas el cambio casi no se veía (encargo del PO del 4-sep)—, pero NO el color del texto: ese se queda, y
+   por eso cada pareja se comprueba contra las superficies teñidas en `lib/contrast.test.ts`. «pizarra» no
+   escribe atributo: son los tokens base de arriba. */
 :root[data-palette='bosque'] {
   --cv-accent: #1b6b39;
   --cv-accent-hover: #14522c;
   --cv-accent-text: #ffffff;
-  --cv-accent-soft: #e8f3ec;
+  --cv-accent-soft: #dcece2;
   --cv-focus: #1b6b39;
-  --cv-bg: #f2f7f3;
+  --cv-bg: #eef5f1;
+  --cv-surface: #f7fbf8;
+  --cv-surface-2: #eaf3ed;
+  --cv-border: #d8e7dd;
+  --cv-border-strong: #b4cebd;
 }
 :root[data-palette='ambar'] {
   --cv-accent: #8a5a00;
   --cv-accent-hover: #6d4700;
   --cv-accent-text: #ffffff;
-  --cv-accent-soft: #fdf3e0;
+  --cv-accent-soft: #f8ecd6;
   --cv-focus: #8a5a00;
-  --cv-bg: #faf6ee;
+  --cv-bg: #faf4ea;
+  --cv-surface: #fffdf9;
+  --cv-surface-2: #f6efe2;
+  --cv-border: #ebdfc9;
+  --cv-border-strong: #d3c2a4;
 }
 :root[data-palette='indigo'] {
   --cv-accent: #4a3aa8;
   --cv-accent-hover: #3a2d85;
   --cv-accent-text: #ffffff;
-  --cv-accent-soft: #ecebf9;
+  --cv-accent-soft: #e6e3f6;
   --cv-focus: #4a3aa8;
-  --cv-bg: #f4f3fb;
+  --cv-bg: #f2f0fb;
+  --cv-surface: #fbfaff;
+  --cv-surface-2: #efedf9;
+  --cv-border: #dedaee;
+  --cv-border-strong: #c1badd;
 }
 :root[data-palette='carbon'] {
   --cv-accent: #24292e;
   --cv-accent-hover: #14181d;
   --cv-accent-text: #ffffff;
-  --cv-accent-soft: #eef0f2;
+  --cv-accent-soft: #e7e9ec;
   --cv-focus: #24292e;
-  --cv-bg: #f3f4f5;
+  --cv-bg: #eef0f2;
+  --cv-surface: #fbfbfc;
+  --cv-surface-2: #f0f1f3;
+  --cv-border: #dcdfe3;
+  --cv-border-strong: #bcc1c7;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-palette='bosque']:not([data-theme='light']) {
     --cv-accent: #6fbf87;
     --cv-accent-hover: #8fd3a3;
     --cv-accent-text: #0b1a10;
-    --cv-accent-soft: #14241a;
+    --cv-accent-soft: #16281d;
     --cv-focus: #6fbf87;
-    --cv-bg: #0e1411;
+    --cv-bg: #0c110e;
+    --cv-surface: #131a16;
+    --cv-surface-2: #18211c;
+    --cv-border: #24322a;
+    --cv-border-strong: #35473b;
   }
 }
 @media (prefers-color-scheme: dark) {
@@ -780,9 +812,13 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
     --cv-accent: #e0a83a;
     --cv-accent-hover: #ecbf63;
     --cv-accent-text: #201700;
-    --cv-accent-soft: #2a2113;
+    --cv-accent-soft: #2c2313;
     --cv-focus: #e0a83a;
-    --cv-bg: #15120c;
+    --cv-bg: #12100b;
+    --cv-surface: #1a1712;
+    --cv-surface-2: #221d16;
+    --cv-border: #33291d;
+    --cv-border-strong: #47392a;
   }
 }
 @media (prefers-color-scheme: dark) {
@@ -790,9 +826,13 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
     --cv-accent: #a99cf0;
     --cv-accent-hover: #c0b6f6;
     --cv-accent-text: #14103a;
-    --cv-accent-soft: #1e1b33;
+    --cv-accent-soft: #221f36;
     --cv-focus: #a99cf0;
-    --cv-bg: #111018;
+    --cv-bg: #0f0e15;
+    --cv-surface: #17161f;
+    --cv-surface-2: #1d1c28;
+    --cv-border: #2b2939;
+    --cv-border-strong: #3d3a50;
   }
 }
 @media (prefers-color-scheme: dark) {
@@ -800,40 +840,60 @@ pre.cv-diff { margin: 0; padding: 8px 0; border: 1px solid var(--cv-border); bor
     --cv-accent: #d8dde3;
     --cv-accent-hover: #eef1f4;
     --cv-accent-text: #14181d;
-    --cv-accent-soft: #232a33;
+    --cv-accent-soft: #242a31;
     --cv-focus: #d8dde3;
-    --cv-bg: #101214;
+    --cv-bg: #0e1012;
+    --cv-surface: #17191c;
+    --cv-surface-2: #1d2024;
+    --cv-border: #2a2e33;
+    --cv-border-strong: #3a3f46;
   }
 }
 :root[data-palette='bosque'][data-theme='dark'] {
   --cv-accent: #6fbf87;
   --cv-accent-hover: #8fd3a3;
   --cv-accent-text: #0b1a10;
-  --cv-accent-soft: #14241a;
+  --cv-accent-soft: #16281d;
   --cv-focus: #6fbf87;
-  --cv-bg: #0e1411;
+  --cv-bg: #0c110e;
+  --cv-surface: #131a16;
+  --cv-surface-2: #18211c;
+  --cv-border: #24322a;
+  --cv-border-strong: #35473b;
 }
 :root[data-palette='ambar'][data-theme='dark'] {
   --cv-accent: #e0a83a;
   --cv-accent-hover: #ecbf63;
   --cv-accent-text: #201700;
-  --cv-accent-soft: #2a2113;
+  --cv-accent-soft: #2c2313;
   --cv-focus: #e0a83a;
-  --cv-bg: #15120c;
+  --cv-bg: #12100b;
+  --cv-surface: #1a1712;
+  --cv-surface-2: #221d16;
+  --cv-border: #33291d;
+  --cv-border-strong: #47392a;
 }
 :root[data-palette='indigo'][data-theme='dark'] {
   --cv-accent: #a99cf0;
   --cv-accent-hover: #c0b6f6;
   --cv-accent-text: #14103a;
-  --cv-accent-soft: #1e1b33;
+  --cv-accent-soft: #221f36;
   --cv-focus: #a99cf0;
-  --cv-bg: #111018;
+  --cv-bg: #0f0e15;
+  --cv-surface: #17161f;
+  --cv-surface-2: #1d1c28;
+  --cv-border: #2b2939;
+  --cv-border-strong: #3d3a50;
 }
 :root[data-palette='carbon'][data-theme='dark'] {
   --cv-accent: #d8dde3;
   --cv-accent-hover: #eef1f4;
   --cv-accent-text: #14181d;
-  --cv-accent-soft: #232a33;
+  --cv-accent-soft: #242a31;
   --cv-focus: #d8dde3;
-  --cv-bg: #101214;
+  --cv-bg: #0e1012;
+  --cv-surface: #17191c;
+  --cv-surface-2: #1d2024;
+  --cv-border: #2a2e33;
+  --cv-border-strong: #3a3f46;
 }

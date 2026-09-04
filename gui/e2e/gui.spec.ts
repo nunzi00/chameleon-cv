@@ -248,7 +248,7 @@ test('la barra lateral y la cabecera de contexto (T-8.6 S1): chips en toda panta
   await page.setViewportSize({ width: 1280, height: 800 });
 });
 
-test('las cuatro organizaciones de la interfaz cambian con un click y sobreviven a la recarga (T-9.29)', async ({ page }) => {
+test('las seis organizaciones de la interfaz cambian con un click y sobreviven a la recarga (T-9.29, T-9.30)', async ({ page }) => {
   await openWithToken(page, state);
   const banner = page.getByRole('banner');
   const organizacion = banner.getByRole('group', { name: 'Organización de la interfaz' });
@@ -270,6 +270,16 @@ test('las cuatro organizaciones de la interfaz cambian con un click y sobreviven
   await expect(page.locator('html')).toHaveAttribute('data-ui', 'rail');
   await expect(page.locator('.cv-rail')).toBeVisible();
   await expect(page.locator('.cv-ribbon')).toHaveCount(0);
+  // Y se despliega para leer los nombres, POR ENCIMA del contenido: el ancho del área principal no cambia.
+  const anchoAntes = (await page.locator('.cv-main').boundingBox())?.width ?? 0;
+  await page.getByRole('button', { name: 'Desplegar la barra' }).click();
+  await expect(page.locator('.cv-rail-open')).toBeVisible();
+  await expect(page.locator('.cv-rail-open').getByRole('link', { name: 'Duplicados' })).toBeVisible();
+  expect((await page.locator('.cv-main').boundingBox())?.width ?? 0).toBe(anchoAntes);
+  // Elegir una pantalla lo cierra: es una ojeada, no un modo.
+  await page.locator('.cv-rail-open').getByRole('link', { name: 'Salidas' }).click();
+  await expect(page.locator('.cv-rail-open')).toHaveCount(0);
+  await page.getByRole('heading', { name: 'Salidas' }).waitFor();
 
   // Pestañas: dos niveles; el segundo enseña SOLO las pantallas del grupo en el que estás.
   await organizacion.getByRole('button', { name: 'Pestañas' }).click();

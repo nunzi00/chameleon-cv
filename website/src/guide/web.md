@@ -37,7 +37,7 @@ cabecera, en todas ellas:
 | | Navegación | Contenido |
 | --- | --- | --- |
 | **Barra** | lateral permanente, con grupos | fluido; la de trabajar muchas horas seguidas |
-| **Raíl** | lateral en iconos, 56 px | casi todo el ancho, con la navegación siempre visible |
+| **Raíl** | lateral en iconos, 56 px, con su botón para desplegarla | casi todo el ancho, con la navegación siempre visible |
 | **Cinta** | una fila arriba, sin lateral | todo el ancho y más densidad |
 | **Pestañas** | grupos arriba y, debajo, el grupo actual | todo el ancho; caben con su nombre |
 | **Tablero** | ninguna: mosaico cuando lo pides | en tarjetas, con más aire |
@@ -51,8 +51,12 @@ Las pantallas son las mismas y están en el mismo orden en las seis: cambia la c
 
 Y al lado, la **paleta**: Pizarra (la de siempre), Bosque, Ámbar, Índigo y Carbón, cada una con sus valores para
 claro y para oscuro. Son **tres ejes independientes** —la luz que tienes, cómo trabajas y qué color quieres
-mirar— y se eligen por separado. Ninguna paleta toca el color del texto ni el de las tarjetas: ahí vive el
-contraste que se comprueba en las pruebas, y las cinco pasan AA en claro y en oscuro.
+mirar— y se eligen por separado. Cada paleta tiñe el acento, el fondo, las tarjetas y los bordes; lo único que no
+cambia es el **color del texto**, que es donde vive el contraste. Las ocho combinaciones se comprueban leyendo
+la hoja de estilos y todas pasan AA, en claro y en oscuro.
+
+En **Raíl**, un botón despliega la barra por encima del contenido para leer los nombres; elegir una pantalla la
+cierra sola.
 
 ## Estado del artefacto
 

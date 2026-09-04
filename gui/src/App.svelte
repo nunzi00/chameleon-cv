@@ -32,6 +32,8 @@
   let layout = $state<UiLayout>(readUiLayout(preferences));
   /** El mosaico del lanzador, en las organizaciones que no tienen navegación permanente. */
   let launcherOpen = $state(false);
+  /** El raíl desplegado: es una ojeada, no una preferencia, así que no se guarda. */
+  let railOpen = $state(false);
   /** La paleta de colores (T-9.30). */
   let palette = $state<Palette>(readPalette(preferences));
   const navShape = $derived(navShapeOf(layout));
@@ -73,8 +75,9 @@
     layout = next;
     applyUiLayout(document.documentElement, next);
     storeUiLayout(preferences, next);
-    // Cambiar de organización cierra el mosaico: la nueva puede tener la navegación siempre a la vista.
+    // Cambiar de organización cierra lo que estuviera abierto: la nueva puede tener otra navegación entera.
     launcherOpen = false;
+    railOpen = false;
   }
 
   function changePalette(next: Palette): void {
@@ -84,6 +87,11 @@
   }
 
   function toggleNav(): void {
+    // En el raíl, el mismo botón despliega y pliega: ahí no hay preferencia que guardar.
+    if (navShape === 'rail') {
+      railOpen = !railOpen;
+      return;
+    }
     collapsed = !collapsed;
     storeCollapsed(preferences, collapsed);
   }
@@ -137,7 +145,7 @@
 {:else}
   <div class="cv-app" data-rail={collapsed && navShape === 'sidebar' ? '' : undefined} data-nav={navShape}>
     {#if navShape === 'sidebar' || navShape === 'rail'}
-      <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape={navShape} />
+      <Nav {route} reviews={context?.reviews ?? 0} {collapsed} ontoggle={toggleNav} shape={navShape} expanded={railOpen} onnavigate={() => (railOpen = false)} />
     {/if}
     <div class="cv-content">
       <ContextHeader

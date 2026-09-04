@@ -60,18 +60,23 @@ describe('contraste de la paleta', () => {
     ['ambar', 'claro'], ['ambar', 'oscuro'],
     ['indigo', 'claro'], ['indigo', 'oscuro'],
     ['carbon', 'claro'], ['carbon', 'oscuro'],
-  ])('la paleta «%s» en modo %s da AA sobre los neutros de la hoja (T-9.30)', (palette, mode) => {
+  ])('la paleta «%s» en modo %s da AA sobre sus propias superficies (T-9.30)', (palette, mode) => {
     // Una paleta solo redefine el acento y el fondo: los neutros donde vive el texto salen del bloque base.
     const base = readTokens(css, mode === 'claro' ? ':root {' : ":root[data-theme='dark']");
     const own = readTokens(css, mode === 'claro' ? `:root[data-palette='${palette}'] {` : `:root[data-palette='${palette}'][data-theme='dark']`);
-    expect(own.size).toBe(6);
+    expect(own.size).toBe(10);
     const value = (name: string): string => own.get(name) ?? (base.get(name) as string);
     const pairs: readonly (readonly [string, string])[] = [
       ['--cv-accent', '--cv-surface'],
       ['--cv-accent-text', '--cv-accent'],
-      // El fondo de la aplicación SÍ se tiñe: hay que comprobar que sobre él se sigue leyendo.
+      // Las superficies SÍ se tiñen —es lo que hace que la paleta se note—, así que hay que comprobar que
+      // sobre las tres se sigue leyendo: fondo, tarjetas y fondos hundidos.
       ['--cv-text', '--cv-bg'],
       ['--cv-muted', '--cv-bg'],
+      ['--cv-text', '--cv-surface'],
+      ['--cv-muted', '--cv-surface'],
+      ['--cv-text', '--cv-surface-2'],
+      ['--cv-muted', '--cv-surface-2'],
     ];
     for (const [fg, bg] of pairs) {
       expect(contrastRatio(value(fg), value(bg)), `${palette}/${mode}: ${fg} sobre ${bg}`).toBeGreaterThanOrEqual(4.5);

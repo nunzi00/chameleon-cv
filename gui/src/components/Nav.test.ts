@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import Nav from './Nav.svelte';
@@ -61,14 +61,26 @@ describe('Nav', () => {
     expect(() => (screen.getByRole('link', { name: 'Generar' }) as HTMLElement).click()).not.toThrow();
   });
 
-  it('el raíl son solo iconos, con el nombre en el aria-label y sin plegado (T-9.30)', () => {
-    render(Nav, { props: { route: { page: 'generar' }, reviews: 3, collapsed: false, ontoggle: () => undefined, shape: 'rail' as const } });
+  it('el raíl son iconos con el nombre en el aria-label, y se despliega desde su propio botón (T-9.30, T-9.31)', async () => {
+    const ontoggle = vi.fn();
+    const onnavigate = vi.fn();
+    const { rerender } = render(Nav, { props: { route: { page: 'generar' }, reviews: 3, collapsed: false, ontoggle, shape: 'rail' as const, onnavigate } });
     expect(screen.getAllByRole('link')).toHaveLength(12);
     // Sin texto visible, el nombre sigue estando para quien no ve el icono.
     expect(screen.getByRole('link', { name: 'Generar' }).getAttribute('aria-current')).toBe('page');
-    // Plegar un raíl no significa nada: el botón no está.
-    expect(screen.queryByRole('button', { name: /Plegar/ })).toBeNull();
     expect(screen.getByLabelText('3 pendientes')).toBeTruthy();
+
+    // Plegado, el botón invita a desplegar y lo dice en su estado.
+    const boton = screen.getByRole('button', { name: 'Desplegar la barra' });
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    await fireEvent.click(boton);
+    expect(ontoggle).toHaveBeenCalled();
+
+    // Desplegado, el mismo botón pliega, y elegir una pantalla lo cierra: es una ojeada, no un modo.
+    await rerender({ route: { page: 'generar' }, reviews: 3, collapsed: false, ontoggle, shape: 'rail' as const, onnavigate, expanded: true });
+    expect(screen.getByRole('button', { name: 'Plegar la barra' }).getAttribute('aria-expanded')).toBe('true');
+    (screen.getByRole('link', { name: 'Salidas' }) as HTMLElement).click();
+    expect(onnavigate).toHaveBeenCalled();
   });
 
   it('las pestañas enseñan los grupos y SOLO las pantallas del grupo actual (T-9.30)', () => {
