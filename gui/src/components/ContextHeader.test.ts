@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { StatusResponse } from '../lib/api/types';
@@ -144,7 +144,8 @@ describe('ContextHeader: usuarios del espacio de trabajo (T-9.32)', () => {
     const onusercreate = vi.fn(() => Promise.reject(new Error('Ya existe el usuario «invitado1»')));
     render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas', onusercreate } });
     await fireEvent.click(screen.getByRole('button', { name: 'Usuario' }));
-    const input = screen.getByLabelText('Identificador');
+    // El diálogo se carga bajo demanda: no viaja en el paquete que pinta la primera pantalla.
+    const input = await screen.findByLabelText('Identificador');
     await fireEvent.input(input, { target: { value: 'NO VALE' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
     expect(onusercreate).not.toHaveBeenCalled();
@@ -159,10 +160,12 @@ describe('ContextHeader: usuarios del espacio de trabajo (T-9.32)', () => {
     const onusercreate = vi.fn(() => Promise.resolve());
     render(ContextHeader, { props: { ...BASE, users: USERS, user: 'lucas', onusercreate } });
     await fireEvent.click(screen.getByRole('button', { name: 'Usuario' }));
-    await fireEvent.input(screen.getByLabelText('Identificador'), { target: { value: 'invitado2' } });
+    await fireEvent.input(await screen.findByLabelText('Identificador'), { target: { value: 'invitado2' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
     expect(onusercreate).toHaveBeenCalledWith('invitado2');
-    expect(screen.queryByLabelText('Identificador')).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Identificador')).toBeNull();
+    });
   });
 
   it('con el servidor fijado no hay selector, solo el nombre de quien manda', () => {

@@ -111,8 +111,11 @@ describe('cv users', () => {
   it('remove no borra: aparta el espacio entero y dice cómo devolverlo', async () => {
     const h = harness({ '/work/usuarios/invitado1/data/sources/profile.md': PROFILE });
     expect(await runCli(['users', 'remove', 'invitado1'], h.context)).toBe(EXIT_OK);
-    expect(h.stdout()).toContain('su espacio queda entero en /work/usuarios/invitado1.20260904-120000.bak');
-    expect(h.fs.file('/work/usuarios/invitado1.20260904-120000.bak/data/sources/profile.md')?.content).toBe(PROFILE);
+    // La marca de tiempo es la LOCAL de quien ejecuta: se comprueba su forma, no un huso concreto.
+    const backup = /su espacio queda entero en (\/work\/usuarios\/invitado1\.\d{8}-\d{6}\.bak)\n/.exec(h.stdout());
+    expect(backup?.[1]).toBeDefined();
+    expect(h.stdout()).toContain('Para deshacerlo, renómbralo de vuelta a /work/usuarios/invitado1\n');
+    expect(h.fs.file(`${String(backup?.[1])}/data/sources/profile.md`)?.content).toBe(PROFILE);
     expect(await runCli(['users', 'remove', 'invitado1'], h.context)).toBe(EXIT_FAILURE);
   });
 });

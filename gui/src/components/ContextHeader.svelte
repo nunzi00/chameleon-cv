@@ -4,7 +4,6 @@
   import { THEME_OPTIONS, type ThemeMode } from '../lib/theme';
   import { UI_LAYOUTS, type UiLayout } from '../lib/ui-layout';
   import { PALETTES, type Palette } from '../lib/palette';
-  import { isUserId } from '../lib/user-id';
   import Dialog from './Dialog.svelte';
   import Icon from './Icon.svelte';
 
@@ -66,33 +65,11 @@
   const canChoose = $derived(pinnedUser === undefined);
   const showUsers = $derived(canChoose && users.length > 0);
   let creating = $state(false);
-  let newUser = $state('');
-  let createError = $state<string | undefined>(undefined);
-  let busy = $state(false);
 
   const ROOT_VALUE = '';
 
   function pick(value: string): void {
     onuserchange?.(value === ROOT_VALUE ? undefined : value);
-  }
-
-  async function create(): Promise<void> {
-    const id = newUser.trim();
-    if (!isUserId(id)) {
-      createError = 'Minúsculas, dígitos y guiones, sin empezar ni terminar en guión.';
-      return;
-    }
-    busy = true;
-    createError = undefined;
-    try {
-      await onusercreate?.(id);
-      creating = false;
-      newUser = '';
-    } catch (caught) {
-      createError = caught instanceof Error ? caught.message : String(caught);
-    } finally {
-      busy = false;
-    }
   }
 
   function shutdown(): void {
@@ -161,19 +138,11 @@
   </button>
 </header>
 
-<Dialog open={creating} title="Nuevo usuario" onclose={() => (creating = false)}>
-  <p>Un usuario es un espacio de trabajo completo dentro de este: sus fuentes, sus salidas y su historial en <code>usuarios/&lt;id&gt;/</code>. Nace con el dataset de ejemplo.</p>
-  <p class="cv-muted">No es una cuenta ni protege nada: quien tenga esta URL y su token puede abrir cualquiera de los usuarios.</p>
-  <label class="cv-field">
-    <span>Identificador</span>
-    <input name="user-id" bind:value={newUser} placeholder="invitado1" autocomplete="off" />
-  </label>
-  {#if createError !== undefined}<p class="cv-error-text">{createError}</p>{/if}
-  <div class="cv-dialog-actions">
-    <button class="cv-button" type="button" onclick={() => (creating = false)}>Cancelar</button>
-    <button class="cv-button primary" type="button" disabled={busy} onclick={create}>{busy ? 'Creando…' : 'Crear'}</button>
-  </div>
-</Dialog>
+{#if creating}
+  {#await import('./UserDialog.svelte') then dialog}
+    <dialog.default onclose={() => (creating = false)} oncreate={async (id) => onusercreate?.(id) ?? Promise.resolve()} />
+  {/await}
+{/if}
 
 <Dialog open={confirm} title="¿Apagar cv serve?" onclose={() => (confirm = false)}>
   <p>La interfaz dejará de funcionar hasta que vuelvas a arrancar <code>cv serve</code>; el token de esta sesión deja de valer.</p>
