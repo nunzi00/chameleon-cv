@@ -10,7 +10,7 @@ ARG GID=1000
 ARG VERSION=dev
 ARG REVISION=unknown
 
-FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS build
+FROM node:26-bookworm-slim@sha256:cd9f682fa2885cd1056e830424764158570061c59736a1da836bc3d73df095ae AS build
 # xz-utils: «cv typst install» extrae el release oficial de Typst (.tar.xz) con el tar del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
