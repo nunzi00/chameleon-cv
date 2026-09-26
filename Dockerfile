@@ -25,7 +25,7 @@ RUN npm run package \
 # Única operación de red del producto, ejecutada aquí para que el runtime no la necesite nunca
 RUN XDG_CACHE_HOME=/opt/cache /opt/chameleon-cv/cv typst install
 
-FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171 AS runtime
+FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 AS runtime
 # El runtime de Ollama (T-8.8) queda deshabilitado dentro de la imagen: Ollama es un servicio de Compose.
 ENV CHAMELEON_CONTAINER=1
 ARG UID
